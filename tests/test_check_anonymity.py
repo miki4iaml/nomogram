@@ -7,6 +7,7 @@ import pytest
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "check_anonymity.py"
 SPEC = importlib.util.spec_from_file_location("check_anonymity", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
 check_anonymity = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(check_anonymity)
 
@@ -17,34 +18,38 @@ UNIX_HOME = "/" + "home/quelquun/projet"
 
 
 @pytest.fixture(autouse=True)
-def in_tmp_path(tmp_path, monkeypatch):
+def in_tmp_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # pre-commit transmet des chemins relatifs au dépôt ; un chemin absolu
     # vers le répertoire temporaire contiendrait le répertoire personnel.
     monkeypatch.chdir(tmp_path)
 
 
 @pytest.fixture
-def patterns_file(tmp_path, monkeypatch):
+def patterns_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     path = tmp_path / "motifs.txt"
     path.write_text(f"# commentaire\n{SECRET}\n", encoding="utf-8")
     monkeypatch.setenv(check_anonymity.ENV_VAR, str(path))
     return path
 
 
-def run(capsys, *args):
+def run(capsys: pytest.CaptureFixture[str], *args: str | Path) -> tuple[int, str, str]:
     names = [str(a.relative_to(Path.cwd())) if isinstance(a, Path) else a for a in args]
     status = check_anonymity.main(names)
     out, err = capsys.readouterr()
     return status, out, err
 
 
-def test_clean_file_passes(tmp_path, patterns_file, capsys):
+def test_clean_file_passes(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "ok.txt"
     f.write_text("rien a signaler\n", encoding="utf-8")
     assert run(capsys, f) == (0, "", "")
 
 
-def test_personal_pattern_reported_without_copying_it(tmp_path, patterns_file, capsys):
+def test_personal_pattern_reported_without_copying_it(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "doc.txt"
     f.write_text("ligne 1\nsigne : Zorglub\n", encoding="utf-8")
     status, out, _ = run(capsys, f)
@@ -53,7 +58,9 @@ def test_personal_pattern_reported_without_copying_it(tmp_path, patterns_file, c
     assert SECRET not in out.lower()
 
 
-def test_generic_pattern_reported(tmp_path, patterns_file, capsys):
+def test_generic_pattern_reported(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "conf.txt"
     f.write_text(f"racine = {UNIX_HOME}\n", encoding="utf-8")
     status, out, _ = run(capsys, f)
@@ -61,13 +68,17 @@ def test_generic_pattern_reported(tmp_path, patterns_file, capsys):
     assert "quelquun" not in out
 
 
-def test_placeholder_path_passes(tmp_path, patterns_file, capsys):
+def test_placeholder_path_passes(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "doc.txt"
     f.write_text("/home/<utilisateur>/projet\n", encoding="utf-8")
     assert run(capsys, f)[0] == 0
 
 
-def test_non_utf8_file_fails(tmp_path, patterns_file, capsys):
+def test_non_utf8_file_fails(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "latin1.txt"
     f.write_bytes("été\n".encode("latin-1"))
     status, out, _ = run(capsys, f)
@@ -75,7 +86,9 @@ def test_non_utf8_file_fails(tmp_path, patterns_file, capsys):
     assert "non UTF-8, non verifie" in out
 
 
-def test_utf16_file_fails(tmp_path, patterns_file, capsys):
+def test_utf16_file_fails(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "utf16.txt"
     f.write_bytes("texte\n".encode("utf-16"))
     status, out, _ = run(capsys, f)
@@ -83,13 +96,17 @@ def test_utf16_file_fails(tmp_path, patterns_file, capsys):
     assert "non UTF-8" in out
 
 
-def test_unreadable_file_fails(tmp_path, patterns_file, capsys):
+def test_unreadable_file_fails(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     status, out, _ = run(capsys, tmp_path / "absent.txt")
     assert status == 1
     assert "illisible, non verifie" in out
 
 
-def test_binary_with_pattern_fails(tmp_path, patterns_file, capsys):
+def test_binary_with_pattern_fails(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "image.png"
     f.write_bytes(b"\x89PNG\0\0\0Author\0ZORGLUB\0\xff\xfe")
     status, out, _ = run(capsys, f)
@@ -98,13 +115,17 @@ def test_binary_with_pattern_fails(tmp_path, patterns_file, capsys):
     assert SECRET not in out.lower()
 
 
-def test_binary_without_pattern_passes(tmp_path, patterns_file, capsys):
+def test_binary_without_pattern_passes(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "image.png"
     f.write_bytes(b"\x89PNG\0\0\0\xff\xfe\x00")
     assert run(capsys, f)[0] == 0
 
 
-def test_path_is_checked_and_masked(tmp_path, patterns_file, capsys):
+def test_path_is_checked_and_masked(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     folder = tmp_path / f"rapport-{SECRET}"
     folder.mkdir()
     f = folder / "notes.txt"
@@ -116,7 +137,9 @@ def test_path_is_checked_and_masked(tmp_path, patterns_file, capsys):
     assert SECRET not in out.lower()
 
 
-def test_configured_but_missing_patterns_file_fails(tmp_path, monkeypatch, capsys):
+def test_configured_but_missing_patterns_file_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setenv(check_anonymity.ENV_VAR, str(tmp_path / "faute.txt"))
     f = tmp_path / "ok.txt"
     f.write_text("rien\n", encoding="utf-8")
@@ -125,7 +148,9 @@ def test_configured_but_missing_patterns_file_fails(tmp_path, monkeypatch, capsy
     assert "fichier absent" in err
 
 
-def test_default_patterns_file_missing_warns(tmp_path, monkeypatch, capsys):
+def test_default_patterns_file_missing_warns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.delenv(check_anonymity.ENV_VAR, raising=False)
     monkeypatch.setattr(check_anonymity, "DEFAULT_PATTERNS_FILE", tmp_path / "x.txt")
     f = tmp_path / "ok.txt"
@@ -135,7 +160,9 @@ def test_default_patterns_file_missing_warns(tmp_path, monkeypatch, capsys):
     assert "aucun fichier de motifs personnels" in err
 
 
-def test_empty_patterns_file_warns(tmp_path, monkeypatch, capsys):
+def test_empty_patterns_file_warns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     path = tmp_path / "motifs.txt"
     path.write_text("# rien\n\n", encoding="utf-8")
     monkeypatch.setenv(check_anonymity.ENV_VAR, str(path))
@@ -146,7 +173,9 @@ def test_empty_patterns_file_warns(tmp_path, monkeypatch, capsys):
     assert "vide" in err
 
 
-def test_invalid_pattern_fails_without_copying_it(tmp_path, monkeypatch, capsys):
+def test_invalid_pattern_fails_without_copying_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     path = tmp_path / "motifs.txt"
     path.write_text(f"ok\n({SECRET}\n", encoding="utf-8")
     monkeypatch.setenv(check_anonymity.ENV_VAR, str(path))
@@ -156,7 +185,9 @@ def test_invalid_pattern_fails_without_copying_it(tmp_path, monkeypatch, capsys)
     assert SECRET not in err.lower()
 
 
-def test_non_utf8_patterns_file_fails(tmp_path, monkeypatch, capsys):
+def test_non_utf8_patterns_file_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     path = tmp_path / "motifs.txt"
     path.write_bytes("é\n".encode("latin-1"))
     monkeypatch.setenv(check_anonymity.ENV_VAR, str(path))
@@ -165,7 +196,9 @@ def test_non_utf8_patterns_file_fails(tmp_path, monkeypatch, capsys):
     assert "illisible" in err
 
 
-def test_commit_msg_ignores_comments_and_diff(tmp_path, patterns_file, capsys):
+def test_commit_msg_ignores_comments_and_diff(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "COMMIT_EDITMSG"
     f.write_text(
         f"feat: ajout\n\n# Author: {SECRET}\n{check_anonymity.SCISSORS}\n+ {SECRET}\n",
@@ -174,7 +207,9 @@ def test_commit_msg_ignores_comments_and_diff(tmp_path, patterns_file, capsys):
     assert run(capsys, "--commit-msg", f)[0] == 0
 
 
-def test_commit_msg_body_is_checked(tmp_path, patterns_file, capsys):
+def test_commit_msg_body_is_checked(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     f = tmp_path / "COMMIT_EDITMSG"
     f.write_text(f"feat: ajout\n\nmerci a {SECRET}\n", encoding="utf-8")
     status, out, _ = run(capsys, "--commit-msg", f)
