@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Hook pre-commit : refuse les informations nominatives ou internes.
 
 Deux sources de motifs (expressions régulières, insensibles à la casse) :
