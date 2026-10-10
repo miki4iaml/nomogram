@@ -65,7 +65,9 @@ workstation, with no heavy dependency.
 ## Releasing
 
 1. Pull request against `develop` (squash): version bump in
-   `pyproject.toml` and release notes, titled `chore: release x.y.z`.
+   `pyproject.toml` and `CITATION.cff`, `[Unreleased]` section of
+   `CHANGELOG.md` turned into `[x.y.z] - date`, titled
+   `chore: release x.y.z`.
 2. Pull request `develop` → `main`, merged with a merge commit (the
    only exception to squash: `main` must hold the exact history of
    `develop`, otherwise both branches diverge at every release).
@@ -93,6 +95,8 @@ No safety rule is bypassed, including during project bootstrap.
 - Propose a plan before any change touching more than two files.
 - No new dependency without explicit approval.
 - No public function without a test.
+- Every user-visible change adds an entry under `[Unreleased]` in
+  `CHANGELOG.md` (Keep a Changelog format).
 - No new file at the repository root unless necessary.
 - Portability: `pathlib`, explicit UTF-8 encoding on every file open,
   no hard-coded shell command, `importlib.resources` for embedded

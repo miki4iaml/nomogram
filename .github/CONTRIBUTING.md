@@ -84,6 +84,17 @@ Then add the public key to GitHub as a *Signing key*
 (Settings → SSH and GPG keys). Your commits should show the
 "Verified" badge. A GPG key works too.
 
+## Security
+
+Never report a vulnerability in a public issue: follow the
+[security policy](SECURITY.md), which uses GitHub's private
+vulnerability reporting.
+
+## Code of conduct
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+By participating, you agree to uphold it.
+
 ## Coding agents
 
 This project uses coding agents; every contribution is reviewed and

@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: nomogram
+abstract: >-
+  A repository of scientific formulas: alternative notations across
+  authors and conventions, parameter units (including empirical ones),
+  validity domains, LaTeX rendering and symbolic computation.
+authors:
+  - alias: Miki
+version: 0.1.0
+license: BSD-3-Clause
+repository-code: "https://github.com/miki4iaml/nomogram"
+keywords:
+  - scientific computing
+  - formulas
+  - units
+  - dimensional analysis
+  - physics
+  - thermodynamics
+  - geoscience
+  - atmospheric science
+  - meteorology
+  - hydrology
+  - psychrometrics
