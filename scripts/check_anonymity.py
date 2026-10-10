@@ -1,38 +1,37 @@
 # SPDX-FileCopyrightText: 2026 Miki
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Hook pre-commit : refuse les informations nominatives ou internes.
+"""Pre-commit hook: reject personal or internal information.
 
-Deux sources de motifs (expressions régulières, insensibles à la casse) :
+Two sources of patterns (regular expressions, case-insensitive):
 
-- des motifs génériques, versionnés ici, qui ne nomment personne
-  (chemins de répertoires personnels) ;
-- des motifs personnels (nom civil, domaine, adresse professionnelle…),
-  lus dans un fichier hors dépôt pour ne jamais les publier. Chemin par
-  défaut : ``~/.config/nomogram/motifs-interdits.txt``, modifiable par la
-  variable d'environnement ``NOMOGRAM_MOTIFS_INTERDITS``. Une expression
-  par ligne, en UTF-8 ; lignes vides et lignes commençant par ``#``
-  ignorées.
+- generic patterns, versioned here, which name nobody (home directory
+  paths);
+- personal patterns (legal name, domain, work email address…), read
+  from a file outside the repository so they are never published.
+  Default path: ``~/.config/nomogram/deny-patterns.txt``, overridden by
+  the ``NOMOGRAM_DENY_PATTERNS`` environment variable. One expression
+  per line, UTF-8; blank lines and lines starting with ``#`` are
+  ignored.
 
-Le script ne réussit jamais sans avoir vérifié :
+The script never succeeds without checking:
 
-- fichier texte non UTF-8 ou illisible : échec ;
-- fichier binaire (contient un octet nul) : recherche dans ses octets
-  bruts, ce qui couvre les métadonnées en clair mais pas les contenus
-  compressés (docx, PDF compressé…) ;
-- chemin du fichier : vérifié comme son contenu ;
-- variable d'environnement définie mais fichier de motifs absent,
-  illisible ou invalide : échec ;
-- ni variable ni fichier par défaut, ou fichier vide : avertissement,
-  seuls les motifs génériques s'appliquent.
+- text file not UTF-8 or unreadable: failure;
+- binary file (contains a null byte): search in its raw bytes, which
+  covers plain-text metadata but not compressed contents (docx,
+  compressed PDF…);
+- file path: checked like its contents;
+- environment variable set but patterns file missing, unreadable or
+  invalid: failure;
+- neither variable nor default file, or empty file: warning, only the
+  generic patterns apply.
 
-Avec ``--commit-msg``, le fichier reçu est un message de commit : les
-lignes de commentaire et tout ce qui suit la ligne de coupe de
-``git commit -v`` sont ignorés, comme Git le fait.
+With ``--commit-msg``, the file received is a commit message: comment
+lines and everything after the scissors line of ``git commit -v`` are
+ignored, as Git does.
 
-Les correspondances sont signalées par ``fichier:ligne`` seulement, sans
-reproduire le texte trouvé ; dans les chemins affichés, les parties
-correspondantes sont masquées.
+Matches are reported as ``file:line`` only, without reproducing the
+text found; in displayed paths, matching parts are masked.
 """
 
 import os
@@ -41,41 +40,41 @@ import sys
 from pathlib import Path
 
 GENERIC_PATTERNS = (
-    # Répertoire personnel Windows : C:\Users\<nom>\ ou C:/Users/<nom>/
+    # Windows home directory: C:\Users\<name>\ or C:/Users/<name>/
     r"\b[A-Za-z]:[\\/](?:Users)[\\/][^\\/\s<]+[\\/]",
-    # Répertoire personnel Unix ou macOS : /home/<nom>/, /Users/<nom>/
+    # Unix or macOS home directory: /home/<name>/, /Users/<name>/
     r"(?<![\w.])/(?:home|Users)/[^/\s<]+/",
 )
 
-ENV_VAR = "NOMOGRAM_MOTIFS_INTERDITS"
-DEFAULT_PATTERNS_FILE = Path.home() / ".config" / "nomogram" / "motifs-interdits.txt"
+ENV_VAR = "NOMOGRAM_DENY_PATTERNS"
+DEFAULT_PATTERNS_FILE = Path.home() / ".config" / "nomogram" / "deny-patterns.txt"
 
 SCISSORS = "# ------------------------ >8 ------------------------"
-FINDING = "information nominative ou interne"
+FINDING = "personal or internal information"
 
 
 class ConfigError(Exception):
-    """Fichier de motifs personnels inutilisable."""
+    """Unusable personal patterns file."""
 
 
 def load_personal_patterns() -> list[re.Pattern[str]]:
-    """Lit et compile les motifs personnels.
+    """Read and compile the personal patterns.
 
-    Renvoie une liste vide, après avertissement, si aucun fichier n'est
-    configuré ou s'il ne contient aucun motif. Lève ``ConfigError`` si le
-    fichier désigné est absent, illisible ou contient un motif invalide.
+    Return an empty list, after a warning, if no file is configured or
+    if it holds no pattern. Raise ``ConfigError`` if the designated file
+    is missing, unreadable or holds an invalid pattern.
     """
     configured = os.environ.get(ENV_VAR)
     path = Path(configured) if configured else DEFAULT_PATTERNS_FILE
     if not path.exists():
         if configured:
-            raise ConfigError(f"{ENV_VAR} désigne un fichier absent : {path}")
-        warn(f"aucun fichier de motifs personnels ({ENV_VAR} ou {path})")
+            raise ConfigError(f"{ENV_VAR} points to a missing file: {path}")
+        warn(f"no personal patterns file ({ENV_VAR} or {path})")
         return []
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        raise ConfigError(f"fichier de motifs illisible : {path}") from exc
+        raise ConfigError(f"unreadable patterns file: {path}") from exc
 
     patterns = []
     for number, line in enumerate(text.splitlines(), start=1):
@@ -85,22 +84,19 @@ def load_personal_patterns() -> list[re.Pattern[str]]:
         try:
             patterns.append(re.compile(source, re.IGNORECASE))
         except re.error:
-            # Le texte de l'erreur peut citer le motif : on ne le reprend pas.
-            raise ConfigError(f"motif invalide ligne {number} de {path}") from None
+            # The error text may quote the pattern: do not repeat it.
+            raise ConfigError(f"invalid pattern on line {number} of {path}") from None
     if not patterns:
-        warn(f"le fichier de motifs personnels est vide : {path}")
+        warn(f"personal patterns file is empty: {path}")
     return patterns
 
 
 def warn(message: str) -> None:
-    print(
-        f"anonymisation : {message} ; seuls les motifs generiques sont appliques.",
-        file=sys.stderr,
-    )
+    print(f"anonymity: {message}; only generic patterns apply.", file=sys.stderr)
 
 
 def mask(text: str, patterns: list[re.Pattern[str]]) -> str:
-    """Masque dans ``text`` les parties qui correspondent à un motif."""
+    """Mask the parts of ``text`` that match a pattern."""
     for pattern in patterns:
         text = pattern.sub("***", text)
     return text
@@ -111,7 +107,7 @@ def matches(text: str, patterns: list[re.Pattern[str]]) -> bool:
 
 
 def message_lines(text: str) -> list[str]:
-    """Lignes d'un message de commit telles que Git les conservera."""
+    """Lines of a commit message as Git will keep them."""
     lines = text.splitlines()
     if SCISSORS in lines:
         lines = lines[: lines.index(SCISSORS)]
@@ -121,27 +117,27 @@ def message_lines(text: str) -> list[str]:
 def check_file(
     name: str, patterns: list[re.Pattern[str]], *, commit_msg: bool = False
 ) -> list[str]:
-    """Renvoie les signalements pour le fichier ``name`` (vide si conforme)."""
+    """Return the findings for file ``name`` (empty if compliant)."""
     shown = mask(name, patterns)
     findings = []
     if not commit_msg and matches(name, patterns):
-        findings.append(f"{shown}: chemin : {FINDING}")
+        findings.append(f"{shown}: path: {FINDING}")
 
     try:
         data = Path(name).read_bytes()
     except OSError:
-        return [*findings, f"{shown}: illisible, non verifie"]
+        return [*findings, f"{shown}: unreadable, not checked"]
 
     if b"\0" in data and not data.startswith((b"\xff\xfe", b"\xfe\xff")):
         raw = (data.decode("latin-1"), data.decode("utf-8", errors="replace"))
         if any(matches(text, patterns) for text in raw):
-            findings.append(f"{shown}: binaire : {FINDING}")
+            findings.append(f"{shown}: binary: {FINDING}")
         return findings
 
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
-        return [*findings, f"{shown}: non UTF-8, non verifie"]
+        return [*findings, f"{shown}: not UTF-8, not checked"]
 
     lines = message_lines(text) if commit_msg else text.splitlines()
     findings.extend(
@@ -158,7 +154,7 @@ def main(argv: list[str]) -> int:
     try:
         personal = load_personal_patterns()
     except ConfigError as exc:
-        print(f"anonymisation : {exc}", file=sys.stderr)
+        print(f"anonymity: {exc}", file=sys.stderr)
         return 2
     patterns = [re.compile(p, re.IGNORECASE) for p in GENERIC_PATTERNS] + personal
 
