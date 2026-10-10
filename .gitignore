@@ -234,8 +234,12 @@ CLAUDE.md
 CLAUDE.local.md
 AGENTS.local.md
 
-# Editeur : reglages propres au poste, pas au projet.
-.vscode/
+# Editeur : seuls les reglages partages du projet sont versionnes ;
+# le reste du dossier reste propre au poste.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
 
 # Windows
 Thumbs.db

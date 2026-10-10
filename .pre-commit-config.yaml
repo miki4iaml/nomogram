@@ -1,9 +1,10 @@
 # Controles locaux : format, lint, secrets, anonymisation avant chaque
-# commit ; format du message au stade commit-msg ; tests au push.
+# commit ; format du message au stade commit-msg ; typage et tests
+# au push.
 #
 # Installation : uv sync && uv run pre-commit install
 #
-# Prerequis : uv. Les hooks ruff et pytest passent par `uv run` pour
+# Prerequis : uv. Les hooks ruff, mypy et pytest passent par `uv run` pour
 # utiliser les versions figees dans uv.lock ; sans uv, ils echouent.
 #
 # Chaque `rev` est une empreinte de commit (jamais une etiquette
@@ -87,6 +88,14 @@ repos:
         language: pygrep
         args: [--multiline]
         stages: [commit-msg]
+
+      - id: mypy
+        name: mypy
+        entry: uv run --frozen mypy
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
 
       - id: pytest
         name: pytest
