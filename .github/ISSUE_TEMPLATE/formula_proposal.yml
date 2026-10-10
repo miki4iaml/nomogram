@@ -1,0 +1,52 @@
+name: Formula proposal
+description: Propose a formula, or an alternative formulation, for the repository.
+labels: [formula]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A formula enters the repository with its source, units and
+        validity domain. Please fill in as much as you can.
+  - type: input
+    id: name
+    attributes:
+      label: Formula name and computed quantity
+      placeholder: "Magnus formula, saturation vapor pressure over water"
+    validations:
+      required: true
+  - type: textarea
+    id: expression
+    attributes:
+      label: Expression (LaTeX)
+      render: latex
+    validations:
+      required: true
+  - type: textarea
+    id: parameters
+    attributes:
+      label: Parameters and units
+      description: |
+        Every symbol with its meaning and unit, including empirical
+        coefficients and the units they assume.
+    validations:
+      required: true
+  - type: textarea
+    id: validity
+    attributes:
+      label: Validity domain
+      description: Ranges of the inputs, stated accuracy, known limits.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Author, publication, DOI or standard reference.
+    validations:
+      required: true
+  - type: textarea
+    id: notations
+    attributes:
+      label: Known alternative notations or formulations
+    validations:
+      required: false

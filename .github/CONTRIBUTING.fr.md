@@ -86,6 +86,17 @@ Puis enregistrer la clé publique sur GitHub comme *Signing key*
 (Settings → SSH and GPG keys). Le badge « Verified » doit apparaître
 sur vos commits. Une clé GPG convient aussi.
 
+## Sécurité
+
+Ne signalez jamais une vulnérabilité dans une issue publique : suivez
+la [politique de sécurité](SECURITY.md), qui passe par le signalement
+privé de vulnérabilités de GitHub.
+
+## Code de conduite
+
+Ce projet applique le [Contributor Covenant](CODE_OF_CONDUCT.md). En
+participant, vous vous engagez à le respecter.
+
 ## Agents de codage
 
 Ce projet utilise des agents de codage ; toute contribution est relue
