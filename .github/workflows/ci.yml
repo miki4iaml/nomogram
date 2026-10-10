@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  qualite:
-    name: qualite
+  quality:
+    name: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -37,7 +37,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
           # Distinct from the tests cache (ubuntu, 3.12), avoiding a collision.
-          cache-suffix: qualite
+          cache-suffix: quality
 
       - run: uv sync --frozen
 

@@ -67,7 +67,7 @@ génériques. Le hook ne recopie jamais un motif dans ses messages.
 3. PR vers `develop`. Le titre de la PR suit le même format : il
    devient le message du commit à la fusion par squash.
 4. La CI doit être verte. Contrôles exigés :
-   - `qualite` : les hooks ci-dessus, sur tout le dépôt ;
+   - `quality` : les hooks ci-dessus, sur tout le dépôt ;
    - `tests` : Ubuntu et Windows × Python 3.12 et 3.13 ;
    - `signatures` : chaque commit de la PR est signé et vérifié.
 5. La branche doit être à jour avec `develop` avant fusion.

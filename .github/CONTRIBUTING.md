@@ -64,7 +64,7 @@ only. The hook never echoes a pattern in its messages.
 3. Open a pull request against `develop`. Its title follows the same
    format: it becomes the commit message on squash merge.
 4. CI must be green. Required checks:
-   - `qualite`: the hooks above, on the whole repository;
+   - `quality`: the hooks above, on the whole repository;
    - `tests`: Ubuntu and Windows × Python 3.12 and 3.13;
    - `signatures`: every commit of the pull request is signed and
      verified.
