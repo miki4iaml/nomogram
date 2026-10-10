@@ -226,9 +226,9 @@ __marimo__/
 # pouvoir rejouer la comparaison quand il evolue.
 # ============================================================
 
-# Instructions et outillage d'agents de codage : propres a chaque
-# contributeur ou a chaque equipe contributrice, donc non publies ici.
-# Ce qui doit etre partage entre contributeurs vit dans un depot prive.
+# Instructions et outillage d'agents de codage propres a chaque
+# contributeur : non publies. Les regles communes a tous les
+# contributeurs et a leurs agents vivent dans AGENTS.md, versionne.
 .claude/
 CLAUDE.md
 CLAUDE.local.md
