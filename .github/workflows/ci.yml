@@ -35,6 +35,8 @@ jobs:
           version: "0.12.18"
           python-version: "3.12"
           enable-cache: true
+          # Distinct du cache de tests (ubuntu, 3.12), sinon collision.
+          cache-suffix: qualite
 
       - run: uv sync --frozen
 
