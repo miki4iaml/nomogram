@@ -122,7 +122,7 @@ No safety rule is bypassed, including during project bootstrap.
   verified.
 - **`.vscode` partly versioned**: `settings.json`, `extensions.json`
   and `tasks.json` are shared (ruff and mypy from the environment,
-  recommended and unwanted extensions, "Portes de qualité" task); the
+  recommended and unwanted extensions, "Quality gates" task); the
   rest of the folder stays local. The interpreter is not set: the
   Python extension discovers `.venv` on its own. Do not reintroduce
   `python.defaultInterpreterPath` pointing to a folder: the Python

@@ -220,22 +220,22 @@ __marimo__/
 .streamlit/secrets.toml
 
 # ============================================================
-# Ecarts au modele github/gitignore/Python.gitignore
-# Source : https://github.com/github/gitignore  (recupere le 2026-09-30)
-# Tout ce qui precede est le modele amont, conserve tel quel pour
-# pouvoir rejouer la comparaison quand il evolue.
+# Deviations from github/gitignore/Python.gitignore
+# Source: https://github.com/github/gitignore  (retrieved 2026-09-30)
+# Everything above is the upstream template, kept as is so that the
+# comparison can be replayed when it changes.
 # ============================================================
 
-# Instructions et outillage d'agents de codage propres a chaque
-# contributeur : non publies. Les regles communes a tous les
-# contributeurs et a leurs agents vivent dans AGENTS.md, versionne.
+# Coding agent instructions and tooling specific to each contributor:
+# not published. Rules shared by all contributors and their agents
+# live in AGENTS.md, which is versioned.
 .claude/
 CLAUDE.md
 CLAUDE.local.md
 AGENTS.local.md
 
-# Editeur : seuls les reglages partages du projet sont versionnes ;
-# le reste du dossier reste propre au poste.
+# Editor: only the shared project settings are versioned; the rest of
+# the folder stays local to each workstation.
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
@@ -245,14 +245,14 @@ AGENTS.local.md
 Thumbs.db
 desktop.ini
 
-# Bac a sable : essais locaux, jamais publies.
+# Sandbox: local experiments, never published.
 scratch/
 
-# Rapports d'outils de controle
+# Reports from checking tools
 gitleaks-report.json
 
-# Volontairement NON ignores, contrairement a un reflexe courant :
-#   uv.lock         versionne, pour des environnements reproductibles
-#                   chez les contributeurs et en integration continue
-#   .python-version versionne, pour aligner les postes sur la version
-#                   de developpement
+# Deliberately NOT ignored, contrary to a common reflex:
+#   uv.lock         versioned, for reproducible environments for
+#                   contributors and in continuous integration
+#   .python-version versioned, to align workstations on the
+#                   development version

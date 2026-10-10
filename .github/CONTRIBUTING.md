@@ -34,7 +34,7 @@ The second command installs the hooks at all three stages
 | commit-msg | anonymity of the message, Conventional Commits, ASCII-only subject |
 | pre-push | strict mypy, pytest |
 
-In VS Code, the "Portes de qualité" (quality gates) task runs ruff
+In VS Code, the "Quality gates" task runs ruff
 check, ruff format --check, mypy and pytest in sequence.
 
 ### Anonymity
@@ -45,8 +45,8 @@ patterns, versioned in the repository, and your personal patterns
 (legal name, email domain, organization…), read from a file outside
 the repository so they are never published:
 
-- `~/.config/nomogram/motifs-interdits.txt` by default, or the path
-  given by the `NOMOGRAM_MOTIFS_INTERDITS` environment variable;
+- `~/.config/nomogram/deny-patterns.txt` by default, or the path
+  given by the `NOMOGRAM_DENY_PATTERNS` environment variable;
 - one regular expression per line, UTF-8, case-insensitive; blank
   lines and `#` comments are ignored;
 - no Unicode normalization: list accented and unaccented variants,

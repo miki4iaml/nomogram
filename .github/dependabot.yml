@@ -1,5 +1,5 @@
-# Mises a jour hebdomadaires, PR vers develop, fusion par squash apres
-# relecture. Les commits de Dependabot sont signes par GitHub.
+# Weekly updates, pull requests against develop, squash merge after
+# review. Dependabot commits are signed by GitHub.
 
 version: 2
 updates:

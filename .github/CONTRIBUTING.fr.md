@@ -37,7 +37,7 @@ commit-msg, pre-push).
 | commit-msg | anonymisation du message, Conventional Commits, sujet sans accent |
 | pre-push | mypy strict, pytest |
 
-Dans VS Code, la tâche « Portes de qualité » enchaîne ruff check,
+Dans VS Code, la tâche « Quality gates » enchaîne ruff check,
 ruff format --check, mypy et pytest.
 
 ### Anonymisation
@@ -48,8 +48,8 @@ applique des motifs génériques, versionnés, et vos motifs personnels
 (nom civil, domaine de messagerie, organisation…), lus dans un fichier
 hors dépôt pour ne jamais être publiés :
 
-- `~/.config/nomogram/motifs-interdits.txt` par défaut, ou le chemin
-  donné par la variable d'environnement `NOMOGRAM_MOTIFS_INTERDITS` ;
+- `~/.config/nomogram/deny-patterns.txt` par défaut, ou le chemin
+  donné par la variable d'environnement `NOMOGRAM_DENY_PATTERNS` ;
 - une expression régulière par ligne, en UTF-8, insensible à la casse ;
   lignes vides et commentaires `#` ignorés ;
 - pas de normalisation Unicode : prévoir les variantes avec et sans

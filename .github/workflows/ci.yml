@@ -1,9 +1,10 @@
-# Integration continue : reprend les controles locaux (pre-commit) et
-# execute les tests sur la matrice complete, bloquante, Ubuntu et
-# Windows x Python 3.12 et 3.13.
+# Continuous integration: replays the local checks (pre-commit) and
+# runs the tests on the complete, blocking matrix, Ubuntu and Windows x
+# Python 3.12 and 3.13.
 #
-# Actions epinglees par empreinte de commit (impose par le depot) ;
-# mises a jour par Dependabot.
+# Actions pinned by commit SHA (enforced by the repository); updated by
+# Dependabot. Job names are required checks in the rulesets: renaming
+# one requires updating the rulesets first.
 
 name: CI
 
@@ -35,24 +36,24 @@ jobs:
           version: "0.12.18"
           python-version: "3.12"
           enable-cache: true
-          # Distinct du cache de tests (ubuntu, 3.12), sinon collision.
+          # Distinct from the tests cache (ubuntu, 3.12), avoiding a collision.
           cache-suffix: qualite
 
       - run: uv sync --frozen
 
-      # no-commit-to-branch echouerait sur un push vers develop ou main ;
-      # les rulesets du depot assurent deja cette protection.
-      - name: pre-commit (stade pre-commit)
+      # no-commit-to-branch would fail on a push to develop or main; the
+      # repository rulesets already provide this protection.
+      - name: pre-commit (pre-commit stage)
         run: uv run --frozen pre-commit run --all-files --show-diff-on-failure
         env:
           SKIP: no-commit-to-branch
 
-      - name: pre-commit (stade pre-push, mypy et pytest)
+      - name: pre-commit (pre-push stage, mypy and pytest)
         run: uv run --frozen pre-commit run --hook-stage pre-push --all-files
 
-  # La fusion par squash produit un commit signe par GitHub : la regle
-  # de signature des rulesets ne voit donc pas les commits de la PR.
-  # Ce job exige que chacun d'eux soit signe et verifie par GitHub.
+  # A squash merge produces a commit signed by GitHub, so the ruleset
+  # signature rule never sees the commits of the pull request. This job
+  # requires each of them to be signed and verified by GitHub.
   signatures:
     name: signatures
     if: github.event_name == 'pull_request'
@@ -62,19 +63,19 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - name: Commits de la PR signes et verifies
+      - name: Pull request commits signed and verified
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          non_verifies=$(gh api --paginate "repos/$REPO/pulls/$PR/commits" \
+          unverified=$(gh api --paginate "repos/$REPO/pulls/$PR/commits" \
             --jq '.[] | select(.commit.verification.verified | not) | .sha[0:7]')
-          if [ -n "$non_verifies" ]; then
-            echo "::error::Commits non signes ou non verifies : $non_verifies"
+          if [ -n "$unverified" ]; then
+            echo "::error::Unsigned or unverified commits: $unverified"
             exit 1
           fi
-          echo "Tous les commits de la PR sont signes et verifies."
+          echo "All pull request commits are signed and verified."
 
   tests:
     name: tests (${{ matrix.os }}, ${{ matrix.python }})

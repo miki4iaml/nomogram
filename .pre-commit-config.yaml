@@ -1,14 +1,14 @@
-# Controles locaux : format, lint, secrets, anonymisation avant chaque
-# commit ; format du message au stade commit-msg ; typage et tests
-# au push.
+# Local checks: formatting, lint, secrets and anonymity before each
+# commit; message format at the commit-msg stage; typing and tests on
+# push.
 #
-# Installation : uv sync && uv run pre-commit install
+# Setup: uv sync && uv run pre-commit install
 #
-# Prerequis : uv. Les hooks ruff, mypy et pytest passent par `uv run` pour
-# utiliser les versions figees dans uv.lock ; sans uv, ils echouent.
+# Prerequisite: uv. The ruff, mypy and pytest hooks run through `uv run`
+# to use the versions locked in uv.lock; without uv, they fail.
 #
-# Chaque `rev` est une empreinte de commit (jamais une etiquette
-# mouvante), mise a jour par : uv run pre-commit autoupdate --freeze
+# Every `rev` is a commit SHA (never a moving tag), updated with:
+# uv run pre-commit autoupdate --freeze
 
 default_install_hook_types: [pre-commit, commit-msg, pre-push]
 default_stages: [pre-commit]
@@ -58,18 +58,18 @@ repos:
 
   - repo: local
     hooks:
-      # Motifs generiques ici ; motifs personnels dans un fichier hors
-      # depot (voir l'en-tete du script). Pas de filtre de type : les
-      # binaires sont verifies aussi. `verbose` rend visible
-      # l'avertissement quand aucun motif personnel n'est configure.
+      # Generic patterns here; personal patterns in a file outside the
+      # repository (see the script header). No type filter: binaries
+      # are checked too. `verbose` shows the warning when no personal
+      # pattern is configured.
       - id: check-anonymity
-        name: anonymisation
+        name: anonymity
         entry: python scripts/check_anonymity.py
         language: python
         verbose: true
         require_serial: true
       - id: check-anonymity-msg
-        name: anonymisation du message de commit
+        name: anonymity of the commit message
         entry: python scripts/check_anonymity.py --commit-msg
         language: python
         stages: [commit-msg]
@@ -83,7 +83,7 @@ repos:
   - repo: local
     hooks:
       - id: ascii-subject
-        name: sujet de commit sans accent
+        name: ascii-only commit subject
         entry: '\A[^\n]*[^\x00-\x7F]'
         language: pygrep
         args: [--multiline]
