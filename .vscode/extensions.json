@@ -6,7 +6,8 @@
     "charliermarsh.ruff",
     "ms-python.mypy-type-checker",
     "tamasfe.even-better-toml",
-    "redhat.vscode-yaml"
+    "redhat.vscode-yaml",
+    "github.vscode-github-actions"
   ],
   "unwantedRecommendations": [
     "ms-python.black-formatter",

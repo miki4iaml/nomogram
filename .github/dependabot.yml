@@ -1,0 +1,20 @@
+# Mises a jour hebdomadaires, PR vers develop, fusion par squash apres
+# relecture. Les commits de Dependabot sont signes par GitHub.
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: uv
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
