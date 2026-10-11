@@ -30,7 +30,7 @@ The second command installs the hooks at all three stages
 
 | Stage | Checks |
 |---|---|
-| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, gitleaks, nbstripout, anonymity |
+| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity |
 | commit-msg | anonymity of the message, Conventional Commits, ASCII-only subject |
 | pre-push | strict mypy, pytest |
 

@@ -10,7 +10,8 @@ import pytest
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "check_anonymity.py"
 SPEC = importlib.util.spec_from_file_location("check_anonymity", SCRIPT)
-assert SPEC is not None and SPEC.loader is not None
+assert SPEC is not None
+assert SPEC.loader is not None
 check_anonymity = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(check_anonymity)
 

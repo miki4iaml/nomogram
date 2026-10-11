@@ -33,7 +33,7 @@ commit-msg, pre-push).
 
 | Stade | Contrôles |
 |---|---|
-| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, gitleaks, nbstripout, anonymisation |
+| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation |
 | commit-msg | anonymisation du message, Conventional Commits, sujet sans accent |
 | pre-push | mypy strict, pytest |
 

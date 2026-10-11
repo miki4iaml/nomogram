@@ -1,13 +1,22 @@
-# Weekly updates, pull requests against develop, squash merge after
-# review. Dependabot commits are signed by GitHub.
+# Grouped updates (one pull request per ecosystem), against develop,
+# squash merge after review. Dependabot commits are signed by GitHub.
+# Security updates stay individual and immediate (Dependabot default);
+# version updates wait 7 days after a release (cooldown), so that a
+# compromised release is more likely to be caught before adoption.
 
 version: 2
 updates:
+  # Monthly, grouped, as suggested by SPEC 8 for action pins.
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: ci
 
@@ -16,5 +25,10 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        patterns: ["*"]
     commit-message:
       prefix: build

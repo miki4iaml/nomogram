@@ -45,6 +45,22 @@ repos:
         language: system
         types_or: [python, pyi, jupyter]
         require_serial: true
+      # Known misspellings only; skips are set in [tool.codespell].
+      - id: codespell
+        name: codespell
+        entry: uv run --frozen codespell
+        language: system
+        types: [text]
+        exclude: '(\.fr\.md|uv\.lock)$'
+        require_serial: true
+      # Static security audit of the workflows; offline for
+      # reproducibility, no token needed.
+      - id: zizmor
+        name: zizmor
+        entry: uv run --frozen zizmor --offline
+        language: system
+        files: '^\.github/(workflows/[^/]+\.ya?ml|dependabot\.ya?ml)$'
+        require_serial: true
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
