@@ -46,3 +46,6 @@ and this project adheres to
   the same checks as the other lists.
 - `_priv/` folder ignored at the repository root, for each
   contributor's personal material.
+- Coverage reports uploaded to Codecov from every CI matrix cell
+  (OIDC, no stored token; one flag per OS and Python version),
+  informational only; Codecov badge in both README files.
