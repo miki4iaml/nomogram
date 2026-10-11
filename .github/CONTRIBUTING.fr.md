@@ -68,7 +68,8 @@ génériques. Le hook ne recopie jamais un motif dans ses messages.
    devient le message du commit à la fusion par squash.
 4. La CI doit être verte. Contrôles exigés :
    - `quality` : les hooks ci-dessus, sur tout le dépôt ;
-   - `tests` : Ubuntu et Windows × Python 3.12 et 3.13 ;
+   - `tests` : Ubuntu et Windows × Python 3.12 et 3.13, avec un plancher
+     de couverture des branches à 80 % ;
    - `signatures` : chaque commit de la PR est signé et vérifié.
 5. La branche doit être à jour avec `develop` avant fusion.
 

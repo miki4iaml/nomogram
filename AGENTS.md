@@ -135,12 +135,18 @@ No safety rule is bypassed, including during project bootstrap.
   would be OS-specific.
 - **mypy at pre-push**: deliberate overlap with CI, so that failures
   happen locally rather than after the push. Keep an eye on push time.
+- **Coverage**: branch coverage measured with coverage.py (no
+  pytest-cov); an 80 % floor is enforced in every cell of the CI test
+  matrix, the common target (Codecov's usual recommendation; Google's
+  guideline rates 75 % commendable, 90 % exemplary). The pre-push hook
+  runs plain pytest to stay fast; CI is authoritative for coverage.
 
 ## Commands
 
 ```
 uv sync                                    # environment
 uv run pytest                              # tests
+uv run coverage run -m pytest && uv run coverage report   # coverage
 uv run ruff check --fix && uv run ruff format
 uv run mypy                                # strict typing
 uv run --python 3.13 pytest                # reproduce CI

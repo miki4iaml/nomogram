@@ -51,6 +51,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "codespell>=2.4.3",
+    "coverage>=7.16.2",
     "mypy>=2.4.0",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
@@ -72,6 +73,19 @@ strict = true
 filterwarnings = ["error"]
 addopts = ["-ra", "--showlocals"]
 log_level = "INFO"
+
+[tool.coverage.run]
+branch = true
+# Explicit: the hook script is loaded from its path by importlib.
+source = ["src/nomogram", "scripts"]
+# Same paths on Windows and Linux, so that Codecov can merge reports.
+relative_files = true
+
+[tool.coverage.report]
+# Floor, not target: the actual rate is visible in reports and Codecov.
+fail_under = 80
+show_missing = true
+exclude_also = ['if __name__ == "__main__":']
 
 [tool.ruff.lint]
 # On top of ruff's default selection, which Dependabot bumps surface in CI.
