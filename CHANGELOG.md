@@ -31,3 +31,13 @@ and this project adheres to
   exceptions.
 - Branch coverage measured with coverage.py, with an 80 % floor
   enforced in every cell of the CI test matrix.
+- Anonymity hook: tool-level names, not tied to the project
+  (`ANONYMITY_DENY_PATTERNS`, `~/.config/anonymity/deny-patterns.txt`,
+  `$XDG_CONFIG_HOME` honored), so that one personal list serves every
+  repository; several patterns files allowed (`os.pathsep`), each
+  required to exist; guided setup (`--init` creates a commented starter
+  patterns file); the patterns file protects itself (refused inside
+  the repository, found from any subdirectory, marker line rejected in
+  any committed file, even in CI); non-printable characters
+  neutralized in displayed names and paths; beginner-friendly
+  documentation of its purpose, usage and limits.
