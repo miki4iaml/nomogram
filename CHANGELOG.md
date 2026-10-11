@@ -23,3 +23,9 @@ and this project adheres to
 - Contributor documentation: `AGENTS.md`, contributing guide (English
   and French), security policy, code of conduct, issue and pull request
   templates, citation file.
+- Tooling aligned with the Scientific Python development guide:
+  spelling check (codespell) and workflow security audit (zizmor) as
+  hooks, extra ruff rule families, strict pytest configuration with
+  warnings as errors, extra mypy checks, grouped Dependabot updates
+  with a 7-day cooldown, manual CI trigger, documented `sp-repo-review`
+  exceptions.

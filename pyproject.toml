@@ -50,13 +50,52 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "codespell>=2.4.3",
     "mypy>=2.4.0",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "ruff>=0.16.9",
+    "zizmor>=1.30.1",
 ]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 files = ["src", "tests", "scripts"]
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+strict = true
+filterwarnings = ["error"]
+addopts = ["-ra", "--showlocals"]
+log_level = "INFO"
+
+[tool.ruff.lint]
+# On top of ruff's default selection, which Dependabot bumps surface in CI.
+extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20"]
+
+[tool.ruff.lint.per-file-ignores]
+# Fixtures requested for their side effects look like unused arguments.
+"tests/**" = ["ARG001"]
+# The hook is a command-line tool: printing is its output.
+"scripts/**" = ["T20"]
+
+[tool.codespell]
+skip = "*.fr.md,uv.lock"
+
+[tool.repo-review.ignore]
+PC110 = "ruff format runs as a local hook through uv run --frozen (single version source: uv.lock)"
+PC140 = "mypy runs as a local hook through uv run --frozen (single version source: uv.lock)"
+PC160 = "codespell runs as a local hook through uv run --frozen (single version source: uv.lock)"
+PC190 = "ruff check runs as a local hook through uv run --frozen (single version source: uv.lock)"
+SEC001 = "zizmor runs as a local hook through uv run --frozen (single version source: uv.lock)"
+PC901 = "pre-commit.ci is not used; CI replays the hooks itself"
+PC902 = "pre-commit.ci is not used; CI replays the hooks itself"
+PC903 = "pre-commit.ci is not used; CI replays the hooks itself"
+PC180 = "no markdown formatter, by choice (dependency control, hand-written texts)"
+PY007 = "uv run is the task runner, identical on every OS"
+PY004 = "temporary: documentation (Sphinx, Read the Docs) not started yet"
+PC170 = "temporary: no reStructuredText until the documentation exists"
