@@ -65,7 +65,8 @@ only. The hook never echoes a pattern in its messages.
    format: it becomes the commit message on squash merge.
 4. CI must be green. Required checks:
    - `quality`: the hooks above, on the whole repository;
-   - `tests`: Ubuntu and Windows × Python 3.12 and 3.13;
+   - `tests`: Ubuntu and Windows × Python 3.12 and 3.13, with an 80 %
+     branch coverage floor;
    - `signatures`: every commit of the pull request is signed and
      verified.
 5. The branch must be up to date with `develop` before merging.

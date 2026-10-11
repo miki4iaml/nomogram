@@ -29,3 +29,5 @@ and this project adheres to
   warnings as errors, extra mypy checks, grouped Dependabot updates
   with a 7-day cooldown, manual CI trigger, documented `sp-repo-review`
   exceptions.
+- Branch coverage measured with coverage.py, with an 80 % floor
+  enforced in every cell of the CI test matrix.
