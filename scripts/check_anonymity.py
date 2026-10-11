@@ -16,7 +16,9 @@ Two sources of patterns (regular expressions, case-insensitive):
   the tool, not to a project: one personal list can serve every
   repository. One expression per line, UTF-8; blank lines and lines
   starting with ``#`` are ignored. ``--init`` creates a commented
-  starter file.
+  starter file. Project-specific files can be added for one clone only
+  in ``.git/anonymity-deny-patterns`` (never committed): one path per
+  line, absolute or relative to the repository root.
 
 The patterns file itself must never be published:
 
@@ -76,6 +78,9 @@ def config_home() -> Path:
 # every repository that uses this hook.
 ENV_VAR = "ANONYMITY_DENY_PATTERNS"
 DEFAULT_PATTERNS_FILE = config_home() / "anonymity" / "deny-patterns.txt"
+# Per-clone declaration of project-specific patterns files, inside the git
+# directory, so never committed.
+CLONE_DECLARATION = "anonymity-deny-patterns"
 
 SCISSORS = "# ------------------------ >8 ------------------------"
 FINDING = "personal or internal information"
@@ -148,29 +153,72 @@ def inside_repository(path: Path) -> bool:
     return path.resolve().is_relative_to(repository_root())
 
 
+def git_directory(root: Path) -> Path | None:
+    """The git directory of ``root``: ``.git`` itself, or its ``gitdir:`` target."""
+    dot_git = root / ".git"
+    if dot_git.is_dir():
+        return dot_git
+    if dot_git.is_file():
+        text = dot_git.read_text(encoding="utf-8").strip()
+        if text.startswith("gitdir:"):
+            return (root / text.removeprefix("gitdir:").strip()).resolve()
+    return None
+
+
+def clone_patterns_paths() -> list[Path]:
+    """Project-specific patterns files declared for this clone only.
+
+    The declaration lives in ``.git/anonymity-deny-patterns``, which git
+    never commits: one path per line, absolute or relative to the
+    repository root; blank lines and ``#`` comments are ignored. It lets a
+    repository add its own patterns without touching the environment
+    variable, which applies to every repository.
+    """
+    root = repository_root()
+    git_dir = git_directory(root)
+    declaration = git_dir / CLONE_DECLARATION if git_dir else None
+    if declaration is None or not declaration.is_file():
+        return []
+    paths = []
+    for line in declaration.read_text(encoding="utf-8").splitlines():
+        entry = line.strip()
+        if entry and not entry.startswith("#"):
+            path = Path(entry).expanduser()
+            paths.append(path if path.is_absolute() else root / path)
+    return paths
+
+
 def load_personal_patterns() -> list[re.Pattern[str]]:
     """Read and compile the personal patterns.
 
-    Return an empty list, after a warning, if no file is configured or
-    if they hold no pattern. Raise ``ConfigError`` if a designated file
-    is inside the repository, missing, unreadable or holds an invalid
-    pattern: a configured file is never skipped silently.
+    Sources: the environment variable (or the default file), then the
+    files declared for this clone. Return an empty list, after a warning,
+    if no file is found or if they hold no pattern. Raise ``ConfigError``
+    if a designated file is inside the repository, missing, unreadable or
+    holds an invalid pattern: a configured file is never skipped silently.
     """
     paths, configured = patterns_paths()
+    origin = ENV_VAR
+    sources = [(path, configured, origin) for path in paths]
+    sources += [
+        (path, True, f".git/{CLONE_DECLARATION}") for path in clone_patterns_paths()
+    ]
     patterns = []
-    for path in paths:
+    found = False
+    for path, required, origin in sources:
         shown = printable(str(path))
         if inside_repository(path):
             raise ConfigError(
                 f"the patterns file must stay outside the repository: {shown}"
             )
         if not path.exists():
-            if configured:
-                raise ConfigError(f"{ENV_VAR} points to a missing file: {shown}")
+            if required:
+                raise ConfigError(f"{origin} points to a missing file: {shown}")
             warn(
                 f"no personal patterns file ({ENV_VAR} or {shown}); create one with --init"
             )
-            return []
+            continue
+        found = True
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
@@ -187,10 +235,9 @@ def load_personal_patterns() -> list[re.Pattern[str]]:
                 raise ConfigError(
                     f"invalid pattern on line {number} of {shown}"
                 ) from None
-    if not patterns:
-        warn(
-            f"personal patterns file is empty: {printable(os.pathsep.join(map(str, paths)))}"
-        )
+    if found and not patterns:
+        shown = printable(os.pathsep.join(str(path) for path, _, _ in sources))
+        warn(f"personal patterns file is empty: {shown}")
     return patterns
 
 

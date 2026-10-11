@@ -41,3 +41,8 @@ and this project adheres to
   any committed file, even in CI); non-printable characters
   neutralized in displayed names and paths; beginner-friendly
   documentation of its purpose, usage and limits.
+- Anonymity hook: project-specific patterns files declared for one
+  clone only in `.git/anonymity-deny-patterns` (never committed), with
+  the same checks as the other lists.
+- `_priv/` folder ignored at the repository root, for each
+  contributor's personal material.
