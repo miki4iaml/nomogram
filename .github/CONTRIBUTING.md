@@ -39,21 +39,58 @@ check, ruff format --check, mypy and pytest in sequence.
 
 ### Anonymity
 
-The `scripts/check_anonymity.py` hook rejects personal or internal
-information, in file contents and in paths. It applies generic
-patterns, versioned in the repository, and your personal patterns
-(legal name, email domain, organization…), read from a file outside
-the repository so they are never published:
+You do not need to be an expert to stay anonymous here: one command
+sets it up, and the hook then checks every commit for you.
 
-- `~/.config/nomogram/deny-patterns.txt` by default, or the path
-  given by the `NOMOGRAM_DENY_PATTERNS` environment variable;
-- one regular expression per line, UTF-8, case-insensitive; blank
-  lines and `#` comments are ignored;
-- no Unicode normalization: list accented and unaccented variants,
-  and escape dots (`example\.org`).
+**Why.** Personal details leak into public repositories more easily
+than one thinks: your home directory in a path copied from a terminal
+or a notebook output, your employer's email domain, a project codename,
+your legal name in a comment or in a file's metadata. Once pushed, they
+stay in the history.
 
-Without this file, the hook warns and applies the generic patterns
-only. The hook never echoes a pattern in its messages.
+**How it works.** The `scripts/check_anonymity.py` hook rejects a
+commit when a file content, a file path or the commit message matches
+a *deny pattern*. It applies:
+
+- generic patterns, versioned here (home directory paths);
+- your personal patterns, read from a file that lives **outside** the
+  repository, so that the list itself is never published.
+
+The hook reports `file:line` only and never prints a pattern.
+
+**Set it up in one command** (from the repository root):
+
+```
+uv run python scripts/check_anonymity.py --init
+```
+
+It creates `~/.config/nomogram/deny-patterns.txt` (or the path given
+by the `NOMOGRAM_DENY_PATTERNS` environment variable), with
+instructions and commented examples. Edit it to list what you want to
+keep private. Without this file, the hook warns and applies the generic
+patterns only.
+
+**Writing good patterns.** One regular expression per line,
+case-insensitive; blank lines and `#` comments are ignored.
+
+- `\b` marks a word boundary: `\bdoe\b` matches "Doe" but not "Doerr".
+- Escape dots: `example\.org` (a bare dot matches any character).
+- No Unicode normalization: list accented and unaccented variants,
+  for example `h[eé]l[eè]ne`.
+- Do not list your public pseudonym if it appears on purpose in the
+  repository (author field, URLs): every commit would be rejected.
+- Avoid nested quantifiers such as `(a+)+`: they can make the hook
+  hang.
+
+**The list protects itself.** A patterns file inside the repository is
+refused. The file created by `--init` starts with a marker line, and
+any file containing it is rejected, even in CI: a copy of your list
+cannot be committed by mistake. Keep that line.
+
+**What the hook does not cover.** Compressed contents (docx, compressed
+PDF), history that was already pushed, branch and tag names, and
+anything typed on GitHub itself: pull request titles and descriptions,
+issues, comments. Reread those before posting.
 
 ## Contribution workflow
 

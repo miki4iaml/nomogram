@@ -42,21 +42,64 @@ ruff format --check, mypy et pytest.
 
 ### Anonymisation
 
-Le hook `scripts/check_anonymity.py` refuse les informations
-nominatives ou internes, dans le contenu comme dans les chemins. Il
-applique des motifs génériques, versionnés, et vos motifs personnels
-(nom civil, domaine de messagerie, organisation…), lus dans un fichier
-hors dépôt pour ne jamais être publiés :
+Inutile d'être expert pour rester anonyme ici : une commande suffit à
+la mise en place, et le hook vérifie ensuite chaque commit pour vous.
 
-- `~/.config/nomogram/deny-patterns.txt` par défaut, ou le chemin
-  donné par la variable d'environnement `NOMOGRAM_DENY_PATTERNS` ;
-- une expression régulière par ligne, en UTF-8, insensible à la casse ;
-  lignes vides et commentaires `#` ignorés ;
-- pas de normalisation Unicode : prévoir les variantes avec et sans
-  accent, et échapper les points (`exemple\.fr`).
+**Pourquoi.** Des informations personnelles fuient plus facilement
+qu'on ne le croit dans un dépôt public : votre répertoire personnel
+dans un chemin copié d'un terminal ou d'une sortie de notebook, le
+domaine de messagerie de votre employeur, le nom de code d'un projet,
+votre nom civil dans un commentaire ou dans les métadonnées d'un
+fichier. Une fois poussées, elles restent dans l'historique.
 
-Sans ce fichier, le hook avertit et n'applique que les motifs
-génériques. Le hook ne recopie jamais un motif dans ses messages.
+**Fonctionnement.** Le hook `scripts/check_anonymity.py` refuse un
+commit quand le contenu d'un fichier, son chemin ou le message de
+commit correspond à un *motif interdit*. Il applique :
+
+- des motifs génériques, versionnés ici (chemins de répertoires
+  personnels) ;
+- vos motifs personnels, lus dans un fichier situé **hors** du dépôt,
+  pour que la liste elle-même ne soit jamais publiée.
+
+Le hook signale seulement `fichier:ligne` et n'affiche jamais un motif.
+
+**Mise en place en une commande** (depuis la racine du dépôt) :
+
+```
+uv run python scripts/check_anonymity.py --init
+```
+
+Elle crée `~/.config/nomogram/deny-patterns.txt` (ou le chemin donné
+par la variable d'environnement `NOMOGRAM_DENY_PATTERNS`), avec un mode
+d'emploi et des exemples commentés. Complétez-le avec ce que vous
+voulez garder privé. Sans ce fichier, le hook avertit et n'applique que
+les motifs génériques.
+
+**Bien écrire ses motifs.** Une expression régulière par ligne,
+insensible à la casse ; lignes vides et commentaires `#` ignorés.
+
+- `\b` marque une frontière de mot : `\bdoe\b` trouve « Doe » mais pas
+  « Doerr ».
+- Échappez les points : `exemple\.fr` (un point seul vaut n'importe
+  quel caractère).
+- Pas de normalisation Unicode : prévoyez les variantes avec et sans
+  accent, par exemple `h[eé]l[eè]ne`.
+- N'y mettez pas votre pseudonyme public s'il figure volontairement
+  dans le dépôt (auteur, adresses) : tous les commits seraient refusés.
+- Évitez les quantificateurs imbriqués comme `(a+)+` : ils peuvent
+  bloquer le hook.
+
+**La liste se protège elle-même.** Un fichier de motifs situé dans le
+dépôt est refusé. Le fichier créé par `--init` commence par une ligne
+repère, et tout fichier qui la contient est refusé, même en CI : une
+copie de votre liste ne peut pas être commitée par erreur. Gardez cette
+ligne.
+
+**Ce que le hook ne couvre pas.** Les contenus compressés (docx, PDF
+compressé), l'historique déjà poussé, les noms de branches et
+d'étiquettes, et tout ce qui se saisit directement sur GitHub : titres
+et descriptions de PR, issues, commentaires. Relisez-les avant de
+publier.
 
 ## Circuit d'une contribution
 
