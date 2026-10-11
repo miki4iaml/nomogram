@@ -64,11 +64,20 @@ The hook reports `file:line` only and never prints a pattern.
 uv run python scripts/check_anonymity.py --init
 ```
 
-It creates `~/.config/nomogram/deny-patterns.txt` (or the path given
-by the `NOMOGRAM_DENY_PATTERNS` environment variable), with
-instructions and commented examples. Edit it to list what you want to
-keep private. Without this file, the hook warns and applies the generic
-patterns only.
+It creates `~/.config/anonymity/deny-patterns.txt` (under
+`$XDG_CONFIG_HOME` if set), with instructions and commented examples.
+Edit it to list what you want to keep private. Without this file, the
+hook warns and applies the generic patterns only.
+
+**One list for all your repositories.** The names belong to the tool,
+not to this project: any repository using this hook reads the same
+file, so you maintain your list once. To add project-specific patterns
+(a client's codenames, the name of another account you keep separate),
+set the `ANONYMITY_DENY_PATTERNS` environment variable to several
+files, separated like `PATH` (`;` on Windows, `:` elsewhere), for
+example `~/.config/anonymity/deny-patterns.txt;~/.config/anonymity/client.txt`.
+Every listed file must exist: a typo fails the hook instead of being
+silently skipped.
 
 **Writing good patterns.** One regular expression per line,
 case-insensitive; blank lines and `#` comments are ignored.
@@ -85,12 +94,16 @@ case-insensitive; blank lines and `#` comments are ignored.
 **The list protects itself.** A patterns file inside the repository is
 refused. The file created by `--init` starts with a marker line, and
 any file containing it is rejected, even in CI: a copy of your list
-cannot be committed by mistake. Keep that line.
+cannot be committed by mistake. Keep that line; a partial copy without
+it is not detected.
 
 **What the hook does not cover.** Compressed contents (docx, compressed
 PDF), history that was already pushed, branch and tag names, and
 anything typed on GitHub itself: pull request titles and descriptions,
-issues, comments. Reread those before posting.
+issues, comments. Reread those before posting. The hook can also be
+skipped locally (`git commit --no-verify`); CI then still applies the
+generic patterns and the marker check, but never your personal ones,
+which stay on your machine by design.
 
 ## Contribution workflow
 

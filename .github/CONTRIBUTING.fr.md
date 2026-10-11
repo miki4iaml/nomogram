@@ -69,11 +69,22 @@ Le hook signale seulement `fichier:ligne` et n'affiche jamais un motif.
 uv run python scripts/check_anonymity.py --init
 ```
 
-Elle crée `~/.config/nomogram/deny-patterns.txt` (ou le chemin donné
-par la variable d'environnement `NOMOGRAM_DENY_PATTERNS`), avec un mode
-d'emploi et des exemples commentés. Complétez-le avec ce que vous
-voulez garder privé. Sans ce fichier, le hook avertit et n'applique que
-les motifs génériques.
+Elle crée `~/.config/anonymity/deny-patterns.txt` (sous
+`$XDG_CONFIG_HOME` s'il est défini), avec un mode d'emploi et des
+exemples commentés. Complétez-le avec ce que vous voulez garder privé.
+Sans ce fichier, le hook avertit et n'applique que les motifs
+génériques.
+
+**Une seule liste pour tous vos dépôts.** Les noms appartiennent à
+l'outil, pas à ce projet : tout dépôt qui utilise ce hook lit le même
+fichier, et vous ne tenez votre liste qu'une fois. Pour ajouter des
+motifs propres à un projet (noms de code d'un client, nom d'un autre
+compte que vous gardez séparé), donnez à la variable d'environnement
+`ANONYMITY_DENY_PATTERNS` plusieurs fichiers, séparés comme dans `PATH`
+(`;` sous Windows, `:` ailleurs), par exemple
+`~/.config/anonymity/deny-patterns.txt;~/.config/anonymity/client.txt`.
+Chaque fichier listé doit exister : une faute de frappe fait échouer le
+hook au lieu d'être ignorée en silence.
 
 **Bien écrire ses motifs.** Une expression régulière par ligne,
 insensible à la casse ; lignes vides et commentaires `#` ignorés.
@@ -93,13 +104,16 @@ insensible à la casse ; lignes vides et commentaires `#` ignorés.
 dépôt est refusé. Le fichier créé par `--init` commence par une ligne
 repère, et tout fichier qui la contient est refusé, même en CI : une
 copie de votre liste ne peut pas être commitée par erreur. Gardez cette
-ligne.
+ligne : une copie partielle qui ne la contient pas n'est pas détectée.
 
 **Ce que le hook ne couvre pas.** Les contenus compressés (docx, PDF
 compressé), l'historique déjà poussé, les noms de branches et
 d'étiquettes, et tout ce qui se saisit directement sur GitHub : titres
 et descriptions de PR, issues, commentaires. Relisez-les avant de
-publier.
+publier. Le hook peut aussi être sauté en local
+(`git commit --no-verify`) : la CI applique alors toujours les motifs
+génériques et le contrôle de la ligne repère, mais jamais vos motifs
+personnels, qui restent sur votre poste par conception.
 
 ## Circuit d'une contribution
 

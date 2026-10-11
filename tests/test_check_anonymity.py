@@ -4,6 +4,8 @@
 """Tests for the anonymity hook ``scripts/check_anonymity.py``."""
 
 import importlib.util
+import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -326,3 +328,90 @@ def test_init_refuses_inside_repository(
 def test_control_characters_in_names_are_neutralized() -> None:
     findings = check_anonymity.check_file("bad\x1b[31mname.txt", [])
     assert findings == ["bad?[31mname.txt: unreadable, not checked"]
+
+
+def test_several_patterns_files_all_apply(
+    tmp_path: Path,
+    config_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    shared = config_dir / "shared.txt"
+    shared.write_text(f"{SECRET}\n", encoding="utf-8")
+    project = config_dir / "project.txt"
+    project.write_text("codename\n", encoding="utf-8")
+    # Empty entries (doubled or trailing separators) are ignored.
+    value = os.pathsep.join((str(shared), "", str(project), ""))
+    monkeypatch.setenv(check_anonymity.ENV_VAR, value)
+    f = tmp_path / "doc.txt"
+    f.write_text(f"{SECRET}\nCodename\nnothing\n", encoding="utf-8")
+    status, out, _ = run(capsys, f)
+    assert status == 1
+    assert ":1: personal" in out
+    assert ":2: personal" in out
+
+
+def test_one_missing_file_among_several_fails(
+    tmp_path: Path,
+    config_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    shared = config_dir / "shared.txt"
+    shared.write_text(f"{SECRET}\n", encoding="utf-8")
+    value = os.pathsep.join((str(shared), str(config_dir / "typo.txt")))
+    monkeypatch.setenv(check_anonymity.ENV_VAR, value)
+    status, _, err = run(capsys, tmp_path)
+    assert status == 2
+    assert "missing file" in err
+
+
+def test_one_file_inside_repository_among_several_fails(
+    tmp_path: Path,
+    config_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    shared = config_dir / "shared.txt"
+    shared.write_text(f"{SECRET}\n", encoding="utf-8")
+    inside = tmp_path / "project.txt"
+    inside.write_text("codename\n", encoding="utf-8")
+    monkeypatch.setenv(
+        check_anonymity.ENV_VAR, os.pathsep.join((str(shared), str(inside)))
+    )
+    status, _, err = run(capsys, tmp_path)
+    assert status == 2
+    assert "outside the repository" in err
+
+
+def test_config_home_honors_absolute_xdg_only(
+    config_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(config_dir))
+    assert check_anonymity.config_home() == config_dir
+    # The XDG specification says relative values must be ignored.
+    monkeypatch.setenv("XDG_CONFIG_HOME", "relative/dir")
+    assert check_anonymity.config_home() == Path.home() / ".config"
+    monkeypatch.delenv("XDG_CONFIG_HOME")
+    assert check_anonymity.config_home() == Path.home() / ".config"
+
+
+def test_repository_root_found_from_a_subdirectory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".git").mkdir()
+    sub = tmp_path / "src" / "pkg"
+    sub.mkdir(parents=True)
+    monkeypatch.chdir(sub)
+    path = tmp_path / "patterns.txt"
+    path.write_text(f"{SECRET}\n", encoding="utf-8")
+    monkeypatch.setenv(check_anonymity.ENV_VAR, str(path))
+    status, _, err = run(capsys, sub)
+    assert status == 2
+    assert "outside the repository" in err
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="case-insensitive paths")
+def test_inside_repository_ignores_case_on_windows(tmp_path: Path) -> None:
+    path = Path(str(tmp_path / "patterns.txt").upper())
+    assert check_anonymity.inside_repository(path)
