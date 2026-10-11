@@ -79,6 +79,19 @@ example `~/.config/anonymity/deny-patterns.txt;~/.config/anonymity/client.txt`.
 Every listed file must exist: a typo fails the hook instead of being
 silently skipped.
 
+**Patterns for one repository only.** The environment variable applies
+to every repository. To add a list for this repository only, write its
+path in `.git/anonymity-deny-patterns` (inside the git directory, so
+never committed): one path per line, absolute or relative to the
+repository root, for example `../my-private-notes/nomogram-patterns.txt`.
+The same rules apply: the file must exist and stay outside the
+repository.
+
+**Your personal folder.** A `_priv/` folder at the repository root is
+ignored by git: keep your personal notes, analyses or assistant files
+there, and back them up as you wish. Never put a patterns file in it:
+patterns files must stay outside the repository.
+
 **Writing good patterns.** One regular expression per line,
 case-insensitive; blank lines and `#` comments are ignored.
 

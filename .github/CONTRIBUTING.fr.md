@@ -86,6 +86,19 @@ compte que vous gardez séparé), donnez à la variable d'environnement
 Chaque fichier listé doit exister : une faute de frappe fait échouer le
 hook au lieu d'être ignorée en silence.
 
+**Des motifs pour ce seul dépôt.** La variable d'environnement vaut pour
+tous les dépôts. Pour ajouter une liste à ce dépôt seulement, écrivez
+son chemin dans `.git/anonymity-deny-patterns` (dans le dossier git,
+donc jamais commité) : un chemin par ligne, absolu ou relatif à la
+racine du dépôt, par exemple `../mes-notes-privees/motifs-nomogram.txt`.
+Les mêmes règles s'appliquent : le fichier doit exister et rester hors
+du dépôt.
+
+**Votre dossier personnel.** Un dossier `_priv/` à la racine du dépôt
+est ignoré par git : rangez-y vos notes, analyses ou fichiers
+d'assistant, et sauvegardez-les comme vous l'entendez. N'y mettez jamais
+de fichier de motifs : un fichier de motifs doit rester hors du dépôt.
+
 **Bien écrire ses motifs.** Une expression régulière par ligne,
 insensible à la casse ; lignes vides et commentaires `#` ignorés.
 

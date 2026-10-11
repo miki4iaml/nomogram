@@ -241,6 +241,11 @@ AGENTS.local.md
 !.vscode/extensions.json
 !.vscode/tasks.json
 
+# Personal material of each contributor (notes, analyses, assistant
+# instructions and memory): by convention it all lives under _priv/ at
+# the repository root, and is never published.
+_priv/
+
 # Windows
 Thumbs.db
 desktop.ini

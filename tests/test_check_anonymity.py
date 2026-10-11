@@ -415,3 +415,108 @@ def test_repository_root_found_from_a_subdirectory(
 def test_inside_repository_ignores_case_on_windows(tmp_path: Path) -> None:
     path = Path(str(tmp_path / "patterns.txt").upper())
     assert check_anonymity.inside_repository(path)
+
+
+def declare_for_clone(root: Path, *entries: str) -> None:
+    git_dir = root / ".git"
+    git_dir.mkdir(exist_ok=True)
+    text = "# project-specific lists\n\n" + "".join(f"{e}\n" for e in entries)
+    (git_dir / check_anonymity.CLONE_DECLARATION).write_text(text, encoding="utf-8")
+
+
+def test_clone_declaration_adds_project_patterns(
+    tmp_path: Path,
+    patterns_file: Path,
+    config_dir: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project = config_dir / "project.txt"
+    project.write_text("codename\n", encoding="utf-8")
+    declare_for_clone(tmp_path, str(project))
+    f = tmp_path / "doc.txt"
+    f.write_text(f"{SECRET}\nCodename\nnothing\n", encoding="utf-8")
+    status, out, _ = run(capsys, f)
+    assert status == 1
+    assert ":1: personal" in out
+    assert ":2: personal" in out
+
+
+def test_clone_declaration_accepts_paths_relative_to_the_root(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A sibling of the repository root, like a private repository clone.
+    project = tmp_path.parent / f"{tmp_path.name}-private-list.txt"
+    project.write_text("codename\n", encoding="utf-8")
+    declare_for_clone(tmp_path, f"../{project.name}")
+    f = tmp_path / "doc.txt"
+    f.write_text("codename\n", encoding="utf-8")
+    assert run(capsys, f)[0] == 1
+
+
+def test_clone_declaration_applies_without_default_file(
+    tmp_path: Path,
+    config_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.delenv(check_anonymity.ENV_VAR, raising=False)
+    monkeypatch.setattr(check_anonymity, "DEFAULT_PATTERNS_FILE", config_dir / "x.txt")
+    project = config_dir / "project.txt"
+    project.write_text("codename\n", encoding="utf-8")
+    declare_for_clone(tmp_path, str(project))
+    f = tmp_path / "doc.txt"
+    f.write_text("codename\n", encoding="utf-8")
+    status, _, err = run(capsys, f)
+    assert status == 1
+    assert "no personal patterns file" in err
+
+
+def test_clone_declaration_missing_file_fails(
+    tmp_path: Path,
+    patterns_file: Path,
+    config_dir: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    declare_for_clone(tmp_path, str(config_dir / "typo.txt"))
+    status, _, err = run(capsys, tmp_path)
+    assert status == 2
+    assert f".git/{check_anonymity.CLONE_DECLARATION} points to a missing file" in err
+
+
+def test_clone_declaration_inside_repository_fails(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    inside = tmp_path / "project.txt"
+    inside.write_text("codename\n", encoding="utf-8")
+    declare_for_clone(tmp_path, "project.txt")
+    status, _, err = run(capsys, tmp_path)
+    assert status == 2
+    assert "outside the repository" in err
+
+
+def test_clone_declaration_followed_through_a_worktree_gitdir(
+    tmp_path: Path,
+    patterns_file: Path,
+    config_dir: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    real_git_dir = config_dir / "worktree-gitdir"
+    real_git_dir.mkdir()
+    project = config_dir / "project.txt"
+    project.write_text("codename\n", encoding="utf-8")
+    (real_git_dir / check_anonymity.CLONE_DECLARATION).write_text(
+        f"{project}\n", encoding="utf-8"
+    )
+    (tmp_path / ".git").write_text(f"gitdir: {real_git_dir}\n", encoding="utf-8")
+    f = tmp_path / "doc.txt"
+    f.write_text("codename\n", encoding="utf-8")
+    assert run(capsys, f)[0] == 1
+
+
+def test_unrecognized_git_file_means_no_clone_declaration(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".git").write_text("not a gitdir line\n", encoding="utf-8")
+    f = tmp_path / "doc.txt"
+    f.write_text("codename\n", encoding="utf-8")
+    assert run(capsys, f)[0] == 0
