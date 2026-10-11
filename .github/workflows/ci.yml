@@ -63,8 +63,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      # Read the commits of the pull request and their verification.
-      pull-requests: read
+      pull-requests: read  # read the pull request commits and their verification
     steps:
       - name: Pull request commits signed and verified
         env:
@@ -84,6 +83,9 @@ jobs:
     name: tests (${{ matrix.os }}, ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write  # OIDC token for the Codecov upload, no stored secret
     strategy:
       fail-fast: false
       matrix:
@@ -108,3 +110,18 @@ jobs:
       # Fails below the threshold set in [tool.coverage.report].
       - name: Coverage report and threshold
         run: uv run --frozen coverage report
+
+      - name: Coverage XML for Codecov
+        run: uv run --frozen coverage xml
+
+      # Informational only: the threshold above is the enforced gate. Pull
+      # requests from forks get no OIDC token, so their upload fails
+      # without failing the job.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
+        with:
+          use_oidc: true
+          files: coverage.xml
+          disable_search: true
+          flags: ${{ matrix.os }}-py${{ matrix.python }}
+          fail_ci_if_error: false
