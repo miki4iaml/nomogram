@@ -10,6 +10,7 @@ authors:
   - alias: Miki
 version: 0.1.1
 date-released: "2026-10-14"
+doi: 10.5281/zenodo.23373134
 license: BSD-3-Clause
 repository-code: "https://github.com/miki4iaml/nomogram"
 keywords:

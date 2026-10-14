@@ -8,6 +8,11 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Zenodo DOI (all versions: 10.5281/zenodo.23373134): badge in the README,
+  `doi` in `CITATION.cff`.
+
 ## [0.1.1] - 2026-10-14
 
 ### Fixed
