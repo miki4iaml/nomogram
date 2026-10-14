@@ -58,7 +58,8 @@ time).
   domains are objective only (physical, or stated by the source with its
   criterion); coefficients of fixed-units formulations are never
   converted. Temperature inputs record the scale the formulation was
-  fitted on (stated or inferred); inputs are taken on ITS-90 and
+  fitted on (stated, inferred from the date only, or inferred from
+  numbers); inputs are taken on ITS-90 and
   converted to it before evaluation.
 - Reference data is immutable: frozen structures (`frozen=True`), no
   mutation after construction.

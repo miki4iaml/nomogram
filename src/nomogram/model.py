@@ -140,8 +140,12 @@ class ScaleBasis(Enum):
 
     #: Stated by the source.
     STATED = "stated"
-    #: Inferred from the scale in force when the formulation was published.
-    INFERRED = "inferred"
+    #: Inferred from the publication date only: the scale in force then.
+    #: Weak, since new scales took years to be applied (ITS-90 included).
+    INFERRED_FROM_DATE = "inferred-from-date"
+    #: Inferred from numerical evidence, for instance the agreement with a
+    #: formulation on a known scale; the evidence goes in the note.
+    INFERRED_FROM_NUMBERS = "inferred-from-numbers"
 
 
 @dataclass(frozen=True)

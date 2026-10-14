@@ -417,7 +417,7 @@ references = ["buck1981", "alduchov_eskridge1996", "voemel_vp"]
 note = "Maximum relative error 1.458 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 17.502, B = 240.97, C = 6.1121 }
 
@@ -429,7 +429,7 @@ references = ["buck1981", "alduchov_eskridge1996"]
 note = "Maximum relative error 0.493 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 18.729, B = 257.87, C = 6.1121, D = 227.3 }
 
@@ -438,10 +438,10 @@ label = "Hyland and Wexler (1983) formulation over water"
 expression = "exp(C8 / T + C9 + C10 * T + C11 * T ** 2 + C12 * T ** 3 + C13 * ln(T))"
 fixed_units = true
 references = ["hyland_wexler1983", "ashrae2017", "psychrolib", "voemel_vp"]
-note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale left unknown: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE."
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { C8 = -5.8002206e3, C9 = 1.3914993, C10 = -4.8640239e-2, C11 = 4.1764768e-5, C12 = -1.4452093e-8, C13 = 6.5459673 }
 
@@ -452,7 +452,7 @@ fixed_units = true
 references = ["bolton1980", "voemel_vp"]
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 17.67, B = 243.5, C = 6.112 }
 
@@ -481,7 +481,7 @@ references = ["buck1996", "voemel_vp"]
 note = "Update of the Buck (1981) equation (buck1981), with different coefficients."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 18.678, B = 257.14, C = 6.1121, D = 234.5 }
 
