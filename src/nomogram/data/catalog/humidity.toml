@@ -532,3 +532,14 @@ b5 = 0.42873e-3
 b6 = 4.76955
 b7 = 0.78614
 T_1 = { value = 273.16, unit = "K", note = "Triple point of water" }
+
+[formulations.vapour_pressure_from_relative_humidity]
+label = "Vapour pressure from relative humidity"
+expression = "RH * e_s"
+fixed_units = false
+note = "Relative humidity taken as e/e_s, its usual approximation in meteorology; definitions through mole fractions or mixing ratios differ slightly (source to read before stating which one a standard uses)."
+output = { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
+  { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]

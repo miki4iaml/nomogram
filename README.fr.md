@@ -81,7 +81,9 @@ ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17,29
 
 Chaque formulation garde ses unités, son domaine de validité, son
 échelle de température et ses références. Le vocabulaire est mis en
-correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais).
+correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais) ; la
+page [How nomogram earns trust](docs/approach.md) (en anglais) explique ce
+qui est vérifié, et comment.
 
 ## Contribuer
 
