@@ -6,8 +6,8 @@
 Submodules are imported on demand, so that ``import nomogram`` stays
 light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
 (SymPy), :mod:`nomogram.semantics` (bundled QUDT and CF subsets),
-:mod:`nomogram.model` and :mod:`nomogram.catalog` (formulations), and
-:mod:`nomogram.comparison`.
+:mod:`nomogram.model` and :mod:`nomogram.catalog` (formulations),
+:mod:`nomogram.comparison`, :mod:`nomogram.inversion` and :mod:`nomogram.plot`.
 """
 
 from importlib.metadata import version

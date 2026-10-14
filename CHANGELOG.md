@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- `nomogram.inversion`: `invert` turns a formulation of one input around;
+  SymPy finds the closed form when there is one (after taking
+  logarithms: the Magnus form gives the classical dew point formula
+  t_d = B ln(e/C) / (A - ln(e/C)), Buck's quadratic forms get their
+  right branch picked automatically), otherwise the inverse is solved by
+  vectorised bisection. The derived formulation records its origin
+  (`Derivation`), carries the validity domains through the function and
+  returns temperatures on ITS-90. `dew_point` inverts any saturation
+  vapour pressure formulation; with `vapour_pressure_from_relative_humidity`
+  (e = RH e_s, new catalog entry) it composes into t_d = f(T, RH).
 - Quantity kinds `DewPointTemperature` (interval scale, degC; CF
   `dew_point_temperature`), never matched with the air temperature, and
   `Pressure` (CF `air_pressure`), extracted from QUDT 3.5.2.
