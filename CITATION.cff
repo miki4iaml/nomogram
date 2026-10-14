@@ -8,7 +8,7 @@ abstract: >-
   validity domains, LaTeX rendering and symbolic computation.
 authors:
   - alias: Miki
-version: 0.1.0
+version: 0.1.1
 date-released: "2026-10-14"
 license: BSD-3-Clause
 repository-code: "https://github.com/miki4iaml/nomogram"
