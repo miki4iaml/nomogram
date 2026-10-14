@@ -43,6 +43,7 @@ from nomogram.units import Q_, convert
 
 __all__ = [
     "Coefficient",
+    "Derivation",
     "DomainBasis",
     "Formulation",
     "Notation",
@@ -197,6 +198,42 @@ class TemperatureScale:
         outside = (values < self.t90[0]) | (values > self.t90[-1])
         shift = np.interp(values, self.t90, self.difference)
         return np.where(outside, np.nan, values - shift), outside
+
+    def to_its90(self, celsius: Any) -> Any:
+        """ITS-90 Celsius temperatures, from temperatures on this scale.
+
+        Inverts :meth:`from_its90` by fixed-point iteration (the
+        differences are millikelvins and vary slowly); NaN beyond the
+        table.
+        """
+        values = np.asarray(celsius, dtype=float)
+        if not self.t90:
+            return values
+        t90 = values
+        for _ in range(4):
+            t90 = values + np.interp(t90, self.t90, self.difference)
+        outside = (t90 < self.t90[0]) | (t90 > self.t90[-1])
+        return np.where(outside, np.nan, t90)
+
+
+@dataclass(frozen=True)
+class Derivation:
+    """How a formulation was derived from another one.
+
+    Attributes
+    ----------
+    source : str
+        Key of the formulation it derives from.
+    method : str
+        ``"symbolic inversion"`` (closed form found by SymPy) or
+        ``"numerical inversion"``.
+    solved_for : str
+        Identifier of the source's input that became the output.
+    """
+
+    source: str
+    method: str
+    solved_for: str
 
 
 @dataclass(frozen=True)
@@ -411,6 +448,9 @@ class Formulation:
         Remark.
     matches : tuple of ExternalMatch
         Links to external vocabularies (Wikidata item of the formula...).
+    derivation : Derivation or None
+        For a formulation derived from another one (see
+        :mod:`nomogram.inversion`), how it was derived.
     """
 
     key: str
@@ -426,6 +466,7 @@ class Formulation:
     references: tuple[str, ...]
     note: str | None
     matches: tuple[ExternalMatch, ...]
+    derivation: Derivation | None = None
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -461,11 +502,14 @@ class Formulation:
         if self.fixed_units:
             return 1.0
         units = semantic_catalog().units
-        ones: list[Any] = [Q_(1.0, units[v.unit].pint) for v in self.inputs]
-        ones += [1.0 for _ in self.coefficients]
-        ones += [Q_(1.0, units[k.unit].pint) for k in self.constants]
-        result = Q_(self._function(*ones))
-        return float(result.to(units[self.output.unit].pint).magnitude)
+        # Distinct probe values, so that no difference such as p - e
+        # vanishes; only the unit of the result matters.
+        probe = iter(1.5 ** (i + 1) for i in range(len(self.names)))
+        values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
+        values += [next(probe) for _ in self.coefficients]
+        values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
+        result = Q_(self._function(*values))
+        return float(Q_(1.0, result.units).to(units[self.output.unit].pint).magnitude)
 
     def latex(self, notation: Notation | None = None) -> str:
         """The formulation as a LaTeX equation, in a given notation."""
@@ -590,5 +634,13 @@ class Formulation:
                 warnings.warn(message, ValidityWarning, stacklevel=2)
             else:
                 result = np.where(mask, np.nan, result)
+        output_unit = units[self.output.unit].pint
+        output_scale = self.output.temperature_scale
+        if scale == "convert" and output_scale is not None and output_scale.t90:
+            # A temperature computed on the formulation's scale goes back to
+            # ITS-90, the scale of inputs and results.
+            celsius = convert(Q_(result, output_unit), "degC").magnitude
+            its90 = Q_(output_scale.to_its90(celsius), "degC")
+            result = np.asarray(convert(its90, output_unit).magnitude, dtype=float)
         magnitude = result.item() if result.ndim == 0 else result
-        return Q_(magnitude, units[self.output.unit].pint)
+        return Q_(magnitude, output_unit)

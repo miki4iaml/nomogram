@@ -67,7 +67,9 @@ _SECTIONS = (
 )
 
 #: Kinds that may carry a temperature scale, and the units allowed for them.
-_SCALED_KINDS = frozenset({"ThermodynamicTemperature", "CelsiusTemperature"})
+_SCALED_KINDS = frozenset(
+    {"ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"}
+)
 _SCALED_UNITS = frozenset({"K", "DEG_C"})
 
 

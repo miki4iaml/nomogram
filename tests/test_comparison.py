@@ -23,6 +23,8 @@ def test_temperature_points_share_a_state_but_not_differences() -> None:
     assert same_state("CelsiusTemperature", "ThermodynamicTemperature")
     assert same_state("VapourPressure", "VapourPressure")
     assert not same_state("CelsiusTemperature", "TemperatureDifference")
+    # The dew point is a temperature, but not the temperature of the air.
+    assert not same_state("CelsiusTemperature", "DewPointTemperature")
     assert not same_state("VapourPressure", "SaturationVapourPressureOverWater")
 
 
@@ -87,3 +89,15 @@ def test_invalid_compositions_are_refused(
 ) -> None:
     with pytest.raises(ValueError, match=message):
         compose(IDEAL_GAS, {k: FORMULATIONS[v] for k, v in inner.items()}, bind)
+
+
+def test_a_specialized_kind_feeds_its_parent_never_the_reverse() -> None:
+    from nomogram.comparison import feeds
+
+    assert feeds("SaturationVapourPressureOverWater", "VapourPressure")
+    assert feeds("VapourPressure", "VapourPressure")
+    assert not feeds("VapourPressure", "SaturationVapourPressureOverWater")
+    assert not feeds("Unknown", "VapourPressure")
+    vapour = FORMULATIONS["vapour_pressure_from_relative_humidity"]
+    with pytest.raises(ValueError, match="computes VapourPressure"):
+        compose(IDEAL_GAS, {"e_s": vapour})

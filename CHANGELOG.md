@@ -8,10 +8,56 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-14
+
+### Added
+
+- Saturation vapour pressure over ice (new quantity kind
+  `SaturationVapourPressureOverIce`): the IAPWS sublimation equation
+  R14-08(2011) as reference, read in the release (range 50 to 273.16 K,
+  ITS-90; reproduces its Table 3), and the formulations quoted by Vömel:
+  Goff-Gratch, Hyland and Wexler (ITS-90, inferred from numbers), WMO
+  Guide Magnus form, Murray, Buck (1981 and 1996), Marti and
+  Mauersberger, Murphy and Koop, Sonntag. Their deviations from IAPWS
+  are tested, and so is the frost point obtained with `invert`.
+- Humidity mixing ratio r = epsilon e / (p - e) and specific humidity
+  q = r / (1 + r) (ASHRAE 2017, through PsychroLib), with the constant
+  epsilon = 0.621945 and its source (ASHRAE); the values of the ECMWF
+  IFS (0.6219808, R_d/R_v) and of MetPy (0.6219569, M_w/M_d) are recorded
+  too, each read in its source; composed with any saturation vapour
+  pressure formulation they give r and q at saturation, or from (T, RH,
+  p). Checked against PsychroLib and against ASHRAE's Table 2 (the ideal
+  gas formula stays 0.4 to 0.6 % below it).
+- `compose` lets a result feed an input of a more general kind
+  (`feeds`): a saturation vapour pressure is a vapour pressure, never the
+  reverse.
+- `docs/approach.md`, "How nomogram earns trust": sources read and their
+  status, checks against published values, comparison with a reference,
+  units and temperature scales, objective validity domains, derived
+  formulations checked both ways (f^-1(f(t)) = t and f(f^-1(e)) = e), and
+  the limits of the tests; linked from both READMEs.
+- `nomogram.inversion`: `invert` turns a formulation of one input around;
+  SymPy finds the closed form when there is one (after taking
+  logarithms: the Magnus form gives the classical dew point formula
+  t_d = B ln(e/C) / (A - ln(e/C)), Buck's quadratic forms get their
+  right branch picked automatically), otherwise the inverse is solved by
+  vectorised bisection. The derived formulation records its origin
+  (`Derivation`), carries the validity domains through the function and
+  returns temperatures on ITS-90. `dew_point` inverts any saturation
+  vapour pressure formulation; with `vapour_pressure_from_relative_humidity`
+  (e = RH e_s, new catalog entry) it composes into t_d = f(T, RH).
+- Quantity kinds `DewPointTemperature` (interval scale, degC; CF
+  `dew_point_temperature`), never matched with the air temperature, and
+  `Pressure` (CF `air_pressure`), extracted from QUDT 3.5.2.
+- Zenodo DOI (all versions: 10.5281/zenodo.23373134): badge in the README,
+  `doi` in `CITATION.cff`.
+
 ## [0.1.1] - 2026-10-14
 
 ### Fixed
 
+- The dimensional check of quantity equations no longer divides by zero
+  when inputs cancel out (p - e): probe values are distinct.
 - Archive metadata for Zenodo (`.zenodo.json`): the creator is declared by
   name (the alias), which Zenodo requires; the 0.1.0 release could not be
   archived for lack of it.
@@ -149,6 +195,7 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...develop
+[0.2.0]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/miki4iaml/nomogram/releases/tag/v0.1.0

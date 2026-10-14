@@ -59,6 +59,8 @@ def test_reference_case_kinds_are_present() -> None:
         "MassConcentrationOfWaterVapour",
         "MassRatioOfWaterVapourToDryGas",
         "SpecificHumidity",
+        "DewPointTemperature",
+        "Pressure",
     ):
         assert name in CATALOG.quantity_kinds
 

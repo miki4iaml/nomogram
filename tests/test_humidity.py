@@ -141,3 +141,127 @@ def test_goff_gratch_is_referred_to_the_steam_point() -> None:
 def test_conflicting_attributions_are_recorded() -> None:
     assert "Sonntag (1994)" in (FORMULATIONS["sonntag1990"].note or "")
     assert "GG46" in (FORMULATIONS["goff1957"].note or "")
+
+
+MIXING_RATIO = FORMULATIONS["mixing_ratio_from_vapour_pressure"]
+SPECIFIC_HUMIDITY = FORMULATIONS["specific_humidity_from_mixing_ratio"]
+
+
+def test_mixing_ratio_reproduces_psychrolib() -> None:
+    # PsychroLib (tests, commit 3066345): 25 degC, standard pressure at 500 m.
+    result = MIXING_RATIO.evaluate(e=Q_(3169.7, "Pa"), p=Q_(95461, "Pa"))
+    assert result.magnitude == pytest.approx(0.0213603998047487, rel=1e-9)
+
+
+@pytest.mark.parametrize(
+    ("celsius", "ashrae", "tolerance"),
+    # Saturation humidity ratio at 101325 Pa, ASHRAE Handbook -
+    # Fundamentals (2017), ch. 1, Table 2, with the tolerances PsychroLib
+    # applies to the same values. The ideal gas formula stays 0.4 to
+    # 0.6 % below: the table likely includes non-ideal effects.
+    [(5.0, 0.005425, 0.005), (25.0, 0.020173, 0.005), (50.0, 0.086863, 0.01)],
+)
+def test_saturation_mixing_ratio_against_ashrae_table(
+    celsius: float, ashrae: float, tolerance: float
+) -> None:
+    saturated = compose(MIXING_RATIO, {"e": IAPWS})
+    result = saturated.evaluate(T=Q_(celsius, "degC"), p=Q_(101325, "Pa"))
+    assert result.magnitude == pytest.approx(ashrae, rel=tolerance)
+    assert result.magnitude < ashrae
+
+
+def test_specific_humidity_from_mixing_ratio() -> None:
+    saturated = compose(MIXING_RATIO, {"e": IAPWS})
+    specific = compose(SPECIFIC_HUMIDITY, {"r": saturated})
+    assert [v.identifier for v in specific.inputs] == ["p", "T"]
+    result = specific.evaluate(T=Q_(25, "degC"), p=Q_(101325, "Pa"))
+    assert result.magnitude == pytest.approx(0.020173 / 1.020173, rel=0.005)
+
+
+def test_mixing_ratio_from_temperature_humidity_and_pressure() -> None:
+    vapour = compose(
+        FORMULATIONS["vapour_pressure_from_relative_humidity"], {"e_s": IAPWS}
+    )
+    mixing = compose(MIXING_RATIO, {"e": vapour})
+    assert {v.identifier for v in mixing.inputs} == {"RH", "T", "p"}
+    dry = mixing.evaluate(RH=Q_(0, "percent"), T=Q_(20, "degC"), p=Q_(1013.25, "hPa"))
+    assert dry.magnitude == 0.0
+
+
+def test_epsilon_values_follow_their_sources() -> None:
+    constants = CATALOG.constants
+    # ECMWF IFS CY49R1, Part IV, section 12.5: R_d / R_v.
+    assert constants["epsilon_ecmwf_ifs"].value == pytest.approx(
+        287.0597 / 461.5250, abs=1e-7
+    )
+    # MetPy 1.7.1: M_w / M_d.
+    assert constants["epsilon_metpy"].value == pytest.approx(
+        18.015268 / 28.96546, abs=1e-7
+    )
+    assert constants["epsilon_ashrae2017"].value == 0.621945
+    values = [c.value for k, c in constants.items() if k.startswith("epsilon_")]
+    assert max(values) / min(values) - 1 < 1e-4
+
+
+# --- Saturation over ice ----------------------------------------------------
+
+ICE = CATALOG.formulations_of("SaturationVapourPressureOverIce")
+IAPWS_ICE = FORMULATIONS["iapws_r14_08_sublimation"]
+
+
+def test_iapws_ice_reproduces_table_3_of_the_release() -> None:
+    # IAPWS R14-08(2011), Table 3: 8.94735e-6 MPa at 230 K.
+    result = IAPWS_ICE.evaluate(T=Q_(230.0, "K")).to("MPa").magnitude
+    assert result == pytest.approx(8.94735e-6, rel=1e-6)
+
+
+def test_iapws_ice_domain_follows_the_release() -> None:
+    inside = IAPWS_ICE.evaluate(T=Q_(np.array([50.0, 273.16]), "K")).magnitude
+    assert not np.isnan(inside).any()
+    outside = IAPWS_ICE.evaluate(T=Q_(np.array([49.0, 273.17]), "K")).magnitude
+    assert np.isnan(outside).all()
+
+
+def test_ice_and_water_meet_at_the_triple_point() -> None:
+    triple = Q_(273.16, "K")
+    ice = IAPWS_ICE.evaluate(T=triple).to("Pa").magnitude
+    water = IAPWS.evaluate(T=triple).to("Pa").magnitude
+    assert ice == 611.657
+    assert water == pytest.approx(ice, rel=1e-6)
+
+
+def test_supercooled_water_holds_more_vapour_than_ice() -> None:
+    cold = Q_(np.array([-40.0, -20.0, -5.0]), "degC")
+    ice = IAPWS_ICE.evaluate(T=cold)
+    water = IAPWS.evaluate(T=cold, outside="ignore")
+    ratio = (water / ice).to("").magnitude
+    assert (ratio > 1).all()
+    assert np.all(np.diff(ratio) < 0)  # the gap closes towards 0 degC
+
+
+def test_ice_formulations_against_iapws() -> None:
+    grid = Q_(np.array([-80.0, -40.0, -20.0, -1.0]), "degC")
+    comparison = compare(
+        ICE, IAPWS_ICE, {"ThermodynamicTemperature": grid}, outside="ignore"
+    )
+    deviations = comparison.relative_deviations
+    # Down to -40 degC, all but two stay within 0.2 % of IAPWS.
+    rough = {"murray1967_ice", "marti_mauersberger1993"}
+    for key, values in deviations.items():
+        if key not in rough:
+            assert np.abs(values[1:]).max() < 0.002, key
+    # Goff-Gratch, long the reference over ice, sits 0.15 to 0.27 % below.
+    assert -0.0027 < deviations["goff_gratch1946_ice"].min()
+    assert deviations["goff_gratch1946_ice"].max() < -0.0015
+    # Murray's Magnus-Tetens form departs by about 11 % at -80 degC.
+    assert deviations["murray1967_ice"][0] == pytest.approx(-0.11, abs=0.002)
+    assert deviations["murray1967_ice"][1] == pytest.approx(-0.019, abs=0.001)
+
+
+def test_hyland_wexler_over_ice_behaves_as_its90() -> None:
+    hyland = FORMULATIONS["hyland_wexler1983_ice"]
+    assert hyland.inputs[0].scale_basis is not None
+    assert hyland.inputs[0].scale_basis.value == "inferred-from-numbers"
+    grid = Q_(np.array([-80.0, -60.0, -40.0, -20.0, -1.0]), "degC")
+    comparison = compare([hyland], IAPWS_ICE, {"ThermodynamicTemperature": grid})
+    assert comparison.max_abs_deviation()["hyland_wexler1983_ice"] < 0.00033

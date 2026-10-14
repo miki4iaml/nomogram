@@ -1,6 +1,14 @@
 {
   "cf_standard_names": {
+    "air_pressure": {
+      "canonical_units": "Pa",
+      "pint": "Pa"
+    },
     "air_temperature": {
+      "canonical_units": "K",
+      "pint": "K"
+    },
+    "dew_point_temperature": {
       "canonical_units": "K",
       "pint": "K"
     },
@@ -62,6 +70,23 @@
       "scale_type": "interval",
       "specialization_of": "Temperature"
     },
+    "DewPointTemperature": {
+      "added_units": [],
+      "applicable_units": [
+        "DEG_C",
+        "DEG_F"
+      ],
+      "cf_standard_names": [
+        "dew_point_temperature"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/DewPointTemperature",
+      "label": "Dew Point Temperature",
+      "matches": [],
+      "scale_type": "interval",
+      "specialization_of": "Temperature"
+    },
     "MassConcentrationOfWaterVapour": {
       "added_units": [],
       "applicable_units": [
@@ -111,6 +136,30 @@
       ],
       "scale_type": "ratio",
       "specialization_of": null
+    },
+    "Pressure": {
+      "added_units": [],
+      "applicable_units": [
+        "HectoPA",
+        "KiloPA",
+        "PA"
+      ],
+      "cf_standard_names": [
+        "air_pressure"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Pressure",
+      "label": "Pressure",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q39552",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "ForcePerArea"
     },
     "RelativeHumidity": {
       "added_units": [

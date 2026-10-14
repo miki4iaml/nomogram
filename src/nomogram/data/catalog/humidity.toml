@@ -17,6 +17,15 @@ matches = [
   { target = "http://www.wikidata.org/entity/Q2387102", relation = "broad", verified = 2026-10-14 },
 ]
 
+[kinds.SaturationVapourPressureOverIce]
+label = "Saturation Vapour Pressure over Ice"
+specialization_of = "VapourPressure"
+description = "Pressure of water vapour in equilibrium with a plane surface of ice (ice Ih)."
+# The Wikidata item covers saturation over water and over ice: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2387102", relation = "broad", verified = 2026-10-14 },
+]
+
 # --- References -----------------------------------------------------------
 
 [references.sonntag1990]
@@ -154,6 +163,61 @@ doi = "10.1088/0026-1394/27/1/002"
 status = "to-confirm"
 note = "Text and Table 6 (differences between ITS-90 and IPTS-68) read in a copy of the text, not in the journal; DOI not checked."
 
+[references.ecmwf_ifs_cy49r1]
+authors = "ECMWF"
+year = 2024
+title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
+url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
+status = "verified"
+note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808."
+
+[references.metpy171]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/constants/default.py"
+status = "verified"
+note = "epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol (0.6219569); MetPy 0.12 used 18.01528 and 28.9644 g/mol. Released 2025-08-29."
+
+[references.iapws_r14_08]
+authors = "IAPWS"
+year = 2011
+title = "Revised Release on the Pressure along the Melting and Sublimation Curves of Ordinary Water Substance (R14-08(2011))"
+url = "https://iapws.org/technical-guidance/release/MeltSub"
+status = "verified"
+note = "Equation (6), coefficients, range (50 K to 273.16 K, ITS-90), uncertainty (Fig. 2, Eqs. 7a and 7b) and Table 3 read in the official release."
+
+[references.wagner2011]
+authors = "Wagner, W.; Riethmann, T.; Feistel, R.; Harvey, A. H."
+year = 2011
+title = "New equations for the sublimation pressure and melting pressure of H2O ice Ih"
+container = "Journal of Physical and Chemical Reference Data 40, 043103"
+status = "to-confirm"
+note = "Article behind IAPWS R14-08(2011), as cited by the release; not read."
+
+[references.wmo2008]
+authors = "World Meteorological Organization"
+year = 2008
+title = "Guide to Meteorological Instruments and Methods of Observation (WMO-No. 8), seventh edition"
+status = "to-confirm"
+note = "Cited by Vömel for the formulations over water and ice; not read."
+
+[references.marti_mauersberger1993]
+authors = "Marti, J.; Mauersberger, K."
+year = 1993
+title = "A survey and new measurements of ice vapor pressure at temperatures between 170 and 250 K"
+container = "Geophysical Research Letters 20, 363-366"
+status = "to-confirm"
+note = "Cited by Vömel; title and journal from memory, not checked."
+
+[references.murphy_koop2005]
+authors = "Murphy, D. M.; Koop, T."
+year = 2005
+title = "Review of the vapour pressures of ice and supercooled water for atmospheric applications"
+container = "Quarterly Journal of the Royal Meteorological Society 131, 1539-1565"
+status = "to-confirm"
+note = "Cited by Vömel; journal details from memory, not checked."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -200,6 +264,30 @@ reference = "iapws95"
 matches = [
   { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
 ]
+
+[constants.epsilon_ashrae2017]
+identifier = "epsilon"
+value = 0.621945
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d"
+reference = "ashrae2017"
+
+# Other values of the same ratio, read in their sources. The relative
+# spread (about 6e-5) is negligible against the deviations between
+# formulations, but the value used is part of a formulation.
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.6219808
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
+reference = "ecmwf_ifs_cy49r1"
+
+[constants.epsilon_metpy]
+identifier = "epsilon"
+value = 0.6219569
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
+reference = "metpy171"
 
 # --- Notations ------------------------------------------------------------
 
@@ -532,3 +620,188 @@ b5 = 0.42873e-3
 b6 = 4.76955
 b7 = 0.78614
 T_1 = { value = 273.16, unit = "K", note = "Triple point of water" }
+
+[formulations.vapour_pressure_from_relative_humidity]
+label = "Vapour pressure from relative humidity"
+expression = "RH * e_s"
+fixed_units = false
+note = "Relative humidity taken as e/e_s, its usual approximation in meteorology; definitions through mole fractions or mixing ratios differ slightly (source to read before stating which one a standard uses)."
+output = { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
+  { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]
+
+[formulations.mixing_ratio_from_vapour_pressure]
+label = "Humidity mixing ratio from vapour pressure (ASHRAE 2017)"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+references = ["ashrae2017", "psychrolib"]
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 20, through PsychroLib: moist air as an ideal gas mixture."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Air pressure" },
+]
+constants = ["epsilon_ashrae2017"]
+
+[formulations.specific_humidity_from_mixing_ratio]
+label = "Specific humidity from mixing ratio"
+expression = "r / (1 + r)"
+fixed_units = false
+references = ["ashrae2017", "psychrolib"]
+note = "From the definitions (mass of water vapour per mass of moist air, per mass of dry air); ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 9b, through PsychroLib."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+]
+
+# --- Saturation vapour pressure over ice -----------------------------------
+
+[formulations.iapws_r14_08_sublimation]
+label = "IAPWS R14-08(2011), sublimation pressure of ice Ih"
+expression = "p_t * exp((a1 * (T / T_t) ** b1 + a2 * (T / T_t) ** b2 + a3 * (T / T_t) ** b3) / (T / T_t))"
+fixed_units = true
+references = ["iapws_r14_08", "wagner2011"]
+accuracy = "0.0011 % at the triple point (expanded uncertainty, k = 2); see Fig. 2 of the release below"
+note = "Reference formulation over ice. Reproduces Table 3 of the release: 8.94735 Pa at 230 K; joins the IAPWS equation over water at the triple point."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)", temperature_scale = "its90", scale_basis = "stated" },
+]
+
+[formulations.iapws_r14_08_sublimation.coefficients]
+T_t = { value = 273.16, unit = "K", note = "Triple point temperature" }
+p_t = { value = 611.657, unit = "PA", note = "Triple point pressure" }
+a1 = -21.2144006
+a2 = 27.3203819
+a3 = -6.10598130
+b1 = 0.333333333e-2
+b2 = 1.20666667
+b3 = 1.70333333
+
+[[formulations.iapws_r14_08_sublimation.domains]]
+basis = "stated"
+bounds = { T = [50.0, 273.16] }
+criterion = "Solid-vapour equilibrium of ice Ih, endorsed by IAPWS (section 5)."
+reference = "iapws_r14_08"
+
+[formulations.goff_gratch1946_ice]
+label = "Goff-Gratch equation over ice (Smithsonian Tables form)"
+expression = "10 ** (c1 * (T_0 / T - 1) + c2 * log10(T_0 / T) + c3 * (1 - T / T_0) + log10(e_i0))"
+fixed_units = true
+references = ["goff_gratch1946", "smithsonian1984", "voemel_vp"]
+note = "As quoted by Vömel, who calls it the generally considered reference over ice."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+
+[formulations.goff_gratch1946_ice.coefficients]
+c1 = -9.09718
+c2 = -3.56654
+c3 = 0.876793
+T_0 = { value = 273.16, unit = "K" }
+e_i0 = { value = 6.1071, unit = "HectoPA" }
+
+[[formulations.goff_gratch1946_ice.domains]]
+basis = "stated"
+bounds = { T = [173.15, 273.15] }
+criterion = "-100 to 0 degC, range of the equation over ice as stated by Vömel."
+reference = "voemel_vp"
+
+[formulations.hyland_wexler1983_ice]
+label = "Hyland and Wexler (1983) formulation over ice"
+expression = "exp(C1 / T + C2 + C3 * T + C4 * T ** 2 + C5 * T ** 3 + C6 * T ** 4 + C7 * ln(T))"
+fixed_units = true
+references = ["hyland_wexler1983", "ashrae2017", "psychrolib", "voemel_vp"]
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 5, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: as over water, these coefficients agree with IAPWS R14-08 within 0.032 % from -80 to -1 degC without conversion, and drift to -0.18 % at -80 degC with the IPTS-68 conversion."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-numbers" },
+]
+coefficients = { C1 = -5.6745359e3, C2 = 6.3925247, C3 = -9.677843e-3, C4 = 6.2215701e-7, C5 = 2.0747825e-9, C6 = -9.484024e-13, C7 = 4.1635019 }
+
+[formulations.wmo2008_ice]
+label = "Magnus form over ice, WMO Guide (CIMO) coefficients"
+expression = "C * exp(A * t / (B + t))"
+fixed_units = true
+references = ["wmo2008", "voemel_vp"]
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { A = 22.46, B = 272.62, C = 6.112 }
+
+[formulations.murray1967_ice]
+label = "Magnus-Tetens form over ice, Murray (1967)"
+expression = "C * exp(A * (T - T_0) / (T - B))"
+fixed_units = true
+references = ["murray1967", "voemel_vp"]
+note = "As quoted by Vömel. Departs from the IAPWS equation by about -1.9 % at -40 degC and -11 % at -80 degC; original not read."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+
+[formulations.murray1967_ice.coefficients]
+A = 21.8745584
+B = { value = 7.66, unit = "K" }
+C = { value = 6.1078, unit = "HectoPA" }
+T_0 = { value = 273.16, unit = "K" }
+
+[formulations.buck1981_ice]
+label = "Magnus form over ice, Buck (1981) coefficients"
+expression = "C * exp(A * t / (B + t))"
+fixed_units = true
+references = ["buck1981", "voemel_vp"]
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
+]
+coefficients = { A = 22.452, B = 272.55, C = 6.1115 }
+
+[formulations.buck1996_ice]
+label = "Buck (1996) equation over ice"
+expression = "C * exp((A - t / D) * t / (B + t))"
+fixed_units = true
+references = ["buck1996", "voemel_vp"]
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { A = 23.036, B = 279.82, C = 6.1115, D = 333.7 }
+
+[formulations.marti_mauersberger1993]
+label = "Marti and Mauersberger (1993) formulation over ice"
+expression = "10 ** (A / T + B)"
+fixed_units = true
+references = ["marti_mauersberger1993", "voemel_vp"]
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { A = { value = -2663.5, unit = "K" }, B = 12.537 }
+
+[formulations.murphy_koop2005_ice]
+label = "Murphy and Koop (2005) formulation over ice"
+expression = "exp(c0 + c1 / T + c2 * ln(T) + c3 * T)"
+fixed_units = true
+references = ["murphy_koop2005", "voemel_vp"]
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { c0 = 9.550426, c1 = -5723.265, c2 = 3.53068, c3 = -0.00728332 }
+
+[formulations.sonntag1990_ice]
+label = "Sonntag formulation over ice"
+expression = "exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
+fixed_units = true
+references = ["sonntag1990", "voemel_vp"]
+note = "As quoted by Vömel, who dates it 1994 (as for the formulation over water)."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { a0 = -6024.5282, a1 = 24.721994, a2 = 1.0613868e-2, a3 = -1.3198825e-5, a4 = -0.49382577 }

@@ -7,6 +7,7 @@
 [![codecov](https://codecov.io/gh/miki4iaml/nomogram/graph/badge.svg?branch=develop)](https://codecov.io/gh/miki4iaml/nomogram)
 [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fmiki4iaml%2Fnomogram%2Fdevelop%2Fpyproject.toml)](pyproject.toml)
 [![License](https://img.shields.io/github/license/miki4iaml/nomogram)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23373134.svg)](https://doi.org/10.5281/zenodo.23373134)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
@@ -77,7 +78,9 @@ ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
 Each formulation keeps its units, validity domain, temperature scale and
-references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md).
+references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
+[How nomogram earns trust](docs/approach.md) explains what is checked and
+how.
 
 ## Contributing
 
