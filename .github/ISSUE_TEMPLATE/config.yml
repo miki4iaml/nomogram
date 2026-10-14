@@ -3,6 +3,9 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/miki4iaml/nomogram/security/advisories/new
     about: Report privately, never in a public issue.
+  - name: Catalog guide
+    url: https://github.com/miki4iaml/nomogram/blob/develop/docs/catalog.md
+    about: How to write a formula in the catalog format.
   - name: Contributing guide
     url: https://github.com/miki4iaml/nomogram/blob/develop/.github/CONTRIBUTING.md
     about: Setup, checks and pull request workflow.

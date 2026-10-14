@@ -1,0 +1,153 @@
+# Writing a catalog entry
+
+The formula catalog is hand-written TOML in
+[`src/nomogram/data/catalog/`](../src/nomogram/data/catalog/). Every
+file is read and **validated when the package loads it**: a typo, an
+unknown unit or an undeclared identifier stops the load with a message
+naming the faulty entry. This page describes the format; the vocabulary
+is explained in [rosetta.md](rosetta.md).
+
+You do not need to write TOML to contribute: a reference or a formula
+can also be proposed through an issue (see the
+[contributing guide](../.github/CONTRIBUTING.md#ways-to-contribute)).
+
+## Principles
+
+- **A formula is written once**, as an expression in restricted Python
+  syntax: numbers, declared identifiers, `+ - * / **`, parentheses and
+  the functions `exp`, `ln`, `log10` and `sqrt`. LaTeX, numeric
+  functions and symbolic results all derive from it.
+- **Everything is traced to a source.** A reference is `verified` only
+  when the detail was **read in the source itself**; anything else is
+  `to-confirm`, with a note saying what remains to check. A formula
+  quoted by a review is entered as quoted, and the review is cited too.
+- **Disagreements are recorded, not smoothed over.** When secondary
+  sources differ (a constant, a year, an attribution), say so in the
+  note.
+- **Validity domains are objective only**: physical, or stated by the
+  author or the cited publication with their criterion. A domain suited
+  to one application is the user's business.
+
+## A complete example
+
+```toml
+[references.alduchov_eskridge1996]
+authors = "Alduchov, O. A.; Eskridge, R. E."
+year = 1996
+title = "Improved Magnus form approximation of saturation vapor pressure"
+container = "Journal of Applied Meteorology 35, 601-609"
+url = "https://www.osti.gov/servlets/purl/548871"
+status = "verified"                       # read in the source
+note = "Read in the report version: Table II (formulas), Table III (errors)."
+
+[formulations.alduchov_eskridge1996]
+label = "Magnus form, Alduchov and Eskridge (1996) AEKR coefficients"
+expression = "C * exp(A * t / (B + t))"
+fixed_units = true                        # coefficients only hold in these units
+references = ["alduchov_eskridge1996"]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 17.625, B = 243.04, C = 6.1094 }
+
+[[formulations.alduchov_eskridge1996.domains]]
+basis = "stated"
+bounds = { t = [-40.0, 50.0] }
+criterion = "Maximum relative error 0.384 % against GG46, WE76 and SO90 (Table III)."
+reference = "alduchov_eskridge1996"
+```
+
+## Sections
+
+All sections are optional; a key may be defined in one file only.
+
+| Section | Required fields | Optional fields |
+|---|---|---|
+| `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `accuracy`, `references`, `note`, `matches` |
+| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
+| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches` |
+| `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
+| `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
+| `[temperature_scales.<key>]` | `label` | `differences` (`[t90, t90 - t]` pairs), `reference` |
+
+### Formulations
+
+- **`output` and `inputs`** are variables: `identifier` (used in the
+  expression), `kind` (a quantity kind), `unit` (a QUDT unit name) and
+  `description`. The unit must apply to the kind.
+- **`fixed_units`**: `true` when the coefficients only hold in the
+  declared units (most empirical fits, such as the Magnus form). Inputs
+  are then converted to the declared unit and scale before evaluation;
+  coefficients are never converted. `false` for a quantity equation,
+  whose dimensional homogeneity is checked at load.
+- **`coefficients`**: a number, or a table `{ value, unit, note }` when
+  the unit or a remark matters.
+- **`constants`**: keys of `[constants]` entries (physical constants with
+  their source, such as the gas constant of water vapour).
+- **`domains`**: `basis` (`physical` or `stated`), `bounds` (closed
+  intervals per input identifier, in the input's unit), `criterion` and
+  `reference`.
+- **Temperature scale**: a temperature input may carry
+  `temperature_scale` (`its90`, `ipts68`) and `scale_basis`: `stated`
+  (by the source), `inferred-from-date` (the scale in force at
+  publication; weak, scales took years to be applied) or
+  `inferred-from-numbers` (evidence given in the note).
+- Every declared identifier must be used by the expression, and every
+  identifier of the expression must be declared.
+
+### Quantity kinds and units
+
+Kinds and units come from the bundled QUDT subset (see
+[rosetta.md](rosetta.md)): kinds such as `ThermodynamicTemperature`,
+`CelsiusTemperature`, `RelativeHumidity`, `VapourPressure`,
+`MassConcentrationOfWaterVapour`; units such as `K`, `DEG_C`, `PA`,
+`HectoPA`, `GM-PER-M3`, `PERCENT`. A kind missing from QUDT can be
+declared in `[kinds]` as a specialization of a QUDT kind. A missing
+QUDT kind or unit is added to the extraction script
+(`scripts/extract_semantics.py`), which is a code contribution.
+
+### External links
+
+`matches` link an entry to an external vocabulary (Wikidata, ...):
+
+```toml
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2387102", relation = "broad", verified = 2026-10-14 },
+]
+```
+
+`relation` is a SKOS relation (`exact`, `close`, `broad`, `narrow`) and
+`verified` the date the link was last checked.
+
+## Checking an entry locally
+
+```
+uv sync --all-extras
+uv run pytest
+```
+
+The tests load the whole catalog. To try a new entry before adding it,
+load it together with the bundled files (it may use their kinds and
+references):
+
+```python
+from importlib.resources import files
+from pathlib import Path
+
+from nomogram.catalog import load_catalog
+from nomogram.units import Q_
+
+bundled = [
+    entry.read_text(encoding="utf-8")
+    for entry in (files("nomogram") / "data" / "catalog").iterdir()
+    if entry.name.endswith(".toml")
+]
+mine = Path("my_entry.toml").read_text(encoding="utf-8")
+catalog = load_catalog([*bundled, mine])
+catalog.formulations["my_key"].evaluate(t=Q_(20, "degC"))
+```
+
+Add a test against a **published value** (a table of the source, a
+reference formulation), never against the formula itself.

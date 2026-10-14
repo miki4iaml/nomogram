@@ -265,3 +265,23 @@ def test_coefficient_table_without_unit() -> None:
         "coefficients = { a = 2.0 }", "coefficients = { a = { value = 2.0 } }"
     )
     assert load_catalog([document]).formulations["f"].coefficients[0].unit is None
+
+
+def test_catalog_guide_example_matches_the_catalog() -> None:
+    import re
+    import tomllib
+    from importlib.resources import files
+    from pathlib import Path
+
+    guide = Path(__file__).parents[1] / "docs" / "catalog.md"
+    block = re.search(
+        r"```toml\n(.*?)```", guide.read_text(encoding="utf-8"), re.DOTALL
+    )
+    assert block is not None
+    example = tomllib.loads(block.group(1))["formulations"]["alduchov_eskridge1996"]
+    bundled_text = (files("nomogram") / "data" / "catalog" / "humidity.toml").read_text(
+        encoding="utf-8"
+    )
+    bundled = tomllib.loads(bundled_text)["formulations"]["alduchov_eskridge1996"]
+    for key, value in example.items():
+        assert bundled[key] == value, key

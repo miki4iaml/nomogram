@@ -9,5 +9,7 @@
 - [ ] Every new or changed public function has tests.
 - [ ] User-visible changes have an entry under `[Unreleased]` in
       `CHANGELOG.md`.
+- [ ] Catalog entries: every detail marked `verified` was read in the
+      source itself; anything else is `to-confirm`, with a note.
 - [ ] All commits are signed and verified.
 - [ ] The rules in `AGENTS.md` are respected.
