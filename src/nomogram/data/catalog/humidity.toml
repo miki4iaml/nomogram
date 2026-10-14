@@ -1,0 +1,142 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Humidity of air: demonstration formulations (the full set of saturation
+# vapour pressure formulations comes later). Hand-written, validated when
+# loaded by nomogram.catalog. Entries whose details were not checked
+# against the source carry status = "to-confirm".
+
+# --- Quantity kinds defined by nomogram -----------------------------------
+
+[kinds.SaturationVapourPressureOverWater]
+label = "Saturation Vapour Pressure over Water"
+specialization_of = "VapourPressure"
+description = "Pressure of water vapour in equilibrium with a plane surface of pure liquid water."
+# The Wikidata item covers saturation over water and over ice: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2387102", relation = "broad", verified = 2026-10-14 },
+]
+
+# --- References -----------------------------------------------------------
+
+[references.sonntag1990]
+authors = "Sonntag, D."
+year = 1990
+title = "Important new values of the physical constants of 1986, vapour pressure formulations based on the ITS-90, and psychrometer formulae"
+container = "Zeitschrift für Meteorologie"
+status = "to-confirm"
+note = "Volume (40 or 70) and pages (340-344) to confirm against the original."
+
+[references.wmo2024]
+authors = "World Meteorological Organization"
+year = 2024
+title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I, Annex 4.B"
+doi = "10.59327/WMO/CIMO/1"
+status = "to-confirm"
+note = "Primary text not read; formula and range cross-checked with WMO training material. Notation e_w to confirm in the text."
+
+[references.iapws95]
+authors = "IAPWS"
+year = 2018
+title = "Revised Release on the IAPWS Formulation 1995 for the Thermodynamic Properties of Ordinary Water Substance for General and Scientific Use (R6-95(2018))"
+url = "https://iapws.org/documents/release/IAPWS-95"
+status = "verified"
+
+[references.ashrae2017]
+authors = "ASHRAE"
+year = 2017
+title = "ASHRAE Handbook - Fundamentals, chapter 1: Psychrometrics"
+status = "to-confirm"
+note = "Cited through the tests of PsychroLib; notation p_ws to confirm in the text."
+
+[references.ams_glossary]
+authors = "American Meteorological Society"
+title = "Glossary of Meteorology: vapor density"
+url = "https://glossary.ametsoc.org/wiki/Absolute_humidity"
+status = "verified"
+
+[references.cengel_boles]
+authors = "Çengel, Y. A.; Boles, M. A."
+title = "Thermodynamics: An Engineering Approach, chapter 14: Gas-vapor mixtures and air-conditioning"
+status = "to-confirm"
+note = "Edition and year not checked; definition read in lecture material based on the book."
+
+# --- Physical constants ---------------------------------------------------
+
+[constants.R_v_iapws95]
+identifier = "R_v"
+value = 461.51805
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "iapws95"
+# The Wikidata item is the specific gas constant of any gas: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
+]
+
+# --- Notations ------------------------------------------------------------
+
+[notations.wmo]
+label = "WMO Guide to Instruments and Methods of Observation"
+symbols = { e_s = 'e_{\mathrm{w}}', rho_v = '\rho_{\mathrm{v}}' }
+reference = "wmo2024"
+
+[notations.ashrae]
+label = "ASHRAE Handbook - Fundamentals"
+symbols = { e_s = 'p_{\mathrm{ws}}', RH = '\phi' }
+reference = "ashrae2017"
+
+# --- Ambiguous trade terms ------------------------------------------------
+
+[trade_terms.absolute_humidity]
+term = "absolute humidity"
+language = "en"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1048298", relation = "close", verified = 2026-10-14 },
+]
+
+[[trade_terms.absolute_humidity.meanings]]
+community = "meteorology, physics"
+kind = "MassConcentrationOfWaterVapour"
+definition = "Mass of water vapour per volume of moist air."
+sources = ["ams_glossary"]
+
+[[trade_terms.absolute_humidity.meanings]]
+community = "chemical engineering, HVAC"
+kind = "MassRatioOfWaterVapourToDryGas"
+definition = "Mass of water vapour per mass of dry air."
+sources = ["cengel_boles"]
+
+# --- Formulations ---------------------------------------------------------
+
+[formulations.sonntag1990]
+label = "Magnus form, Sonntag (1990) coefficients"
+expression = "C * exp(A * t / (B + t))"
+fixed_units = true
+references = ["sonntag1990", "wmo2024"]
+note = "Coefficients adopted by the WMO guide."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 17.62, B = 243.12, C = 6.112 }
+
+[[formulations.sonntag1990.domains]]
+basis = "stated"
+bounds = { t = [-45.0, 60.0] }
+criterion = "Uncertainty within 0.6 % (k=2), as quoted by the WMO guide."
+reference = "wmo2024"
+
+[formulations.mass_concentration_ideal_gas]
+label = "Mass concentration of water vapour, ideal gas law"
+expression = "RH * e_s / (R_v * T)"
+fixed_units = false
+references = ["iapws95"]
+note = "Water vapour treated as an ideal gas; e_s must be taken at the temperature T."
+output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Mass concentration of water vapour (absolute humidity, meteorological sense)" }
+inputs = [
+  { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
+  { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at T" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+constants = ["R_v_iapws95"]

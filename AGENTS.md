@@ -52,6 +52,12 @@ time).
   script. Links to external vocabularies are `ExternalMatch` objects
   (SKOS relation, date of last verification), held only by the object
   they identify.
+- Catalog: formulations are hand-written TOML in
+  `src/nomogram/data/catalog/`, validated when loaded. Details not
+  checked against the source carry `status = "to-confirm"`. Validity
+  domains are objective only (physical, or stated by the source with its
+  criterion); coefficients of fixed-units formulations are never
+  converted.
 - Reference data is immutable: frozen structures (`frozen=True`), no
   mutation after construction.
 - No mutable global state. The package must be safe in concurrent

@@ -75,9 +75,25 @@ and this project adheres to
   verification).
 - `scripts/extract_semantics.py`: development tool regenerating the
   bundled subsets (rdflib, development dependency only).
+- `nomogram.model`: formulations with their variables (quantity kind and
+  unit), empirical coefficients, physical constants, objective validity
+  domains (physical or stated by the source, with criterion and
+  reference), references with a verification status, notations and
+  ambiguous trade terms. `Formulation.evaluate` converts pint inputs to
+  the unit and scale of the formula (coefficients are never converted),
+  is vectorised, and returns NaN outside the validity domains by default
+  (or warns, raises, or ignores them on request).
+- `nomogram.catalog`: hand-written TOML catalog, validated when loaded
+  (declared and used identifiers, units applicable to kinds, references,
+  dimensional homogeneity of quantity equations, unknown keys refused);
+  kinds defined by nomogram, such as the saturation vapour pressure over
+  water; first entries: Sonntag (1990) and the mass concentration of
+  water vapour from the ideal gas law.
 
 ### Changed
 
+- `QuantityKind` gains `origin` (`"qudt"` or `"nomogram"`); its IRI is
+  optional, absent for kinds defined by nomogram.
 - License expression `BSD-3-Clause AND CC-BY-4.0 AND CC0-1.0`: the
   package now ships QUDT data (CC BY 4.0, attribution in
   `src/nomogram/data/NOTICE.md`) and CF data (CC0 1.0).
