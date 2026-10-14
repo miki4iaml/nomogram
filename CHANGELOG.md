@@ -67,10 +67,22 @@ and this project adheres to
   to QUDT, the SI and VIM, pint, SymPy, CF standard names and OM, with
   ambiguous trade terms (absolute and specific humidity) and the
   inconsistencies found in QUDT 3.5.2.
+- `nomogram.semantics`: quantity kinds, unit definitions and CF standard
+  names from bundled subsets of QUDT 3.5.2 and the CF standard name
+  table 95 (`semantic_catalog`), with scale type and point/difference
+  typing of each kind, applicable units checked against pint, and
+  links to Wikidata as `ExternalMatch` (SKOS relation, date of last
+  verification).
+- `scripts/extract_semantics.py`: development tool regenerating the
+  bundled subsets (rdflib, development dependency only).
 
 ### Changed
 
-- Core dependencies: sympy, numpy and pint. The offline constraint now
+- License expression `BSD-3-Clause AND CC-BY-4.0 AND CC0-1.0`: the
+  package now ships QUDT data (CC BY 4.0, attribution in
+  `src/nomogram/data/NOTICE.md`) and CF data (CC0 1.0).
+- Core dependencies: sympy, numpy and pint (at least 0.24.4: earlier
+  releases fail to import on current Python 3.12). The offline constraint now
   rules out online engines rather than dependencies.
 
 ### Removed

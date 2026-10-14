@@ -1,0 +1,161 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""Tests for :mod:`nomogram.semantics` and the bundled QUDT and CF subsets."""
+
+import dataclasses
+import datetime
+
+import pytest
+
+from nomogram.semantics import (
+    ExternalMatch,
+    MatchRelation,
+    QuantityKind,
+    semantic_catalog,
+)
+from nomogram.units import Q_, ScaleType, is_offset_unit, ureg
+
+CATALOG = semantic_catalog()
+
+#: QUDT base dimensions, as named by pint.
+PINT_DIMENSIONS = {
+    "amount_of_substance": "[substance]",
+    "electric_current": "[current]",
+    "length": "[length]",
+    "luminous_intensity": "[luminosity]",
+    "mass": "[mass]",
+    "temperature": "[temperature]",
+    "time": "[time]",
+}
+
+
+def pint_dimensions(expression: str) -> dict[str, object]:
+    dimensionality = Q_(1, expression).dimensionality
+    return {d: e for d, e in dimensionality.items() if e}
+
+
+def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
+    return {PINT_DIMENSIONS[d]: e for d, e in dimensions.items()}
+
+
+def test_sources_are_recorded() -> None:
+    assert CATALOG.qudt_version == "3.5.2"
+    assert CATALOG.cf_version == "95"
+    assert CATALOG.extracted == datetime.date(2026, 10, 14)
+
+
+def test_catalog_is_read_once() -> None:
+    assert semantic_catalog() is CATALOG
+
+
+def test_reference_case_kinds_are_present() -> None:
+    for name in (
+        "ThermodynamicTemperature",
+        "CelsiusTemperature",
+        "TemperatureDifference",
+        "RelativeHumidity",
+        "VapourPressure",
+        "MassConcentrationOfWaterVapour",
+        "MassRatioOfWaterVapourToDryGas",
+        "SpecificHumidity",
+    ):
+        assert name in CATALOG.quantity_kinds
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG.units))
+def test_pint_expression_has_the_qudt_dimension(name: str) -> None:
+    unit = CATALOG.units[name]
+    assert pint_dimensions(unit.pint) == expected_dimensions(dict(unit.dimensions))
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG.units))
+def test_pint_expression_follows_the_qudt_conversion_rule(name: str) -> None:
+    # QUDT: a value v in the unit is (v + offset) * multiplier in SI.
+    unit = CATALOG.units[name]
+    for value in (0.0, 10.0):
+        si = Q_(value, unit.pint).to_base_units().magnitude
+        assert si == pytest.approx((value + unit.offset) * unit.multiplier)
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG.units))
+def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
+    unit = CATALOG.units[name]
+    assert is_offset_unit(unit.pint) is (unit.offset != 0.0)
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))
+def test_applicable_units_follow_the_scale_rule(name: str) -> None:
+    kind = CATALOG.quantity_kinds[name]
+    assert kind.applicable_units
+    for unit_name in kind.applicable_units:
+        unit = CATALOG.units[unit_name]
+        assert unit.dimensions == kind.dimensions
+        assert (unit.offset != 0.0) is (kind.scale_type is ScaleType.INTERVAL)
+    assert set(kind.added_units) <= set(kind.applicable_units)
+
+
+def test_celsius_is_not_a_unit_of_thermodynamic_temperature() -> None:
+    kinds = CATALOG.quantity_kinds
+    assert kinds["ThermodynamicTemperature"].applicable_units == ("K",)
+    assert "DEG_C" in kinds["CelsiusTemperature"].applicable_units
+    assert kinds["CelsiusTemperature"].scale_type is ScaleType.INTERVAL
+
+
+def test_temperature_difference_is_the_only_delta_kind() -> None:
+    deltas = [k.name for k in CATALOG.quantity_kinds.values() if k.delta]
+    assert deltas == ["TemperatureDifference"]
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))
+def test_cf_canonical_units_fit_the_kind(name: str) -> None:
+    kind = CATALOG.quantity_kinds[name]
+    for cf_name in kind.cf_standard_names:
+        cf = CATALOG.cf_standard_names[cf_name]
+        assert pint_dimensions(cf.pint) == expected_dimensions(dict(kind.dimensions))
+
+
+def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
+    cf = CATALOG.cf_standard_names["mass_concentration_of_water_vapor_in_air"]
+    assert cf.canonical_units == "kg m-3"
+    assert ureg.Quantity(1, cf.pint).to("g/m^3").magnitude == pytest.approx(1000)
+
+
+def test_wikidata_links_carry_their_relation_and_verification_date() -> None:
+    kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
+    assert kind.matches == (
+        ExternalMatch(
+            target="http://www.wikidata.org/entity/Q76378808",
+            relation=MatchRelation.CLOSE,
+            verified=datetime.date(2026, 10, 14),
+        ),
+    )
+    assert CATALOG.units["DEG_C"].matches[0].target.endswith("/Q25267")
+
+
+def test_ambiguous_absolute_humidity_has_no_wikidata_link_in_qudt() -> None:
+    assert CATALOG.quantity_kinds["AbsoluteHumidity"].matches == ()
+
+
+def test_skos_relations() -> None:
+    assert MatchRelation.EXACT.skos == "http://www.w3.org/2004/02/skos/core#exactMatch"
+    assert {r.value for r in MatchRelation} == {"exact", "close", "broad", "narrow"}
+
+
+def test_catalog_is_immutable() -> None:
+    kind = CATALOG.quantity_kinds["VapourPressure"]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        kind.label = "changed"  # type: ignore[misc]
+    with pytest.raises(TypeError):
+        CATALOG.quantity_kinds["New"] = kind  # type: ignore[index]
+    with pytest.raises(TypeError):
+        kind.dimensions["mass"] = 2  # type: ignore[index]
+
+
+def test_invalid_dimension_vector_is_rejected() -> None:
+    kind = dataclasses.replace(
+        CATALOG.quantity_kinds["VapourPressure"], dimension_vector="L-1M1T-2"
+    )
+    assert isinstance(kind, QuantityKind)
+    with pytest.raises(ValueError, match="invalid QUDT dimension vector"):
+        _ = kind.dimensions

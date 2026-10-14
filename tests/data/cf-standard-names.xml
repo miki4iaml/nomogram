@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- SPDX-FileCopyrightText: 2026 Miki -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<!-- Minimal excerpt in the shape of the CF standard name table 95. -->
+<standard_name_table>
+  <version_number>95</version_number>
+  <entry id="air_temperature">
+    <canonical_units>K</canonical_units>
+  </entry>
+  <entry id="water_vapor_partial_pressure_in_air">
+    <canonical_units>Pa</canonical_units>
+  </entry>
+  <entry id="unused_name">
+    <canonical_units>m s-1</canonical_units>
+  </entry>
+</standard_name_table>

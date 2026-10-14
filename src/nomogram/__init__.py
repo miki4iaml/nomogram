@@ -4,8 +4,8 @@
 """nomogram: a repository of scientific formulas.
 
 Submodules are imported on demand, so that ``import nomogram`` stays
-light: :mod:`nomogram.units` (pint) and :mod:`nomogram.expression`
-(SymPy).
+light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
+(SymPy) and :mod:`nomogram.semantics` (bundled QUDT and CF subsets).
 """
 
 from importlib.metadata import version

@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+# Minimal excerpt in the shape of QUDT 3.5.2, for the extraction tests.
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
+@prefix qkdv: <http://qudt.org/vocab/dimensionvector/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+unit:K a qudt:Unit ;
+  qudt:conversionMultiplier 1.0 ;
+  qudt:hasDimensionVector qkdv:A0E0L0I0M0H1T0D0 ;
+  qudt:symbol "K" ;
+  qudt:ucumCode "K" ;
+  qudt:udunitsCode "K" ;
+  qudt:unitForQuantityKind quantitykind:Temperature ;
+  qudt:wikidataMatch "http://www.wikidata.org/entity/Q11579"^^xsd:anyURI ;
+  rdfs:label "Kelvin"@en .
+
+unit:DEG_C a qudt:Unit ;
+  qudt:conversionMultiplier 1.0 ;
+  qudt:conversionOffset 273.15 ;
+  qudt:hasDimensionVector qkdv:A0E0L0I0M0H1T0D0 ;
+  qudt:symbol "°C" ;
+  qudt:unitForQuantityKind quantitykind:Temperature ;
+  rdfs:label "Degree Celsius"@en .
+
+unit:HectoPA a qudt:Unit ;
+  qudt:conversionMultiplier 100.0 ;
+  qudt:hasDimensionVector qkdv:A0E0L-1I0M1H0T-2D0 ;
+  qudt:hasQuantityKind quantitykind:Pressure ;
+  rdfs:label "Hectopascal"@en .
+
+unit:PA a qudt:Unit ;
+  qudt:hasDimensionVector qkdv:A0E0L-1I0M1H0T-2D0 ;
+  rdfs:label "Pascal"@en .
