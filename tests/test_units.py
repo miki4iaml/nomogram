@@ -65,5 +65,32 @@ def test_convert_rejects_bare_numbers() -> None:
         convert(20.0, "K")
 
 
+@pytest.mark.parametrize(
+    ("value", "unit", "target", "expected"),
+    [
+        (50, "percent", "dimensionless", 0.5),  # relative humidity as a ratio
+        (1013.25, "hPa", "Pa", 101325),
+        (0.017290, "kg/m^3", "g/m^3", 17.290),  # absolute humidity
+        (32, "degF", "degC", 0.0),  # Fahrenheit point
+        (212, "degF", "degC", 100.0),
+        (9, "delta_degF", "delta_degC", 5.0),  # Fahrenheit difference
+    ],
+)
+def test_conversions_of_the_humidity_use_case(
+    value: float, unit: str, target: str, expected: float
+) -> None:
+    result = convert(Q_(value, unit), target)
+    assert result.magnitude == pytest.approx(expected, abs=1e-9)
+
+
+def test_pint_does_not_tell_kelvin_points_from_differences() -> None:
+    # Known pint limit, pinned so that a change in pint does not go
+    # unnoticed: kelvin values are always added, whether they are points
+    # (thermodynamic temperatures) or differences. Telling them apart is
+    # the job of nomogram's quantity kinds.
+    total: pint.Quantity = Q_(300, "K") + Q_(290, "K")
+    assert total.magnitude == pytest.approx(590)
+
+
 def test_scale_types() -> None:
     assert {s.value for s in ScaleType} == {"ratio", "interval"}

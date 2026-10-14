@@ -28,6 +28,19 @@ def test_parse_and_evaluate_magnus_form() -> None:
     assert function(20.0, 17.62, 243.12, 6.112) == pytest.approx(expected)
 
 
+def test_sonntag_matches_the_iapws_reference_within_its_stated_accuracy() -> None:
+    # Saturation vapour pressure over water at 20 degC from the IAPWS
+    # reference equation (Wagner and Pruss 1993, IAPWS SR1-86): 23.392 hPa.
+    # Sonntag (1990) states an accuracy of 0.6 % from -45 to 60 degC; its
+    # known deviation at 20 degC is about -0.28 %.
+    iapws_hpa = 23.392
+    expr = parse_expression(MAGNUS, MAGNUS_NAMES)
+    function = compile_numeric(expr, ("t", "A", "B", "C"))
+    deviation = function(20.0, 17.62, 243.12, 6.112) / iapws_hpa - 1
+    assert abs(deviation) < 0.006
+    assert deviation == pytest.approx(-0.0028, abs=0.0001)
+
+
 def test_evaluation_is_vectorised() -> None:
     expr = parse_expression(MAGNUS, MAGNUS_NAMES)
     function = compile_numeric(expr, ("t", "A", "B", "C"))
