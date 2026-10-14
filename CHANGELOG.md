@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-14
+
 ### Fixed
 
 - Archive metadata for Zenodo (`.zenodo.json`): the creator is declared by
@@ -147,5 +149,6 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...develop
+[0.1.1]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/miki4iaml/nomogram/releases/tag/v0.1.0
