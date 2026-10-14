@@ -28,6 +28,7 @@ from functools import lru_cache
 from typing import Any
 
 import sympy
+from sympy.codegen.cfunctions import log10
 from sympy.printing.latex import LatexPrinter
 
 __all__ = [
@@ -43,6 +44,7 @@ __all__ = [
 FUNCTIONS: Mapping[str, Callable[[Any], Any]] = {
     "exp": sympy.exp,
     "ln": sympy.log,
+    "log10": log10,
     "sqrt": sympy.sqrt,
 }
 
@@ -148,11 +150,16 @@ class _NotationPrinter(LatexPrinter):  # type: ignore[misc]
     """LaTeX printer for formulas.
 
     The exponential is written ``\\exp\\left(...\\right)`` rather than
-    ``e^{...}``: in meteorology ``e`` denotes the vapour pressure.
+    ``e^{...}``: in meteorology ``e`` denotes the vapour pressure. The
+    decimal logarithm is written ``\\log_{10}``, as in the sources.
     """
 
     def _print_ExpBase(self, expr: Any, exp: Any = None) -> str:
         tex = r"\exp\left(" + self._print(expr.args[0]) + r"\right)"
+        return f"{tex}^{{{exp}}}" if exp is not None else tex
+
+    def _print_log10(self, expr: Any, exp: Any = None) -> str:
+        tex = r"\log_{10}\left(" + self._print(expr.args[0]) + r"\right)"
         return f"{tex}^{{{exp}}}" if exp is not None else tex
 
 

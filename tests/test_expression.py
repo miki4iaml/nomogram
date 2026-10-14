@@ -154,3 +154,21 @@ def test_latex_stays_within_the_mathtext_and_mathjax_subset() -> None:
     latex = to_latex(parse_expression(MAGNUS, MAGNUS_NAMES), {"t": "t"})
     for unsupported in (r"\textrm", r"\operatorname{e}", r"\mathbb"):
         assert unsupported not in latex
+
+
+def test_decimal_logarithm_is_written_as_in_the_sources() -> None:
+    expr = parse_expression("10 ** (a * log10(x))", ["a", "x"])
+    assert r"\log_{10}\left(x\right)" in to_latex(expr)
+    function = compile_numeric(expr, ("a", "x"))
+    assert function(2.0, 100.0) == pytest.approx(1e4)
+
+
+def test_latex_power_of_a_decimal_logarithm() -> None:
+    import sympy
+    from sympy.codegen.cfunctions import log10
+
+    from nomogram.expression import _NotationPrinter
+
+    x = sympy.Symbol("x", real=True)
+    printed = _NotationPrinter()._print_log10(log10(x), exp="2")
+    assert printed == r"\log_{10}\left(x\right)^{2}"

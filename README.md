@@ -48,10 +48,10 @@ saturation = c.formulations_of("SaturationVapourPressureOverWater")
 grid = {"ThermodynamicTemperature": Q_(np.linspace(0.01, 40, 5), "degC")}
 
 table = compare(saturation, reference, grid)
-table.relative_deviations["sonntag1990_magnus"]   # about -0.28 % at 20 degC
+table.relative_deviations["sonntag1990_magnus"]  # about -0.28 % at 20 degC
 
 ha = compose(c.formulations["mass_concentration_ideal_gas"], {"e_s": reference})
-ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")   # 17.29
+ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
 Each formulation keeps its units, validity domain and references; outside

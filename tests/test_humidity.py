@@ -122,3 +122,22 @@ def test_absolute_humidity_compared_across_vapour_pressure_formulations() -> Non
         "mass_concentration_ideal_gas[e_s=sonntag1990_magnus]"
     ]
     assert sonntag == pytest.approx([-0.0028, -0.0028], abs=0.0001)
+
+
+def test_murray_is_referred_to_the_triple_point() -> None:
+    # Offset 273.16 K, not 273.15 K: the constant C is the value there.
+    murray = FORMULATIONS["murray1967"]
+    assert murray.evaluate(T=Q_(273.16, "K")).magnitude == pytest.approx(6.1078)
+
+
+def test_goff_gratch_is_referred_to_the_steam_point() -> None:
+    goff_gratch = FORMULATIONS["goff_gratch1946"]
+    result = goff_gratch.evaluate(T=Q_(373.16, "K")).magnitude
+    assert result == pytest.approx(1013.246)
+    # Range -50 to 102 degC (Gibbins 1990, as quoted by Vömel).
+    assert np.isnan(goff_gratch.evaluate(T=Q_(-60, "degC")).magnitude)
+
+
+def test_conflicting_attributions_are_recorded() -> None:
+    assert "Sonntag (1994)" in (FORMULATIONS["sonntag1990"].note or "")
+    assert "GG46" in (FORMULATIONS["goff1957"].note or "")
