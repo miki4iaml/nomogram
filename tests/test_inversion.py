@@ -287,3 +287,20 @@ def test_only_domains_bounding_the_unknown_are_carried() -> None:
     assert isinstance(inverse, Formulation)
     assert inverse.expression == "(a - p)/b"
     assert [d.bounds for d in inverse.domains] == [{"p": (500.0, 1000.0)}]
+
+
+@pytest.mark.parametrize("formulation", SATURATION, ids=lambda f: f.key)
+def test_forward_of_the_inverse_gives_back_the_vapour_pressure(
+    formulation: Formulation,
+) -> None:
+    # f(f^-1(e)) = e, on vapour pressures of ordinary air.
+    arguments: dict[str, Any] = {
+        formulation.inputs[0].identifier: Q_(np.array([2.0, 10.0, 30.0]), "degC")
+    }
+    vapour = formulation.evaluate(outside="ignore", **arguments).to("hPa")
+    grid = Q_(np.linspace(vapour.magnitude[0], vapour.magnitude[-1], 9), "hPa")
+    dew = dew_point(formulation).evaluate(e=grid, outside="ignore")
+    again = formulation.evaluate(
+        outside="ignore", **{formulation.inputs[0].identifier: dew}
+    )
+    assert again.to("hPa").magnitude == pytest.approx(grid.magnitude, rel=1e-9)

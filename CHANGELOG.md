@@ -10,6 +10,11 @@ and this project adheres to
 
 ### Added
 
+- `docs/approach.md`, "How nomogram earns trust": sources read and their
+  status, checks against published values, comparison with a reference,
+  units and temperature scales, objective validity domains, derived
+  formulations checked both ways (f^-1(f(t)) = t and f(f^-1(e)) = e), and
+  the limits of the tests; linked from both READMEs.
 - `nomogram.inversion`: `invert` turns a formulation of one input around;
   SymPy finds the closed form when there is one (after taking
   logarithms: the Magnus form gives the classical dew point formula

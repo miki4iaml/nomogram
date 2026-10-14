@@ -78,7 +78,9 @@ ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
 Each formulation keeps its units, validity domain, temperature scale and
-references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md).
+references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
+[How nomogram earns trust](docs/approach.md) explains what is checked and
+how.
 
 ## Contributing
 
