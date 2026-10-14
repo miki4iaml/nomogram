@@ -1,0 +1,32 @@
+{
+  "title": "nomogram",
+  "upload_type": "software",
+  "description": "A repository of scientific formulas: alternative notations across authors and conventions, parameter units (including empirical ones), validity domains, LaTeX rendering and symbolic computation.",
+  "creators": [
+    {
+      "name": "Miki"
+    }
+  ],
+  "license": "bsd-3-clause",
+  "access_right": "open",
+  "keywords": [
+    "scientific computing",
+    "formulas",
+    "units",
+    "dimensional analysis",
+    "physics",
+    "thermodynamics",
+    "geoscience",
+    "atmospheric science",
+    "meteorology",
+    "hydrology",
+    "psychrometrics"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/miki4iaml/nomogram",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
+}
