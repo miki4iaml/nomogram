@@ -141,3 +141,63 @@ def test_goff_gratch_is_referred_to_the_steam_point() -> None:
 def test_conflicting_attributions_are_recorded() -> None:
     assert "Sonntag (1994)" in (FORMULATIONS["sonntag1990"].note or "")
     assert "GG46" in (FORMULATIONS["goff1957"].note or "")
+
+
+MIXING_RATIO = FORMULATIONS["mixing_ratio_from_vapour_pressure"]
+SPECIFIC_HUMIDITY = FORMULATIONS["specific_humidity_from_mixing_ratio"]
+
+
+def test_mixing_ratio_reproduces_psychrolib() -> None:
+    # PsychroLib (tests, commit 3066345): 25 degC, standard pressure at 500 m.
+    result = MIXING_RATIO.evaluate(e=Q_(3169.7, "Pa"), p=Q_(95461, "Pa"))
+    assert result.magnitude == pytest.approx(0.0213603998047487, rel=1e-9)
+
+
+@pytest.mark.parametrize(
+    ("celsius", "ashrae", "tolerance"),
+    # Saturation humidity ratio at 101325 Pa, ASHRAE Handbook -
+    # Fundamentals (2017), ch. 1, Table 2, with the tolerances PsychroLib
+    # applies to the same values. The ideal gas formula stays 0.4 to
+    # 0.6 % below: the table likely includes non-ideal effects.
+    [(5.0, 0.005425, 0.005), (25.0, 0.020173, 0.005), (50.0, 0.086863, 0.01)],
+)
+def test_saturation_mixing_ratio_against_ashrae_table(
+    celsius: float, ashrae: float, tolerance: float
+) -> None:
+    saturated = compose(MIXING_RATIO, {"e": IAPWS})
+    result = saturated.evaluate(T=Q_(celsius, "degC"), p=Q_(101325, "Pa"))
+    assert result.magnitude == pytest.approx(ashrae, rel=tolerance)
+    assert result.magnitude < ashrae
+
+
+def test_specific_humidity_from_mixing_ratio() -> None:
+    saturated = compose(MIXING_RATIO, {"e": IAPWS})
+    specific = compose(SPECIFIC_HUMIDITY, {"r": saturated})
+    assert [v.identifier for v in specific.inputs] == ["p", "T"]
+    result = specific.evaluate(T=Q_(25, "degC"), p=Q_(101325, "Pa"))
+    assert result.magnitude == pytest.approx(0.020173 / 1.020173, rel=0.005)
+
+
+def test_mixing_ratio_from_temperature_humidity_and_pressure() -> None:
+    vapour = compose(
+        FORMULATIONS["vapour_pressure_from_relative_humidity"], {"e_s": IAPWS}
+    )
+    mixing = compose(MIXING_RATIO, {"e": vapour})
+    assert {v.identifier for v in mixing.inputs} == {"RH", "T", "p"}
+    dry = mixing.evaluate(RH=Q_(0, "percent"), T=Q_(20, "degC"), p=Q_(1013.25, "hPa"))
+    assert dry.magnitude == 0.0
+
+
+def test_epsilon_values_follow_their_sources() -> None:
+    constants = CATALOG.constants
+    # ECMWF IFS CY49R1, Part IV, section 12.5: R_d / R_v.
+    assert constants["epsilon_ecmwf_ifs"].value == pytest.approx(
+        287.0597 / 461.5250, abs=1e-7
+    )
+    # MetPy 1.7.1: M_w / M_d.
+    assert constants["epsilon_metpy"].value == pytest.approx(
+        18.015268 / 28.96546, abs=1e-7
+    )
+    assert constants["epsilon_ashrae2017"].value == 0.621945
+    values = [c.value for k, c in constants.items() if k.startswith("epsilon_")]
+    assert max(values) / min(values) - 1 < 1e-4

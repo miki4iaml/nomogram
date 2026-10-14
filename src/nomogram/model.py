@@ -502,11 +502,14 @@ class Formulation:
         if self.fixed_units:
             return 1.0
         units = semantic_catalog().units
-        ones: list[Any] = [Q_(1.0, units[v.unit].pint) for v in self.inputs]
-        ones += [1.0 for _ in self.coefficients]
-        ones += [Q_(1.0, units[k.unit].pint) for k in self.constants]
-        result = Q_(self._function(*ones))
-        return float(result.to(units[self.output.unit].pint).magnitude)
+        # Distinct probe values, so that no difference such as p - e
+        # vanishes; only the unit of the result matters.
+        probe = iter(1.5 ** (i + 1) for i in range(len(self.names)))
+        values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
+        values += [next(probe) for _ in self.coefficients]
+        values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
+        result = Q_(self._function(*values))
+        return float(Q_(1.0, result.units).to(units[self.output.unit].pint).magnitude)
 
     def latex(self, notation: Notation | None = None) -> str:
         """The formulation as a LaTeX equation, in a given notation."""

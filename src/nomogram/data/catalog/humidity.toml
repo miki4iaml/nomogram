@@ -154,6 +154,22 @@ doi = "10.1088/0026-1394/27/1/002"
 status = "to-confirm"
 note = "Text and Table 6 (differences between ITS-90 and IPTS-68) read in a copy of the text, not in the journal; DOI not checked."
 
+[references.ecmwf_ifs_cy49r1]
+authors = "ECMWF"
+year = 2024
+title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
+url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
+status = "verified"
+note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808."
+
+[references.metpy171]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/constants/default.py"
+status = "verified"
+note = "epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol (0.6219569); MetPy 0.12 used 18.01528 and 28.9644 g/mol. Released 2025-08-29."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -200,6 +216,30 @@ reference = "iapws95"
 matches = [
   { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
 ]
+
+[constants.epsilon_ashrae2017]
+identifier = "epsilon"
+value = 0.621945
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d"
+reference = "ashrae2017"
+
+# Other values of the same ratio, read in their sources. The relative
+# spread (about 6e-5) is negligible against the deviations between
+# formulations, but the value used is part of a formulation.
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.6219808
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
+reference = "ecmwf_ifs_cy49r1"
+
+[constants.epsilon_metpy]
+identifier = "epsilon"
+value = 0.6219569
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
+reference = "metpy171"
 
 # --- Notations ------------------------------------------------------------
 
@@ -542,4 +582,28 @@ output = { identifier = "e", kind = "VapourPressure", unit = "PA", description =
 inputs = [
   { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
   { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]
+
+[formulations.mixing_ratio_from_vapour_pressure]
+label = "Humidity mixing ratio from vapour pressure (ASHRAE 2017)"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+references = ["ashrae2017", "psychrolib"]
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 20, through PsychroLib: moist air as an ideal gas mixture."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Air pressure" },
+]
+constants = ["epsilon_ashrae2017"]
+
+[formulations.specific_humidity_from_mixing_ratio]
+label = "Specific humidity from mixing ratio"
+expression = "r / (1 + r)"
+fixed_units = false
+references = ["ashrae2017", "psychrolib"]
+note = "From the definitions (mass of water vapour per mass of moist air, per mass of dry air); ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 9b, through PsychroLib."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
 ]

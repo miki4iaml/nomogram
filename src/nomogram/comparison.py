@@ -30,7 +30,7 @@ import numpy as np
 
 from nomogram.model import Basis, Outside, ScaleConversion, Variable
 
-__all__ = ["Comparison", "Composition", "Evaluable", "compare", "compose"]
+__all__ = ["Comparison", "Composition", "Evaluable", "compare", "compose", "feeds"]
 
 #: Kinds that express the same temperature state (SI Brochure 2.3.1).
 TEMPERATURE_POINTS = frozenset({"ThermodynamicTemperature", "CelsiusTemperature"})
@@ -61,6 +61,27 @@ class Evaluable(Protocol):
 def same_state(kind_a: str, kind_b: str) -> bool:
     """Whether two quantity kinds may feed the same input."""
     return kind_a == kind_b or {kind_a, kind_b} <= TEMPERATURE_POINTS
+
+
+def feeds(output_kind: str, input_kind: str) -> bool:
+    """Whether a result of one kind may feed an input of another.
+
+    It may when the kinds are the same, or when the result's kind
+    specializes the input's (QUDT ``specializationOf``, directly or not):
+    a saturation vapour pressure is a vapour pressure. Never the other
+    way round.
+    """
+    from nomogram.catalog import catalog
+
+    kinds = catalog().kinds
+    kind = kinds.get(output_kind)
+    seen = set()
+    while kind is not None and kind.name not in seen:
+        if kind.name == input_kind:
+            return True
+        seen.add(kind.name)
+        kind = kinds.get(kind.specialization_of or "")
+    return output_kind == input_kind
 
 
 def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, Any]:
@@ -263,7 +284,8 @@ def compose(
         The formulation evaluated last.
     inner : mapping of str to Formulation
         For some inputs of ``outer``, by identifier, the formulation that
-        computes them; its output kind must be the input's kind.
+        computes them; its output kind must be the input's kind or a
+        specialization of it (see :func:`feeds`).
     bind : mapping of str to str, optional
         Inputs of inner formulations to take from inputs of ``outer``, by
         identifier, for example ``{"t": "T"}``: the binding is declared,
@@ -286,7 +308,7 @@ def compose(
         if target is None:
             msg = f"{outer.key} has no input {identifier!r}"
             raise ValueError(msg)
-        if formulation.output.kind != target.kind:
+        if not feeds(formulation.output.kind, target.kind):
             msg = (
                 f"{formulation.key} computes {formulation.output.kind}, "
                 f"but {identifier} is {target.kind}"
