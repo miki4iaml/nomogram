@@ -32,6 +32,15 @@ uv sync
 Python 3.12 ou plus récent. Les tracés demandent l'extra `viz`
 (matplotlib) : `uv sync --extra viz`.
 
+## Exemple
+
+Toutes les formulations de la pression de vapeur saturante du catalogue
+comparées à la référence IAPWS ; les courbes s'arrêtent là où une
+formulation sort de son domaine de validité déclaré
+([script](docs/examples/saturation_vapour_pressure.py)) :
+
+![Écart des formulations de la pression de vapeur saturante à IAPWS](docs/images/saturation-vapour-pressure.png)
+
 ## Utilisation
 
 Comparer les formulations de la pression de vapeur saturante à la

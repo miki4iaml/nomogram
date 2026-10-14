@@ -121,6 +121,8 @@ and this project adheres to
   `plot_values` (y-axis symbol in a chosen notation); values outside
   validity domains show as gaps. Every formulation of the catalog, in
   every notation, is checked to render in matplotlib's mathtext.
+- README example: every saturation vapour pressure formulation against
+  IAPWS, with its script (`docs/examples/`), run by the tests.
 - `Comparison` keeps the formulations compared (labels, output variable).
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.

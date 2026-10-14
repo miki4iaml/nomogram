@@ -32,6 +32,14 @@ uv sync
 Python 3.12 or later. Plots need the `viz` extra (matplotlib):
 `uv sync --extra viz`.
 
+## Example
+
+Every saturation vapour pressure formulation of the catalog against the
+IAPWS reference; curves stop where a formulation leaves its stated
+validity domain ([script](docs/examples/saturation_vapour_pressure.py)):
+
+![Deviation of saturation vapour pressure formulations from IAPWS](docs/images/saturation-vapour-pressure.png)
+
 ## Usage
 
 Compare the saturation vapour pressure formulations against the IAPWS
