@@ -15,15 +15,30 @@ rendering and their use in symbolic computation.
 Reference use case: list the alternative formulations of air humidity
 HA = f(T, RH), compare them, plot them.
 
-Structural constraint: the core must stay installable on an offline
-workstation, with no heavy dependency.
+Structural constraint: the package must work on an offline workstation.
+It may rely on well-supported, widely adopted dependencies, but never on
+a conversion or rendering engine reachable only through the Internet
+(no CDN-hosted MathJax, no online converter, no remote ontology at run
+time).
 
 ## Architecture and invariants
 
-- Pure Python core. `sympy` and `matplotlib` are extras (`[symbolic]`,
-  `[plot]`), never imported when the package loads: lazy import inside
-  the functions that need them, with an explicit message if the extra
-  is missing.
+- Core dependencies: `sympy` (formula expressions, LaTeX, symbolic
+  computation, `lambdify`), `numpy` (vectorised evaluation) and `pint`
+  (units, the engine shared with MetPy and xarray). `matplotlib` is an
+  extra (`[plot]`), imported lazily inside the functions that need it,
+  with an explicit message if the extra is missing.
+- `import nomogram` stays light: submodules (`nomogram.units`,
+  `nomogram.expression`…) are imported on demand.
+- A formula's mathematical content is written once, as an expression in
+  restricted Python syntax. It is parsed with `ast` against a whitelist
+  into a SymPy expression, never with `eval` or `sympy.parse_expr`.
+  LaTeX (per notation), numeric functions and symbolic results all
+  derive from it; nothing is duplicated by hand.
+- Units: nomogram's own pint registry, created once and never modified;
+  pint's global registry is never touched. Celsius temperatures are
+  points of an interval scale (`degC`); differences use `delta_degC` or
+  `K` (SI Brochure, 9th edition, section 2.3.1).
 - Reference data is immutable: frozen structures (`frozen=True`), no
   mutation after construction.
 - No mutable global state. The package must be safe in concurrent

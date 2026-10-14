@@ -54,3 +54,21 @@ and this project adheres to
   TestPyPI with a unique development version); single build, metadata
   check, SLSA build provenance and CycloneDX SBOM attestations, Trusted
   Publishing with PEP 740 attestations, no stored token.
+- `nomogram.units`: nomogram's own pint registry (`ureg`, `Q_`),
+  `convert` (also accepts quantities from other pint registries, such as
+  MetPy's), `is_offset_unit`, `ScaleType` (ratio or interval scale).
+- `nomogram.expression`: formulas written once in restricted Python
+  syntax, parsed safely (whitelist, no `eval`) into SymPy expressions;
+  LaTeX per notation (`to_latex`, with `\exp` written explicitly since
+  `e` denotes the vapour pressure); cached numeric functions vectorised
+  with numpy (`compile_numeric`).
+- `nomogram.__version__`, read from the package metadata.
+
+### Changed
+
+- Core dependencies: sympy, numpy and pint. The offline constraint now
+  rules out online engines rather than dependencies.
+
+### Removed
+
+- The placeholder `nomogram.hello()`.
