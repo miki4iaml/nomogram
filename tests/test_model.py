@@ -14,7 +14,7 @@ from nomogram.model import DomainBasis, OutOfDomainError, ValidityWarning
 from nomogram.units import Q_
 
 CATALOG = catalog()
-SONNTAG = CATALOG.formulations["sonntag1990"]
+SONNTAG = CATALOG.formulations["sonntag1990_magnus"]
 IDEAL_GAS = CATALOG.formulations["mass_concentration_ideal_gas"]
 SONNTAG_20C_HPA = 6.112 * math.exp(17.62 * 20 / (243.12 + 20))
 

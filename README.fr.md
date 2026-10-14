@@ -16,8 +16,8 @@ Référentiel de formules scientifiques : notations alternatives selon
 les auteurs et les conventions, unités des paramètres (y compris
 empiriques), domaines de validité, rendu LaTeX et calcul formel.
 
-Le cœur est en Python pur, sans dépendance lourde, installable sur un
-poste déconnecté.
+En Python pur, fondé sur SymPy, numpy et pint ; il fonctionne sur un
+poste déconnecté (aucun moteur en ligne).
 
 > Projet en phase d'initialisation, pas encore publié sur PyPI.
 
@@ -30,6 +30,34 @@ uv sync
 ```
 
 Python 3.12 ou plus récent.
+
+## Utilisation
+
+Comparer les formulations de la pression de vapeur saturante à la
+référence IAPWS, puis l'humidité absolue qu'elles donnent :
+
+```python
+import numpy as np
+from nomogram.catalog import catalog
+from nomogram.comparison import compare, compose
+from nomogram.units import Q_
+
+c = catalog()
+reference = c.formulations["iapws_sr1_86"]
+saturation = c.formulations_of("SaturationVapourPressureOverWater")
+grid = {"ThermodynamicTemperature": Q_(np.linspace(0.01, 40, 5), "degC")}
+
+table = compare(saturation, reference, grid)
+table.relative_deviations["sonntag1990_magnus"]   # environ -0,28 % à 20 °C
+
+ha = compose(c.formulations["mass_concentration_ideal_gas"], {"e_s": reference})
+ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")   # 17,29
+```
+
+Chaque formulation garde ses unités, son domaine de validité et ses
+références ; hors domaine, le résultat vaut NaN sauf demande contraire
+(`outside="ignore"`). Le vocabulaire est mis en correspondance dans
+[docs/rosetta.md](docs/rosetta.md) (en anglais).
 
 ## Contribuer
 

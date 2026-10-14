@@ -62,6 +62,9 @@ Outside = Literal["nan", "warn", "raise", "ignore"]
 #: Which validity domains :meth:`Formulation.evaluate` applies.
 Basis = Literal["stated", "physical", "all"]
 
+#: Relative tolerance at domain bounds, for rounding in unit conversions.
+BOUND_TOLERANCE = 1e-9
+
 
 class ReferenceStatus(Enum):
     """Whether a reference has been checked against its source."""
@@ -411,6 +414,12 @@ class Formulation:
         -------
         numpy.ndarray of bool
             ``True`` where a value lies outside a selected domain.
+
+        Notes
+        -----
+        Bounds are closed and tolerate a relative rounding of
+        :data:`BOUND_TOLERANCE`, so that a value converted between units
+        (0.01 degC is 273.15999999... K) is not rejected at a bound.
         """
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
@@ -420,7 +429,8 @@ class Formulation:
                 continue
             for identifier, (low, high) in domain.bounds.items():
                 value = arrays[identifier]
-                outside |= (value < low) | (value > high)
+                margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+                outside |= (value < low - margin) | (value > high + margin)
         return outside
 
     def evaluate(

@@ -89,9 +89,22 @@ and this project adheres to
   kinds defined by nomogram, such as the saturation vapour pressure over
   water; first entries: Sonntag (1990) and the mass concentration of
   water vapour from the ideal gas law.
+- Saturation vapour pressure over water: IAPWS SR1-86(1992) as the
+  reference, Sonntag (1990), the Magnus forms of Sonntag (1990), Alduchov
+  and Eskridge (1996, AEKR) and Buck (1981), the Buck (1981) equation,
+  Tetens (1930) and Hyland and Wexler (1983); each with its references
+  and verification status, stated domains and published accuracy.
+- `nomogram.comparison`: `compare` (values and relative deviations from a
+  reference formulation, vectorised) and `compose` (feeding formulations
+  into another, for HA = f(T, RH)); Celsius and thermodynamic
+  temperatures match the same input, a temperature difference never
+  does.
+- README: usage example.
 
 ### Changed
 
+- Validity domain bounds tolerate a relative rounding of 1e-9, so that a
+  value converted between units (0.01 degC) is not rejected at a bound.
 - `QuantityKind` gains `origin` (`"qudt"` or `"nomogram"`); its IRI is
   optional, absent for kinds defined by nomogram.
 - License expression `BSD-3-Clause AND CC-BY-4.0 AND CC0-1.0`: the

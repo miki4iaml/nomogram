@@ -46,7 +46,16 @@ def test_kind_defined_by_nomogram() -> None:
 
 def test_formulations_are_grouped_by_computed_kind() -> None:
     keys = [f.key for f in CATALOG.formulations_of("SaturationVapourPressureOverWater")]
-    assert keys == ["sonntag1990"]
+    assert set(keys) == {
+        "iapws_sr1_86",
+        "sonntag1990",
+        "sonntag1990_magnus",
+        "alduchov_eskridge1996",
+        "tetens1930",
+        "buck1981",
+        "buck1981_magnus",
+        "hyland_wexler1983",
+    }
 
 
 def test_references_carry_their_verification_status() -> None:
