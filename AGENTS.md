@@ -71,8 +71,20 @@ workstation, with no heavy dependency.
 2. Pull request `develop` → `main`, merged with a merge commit (the
    only exception to squash: `main` must hold the exact history of
    `develop`, otherwise both branches diverge at every release).
-3. Signed tag `vx.y.z` on `main`, then a GitHub release, which will
-   trigger the PyPI publication through OIDC trusted publishing.
+3. Before tagging, check locally: `uv build` then
+   `uvx --from twine twine check --strict dist/*`.
+4. Signed tag `vx.y.z` on `main`, then publish a GitHub release from
+   it. The release workflow (`.github/workflows/release.yml`) checks
+   that the tag matches the project version, builds once, attests the
+   build provenance and the CycloneDX SBOM, and publishes exactly those
+   files to PyPI through Trusted Publishing (OIDC, no stored token),
+   after approval of the protected `pypi` environment.
+5. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+
+Rehearsal: run the release workflow manually (`workflow_dispatch`). It
+publishes a unique `x.y.z.devN` version to TestPyPI without creating a
+release. Never publish a GitHub release just to test: each published
+release also archives a permanent Zenodo DOI.
 
 ## Security
 
