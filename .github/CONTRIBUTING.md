@@ -7,6 +7,28 @@ path of a contribution. Coding and architecture rules live in
 [AGENTS.md](../AGENTS.md), which applies to humans and coding agents
 alike.
 
+## Ways to contribute
+
+From the lightest to the most involved; all of them are welcome.
+
+1. **Point to a reference to integrate.** A citation, a DOI or a link is
+   enough: the reference is read, checked and encoded for you.
+   [Open a "Reference to integrate" issue](https://github.com/miki4iaml/nomogram/issues/new?template=reference_proposal.yml).
+2. **Bring information or report a problem about an existing catalog
+   entry**: a coefficient, a validity domain, an attribution, a
+   temperature scale, a notation, the verification of a reference still
+   marked `to-confirm`.
+   [Open a "Catalog entry" issue](https://github.com/miki4iaml/nomogram/issues/new?template=catalog_entry.yml).
+3. **Propose a formula**, either through an issue (LaTeX is fine,
+   [open a "Formula proposal" issue](https://github.com/miki4iaml/nomogram/issues/new?template=formula_proposal.yml)), or
+   directly in the catalog format by pull request: see
+   [Writing a catalog entry](../docs/catalog.md).
+4. **Contribute code**: setup, checks and workflow below.
+
+Whatever the path, a formula enters the catalog with its source, units
+and validity domain; a detail is marked `verified` only once read in
+the source itself.
+
 ## Prerequisites
 
 - Python 3.12 or later.

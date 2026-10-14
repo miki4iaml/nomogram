@@ -1,0 +1,48 @@
+name: Catalog entry, information or problem
+description: Bring additional information or report a problem about a formulation, reference or notation already in the catalog.
+labels: [catalog]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Corrections and additions to existing entries are as valuable as
+        new formulas: a coefficient, a validity domain, an attribution, a
+        temperature scale, a reference still marked `to-confirm`...
+  - type: input
+    id: entry
+    attributes:
+      label: Catalog entry
+      description: Key of the formulation, reference or notation, as in the catalog.
+      placeholder: "sonntag1990_magnus"
+    validations:
+      required: true
+  - type: dropdown
+    id: subject
+    attributes:
+      label: Subject
+      multiple: true
+      options:
+        - Coefficient or expression
+        - Validity domain or accuracy
+        - Units
+        - Temperature scale
+        - Attribution, year or reference details
+        - Verification of a "to-confirm" reference
+        - Notation (LaTeX symbol)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Information or problem
+      description: What is missing, what differs, and what it should be.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source
+      description: Where you read it (publication, page, table, equation), so that it can be checked.
+    validations:
+      required: true

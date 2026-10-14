@@ -77,8 +77,11 @@ correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais).
 
 ## Contribuer
 
-Voir le [guide de contribution](.github/CONTRIBUTING.fr.md)
-(version anglaise de référence : [CONTRIBUTING.md](.github/CONTRIBUTING.md)).
+Références à intégrer, compléments ou corrections sur les entrées du
+catalogue, nouvelles formules et code sont tous bienvenus : voir
+[comment contribuer](.github/CONTRIBUTING.fr.md#comment-contribuer)
+(version anglaise de référence : [CONTRIBUTING.md](.github/CONTRIBUTING.md))
+et le [guide du catalogue](docs/catalog.md) (en anglais).
 
 ## Licence
 

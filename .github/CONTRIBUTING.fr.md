@@ -10,6 +10,29 @@ et le circuit d'une contribution. Les règles de code et d'architecture
 sont dans [AGENTS.md](../AGENTS.md), qui s'applique aux humains comme
 aux agents de codage.
 
+## Comment contribuer
+
+De la plus légère à la plus engagée ; toutes sont bienvenues.
+
+1. **Signaler une référence à intégrer.** Une citation, un DOI ou un
+   lien suffit : la référence est lue, vérifiée et saisie pour vous.
+   [Ouvrir une issue « Reference to integrate »](https://github.com/miki4iaml/nomogram/issues/new?template=reference_proposal.yml).
+2. **Apporter un complément d'information ou signaler un problème sur
+   une entrée du catalogue** : un coefficient, un domaine de validité,
+   une attribution, une échelle de température, une notation, la
+   vérification d'une référence encore marquée `to-confirm`.
+   [Ouvrir une issue « Catalog entry »](https://github.com/miki4iaml/nomogram/issues/new?template=catalog_entry.yml).
+3. **Proposer une formule**, soit par une issue (le LaTeX convient,
+   [ouvrir une issue « Formula proposal »](https://github.com/miki4iaml/nomogram/issues/new?template=formula_proposal.yml)),
+   soit directement au format du catalogue par une pull request : voir
+   [Writing a catalog entry](../docs/catalog.md) (en anglais).
+4. **Contribuer au code** : installation, contrôles et parcours
+   ci-dessous.
+
+Quelle que soit la voie, une formule entre au catalogue avec sa source,
+ses unités et son domaine de validité ; un détail n'est marqué
+`verified` qu'une fois lu dans la source elle-même.
+
 ## Prérequis
 
 - Python 3.12 ou plus récent.

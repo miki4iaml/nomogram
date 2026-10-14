@@ -74,7 +74,10 @@ references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md).
 
 ## Contributing
 
-See the [contributing guide](.github/CONTRIBUTING.md).
+References to integrate, information or corrections about catalog
+entries, new formulas and code are all welcome: see the
+[ways to contribute](.github/CONTRIBUTING.md#ways-to-contribute) and
+the [catalog guide](docs/catalog.md).
 
 ## License
 
