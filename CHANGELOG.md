@@ -10,6 +10,9 @@ and this project adheres to
 
 ### Added
 
+- Quantity kinds `DewPointTemperature` (interval scale, degC; CF
+  `dew_point_temperature`), never matched with the air temperature, and
+  `Pressure` (CF `air_pressure`), extracted from QUDT 3.5.2.
 - Zenodo DOI (all versions: 10.5281/zenodo.23373134): badge in the README,
   `doi` in `CITATION.cff`.
 
