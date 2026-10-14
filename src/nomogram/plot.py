@@ -62,6 +62,15 @@ def _abscissa(comparison: Comparison, kind: str | None) -> tuple[str, Any]:
     return f"{name} [{quantity.units:~P}]", np.asarray(quantity.magnitude, dtype=float)
 
 
+#: Line styles taken in turn once the colour cycle (10 colours) is used up.
+_LINESTYLES = ("-", "-.", ":")
+
+
+def _style(index: int) -> dict[str, str]:
+    """Distinct styles beyond ten curves: the colour cycle repeats."""
+    return {"linestyle": _LINESTYLES[(index // 10) % len(_LINESTYLES)]}
+
+
 def _label(comparison: Comparison, key: str) -> str:
     formulation = comparison.formulations.get(key)
     label = getattr(formulation, "label", None)
@@ -97,11 +106,11 @@ def plot_deviations(
     """
     x_label, x = _abscissa(comparison, input_kind)
     ax = _axes(ax)
-    for key, deviation in comparison.relative_deviations.items():
-        if key == comparison.reference:
-            continue
+    others = [k for k in comparison.relative_deviations if k != comparison.reference]
+    for index, key in enumerate(others):
+        deviation = comparison.relative_deviations[key]
         values = np.broadcast_to(np.asarray(deviation, dtype=float), x.shape)
-        ax.plot(x, 100 * values, label=_label(comparison, key))
+        ax.plot(x, 100 * values, label=_label(comparison, key), **_style(index))
     ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
     ax.set_xlabel(x_label)
     ax.set_ylabel(f"Deviation from {_label(comparison, comparison.reference)} [%]")
@@ -146,10 +155,12 @@ def plot_values(
 
     x_label, x = _abscissa(comparison, input_kind)
     ax = _axes(ax)
-    for key, quantity in comparison.values.items():
+    for index, (key, quantity) in enumerate(comparison.values.items()):
         values = np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), x.shape)
         style = (
-            {"color": "black", "linestyle": "--"} if key == comparison.reference else {}
+            {"color": "black", "linestyle": "--"}
+            if key == comparison.reference
+            else _style(index)
         )
         ax.plot(x, values, label=_label(comparison, key), **style)
     reference = comparison.formulations.get(comparison.reference)

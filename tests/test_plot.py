@@ -105,3 +105,10 @@ def test_every_formulation_renders_in_mathtext(notation: str | None) -> None:
     chosen = CATALOG.notations[notation] if notation else None
     for formulation in FORMULATIONS.values():
         parser.parse(f"${formulation.latex(chosen)}$")
+
+
+def test_curves_beyond_ten_change_line_style(comparison: Comparison) -> None:
+    ax = plot_deviations(comparison)
+    styles = [line.get_linestyle() for line in ax.lines[:-1]]
+    assert styles[:10] == ["-"] * 10
+    assert set(styles[10:]) == {"-."}
