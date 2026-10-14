@@ -27,6 +27,62 @@ container = "Zeitschrift für Meteorologie"
 status = "to-confirm"
 note = "Volume (40 or 70) and pages (340-344) to confirm against the original."
 
+[references.iapws_sr1_86]
+authors = "IAPWS"
+year = 1992
+title = "Revised Supplementary Release on Saturation Properties of Ordinary Water Substance (SR1-86(1992))"
+url = "https://iapws.org/technical-guidance/release/Supp-sat"
+status = "verified"
+note = "Equation (1), coefficients, range (section 6) and Table 1 read in the official release."
+
+[references.wagner_pruss1993]
+authors = "Wagner, W.; Pruß, A."
+year = 1993
+title = "International equations for the saturation properties of ordinary water substance. Revised according to the international temperature scale of 1990"
+container = "Journal of Physical and Chemical Reference Data 22, 783"
+status = "to-confirm"
+note = "Article behind IAPWS SR1-86(1992); DOI not checked."
+
+[references.alduchov_eskridge1996]
+authors = "Alduchov, O. A.; Eskridge, R. E."
+year = 1996
+title = "Improved Magnus form approximation of saturation vapor pressure"
+container = "Journal of Applied Meteorology 35, 601-609"
+url = "https://www.osti.gov/servlets/purl/548871"
+status = "verified"
+note = "Read in the report version (OSTI 548871, DOE/ER/61011--T6): Table II (formulas), Table III (maximum relative errors)."
+
+[references.tetens1930]
+authors = "Tetens, O."
+year = 1930
+title = "Über einige meteorologische Begriffe"
+container = "Zeitschrift für Geophysik 6, 297-309"
+status = "to-confirm"
+note = "Original not read. Alduchov and Eskridge (1996) quote 6.11 x 10^(7.5 t/(237.3 + t)); Lawrence (2005, not read) is said to give 6.1066 hPa: the constant differs between secondary sources."
+
+[references.buck1981]
+authors = "Buck, A. L."
+year = 1981
+title = "New equations for computing vapor pressure and enhancement factor"
+container = "Journal of Applied Meteorology 20, 1527-1532"
+status = "to-confirm"
+note = "Original not read; formulas as quoted by Alduchov and Eskridge (1996, Table II)."
+
+[references.hyland_wexler1983]
+authors = "Hyland, R. W.; Wexler, A."
+year = 1983
+title = "Formulations for the thermodynamic properties of the saturated phases of H2O from 173.15 K to 473.15 K"
+container = "ASHRAE Transactions 89(2A), 500-519"
+status = "to-confirm"
+note = "Original not read; coefficients as given by ASHRAE (2017) through PsychroLib (commit 3066345)."
+
+[references.psychrolib]
+authors = "PsychroLib contributors"
+title = "PsychroLib: psychrometric functions (Python source, commit 3066345dc8cf91bf59134147cf917f982c1fce13)"
+url = "https://github.com/psychrometrics/psychrolib"
+status = "verified"
+note = "GetSatVapPres read in the source; it switches from ice to water at the triple point, where ASHRAE uses the freezing point."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -109,19 +165,19 @@ sources = ["cengel_boles"]
 
 # --- Formulations ---------------------------------------------------------
 
-[formulations.sonntag1990]
+[formulations.sonntag1990_magnus]
 label = "Magnus form, Sonntag (1990) coefficients"
 expression = "C * exp(A * t / (B + t))"
 fixed_units = true
-references = ["sonntag1990", "wmo2024"]
-note = "Coefficients adopted by the WMO guide."
+references = ["sonntag1990", "wmo2024", "alduchov_eskridge1996"]
+note = "Coefficients adopted by the WMO guide and quoted as SA90 by Alduchov and Eskridge (1996, Table II), who find a maximum relative error of 0.597 % against GG46, WE76 and SO90 between -40 and 50 degC (Table III). Not to be confused with Sonntag's own formulation (sonntag1990)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
 ]
 coefficients = { A = 17.62, B = 243.12, C = 6.112 }
 
-[[formulations.sonntag1990.domains]]
+[[formulations.sonntag1990_magnus.domains]]
 basis = "stated"
 bounds = { t = [-45.0, 60.0] }
 criterion = "Uncertainty within 0.6 % (k=2), as quoted by the WMO guide."
@@ -140,3 +196,107 @@ inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
 ]
 constants = ["R_v_iapws95"]
+
+[formulations.iapws_sr1_86]
+label = "IAPWS SR1-86(1992), Wagner and Pruß equation"
+expression = "p_c * exp(T_c / T * (a1 * (1 - T / T_c) + a2 * (1 - T / T_c) ** 1.5 + a3 * (1 - T / T_c) ** 3 + a4 * (1 - T / T_c) ** 3.5 + a5 * (1 - T / T_c) ** 4 + a6 * (1 - T / T_c) ** 7.5))"
+fixed_units = true
+references = ["iapws_sr1_86", "wagner_pruss1993"]
+note = "Reference formulation for comparisons. Reproduces Table 1 of the release: 611.657 Pa at 273.16 K, 101325 Pa at 373.1243 K."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
+]
+
+[formulations.iapws_sr1_86.coefficients]
+T_c = { value = 647.096, unit = "K", note = "Critical temperature" }
+p_c = { value = 22.064e6, unit = "PA", note = "Critical pressure" }
+a1 = -7.85951783
+a2 = 1.84408259
+a3 = -11.7866497
+a4 = 22.6807411
+a5 = -15.9618719
+a6 = 1.80122502
+
+[[formulations.iapws_sr1_86.domains]]
+basis = "stated"
+bounds = { T = [273.16, 647.096] }
+criterion = "Vapour-liquid equilibrium from the triple point to the critical point, endorsed by IAPWS (section 6)."
+reference = "iapws_sr1_86"
+
+[formulations.sonntag1990]
+label = "Sonntag (1990) formulation over water (SO90)"
+expression = "exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
+fixed_units = true
+references = ["sonntag1990", "alduchov_eskridge1996"]
+note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Range not read in the original."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
+]
+coefficients = { a0 = -6096.9385, a1 = 16.635794, a2 = -2.711193e-2, a3 = 1.673952e-5, a4 = 2.433502 }
+
+[formulations.alduchov_eskridge1996]
+label = "Magnus form, Alduchov and Eskridge (1996) AEKR coefficients"
+expression = "C * exp(A * t / (B + t))"
+fixed_units = true
+references = ["alduchov_eskridge1996"]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 17.625, B = 243.04, C = 6.1094 }
+
+[[formulations.alduchov_eskridge1996.domains]]
+basis = "stated"
+bounds = { t = [-40.0, 50.0] }
+criterion = "Maximum relative error 0.384 % against GG46, WE76 and SO90 (Table III)."
+reference = "alduchov_eskridge1996"
+
+[formulations.tetens1930]
+label = "Tetens (1930), as quoted by Alduchov and Eskridge (1996)"
+expression = "C * 10 ** (A * t / (B + t))"
+fixed_units = true
+references = ["tetens1930", "alduchov_eskridge1996"]
+note = "Base-10 form (TE30). Maximum relative error 3.214 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III). The constant C differs between secondary sources (see the reference)."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 7.5, B = 237.3, C = 6.11 }
+
+[formulations.buck1981_magnus]
+label = "Magnus form, Buck (1981) coefficients (BU81)"
+expression = "C * exp(A * t / (B + t))"
+fixed_units = true
+references = ["buck1981", "alduchov_eskridge1996"]
+note = "Maximum relative error 1.458 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 17.502, B = 240.97, C = 6.1121 }
+
+[formulations.buck1981]
+label = "Buck (1981) equation (BU-2)"
+expression = "C * exp(t * (A - t / D) / (t + B))"
+fixed_units = true
+references = ["buck1981", "alduchov_eskridge1996"]
+note = "Maximum relative error 0.493 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 18.729, B = 257.87, C = 6.1121, D = 227.3 }
+
+[formulations.hyland_wexler1983]
+label = "Hyland and Wexler (1983) formulation over water"
+expression = "exp(C8 / T + C9 + C10 * T + C11 * T ** 2 + C12 * T ** 3 + C13 * ln(T))"
+fixed_units = true
+references = ["hyland_wexler1983", "ashrae2017", "psychrolib"]
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib. Range not read in the original."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+coefficients = { C8 = -5.8002206e3, C9 = 1.3914993, C10 = -4.8640239e-2, C11 = 4.1764768e-5, C12 = -1.4452093e-8, C13 = 6.5459673 }
