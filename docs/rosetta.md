@@ -1,0 +1,126 @@
+# Rosetta stone: the vocabulary of nomogram
+
+nomogram reuses established vocabularies rather than inventing its own.
+This page maps each concept it handles to the terms used by
+[QUDT](https://qudt.org/) (the reference vocabulary), the metrology
+texts it rests on (SI Brochure, VIM), its dependencies (pint, SymPy)
+and the domain vocabularies it bridges (CF standard names, OM). Where
+nomogram departs from QUDT, the reason is given.
+
+Versions read: QUDT 3.5.2, CF standard name table 95, SI Brochure 9th
+edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
+
+## Main table
+
+| nomogram term | QUDT | SI / VIM | pint | SymPy | CF / OM | Notes |
+|---|---|---|---|---|---|---|
+| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none | CF standard name (narrower); OM `Quantity` subclasses | Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
+| specialization | `qudt:specializationOf` | — | none | none | — | How nomogram defines kinds QUDT lacks, e.g. saturation vapour pressure as a specialization of `VapourPressure`. |
+| quantity | `qudt:Quantity` | quantity (VIM 1.1): a property of a phenomenon, body or substance | none | none | OM `Quantity` | The property itself ("the temperature of this air"), not a number. Never a class name in nomogram, to avoid the clash with pint's `Quantity`. |
+| quantity value | `qudt:QuantityValue` (`numericValue` + `unit`) | quantity value (VIM 1.19) | `pint.Quantity` (`magnitude` + `units`) | none | OM `Measure` | nomogram keeps pint's name `quantity` for parameters holding a pint object, and says "quantity value" in prose when the distinction matters. |
+| unit | `qudt:Unit` | measurement unit (VIM 1.9) | `pint.Unit` | `sympy.physics.units` (not used) | CF canonical units (UDUNITS strings) | pint is the only unit engine; QUDT units are mapped to pint strings and checked by dimension. |
+| dimension | `qudt:QuantityKindDimensionVector` (`hasDimensionVector`) | quantity dimension (VIM 1.7) | `dimensionality` | none | — | Same notion; QUDT adds dimension `D` (dimensionless ratio) to tell ratios apart. |
+| unit registry | `qudt:SystemOfUnits` (partly) | system of units (VIM 1.13) | `pint.UnitRegistry` | — | — | nomogram owns one private registry, `nomogram.units.ureg`, created once and never modified. |
+| offset unit | unit with `qudt:conversionOffset` ≠ 0 (`unit:DEG_C`: multiplier 1, offset 273.15) | none: the SI says the degree Celsius equals the kelvin in magnitude; the *quantity* Celsius temperature is offset (SI Brochure 2.3.1) | non-multiplicative unit (`degC`, `degF`) | — | OM: a scale defined by an offset from another | QUDT and pint put the offset in the unit, the SI puts it in the quantity. nomogram follows pint for computation and the SI for meaning: `is_offset_unit` tells which units express points of an interval scale. |
+| scale type | `qudt:ScaleType`: `RatioScale`, `IntervalScale`, `OrdinalScale`, `NominalScale` | quantity-value scale (VIM 1.27); ordinal scale (VIM 1.28) | none | — | OM `Scale` | `nomogram.units.ScaleType` keeps only ratio and interval, the two the formulas need. The four types come from Stevens (1946). |
+| point / difference | `qudt:isDeltaQuantity` (schema only, see findings) | — | `degC` versus `delta_degC` | — | OM `Point` versus `Measure` | A Celsius temperature is a point; the difference of two points is a difference, expressed in `delta_degC` or `K`. pint refuses to add two points. |
+| identifier | none (`qudt:QuantityKind` IRIs identify kinds, not variables) | — | — | name of a `sympy.Symbol` | — | The semantic name of a variable in a formula (`t`, `RH`, `e_s`), stable across notations. |
+| symbol | `qudt:symbol`, `qudt:latexSymbol`, `qudt:altSymbol` | quantity symbol (ISO 80000-1) | unit symbol only | `sympy.Symbol` is a *variable*, not a glyph | — | Ambiguous across vocabularies. In nomogram's prose, "symbol" means the glyph (QUDT sense); the SymPy object is always called "SymPy symbol". |
+| notation | none (one `latexSymbol` per kind, plus `altSymbol`) | — | — | `symbol_names` of the LaTeX printer | — | A mapping from identifiers to LaTeX symbols, one per author or convention (WMO, ASHRAE...). QUDT has no concept of competing notations: nomogram adds it. |
+| expression | `qudt:expression`, `qudt:latexDefinition`, `qudt:mathMLdefinition` | quantity equation (VIM 1.22) | — | `sympy.Expr` | — | Written once in restricted Python syntax; LaTeX and MathML are derived, never stored. |
+| formulation | none | — | — | — | — | One author's way of computing a quantity kind (Magnus-Tetens, Sonntag 1990...). The alternative formulations of a kind are what nomogram compares. |
+| coefficient | none | — | — | — | — | Empirical parameter of one formulation (the A, B, C of the Magnus form). Not a physical constant: it has a source and a validity domain. |
+| physical constant | `qudt:PhysicalConstant`, `qudt:ConstantValue` | — | pint constants (`R`, `k`...) | `sympy.physics.constants` (not used) | — | Constants with a metrological status (specific gas constant of water vapour). nomogram keeps their source (IAPWS-95, CODATA) because values differ between sources. |
+| validity domain | none | — | — | assumptions (`real=True`, `positive=True`) only | — | The range over which a formulation's author claims an accuracy. No vocabulary covers it; nomogram defines it. |
+| reference | `qudt:Citation`; `qudt:informativeReference`, `qudt:isoNormativeReference` | — | — | — | — | Bibliographic source of a formulation or coefficient, with a verification status. |
+| CF standard name | none | — | — | — | CF standard name, with canonical units | The geoscience name of a variable in a data file (`air_temperature`). Linked to a QUDT kind; one kind may have several CF names. |
+| external match | `qudt:wikidataMatch`, `qudt:siExactMatch`, `qudt:ucumCode`, `qudt:udunitsCode` | BIPM SI Reference Point | — | — | — | Identifiers carried over from QUDT so that nomogram data can be linked to Wikidata, the BIPM, UCUM and UDUNITS. |
+
+## Reference case: humidity of air
+
+| Variable | QUDT kind | Wikidata | CF standard name | pint unit |
+|---|---|---|---|---|
+| thermodynamic temperature T | `ThermodynamicTemperature` | Q264647 | `air_temperature` | `K` |
+| Celsius temperature t | `CelsiusTemperature` | Q74758530 | `air_temperature` (in `degC`) | `degC` |
+| temperature difference | `TemperatureDifference` | — | — | `delta_degC`, `K` |
+| relative humidity RH | `RelativeHumidity` | Q2499617 | `relative_humidity` | `percent`, `1` |
+| vapour pressure e | `VapourPressure` | — | `water_vapor_partial_pressure_in_air` | `hPa` |
+| saturation vapour pressure e_s | nomogram kind, specialization of `VapourPressure` | — | none | `hPa` |
+| absolute humidity (mass concentration of water vapour) | `MassConcentrationOfWaterVapour` | Q76378808 | `mass_concentration_of_water_vapor_in_air` | `g/m³` |
+| humidity mixing ratio | `MassRatioOfWaterVapourToDryGas` | Q17232415 | `humidity_mixing_ratio` | `g/kg` |
+| specific humidity | `SpecificHumidity` | — | `specific_humidity` | `g/kg` |
+
+## Ambiguous trade terms
+
+Some terms mean different quantities in different communities. nomogram
+records the term as a label, never as a kind, and points to the
+unambiguous kinds.
+
+| Term | Meaning | Community | Kind (QUDT / ISO 80000-5) | Typical unit | Sources |
+|---|---|---|---|---|---|
+| absolute humidity | mass of water vapour per volume of moist air (the mixture) | meteorology, physics | `MassConcentrationOfWaterVapour`, v = m/V | g/m³ | AMS Glossary (*vapor density*); ISO 80000-5 as quoted by QUDT; IEC Electropedia |
+| absolute humidity | mass of water vapour per mass of dry air | chemical engineering, HVAC, the French term for absolute humidity on psychrometric charts | `MassRatioOfWaterVapourToDryGas`, x = m/m_d | g/kg | Çengel and Boles, *Thermodynamics*, ch. 14; French HVAC teaching material; QUDT's own description of `AbsoluteHumidity` |
+| specific humidity | mass of water vapour per mass of moist air | meteorology (CF, NOAA), ASHRAE (γ) | `SpecificHumidity`, q = m/(m + m_d) | g/kg | CF table 95; ASHRAE Handbook — Fundamentals, ch. 1 |
+| specific humidity | mass of water vapour per mass of dry air | engineering textbooks (Çengel: "absolute or specific humidity") | `MassRatioOfWaterVapourToDryGas` | g/kg | Çengel and Boles |
+
+The two meanings of "absolute humidity" differ in dimension (L⁻³M
+versus dimensionless), so mixing them is not a small numerical error.
+British Standard BS 1339-1:2002 deprecates the term in favour of
+"volumetric humidity". No source was found defining absolute humidity
+per volume of *dry* air.
+
+## QUDT findings
+
+Found while reading QUDT 3.5.2; documented here, not worked around
+silently.
+
+1. `quantitykind:VaporPressure` is deprecated since QUDT 3.2.0 and
+   replaced by `quantitykind:VapourPressure`. nomogram uses the latter.
+2. `quantitykind:AbsoluteHumidity` (a specialization of `Density`)
+   describes both meanings of the term in its description, and its
+   `latexDefinition` is not consistent. nomogram uses
+   `MassConcentrationOfWaterVapour` instead: defined by ISO 80000-5,
+   matched to Wikidata, consistent with the CF name.
+3. `quantitykind:MassConcentrationOfWaterVapour` has the symbol `v`
+   but its `latexDefinition` writes `w = m/V`.
+4. The description of `quantitykind:SpecificHumidity` (mass of water
+   vapour per mass of moist air) says it is commonly written ω in
+   psychrometrics; in psychrometrics ω or W denotes the mixing ratio,
+   a different quantity.
+5. `qudt:isDeltaQuantity` exists in the schema but is set on no kind,
+   not even `TemperatureDifference`. The distinction between points and
+   differences therefore comes from pint and OM, not from QUDT data.
+6. There is no kind for the saturation vapour pressure. nomogram
+   defines one as a specialization of `VapourPressure`, the mechanism
+   QUDT itself uses.
+7. The `latexSymbol` of `ThermodynamicTemperature` is `\Theta`, the
+   symbol of the *dimension*, not the usual quantity symbol T. One
+   reason why nomogram keeps LaTeX symbols in notations rather than in
+   the reference data.
+
+CF table 95 has no standard name for the saturation vapour pressure
+either, and its `relative_humidity` entry has an empty description (it
+does not say whether saturation is over water or over ice).
+
+## Sources
+
+- QUDT 3.5.2, <https://github.com/qudt/qudt-public-repo/releases> (CC BY 4.0).
+- BIPM, *The International System of Units*, 9th edition, section 2.3.1,
+  doi:10.59161/AUEZ1291.
+- JCGM 200:2012, *International vocabulary of metrology* (VIM3),
+  <https://jcgm.bipm.org/vim/en/>.
+- pint, *Temperature conversion*,
+  <https://pint.readthedocs.io/en/stable/user/nonmult.html>.
+- SymPy, *Printing*, <https://docs.sympy.org/latest/modules/printing.html>.
+- CF standard name table, version 95,
+  <https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html>.
+- Rijgersberg, H., van Assem, M., Top, J. (2013). Ontology of units of
+  Measure and related concepts. *Semantic Web* 4(1),
+  doi:10.3233/SW-2012-0069.
+- Stevens, S. S. (1946). On the theory of scales of measurement.
+  *Science* 103(2684), 677–680, doi:10.1126/science.103.2684.677.
+- American Meteorological Society, *Glossary of Meteorology*, "vapor
+  density", <https://glossary.ametsoc.org/wiki/Absolute_humidity>.
+- Çengel, Y. A., Boles, M. A. *Thermodynamics: An Engineering
+  Approach*, chapter 14, "Gas–vapor mixtures and air-conditioning".
+- ASHRAE, *Handbook — Fundamentals*, chapter 1, "Psychrometrics".

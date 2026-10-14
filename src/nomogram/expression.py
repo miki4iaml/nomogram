@@ -10,12 +10,14 @@ turned directly into a SymPy expression, without ever calling
 :func:`eval` (``sympy.parse_expr`` relies on ``eval`` and is not meant for
 untrusted input). Everything else derives from the SymPy expression:
 
-- LaTeX, rendered in any author's notation by renaming symbols;
+- LaTeX, rendered in any author's notation;
 - numeric evaluation, vectorised with numpy through ``lambdify``;
 - symbolic computation.
 
-Symbols are semantic identifiers (``t``, ``RH``, ``e_s``...), never
-glyphs: how they are written belongs to a notation.
+Names in an expression are semantic *identifiers* (``t``, ``RH``,
+``e_s``...), each becoming a SymPy symbol of that name. They are never
+glyphs: the symbol a reader sees (QUDT's ``symbol``/``latexSymbol``)
+belongs to a notation. See ``docs/rosetta.md`` for the vocabulary.
 """
 
 from __future__ import annotations
@@ -79,8 +81,8 @@ def parse_expression(source: str, names: Iterable[str]) -> Any:
     source : str
         The expression, for example ``"C * exp(A * t / (B + t))"``.
     names : iterable of str
-        The identifiers the expression may use (variables and constants).
-        Each becomes a real SymPy symbol with that name.
+        The identifiers the expression may use (variables, coefficients
+        and constants). Each becomes a real SymPy symbol with that name.
 
     Returns
     -------
@@ -166,9 +168,9 @@ def to_latex(expr: Any, notation: Mapping[str, str] | None = None) -> str:
     expr : sympy.Expr
         An expression returned by :func:`parse_expression`.
     notation : mapping of str to str, optional
-        LaTeX for each symbol, by semantic identifier, for example
-        ``{"e_s": r"E_{\\mathrm{w}}"}``. Symbols not listed keep SymPy's
-        default rendering of their identifier.
+        LaTeX symbol for each identifier, for example
+        ``{"e_s": r"E_{\\mathrm{w}}"}``. Identifiers not listed keep
+        SymPy's default rendering.
 
     Returns
     -------
@@ -194,8 +196,8 @@ def compile_numeric(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]
     expr : sympy.Expr
         An expression returned by :func:`parse_expression`.
     arguments : tuple of str
-        Names of the function's positional arguments, in order. Every free
-        symbol of the expression must be listed.
+        Identifiers of the function's positional arguments, in order.
+        Every identifier used by the expression must be listed.
 
     Returns
     -------
@@ -206,7 +208,8 @@ def compile_numeric(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]
     Raises
     ------
     ExpressionError
-        If a free symbol of the expression is not among the arguments.
+        If an identifier used by the expression is not among the
+        arguments.
     """
     missing = sorted(s.name for s in expr.free_symbols if s.name not in arguments)
     if missing:

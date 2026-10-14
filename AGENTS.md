@@ -39,6 +39,11 @@ time).
   pint's global registry is never touched. Celsius temperatures are
   points of an interval scale (`degC`); differences use `delta_degC` or
   `K` (SI Brochure, 9th edition, section 2.3.1).
+- Vocabulary: QUDT terms first (quantity kind, quantity value, unit,
+  scale type…); any other term is justified by a dependency's or a
+  standard's usage. [docs/rosetta.md](docs/rosetta.md) maps the terms
+  across QUDT, the SI, pint, SymPy, CF and OM, and lists ambiguous
+  trade terms; keep it up to date when a concept is added.
 - Reference data is immutable: frozen structures (`frozen=True`), no
   mutation after construction.
 - No mutable global state. The package must be safe in concurrent

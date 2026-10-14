@@ -63,6 +63,10 @@ and this project adheres to
   `e` denotes the vapour pressure); cached numeric functions vectorised
   with numpy (`compile_numeric`).
 - `nomogram.__version__`, read from the package metadata.
+- Vocabulary reference (`docs/rosetta.md`): nomogram's concepts mapped
+  to QUDT, the SI and VIM, pint, SymPy, CF standard names and OM, with
+  ambiguous trade terms (absolute and specific humidity) and the
+  inconsistencies found in QUDT 3.5.2.
 
 ### Changed
 
