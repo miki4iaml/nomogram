@@ -48,6 +48,8 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | thermodynamic temperature T | `ThermodynamicTemperature` | Q264647 | `air_temperature` | `K` |
 | Celsius temperature t | `CelsiusTemperature` | Q74758530 | `air_temperature` (in `degC`) | `degC` |
 | temperature difference | `TemperatureDifference` | — | — | `delta_degC`, `K` |
+| dew point temperature T_d | `DewPointTemperature` | — | `dew_point_temperature` | `degC` |
+| air pressure p | `Pressure` | Q39552 | `air_pressure` | `hPa` |
 | relative humidity RH | `RelativeHumidity` | Q2499617 | `relative_humidity` | `percent`, `1` |
 | vapour pressure e | `VapourPressure` | — | `water_vapor_partial_pressure_in_air` | `hPa` |
 | saturation vapour pressure e_s | nomogram kind, specialization of `VapourPressure` | — | none | `hPa` |

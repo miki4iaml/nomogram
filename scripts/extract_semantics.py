@@ -68,6 +68,11 @@ KINDS: dict[str, KindSpec] = {
         "ratio", delta=False, cf_standard_names=("air_temperature",)
     ),
     "CelsiusTemperature": KindSpec("interval", delta=False),
+    # A temperature point like the Celsius temperature: empirical formulas
+    # give it in degC. A kind of its own, never matched with air temperature.
+    "DewPointTemperature": KindSpec(
+        "interval", delta=False, cf_standard_names=("dew_point_temperature",)
+    ),
     "TemperatureDifference": KindSpec("ratio", delta=True),
     # CF's canonical unit for relative humidity is 1.
     "RelativeHumidity": KindSpec(
@@ -76,6 +81,7 @@ KINDS: dict[str, KindSpec] = {
         cf_standard_names=("relative_humidity",),
         added_units=("UNITLESS",),
     ),
+    "Pressure": KindSpec("ratio", delta=False, cf_standard_names=("air_pressure",)),
     "VapourPressure": KindSpec(
         "ratio",
         delta=False,

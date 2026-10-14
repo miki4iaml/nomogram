@@ -23,6 +23,8 @@ def test_temperature_points_share_a_state_but_not_differences() -> None:
     assert same_state("CelsiusTemperature", "ThermodynamicTemperature")
     assert same_state("VapourPressure", "VapourPressure")
     assert not same_state("CelsiusTemperature", "TemperatureDifference")
+    # The dew point is a temperature, but not the temperature of the air.
+    assert not same_state("CelsiusTemperature", "DewPointTemperature")
     assert not same_state("VapourPressure", "SaturationVapourPressureOverWater")
 
 
