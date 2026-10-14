@@ -1,6 +1,6 @@
 [project]
 name = "nomogram"
-version = "0.1.1"
+version = "0.2.0"
 description = "Repository of scientific formulas: notations, units, validity domains"
 readme = "README.md"
 authors = [

@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-14
+
 ### Added
 
 - Saturation vapour pressure over ice (new quantity kind
@@ -193,6 +195,7 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...develop
+[0.2.0]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/miki4iaml/nomogram/releases/tag/v0.1.0
