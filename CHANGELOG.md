@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- Archive metadata for Zenodo (`.zenodo.json`): the creator is declared by
+  name (the alias), which Zenodo requires; the 0.1.0 release could not be
+  archived for lack of it.
+
 ## [0.1.0] - 2026-10-14
 
 First release.
