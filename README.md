@@ -19,7 +19,14 @@ validity domains, LaTeX rendering and symbolic computation.
 Pure Python, built on SymPy, numpy and pint; it works on an offline
 workstation (no online engine).
 
-> Early stage project, not yet published on PyPI.
+> Early stage project (alpha).
+
+## Installation
+
+```
+pip install nomogram          # core
+pip install "nomogram[viz]"   # with plots (matplotlib)
+```
 
 ## Installation from source
 
@@ -53,7 +60,7 @@ table = compare(formulations, reference, {"ThermodynamicTemperature": temperatur
 plot_deviations(table)
 ```
 
-![Deviation of saturation vapour pressure formulations from IAPWS](docs/images/saturation-vapour-pressure.png)
+![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.1.0/docs/images/saturation-vapour-pressure.png)
 
 ## Usage
 

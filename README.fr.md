@@ -19,7 +19,14 @@ empiriques), domaines de validité, rendu LaTeX et calcul formel.
 En Python pur, fondé sur SymPy, numpy et pint ; il fonctionne sur un
 poste déconnecté (aucun moteur en ligne).
 
-> Projet en phase d'initialisation, pas encore publié sur PyPI.
+> Projet à un stade précoce (alpha).
+
+## Installation
+
+```
+pip install nomogram          # cœur
+pip install "nomogram[viz]"   # avec les tracés (matplotlib)
+```
 
 ## Installation depuis les sources
 
@@ -54,7 +61,7 @@ table = compare(formulations, reference, {"ThermodynamicTemperature": temperatur
 plot_deviations(table)
 ```
 
-![Écart des formulations de la pression de vapeur saturante à IAPWS](docs/images/saturation-vapour-pressure.png)
+![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.1.0/docs/images/saturation-vapour-pressure.png)
 
 ## Utilisation
 
