@@ -48,13 +48,15 @@ def test_scales_of_formulations_and_how_they_are_known() -> None:
     assert IAPWS.inputs[0].temperature_scale.key == "its90"
     assert IAPWS.inputs[0].scale_basis is ScaleBasis.STATED
     assert BOLTON.inputs[0].temperature_scale is IPTS68
-    assert BOLTON.inputs[0].scale_basis is ScaleBasis.INFERRED
+    assert BOLTON.inputs[0].scale_basis is ScaleBasis.INFERRED_FROM_DATE
     # Fitted to formulations on several scales: none assigned.
     assert FORMULATIONS["alduchov_eskridge1996"].inputs[0].temperature_scale is None
-    # Coefficients transmitted by ASHRAE 2017 behave as ITS-90: left unknown.
-    hyland_wexler = FORMULATIONS["hyland_wexler1983"]
-    assert hyland_wexler.inputs[0].temperature_scale is None
-    assert "ITS-90" in (hyland_wexler.note or "")
+    # Coefficients transmitted by ASHRAE 2017 behave as ITS-90.
+    hyland_wexler = FORMULATIONS["hyland_wexler1983"].inputs[0]
+    assert hyland_wexler.temperature_scale is not None
+    assert hyland_wexler.temperature_scale.key == "its90"
+    assert hyland_wexler.scale_basis is ScaleBasis.INFERRED_FROM_NUMBERS
+    assert "0.022 %" in (FORMULATIONS["hyland_wexler1983"].note or "")
 
 
 def test_conversion_changes_an_ipts68_formulation_by_the_expected_amount() -> None:
@@ -131,7 +133,7 @@ def test_valid_scale_document() -> None:
         (
             "[[0.0, 0.0]]",
             GOOD_VARIABLE + ', temperature_scale = "s", scale_basis = "guessed"',
-            "is not one of stated, inferred",
+            "is not one of stated, inferred-from-date, inferred-from-numbers",
         ),
         (
             "[[0.0, 0.0]]",
