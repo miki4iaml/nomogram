@@ -29,34 +29,48 @@ cd nomogram
 uv sync
 ```
 
-Python 3.12 or later.
+Python 3.12 or later. Plots need the `viz` extra (matplotlib):
+`uv sync --extra viz`.
 
-## Usage
+## Example
 
-Compare the saturation vapour pressure formulations against the IAPWS
-reference, then the absolute humidity they give:
+Every saturation vapour pressure formulation of the catalog against the
+IAPWS reference; curves stop where a formulation leaves its stated
+validity domain ([script](docs/examples/saturation_vapour_pressure.py)):
 
 ```python
 import numpy as np
 from nomogram.catalog import catalog
-from nomogram.comparison import compare, compose
+from nomogram.comparison import compare
+from nomogram.plot import plot_deviations  # extra viz
 from nomogram.units import Q_
 
-c = catalog()
-reference = c.formulations["iapws_sr1_86"]
-saturation = c.formulations_of("SaturationVapourPressureOverWater")
-grid = {"ThermodynamicTemperature": Q_(np.linspace(0.01, 40, 5), "degC")}
+formulations = catalog().formulations_of("SaturationVapourPressureOverWater")
+reference = catalog().formulations["iapws_sr1_86"]
+temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 
-table = compare(saturation, reference, grid)
-table.relative_deviations["sonntag1990_magnus"]  # about -0.28 % at 20 degC
+table = compare(formulations, reference, {"ThermodynamicTemperature": temperatures})
+plot_deviations(table)
+```
 
-ha = compose(c.formulations["mass_concentration_ideal_gas"], {"e_s": reference})
+![Deviation of saturation vapour pressure formulations from IAPWS](docs/images/saturation-vapour-pressure.png)
+
+## Usage
+
+The table holds the values and the relative deviations, by formulation;
+values outside a formulation's validity domain are NaN unless asked
+otherwise (`outside="ignore"`). Formulations also chain, for instance
+the absolute humidity from any saturation vapour pressure formulation:
+
+```python
+from nomogram.comparison import compose
+
+ha = compose(catalog().formulations["mass_concentration_ideal_gas"], {"e_s": reference})
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
-Each formulation keeps its units, validity domain and references; outside
-its domain the result is NaN unless asked otherwise (`outside="ignore"`).
-The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md).
+Each formulation keeps its units, validity domain, temperature scale and
+references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md).
 
 ## Contributing
 

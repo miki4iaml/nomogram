@@ -26,8 +26,9 @@ time).
 - Core dependencies: `sympy` (formula expressions, LaTeX, symbolic
   computation, `lambdify`), `numpy` (vectorised evaluation) and `pint`
   (units, the engine shared with MetPy and xarray). `matplotlib` is an
-  extra (`[plot]`), imported lazily inside the functions that need it,
-  with an explicit message if the extra is missing.
+  extra (`[viz]`, the name xarray uses), imported lazily inside the
+  functions of `nomogram.plot`, with an explicit message if the extra is
+  missing. Development and CI install all extras.
 - `import nomogram` stays light: submodules (`nomogram.units`,
   `nomogram.expression`…) are imported on demand.
 - A formula's mathematical content is written once, as an expression in
@@ -193,13 +194,13 @@ No safety rule is bypassed, including during project bootstrap.
 ## Commands
 
 ```
-uv sync                                    # environment
+uv sync --all-extras                       # environment
 uv run pytest                              # tests
 uv run coverage run -m pytest && uv run coverage report   # coverage
 uv run ruff check --fix && uv run ruff format
 uv run mypy                                # strict typing
-uv run --isolated --python 3.13 pytest     # reproduce CI
-uv run --isolated --resolution lowest-direct pytest   # lower bounds
+uv run --isolated --python 3.13 --all-extras pytest   # reproduce CI
+uv run --isolated --resolution lowest-direct --all-extras pytest   # lower bounds
 ```
 
 `--isolated` matters for the last two commands: without it, `uv run`

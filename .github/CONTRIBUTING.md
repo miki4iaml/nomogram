@@ -19,11 +19,12 @@ alike.
 ## Setup
 
 ```
-uv sync
+uv sync --all-extras
 uv run pre-commit install
 ```
 
-The second command installs the hooks at all three stages
+The first command also installs the optional extras (`viz`), which the
+tests cover. The second command installs the hooks at all three stages
 (pre-commit, commit-msg, pre-push).
 
 ## Local checks

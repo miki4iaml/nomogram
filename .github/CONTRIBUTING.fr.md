@@ -22,11 +22,12 @@ aux agents de codage.
 ## Installation
 
 ```
-uv sync
+uv sync --all-extras
 uv run pre-commit install
 ```
 
-La seconde commande installe les hooks aux trois stades (pre-commit,
+La première commande installe aussi les extras optionnels (`viz`),
+couverts par les tests. La seconde commande installe les hooks aux trois stades (pre-commit,
 commit-msg, pre-push).
 
 ## Contrôles locaux
