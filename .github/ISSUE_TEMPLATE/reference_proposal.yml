@@ -1,0 +1,46 @@
+name: Reference to integrate
+description: Point to a publication, standard or table worth adding to the catalog; we read it and encode it.
+labels: [reference]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No need to write anything in the catalog format: a citation, a DOI
+        or a link is enough. The reference is read and checked before any
+        formula enters the catalog.
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference
+      description: Authors, year, title, journal or standard; DOI or link if any.
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: What it brings
+      description: |
+        The formulas, coefficients, tables or validity ranges it contains,
+        and the quantity they compute (saturation vapour pressure, dew
+        point...).
+    validations:
+      required: true
+  - type: dropdown
+    id: access
+    attributes:
+      label: Access to the text
+      options:
+        - Freely available online
+        - Behind a paywall
+        - Grey literature (manual, report, thesis)
+        - I can share a copy privately
+        - I don't know
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Where it is used (trade, software, standard), known discrepancies with other sources.
+    validations:
+      required: false

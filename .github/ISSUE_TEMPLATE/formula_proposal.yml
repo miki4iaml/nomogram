@@ -1,0 +1,68 @@
+name: Formula proposal
+description: Propose a formula, or an alternative formulation, for the catalog.
+labels: [formula]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A formula enters the catalog with its source, units and validity
+        domain. Please fill in as much as you can. To write the entry
+        yourself in the catalog format, see the
+        [catalog guide](https://github.com/miki4iaml/nomogram/blob/develop/docs/catalog.md)
+        and open a pull request instead.
+  - type: input
+    id: name
+    attributes:
+      label: Formula name and computed quantity
+      placeholder: "Magnus formula, saturation vapour pressure over water"
+    validations:
+      required: true
+  - type: textarea
+    id: expression
+    attributes:
+      label: Expression
+      description: In LaTeX, or in the catalog syntax (for example `C * exp(A * t / (B + t))`).
+      render: latex
+    validations:
+      required: true
+  - type: textarea
+    id: parameters
+    attributes:
+      label: Parameters and units
+      description: |
+        Every symbol with its meaning and unit, including empirical
+        coefficients and the units they assume.
+    validations:
+      required: true
+  - type: textarea
+    id: validity
+    attributes:
+      label: Validity domain
+      description: |
+        Input ranges and accuracy as stated by the source (with the
+        criterion, for example the maximum deviation from a reference),
+        or physical limits.
+    validations:
+      required: true
+  - type: input
+    id: scale
+    attributes:
+      label: Temperature scale
+      description: ITS-90, IPTS-68... if the source states it.
+    validations:
+      required: false
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: |
+        Author, publication, DOI or standard. Say whether you read the
+        original or a text quoting it.
+    validations:
+      required: true
+  - type: textarea
+    id: notations
+    attributes:
+      label: Known alternative notations or formulations
+    validations:
+      required: false
