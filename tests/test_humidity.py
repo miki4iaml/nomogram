@@ -186,3 +186,18 @@ def test_mixing_ratio_from_temperature_humidity_and_pressure() -> None:
     assert {v.identifier for v in mixing.inputs} == {"RH", "T", "p"}
     dry = mixing.evaluate(RH=Q_(0, "percent"), T=Q_(20, "degC"), p=Q_(1013.25, "hPa"))
     assert dry.magnitude == 0.0
+
+
+def test_epsilon_values_follow_their_sources() -> None:
+    constants = CATALOG.constants
+    # ECMWF IFS CY49R1, Part IV, section 12.5: R_d / R_v.
+    assert constants["epsilon_ecmwf_ifs"].value == pytest.approx(
+        287.0597 / 461.5250, abs=1e-7
+    )
+    # MetPy 1.7.1: M_w / M_d.
+    assert constants["epsilon_metpy"].value == pytest.approx(
+        18.015268 / 28.96546, abs=1e-7
+    )
+    assert constants["epsilon_ashrae2017"].value == 0.621945
+    values = [c.value for k, c in constants.items() if k.startswith("epsilon_")]
+    assert max(values) / min(values) - 1 < 1e-4

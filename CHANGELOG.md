@@ -12,7 +12,9 @@ and this project adheres to
 
 - Humidity mixing ratio r = epsilon e / (p - e) and specific humidity
   q = r / (1 + r) (ASHRAE 2017, through PsychroLib), with the constant
-  epsilon = 0.621945 and its source; composed with any saturation vapour
+  epsilon = 0.621945 and its source (ASHRAE); the values of the ECMWF
+  IFS (0.6219808, R_d/R_v) and of MetPy (0.6219569, M_w/M_d) are recorded
+  too, each read in its source; composed with any saturation vapour
   pressure formulation they give r and q at saturation, or from (T, RH,
   p). Checked against PsychroLib and against ASHRAE's Table 2 (the ideal
   gas formula stays 0.4 to 0.6 % below it).
