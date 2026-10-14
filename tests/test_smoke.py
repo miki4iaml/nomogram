@@ -14,10 +14,14 @@ def test_version_comes_from_the_metadata() -> None:
 
 
 def test_import_stays_light() -> None:
-    # In a fresh interpreter, importing the package must not pull SymPy
-    # or pint: submodules are imported on demand.
-    code = "import sys, nomogram; print('sympy' in sys.modules, 'pint' in sys.modules)"
+    # In a fresh interpreter, importing the package must not pull SymPy,
+    # pint or matplotlib: submodules are imported on demand, and even
+    # nomogram.plot imports matplotlib only when drawing.
+    code = (
+        "import sys, nomogram; print('sympy' in sys.modules, 'pint' in sys.modules);"
+        "import nomogram.plot; print('matplotlib' in sys.modules)"
+    )
     result = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, check=True
     )
-    assert result.stdout.split() == ["False", "False"]
+    assert result.stdout.split() == ["False", "False", "False"]

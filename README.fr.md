@@ -29,7 +29,8 @@ cd nomogram
 uv sync
 ```
 
-Python 3.12 ou plus récent.
+Python 3.12 ou plus récent. Les tracés demandent l'extra `viz`
+(matplotlib) : `uv sync --extra viz`.
 
 ## Utilisation
 
@@ -52,6 +53,10 @@ table.relative_deviations["sonntag1990_magnus"]  # environ -0,28 % à 20 °C
 
 ha = compose(c.formulations["mass_concentration_ideal_gas"], {"e_s": reference})
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17,29
+
+from nomogram.plot import plot_deviations  # extra viz
+
+plot_deviations(table)  # une courbe par formulation, trous hors domaine
 ```
 
 Chaque formulation garde ses unités, son domaine de validité et ses

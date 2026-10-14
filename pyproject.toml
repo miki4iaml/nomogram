@@ -48,6 +48,11 @@ Repository = "https://github.com/miki4iaml/nomogram"
 Issues = "https://github.com/miki4iaml/nomogram/issues"
 Changelog = "https://github.com/miki4iaml/nomogram/blob/main/CHANGELOG.md"
 
+[project.optional-dependencies]
+viz = [
+    "matplotlib>=3.10.7",
+]
+
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13.0"]
 build-backend = "uv_build"

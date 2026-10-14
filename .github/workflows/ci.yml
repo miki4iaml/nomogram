@@ -41,7 +41,7 @@ jobs:
           # Distinct from the tests cache (ubuntu, 3.12), avoiding a collision.
           cache-suffix: quality
 
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-extras
 
       # no-commit-to-branch would fail on a push to develop or main; the
       # repository rulesets already provide this protection.
@@ -102,7 +102,7 @@ jobs:
           python-version: ${{ matrix.python }}
           enable-cache: true
 
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-extras
 
       - name: Tests with branch coverage
         run: uv run --frozen coverage run -m pytest

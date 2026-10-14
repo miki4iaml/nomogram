@@ -23,7 +23,7 @@ difference is never matched with either.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import numpy as np
@@ -93,12 +93,15 @@ class Comparison:
     relative_deviations : mapping of str to numpy.ndarray
         ``value / reference - 1`` for each formulation; NaN where either is
         outside its validity domain (with the default ``outside="nan"``).
+    formulations : mapping of str to Formulation or Composition
+        The formulations compared, by key (labels, output variable).
     """
 
     reference: str
     inputs: Mapping[str, Any]
     values: Mapping[str, Any]
     relative_deviations: Mapping[str, Any]
+    formulations: Mapping[str, Evaluable] = field(default_factory=dict, repr=False)
 
     def max_abs_deviation(self) -> dict[str, float]:
         """Largest absolute relative deviation of each formulation (NaN ignored)."""
@@ -166,7 +169,8 @@ def compare(
             key: np.asarray(value.magnitude, dtype=float) / base - 1.0
             for key, value in values.items()
         }
-    return Comparison(reference.key, dict(inputs), values, deviations)
+    compared = {f.key: f for f in candidates}
+    return Comparison(reference.key, dict(inputs), values, deviations, compared)
 
 
 @dataclass(frozen=True)

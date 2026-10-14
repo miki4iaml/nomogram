@@ -116,6 +116,12 @@ and this project adheres to
   table of t90 - t68 of the ITS-90 text. Hyland and Wexler's
   coefficients, as given by ASHRAE (2017), behave as ITS-90: scale ITS-90
   inferred from numbers.
+- `nomogram.plot` (extra `viz`, matplotlib, imported lazily):
+  `plot_deviations` (relative deviation from the reference, in %) and
+  `plot_values` (y-axis symbol in a chosen notation); values outside
+  validity domains show as gaps. Every formulation of the catalog, in
+  every notation, is checked to render in matplotlib's mathtext.
+- `Comparison` keeps the formulations compared (labels, output variable).
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
