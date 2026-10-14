@@ -14,7 +14,7 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 
 | nomogram term | QUDT | SI / VIM | pint | SymPy | CF / OM | Notes |
 |---|---|---|---|---|---|---|
-| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none | CF standard name (narrower); OM `Quantity` subclasses | Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
+| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none | CF standard name (narrower); OM `Quantity` subclasses | `nomogram.semantics.QuantityKind`, with nomogram's scale type and point/difference typing. Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
 | specialization | `qudt:specializationOf` | — | none | none | — | How nomogram defines kinds QUDT lacks, e.g. saturation vapour pressure as a specialization of `VapourPressure`. |
 | quantity | `qudt:Quantity` | quantity (VIM 1.1): a property of a phenomenon, body or substance | none | none | OM `Quantity` | The property itself ("the temperature of this air"), not a number. Never a class name in nomogram, to avoid the clash with pint's `Quantity`. |
 | quantity value | `qudt:QuantityValue` (`numericValue` + `unit`) | quantity value (VIM 1.19) | `pint.Quantity` (`magnitude` + `units`) | none | OM `Measure` | nomogram keeps pint's name `quantity` for parameters holding a pint object, and says "quantity value" in prose when the distinction matters. |
@@ -34,7 +34,8 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | validity domain | none | — | — | assumptions (`real=True`, `positive=True`) only | — | The range over which a formulation's author claims an accuracy. No vocabulary covers it; nomogram defines it. |
 | reference | `qudt:Citation`; `qudt:informativeReference`, `qudt:isoNormativeReference` | — | — | — | — | Bibliographic source of a formulation or coefficient, with a verification status. |
 | CF standard name | none | — | — | — | CF standard name, with canonical units | The geoscience name of a variable in a data file (`air_temperature`). Linked to a QUDT kind; one kind may have several CF names. |
-| external match | `qudt:wikidataMatch`, `qudt:siExactMatch`, `qudt:ucumCode`, `qudt:udunitsCode` | BIPM SI Reference Point | — | — | — | Identifiers carried over from QUDT so that nomogram data can be linked to Wikidata, the BIPM, UCUM and UDUNITS. |
+| external match | `qudt:wikidataMatch`, `qudt:siExactMatch`, `qudt:ucumCode`, `qudt:udunitsCode`; SKOS `exactMatch`, `closeMatch`, `broadMatch`, `narrowMatch` | BIPM SI Reference Point | — | — | — | `nomogram.semantics.ExternalMatch`: target, SKOS relation, date of last verification. See "External links". |
+| unit definition | `qudt:Unit` with `conversionMultiplier`, `conversionOffset` | — | the pint expression it maps to | — | — | `nomogram.semantics.UnitDefinition`: the QUDT record of a unit. Named after Wikidata's description of P2968 ("unit of measure definition according to QUDT") to avoid a clash with `pint.Unit`. |
 
 ## Reference case: humidity of air
 
@@ -97,10 +98,50 @@ silently.
    symbol of the *dimension*, not the usual quantity symbol T. One
    reason why nomogram keeps LaTeX symbols in notations rather than in
    the reference data.
+8. Units are declared for general kinds (`qudt:unitForQuantityKind`):
+   `unit:DEG_C` for `Temperature`, no unit for `VapourPressure`.
+   nomogram makes a unit applicable to a kind when it is declared for
+   that kind or one it specializes, then keeps offset units for
+   interval-scale kinds only. Without that rule, QUDT would make the
+   degree Celsius a unit of the thermodynamic temperature.
+9. `MassRatioOfWaterVapourToDryGas` specializes no kind, so the mass
+   ratio units (g/kg) do not reach it; `RelativeHumidity` and
+   `SpecificHumidity` have no unit 1, CF's canonical unit for both.
+   nomogram adds these units and lists them as `added_units`.
+10. `qudt:wikidataMatch` is a plain annotation, not a SKOS mapping
+    property, so its precision is unknown: nomogram imports it as a
+    close match. Its description announces IRIs of the form
+    `https://www.wikidata.org/wiki/Q…`; the data uses
+    `http://www.wikidata.org/entity/Q…`.
+11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph.
 
 CF table 95 has no standard name for the saturation vapour pressure
 either, and its `relative_humidity` entry has an empty description (it
 does not say whether saturation is over water or over ice).
+
+## Wikidata findings
+
+Read on 14 October 2026.
+
+- Wikidata has two items for absolute humidity in its meteorological
+  sense: *absolute humidity* (Q1048298) and *mass concentration of
+  water vapour* (Q76378808). QUDT links the second one only.
+- Items for the formulations are thin: *Tetens equation* (Q28231917)
+  carries one statement, *saturation vapor pressure* (Q2387102) has
+  neither a defining formula (P2534) nor a QUDT identifier (P8393).
+- *Arden Buck equation* (Q4787919) is described as a group of
+  correlations: Buck 1981 and Buck 1996 are narrower than it, which is
+  why links carry a relation.
+
+## External links
+
+A link from a nomogram object to an external vocabulary is an
+`ExternalMatch`: target IRI, SKOS relation (exact, close, broad,
+narrow) and the date it was last verified. A link belongs to the object
+it identifies and is never copied elsewhere: a variable of a formula
+has no Wikidata link of its own, it inherits the link of its quantity
+kind (the model of Wikidata's P7235 *in defining formula* with its
+qualifier P9758 *symbol represents*).
 
 ## Sources
 

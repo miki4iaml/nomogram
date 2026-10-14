@@ -1,0 +1,464 @@
+{
+  "cf_standard_names": {
+    "air_temperature": {
+      "canonical_units": "K",
+      "pint": "K"
+    },
+    "humidity_mixing_ratio": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "mass_concentration_of_water_vapor_in_air": {
+      "canonical_units": "kg m-3",
+      "pint": "kg * m ** -3"
+    },
+    "relative_humidity": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "specific_humidity": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "water_vapor_partial_pressure_in_air": {
+      "canonical_units": "Pa",
+      "pint": "Pa"
+    }
+  },
+  "quantity_kinds": {
+    "AbsoluteHumidity": {
+      "added_units": [],
+      "applicable_units": [
+        "GM-PER-M3",
+        "KiloGM-PER-M3"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/AbsoluteHumidity",
+      "label": "Absolute Humidity",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "Density"
+    },
+    "CelsiusTemperature": {
+      "added_units": [],
+      "applicable_units": [
+        "DEG_C",
+        "DEG_F"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/CelsiusTemperature",
+      "label": "Celsius Temperature",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q74758530",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "interval",
+      "specialization_of": "Temperature"
+    },
+    "MassConcentrationOfWaterVapour": {
+      "added_units": [],
+      "applicable_units": [
+        "GM-PER-M3",
+        "KiloGM-PER-M3"
+      ],
+      "cf_standard_names": [
+        "mass_concentration_of_water_vapor_in_air"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/MassConcentrationOfWaterVapour",
+      "label": "Mass Concentration of Water Vapour",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q76378808",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "MassConcentration"
+    },
+    "MassRatioOfWaterVapourToDryGas": {
+      "added_units": [
+        "GM-PER-KiloGM",
+        "KiloGM-PER-KiloGM"
+      ],
+      "applicable_units": [
+        "GM-PER-KiloGM",
+        "KiloGM-PER-KiloGM",
+        "UNITLESS"
+      ],
+      "cf_standard_names": [
+        "humidity_mixing_ratio"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/MassRatioOfWaterVapourToDryGas",
+      "label": "Mass Ratio of Water Vapour to Dry Gas",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q17232415",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "RelativeHumidity": {
+      "added_units": [
+        "UNITLESS"
+      ],
+      "applicable_units": [
+        "PERCENT",
+        "UNITLESS"
+      ],
+      "cf_standard_names": [
+        "relative_humidity"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/RelativeHumidity",
+      "label": "Relative Humidity",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q2499617",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "RelativePartialPressure"
+    },
+    "SpecificHumidity": {
+      "added_units": [
+        "UNITLESS"
+      ],
+      "applicable_units": [
+        "GM-PER-KiloGM",
+        "KiloGM-PER-KiloGM",
+        "UNITLESS"
+      ],
+      "cf_standard_names": [
+        "specific_humidity"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/SpecificHumidity",
+      "label": "Specific Humidity",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "MassRatio"
+    },
+    "TemperatureDifference": {
+      "added_units": [],
+      "applicable_units": [
+        "K"
+      ],
+      "cf_standard_names": [],
+      "delta": true,
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/TemperatureDifference",
+      "label": "Temperature Difference",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "Temperature"
+    },
+    "ThermodynamicTemperature": {
+      "added_units": [],
+      "applicable_units": [
+        "K"
+      ],
+      "cf_standard_names": [
+        "air_temperature"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/ThermodynamicTemperature",
+      "label": "Thermodynamic Temperature",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q264647",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "Temperature"
+    },
+    "VapourPressure": {
+      "added_units": [],
+      "applicable_units": [
+        "HectoPA",
+        "KiloPA",
+        "PA"
+      ],
+      "cf_standard_names": [
+        "water_vapor_partial_pressure_in_air"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/VapourPressure",
+      "label": "Vapour Pressure",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "Pressure"
+    }
+  },
+  "sources": {
+    "cf_standard_names": {
+      "attribution": "CF Conventions, https://cfconventions.org/",
+      "license": "CC0-1.0",
+      "version": "95"
+    },
+    "extracted": "2026-10-14",
+    "qudt": {
+      "attribution": "QUDT.org, https://qudt.org/",
+      "license": "CC-BY-4.0",
+      "version": "3.5.2"
+    }
+  },
+  "units": {
+    "DEG_C": {
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/unit/DEG_C",
+      "label": "Degree Celsius",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q25267",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 273.15,
+      "pint": "degC",
+      "symbol": "\u00b0C",
+      "ucum": "Cel",
+      "udunits": "\u00b0C"
+    },
+    "DEG_F": {
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/unit/DEG_F",
+      "label": "Degree Fahrenheit",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q42289",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 0.5555555555555556,
+      "offset": 459.67,
+      "pint": "degF",
+      "symbol": "\u00b0F",
+      "ucum": "[degF]",
+      "udunits": "\u00b0F"
+    },
+    "GM-PER-KiloGM": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/GM-PER-KiloGM",
+      "label": "Gram per Kilogram",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q21061369",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 0.001,
+      "offset": 0.0,
+      "pint": "g/kg",
+      "symbol": "g/kg",
+      "ucum": "g.kg-1",
+      "udunits": null
+    },
+    "GM-PER-M3": {
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/GM-PER-M3",
+      "label": "Gram per Cubic Metre",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q21604951",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 0.001,
+      "offset": 0.0,
+      "pint": "g/m^3",
+      "symbol": "g/m\u00b3",
+      "ucum": "g.m-3",
+      "udunits": null
+    },
+    "HectoPA": {
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/HectoPA",
+      "label": "Hectopascal",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q5139563",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 100.0,
+      "offset": 0.0,
+      "pint": "hPa",
+      "symbol": "hPa",
+      "ucum": "hPa",
+      "udunits": null
+    },
+    "J-PER-KiloGM-K": {
+      "dimension_vector": "A0E0L2I0M0H-1T-2D0",
+      "iri": "http://qudt.org/vocab/unit/J-PER-KiloGM-K",
+      "label": "Joule per Kilogram Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q3085309",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "J/(kg*K)",
+      "symbol": "J/(kg\u00b7K)",
+      "ucum": "J.kg-1.K-1",
+      "udunits": null
+    },
+    "K": {
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/unit/K",
+      "label": "Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q11579",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "K",
+      "symbol": "K",
+      "ucum": "K",
+      "udunits": "K"
+    },
+    "KiloGM-PER-KiloGM": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/KiloGM-PER-KiloGM",
+      "label": "Kilogram per Kilogram",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q106645216",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "kg/kg",
+      "symbol": "kg/kg",
+      "ucum": "kg.kg-1",
+      "udunits": null
+    },
+    "KiloGM-PER-M3": {
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/KiloGM-PER-M3",
+      "label": "Kilogram per Cubic Metre",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q844211",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "kg/m^3",
+      "symbol": "kg/m\u00b3",
+      "ucum": "kg.m-3",
+      "udunits": null
+    },
+    "KiloPA": {
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/KiloPA",
+      "label": "Kilopascal",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q21064807",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1000.0,
+      "offset": 0.0,
+      "pint": "kPa",
+      "symbol": "kPa",
+      "ucum": "kPa",
+      "udunits": null
+    },
+    "PA": {
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/PA",
+      "label": "Pascal",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q44395",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "Pa",
+      "symbol": "Pa",
+      "ucum": "Pa",
+      "udunits": "Pa"
+    },
+    "PERCENT": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/PERCENT",
+      "label": "Percent",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q11229",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 0.01,
+      "offset": 0.0,
+      "pint": "percent",
+      "symbol": "%",
+      "ucum": "%",
+      "udunits": "%"
+    },
+    "UNITLESS": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/UNITLESS",
+      "label": "Unitless",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q199",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "dimensionless",
+      "symbol": "\u4e00",
+      "ucum": null,
+      "udunits": null
+    }
+  }
+}

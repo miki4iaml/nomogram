@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+# Minimal excerpt in the shape of QUDT 3.5.2, for the extraction tests.
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
+@prefix qkdv: <http://qudt.org/vocab/dimensionvector/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+quantitykind:Temperature a qudt:QuantityKind ;
+  qudt:hasDimensionVector qkdv:A0E0L0I0M0H1T0D0 ;
+  rdfs:label "Temperature"@en .
+
+quantitykind:ThermodynamicTemperature a qudt:QuantityKind ;
+  qudt:hasDimensionVector qkdv:A0E0L0I0M0H1T0D0 ;
+  qudt:specializationOf quantitykind:Temperature ;
+  qudt:wikidataMatch "http://www.wikidata.org/entity/Q264647"^^xsd:anyURI ;
+  rdfs:label "Temperatura termodinamica"@it ;
+  rdfs:label "Thermodynamic Temperature"@en .
+
+quantitykind:CelsiusTemperature a qudt:QuantityKind ;
+  qudt:hasDimensionVector qkdv:A0E0L0I0M0H1T0D0 ;
+  qudt:specializationOf quantitykind:Temperature ;
+  rdfs:label "Celsius Temperature" .
+
+quantitykind:Pressure a qudt:QuantityKind ;
+  qudt:hasDimensionVector qkdv:A0E0L-1I0M1H0T-2D0 ;
+  rdfs:label "Pressure"@en .
+
+quantitykind:VapourPressure a qudt:QuantityKind ;
+  qudt:hasDimensionVector qkdv:A0E0L-1I0M1H0T-2D0 ;
+  qudt:specializationOf quantitykind:Pressure ;
+  rdfs:label "Vapour Pressure"@en .
+
+quantitykind:Unlabelled a qudt:QuantityKind ;
+  qudt:hasDimensionVector qkdv:A0E0L0I0M0H0T0D1 .
