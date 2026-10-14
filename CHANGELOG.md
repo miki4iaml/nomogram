@@ -8,8 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-14
+
+First release.
+
 ### Added
 
+- Core dependencies: sympy, numpy and pint (at least 0.24.4); matplotlib
+  in the optional `viz` extra. Works on an offline workstation: no
+  online engine at run time.
+- License expression `BSD-3-Clause AND CC-BY-4.0 AND CC0-1.0`: the
+  package ships QUDT data (CC BY 4.0, attribution in
+  `src/nomogram/data/NOTICE.md`) and CF data (CC0 1.0).
 - Package skeleton, pure Python, `requires-python >= 3.12`, typed
   (`py.typed`).
 - BSD-3-Clause license, declared through SPDX (PEP 639 metadata and
@@ -131,19 +141,5 @@ and this project adheres to
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-### Changed
-
-- Validity domain bounds tolerate a relative rounding of 1e-9, so that a
-  value converted between units (0.01 degC) is not rejected at a bound.
-- `QuantityKind` gains `origin` (`"qudt"` or `"nomogram"`); its IRI is
-  optional, absent for kinds defined by nomogram.
-- License expression `BSD-3-Clause AND CC-BY-4.0 AND CC0-1.0`: the
-  package now ships QUDT data (CC BY 4.0, attribution in
-  `src/nomogram/data/NOTICE.md`) and CF data (CC0 1.0).
-- Core dependencies: sympy, numpy and pint (at least 0.24.4: earlier
-  releases fail to import on current Python 3.12). The offline constraint now
-  rules out online engines rather than dependencies.
-
-### Removed
-
-- The placeholder `nomogram.hello()`.
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...develop
+[0.1.0]: https://github.com/miki4iaml/nomogram/releases/tag/v0.1.0
