@@ -201,3 +201,67 @@ def test_epsilon_values_follow_their_sources() -> None:
     assert constants["epsilon_ashrae2017"].value == 0.621945
     values = [c.value for k, c in constants.items() if k.startswith("epsilon_")]
     assert max(values) / min(values) - 1 < 1e-4
+
+
+# --- Saturation over ice ----------------------------------------------------
+
+ICE = CATALOG.formulations_of("SaturationVapourPressureOverIce")
+IAPWS_ICE = FORMULATIONS["iapws_r14_08_sublimation"]
+
+
+def test_iapws_ice_reproduces_table_3_of_the_release() -> None:
+    # IAPWS R14-08(2011), Table 3: 8.94735e-6 MPa at 230 K.
+    result = IAPWS_ICE.evaluate(T=Q_(230.0, "K")).to("MPa").magnitude
+    assert result == pytest.approx(8.94735e-6, rel=1e-6)
+
+
+def test_iapws_ice_domain_follows_the_release() -> None:
+    inside = IAPWS_ICE.evaluate(T=Q_(np.array([50.0, 273.16]), "K")).magnitude
+    assert not np.isnan(inside).any()
+    outside = IAPWS_ICE.evaluate(T=Q_(np.array([49.0, 273.17]), "K")).magnitude
+    assert np.isnan(outside).all()
+
+
+def test_ice_and_water_meet_at_the_triple_point() -> None:
+    triple = Q_(273.16, "K")
+    ice = IAPWS_ICE.evaluate(T=triple).to("Pa").magnitude
+    water = IAPWS.evaluate(T=triple).to("Pa").magnitude
+    assert ice == 611.657
+    assert water == pytest.approx(ice, rel=1e-6)
+
+
+def test_supercooled_water_holds_more_vapour_than_ice() -> None:
+    cold = Q_(np.array([-40.0, -20.0, -5.0]), "degC")
+    ice = IAPWS_ICE.evaluate(T=cold)
+    water = IAPWS.evaluate(T=cold, outside="ignore")
+    ratio = (water / ice).to("").magnitude
+    assert (ratio > 1).all()
+    assert np.all(np.diff(ratio) < 0)  # the gap closes towards 0 degC
+
+
+def test_ice_formulations_against_iapws() -> None:
+    grid = Q_(np.array([-80.0, -40.0, -20.0, -1.0]), "degC")
+    comparison = compare(
+        ICE, IAPWS_ICE, {"ThermodynamicTemperature": grid}, outside="ignore"
+    )
+    deviations = comparison.relative_deviations
+    # Down to -40 degC, all but two stay within 0.2 % of IAPWS.
+    rough = {"murray1967_ice", "marti_mauersberger1993"}
+    for key, values in deviations.items():
+        if key not in rough:
+            assert np.abs(values[1:]).max() < 0.002, key
+    # Goff-Gratch, long the reference over ice, sits 0.15 to 0.27 % below.
+    assert -0.0027 < deviations["goff_gratch1946_ice"].min()
+    assert deviations["goff_gratch1946_ice"].max() < -0.0015
+    # Murray's Magnus-Tetens form departs by about 11 % at -80 degC.
+    assert deviations["murray1967_ice"][0] == pytest.approx(-0.11, abs=0.002)
+    assert deviations["murray1967_ice"][1] == pytest.approx(-0.019, abs=0.001)
+
+
+def test_hyland_wexler_over_ice_behaves_as_its90() -> None:
+    hyland = FORMULATIONS["hyland_wexler1983_ice"]
+    assert hyland.inputs[0].scale_basis is not None
+    assert hyland.inputs[0].scale_basis.value == "inferred-from-numbers"
+    grid = Q_(np.array([-80.0, -60.0, -40.0, -20.0, -1.0]), "degC")
+    comparison = compare([hyland], IAPWS_ICE, {"ThermodynamicTemperature": grid})
+    assert comparison.max_abs_deviation()["hyland_wexler1983_ice"] < 0.00033

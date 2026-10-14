@@ -59,6 +59,11 @@ published by an independent source:
 - the deviations of the Magnus forms from the reference match those
   reported in the literature: about -0.28 % at 20 °C for Sonntag's
   coefficients, 2 to 3 % too high at 100 °C, outside their range;
+- over ice, the IAPWS sublimation equation (R14-08, 2011) reproduces
+  the table of its release (8.94735 × 10⁻⁶ MPa at 230 K) and meets the
+  equation over water at the triple point; the formulations quoted by
+  Vömel keep the deviations he describes, from Goff-Gratch, 0.15 to
+  0.27 % below, to Murray's Magnus-Tetens form, 11 % too low at -80 °C;
 - the saturation mixing ratio, computed from the IAPWS equation with
   the ideal gas formula, is compared with ASHRAE's table: it stays 0.4 to
   0.6 % below, always on the same side. The tolerance is stated, and so
@@ -126,7 +131,10 @@ point t_d = f⁻¹(e):
   production: it makes the comparison between a production
   approximation and the exact inverse of the reference possible.
 
-Every inverse is tested **both ways**, for all thirteen formulations:
+Inverting a formulation over ice gives the frost point the same way.
+Every inverse is tested **both ways**, for all thirteen formulations
+over water (f(f⁻¹(e)) = e, below), and the ten over ice through the
+frost point (f⁻¹(f(t)) = t):
 
 | Test | Tolerance | Why this tolerance |
 |---|---|---|

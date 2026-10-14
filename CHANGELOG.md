@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- Saturation vapour pressure over ice (new quantity kind
+  `SaturationVapourPressureOverIce`): the IAPWS sublimation equation
+  R14-08(2011) as reference, read in the release (range 50 to 273.16 K,
+  ITS-90; reproduces its Table 3), and the formulations quoted by Vömel:
+  Goff-Gratch, Hyland and Wexler (ITS-90, inferred from numbers), WMO
+  Guide Magnus form, Murray, Buck (1981 and 1996), Marti and
+  Mauersberger, Murphy and Koop, Sonntag. Their deviations from IAPWS
+  are tested, and so is the frost point obtained with `invert`.
 - Humidity mixing ratio r = epsilon e / (p - e) and specific humidity
   q = r / (1 + r) (ASHRAE 2017, through PsychroLib), with the constant
   epsilon = 0.621945 and its source (ASHRAE); the values of the ECMWF

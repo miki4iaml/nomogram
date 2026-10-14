@@ -304,3 +304,46 @@ def test_forward_of_the_inverse_gives_back_the_vapour_pressure(
         outside="ignore", **{formulation.inputs[0].identifier: dew}
     )
     assert again.to("hPa").magnitude == pytest.approx(grid.magnitude, rel=1e-9)
+
+
+ICE = CATALOG.formulations_of("SaturationVapourPressureOverIce")
+FROST_POINT = Variable("t_f", "CelsiusTemperature", "DEG_C", "Frost point temperature")
+
+
+def _frost_point(formulation: Formulation) -> Formulation | NumericalInverse:
+    temperature = formulation.inputs[0]
+    search = (-100.0, 0.01) if temperature.unit == "DEG_C" else (173.15, 273.16)
+    return invert(
+        formulation,
+        temperature.identifier,
+        output=FROST_POINT,
+        input=Variable("e", "VapourPressure", formulation.output.unit, "Vapour"),
+        search=search,
+    )
+
+
+@pytest.mark.parametrize("formulation", ICE, ids=lambda f: f.key)
+def test_round_trip_through_the_frost_point(formulation: Formulation) -> None:
+    temperatures = Q_(np.array([-60.0, -30.0, -5.0]), "degC")
+    arguments: dict[str, Any] = {formulation.inputs[0].identifier: temperatures}
+    vapour = formulation.evaluate(outside="ignore", **arguments)
+    back = _frost_point(formulation).evaluate(e=vapour, outside="ignore")
+    assert back.to("degC").magnitude == pytest.approx([-60.0, -30.0, -5.0], abs=1e-6)
+
+
+def test_iapws_frost_point_reproduces_table_3_of_the_release() -> None:
+    # 8.94735e-6 MPa at 230 K (IAPWS R14-08(2011), Table 3).
+    inverse = _frost_point(FORMULATIONS["iapws_r14_08_sublimation"])
+    assert isinstance(inverse, NumericalInverse)
+    result = inverse.evaluate(e=Q_(8.94735, "Pa")).to("K").magnitude
+    assert result == pytest.approx(230.0, abs=1e-5)
+
+
+def test_frost_point_lies_above_the_dew_point() -> None:
+    # For the same vapour pressure, ice saturates at a higher temperature.
+    vapour = Q_(np.array([0.5, 2.0, 5.0]), "hPa")
+    frost = _frost_point(FORMULATIONS["iapws_r14_08_sublimation"])
+    dew = dew_point(FORMULATIONS["sonntag1990"], method="numerical")
+    t_f = frost.evaluate(e=vapour.to("Pa")).to("degC").magnitude
+    t_d = dew.evaluate(e=vapour, outside="ignore").to("degC").magnitude
+    assert (t_f > t_d).all()
