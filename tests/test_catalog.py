@@ -55,6 +55,11 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "buck1981",
         "buck1981_magnus",
         "hyland_wexler1983",
+        "bolton1980",
+        "murray1967",
+        "buck1996",
+        "goff_gratch1946",
+        "goff1957",
     }
 
 

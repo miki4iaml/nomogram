@@ -83,6 +83,68 @@ url = "https://github.com/psychrometrics/psychrolib"
 status = "verified"
 note = "GetSatVapPres read in the source; it switches from ice to water at the triple point, where ASHRAE uses the freezing point."
 
+[references.voemel_vp]
+authors = "Vömel, H."
+title = "Saturation vapor pressure formulations"
+container = "NCAR Earth Observing Laboratory (formerly CIRES), web page"
+url = "https://cires1.colorado.edu/~voemel/vp.html"
+status = "verified"
+note = "Consulted 2026-10-14, copy kept in the local reference store. A secondary source: formulas as quoted, originals not read."
+
+[references.bolton1980]
+authors = "Bolton, D."
+year = 1980
+title = "The computation of equivalent potential temperature"
+container = "Monthly Weather Review 108, 1046-1053"
+status = "to-confirm"
+note = "Original not read; formula as quoted by Vömel."
+
+[references.murray1967]
+authors = "Murray, F. W."
+year = 1967
+title = "On the computation of saturation vapor pressure"
+container = "Journal of Applied Meteorology 6, 203-204"
+status = "to-confirm"
+note = "Original not read; formula as quoted by Vömel."
+
+[references.buck1996]
+authors = "Buck Research Instruments"
+year = 1996
+title = "Model CR-1A Hygrometer, Operating Manual"
+status = "to-confirm"
+note = "Grey literature, not read; formula as quoted by Vömel, who calls it an update of Buck (1981)."
+
+[references.goff_gratch1946]
+authors = "Goff, J. A.; Gratch, S."
+year = 1946
+title = "Low-pressure properties of water from -160 to 212 F"
+container = "Transactions of the American Society of Heating and Ventilating Engineers 52, 95-122"
+status = "to-confirm"
+note = "Original not read."
+
+[references.smithsonian1984]
+authors = "Smithsonian Institution"
+year = 1984
+title = "Smithsonian Meteorological Tables"
+status = "to-confirm"
+note = "Cited by Vömel for the Goff-Gratch equation (after Goff and Gratch, 1946); edition not checked."
+
+[references.goff1957]
+authors = "Goff, J. A."
+year = 1957
+title = "Saturation pressure of water on the new Kelvin temperature scale"
+container = "Transactions of the American Society of Heating and Ventilating Engineers"
+status = "to-confirm"
+note = "Title and container from memory, not checked; cited by Vömel with WMO (2012)."
+
+[references.gibbins1990]
+authors = "Gibbins, C. J."
+year = 1990
+title = "A survey and comparison of relationships for the determination of the saturation vapour pressure over plane surfaces of pure water and of pure ice"
+container = "Annales Geophysicae 8, 859-885"
+status = "to-confirm"
+note = "Not read; cited by Vömel for the range of the Goff-Gratch equation."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -228,8 +290,8 @@ reference = "iapws_sr1_86"
 label = "Sonntag (1990) formulation over water (SO90)"
 expression = "exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
 fixed_units = true
-references = ["sonntag1990", "alduchov_eskridge1996"]
-note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Range not read in the original."
+references = ["sonntag1990", "alduchov_eskridge1996", "voemel_vp"]
+note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Vömel gives the same coefficients under Sonntag (1994): the year differs between secondary sources. Range not read in the original."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
@@ -269,7 +331,7 @@ coefficients = { A = 7.5, B = 237.3, C = 6.11 }
 label = "Magnus form, Buck (1981) coefficients (BU81)"
 expression = "C * exp(A * t / (B + t))"
 fixed_units = true
-references = ["buck1981", "alduchov_eskridge1996"]
+references = ["buck1981", "alduchov_eskridge1996", "voemel_vp"]
 note = "Maximum relative error 1.458 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
@@ -293,10 +355,98 @@ coefficients = { A = 18.729, B = 257.87, C = 6.1121, D = 227.3 }
 label = "Hyland and Wexler (1983) formulation over water"
 expression = "exp(C8 / T + C9 + C10 * T + C11 * T ** 2 + C12 * T ** 3 + C13 * ln(T))"
 fixed_units = true
-references = ["hyland_wexler1983", "ashrae2017", "psychrolib"]
-note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib. Range not read in the original."
+references = ["hyland_wexler1983", "ashrae2017", "psychrolib", "voemel_vp"]
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
 ]
 coefficients = { C8 = -5.8002206e3, C9 = 1.3914993, C10 = -4.8640239e-2, C11 = 4.1764768e-5, C12 = -1.4452093e-8, C13 = 6.5459673 }
+
+[formulations.bolton1980]
+label = "Magnus form, Bolton (1980) coefficients"
+expression = "C * exp(A * t / (t + B))"
+fixed_units = true
+references = ["bolton1980", "voemel_vp"]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 17.67, B = 243.5, C = 6.112 }
+
+[formulations.murray1967]
+label = "Magnus-Tetens form, Murray (1967)"
+expression = "C * exp(A * (T - T_0) / (T - B))"
+fixed_units = true
+references = ["murray1967", "voemel_vp"]
+note = "Written in kelvin with an offset of 273.16 K (the triple point), not 273.15 K: at the triple point it gives C exactly."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+
+[formulations.murray1967.coefficients]
+A = 17.269388
+B = { value = 35.86, unit = "K" }
+C = { value = 6.1078, unit = "HectoPA" }
+T_0 = { value = 273.16, unit = "K", note = "Triple point of water" }
+
+[formulations.buck1996]
+label = "Buck (1996) equation"
+expression = "C * exp((A - t / D) * t / (B + t))"
+fixed_units = true
+references = ["buck1996", "voemel_vp"]
+note = "Update of the Buck (1981) equation (buck1981), with different coefficients."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+]
+coefficients = { A = 18.678, B = 257.14, C = 6.1121, D = 234.5 }
+
+[formulations.goff_gratch1946]
+label = "Goff-Gratch equation over water (Smithsonian Tables form)"
+expression = "10 ** (a1 * (T_s / T - 1) + a2 * log10(T_s / T) + a3 * (10 ** (a4 * (1 - T / T_s)) - 1) + a5 * (10 ** (a6 * (T_s / T - 1)) - 1) + log10(e_st))"
+fixed_units = true
+references = ["goff_gratch1946", "smithsonian1984", "voemel_vp"]
+note = "Referred to the steam point T_s = 373.16 K (as in Vömel and in Alduchov and Eskridge 1996, who call the original paper GG45). Generally considered the reference equation in meteorology (Vömel)."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+
+[formulations.goff_gratch1946.coefficients]
+a1 = -7.90298
+a2 = 5.02808
+a3 = -1.3816e-7
+a4 = 11.344
+a5 = 8.1328e-3
+a6 = -3.49149
+T_s = { value = 373.16, unit = "K", note = "Steam point" }
+e_st = { value = 1013.246, unit = "HectoPA", note = "Saturation pressure at the steam point" }
+
+[[formulations.goff_gratch1946.domains]]
+basis = "stated"
+bounds = { T = [223.15, 375.15] }
+criterion = "-50 to 102 degC, range of the equation over liquid water according to Gibbins (1990), as quoted by Vömel."
+reference = "gibbins1990"
+
+[formulations.goff1957]
+label = "Goff (1957) equation over water, triple point form (WMO)"
+expression = "10 ** (b1 * (1 - T_1 / T) + b2 * log10(T / T_1) + b3 * (1 - 10 ** (b4 * (T / T_1 - 1))) + b5 * (10 ** (b6 * (1 - T_1 / T)) - 1) + b7)"
+fixed_units = true
+references = ["goff1957", "voemel_vp", "alduchov_eskridge1996"]
+note = "Attribution differs between secondary sources: Vömel calls it Goff (1957), recommended by WMO; Alduchov and Eskridge (1996, equation 3) call it GG46 (Goff and Gratch 1946), recommended by WMO in 1966, and write ln where the numbers require log10."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+
+[formulations.goff1957.coefficients]
+b1 = 10.79574
+b2 = -5.02800
+b3 = 1.50475e-4
+b4 = -8.2969
+b5 = 0.42873e-3
+b6 = 4.76955
+b7 = 0.78614
+T_1 = { value = 273.16, unit = "K", note = "Triple point of water" }

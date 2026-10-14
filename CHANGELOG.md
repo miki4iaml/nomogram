@@ -99,6 +99,14 @@ and this project adheres to
   into another, for HA = f(T, RH)); Celsius and thermodynamic
   temperatures match the same input, a temperature difference never
   does.
+- Further saturation vapour pressure formulations, as quoted by Vömel's
+  review of saturation vapour pressure formulations: Bolton (1980),
+  Murray (1967), Buck (1996), the Goff-Gratch equation (Smithsonian
+  Tables form, steam point 373.16 K, range -50 to 102 degC) and the
+  Goff (1957) triple point form. Conflicting attributions between
+  secondary sources are recorded (Sonntag 1990 or 1994; Goff 1957 or
+  GG46).
+- Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
 ### Changed
