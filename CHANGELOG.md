@@ -49,3 +49,8 @@ and this project adheres to
 - Coverage reports uploaded to Codecov from every CI matrix cell
   (OIDC, no stored token; one flag per OS and Python version),
   informational only; Codecov badge in both README files.
+- Release workflow: triggered by a published GitHub release (PyPI,
+  after approval of a protected environment) or manually (rehearsal on
+  TestPyPI with a unique development version); single build, metadata
+  check, SLSA build provenance and CycloneDX SBOM attestations, Trusted
+  Publishing with PEP 740 attestations, no stored token.
