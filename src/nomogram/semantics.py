@@ -105,16 +105,22 @@ def _dimensions(vector: str) -> Mapping[str, int]:
 
 @dataclass(frozen=True)
 class QuantityKind:
-    """A QUDT quantity kind, with nomogram's scale typing.
+    """A quantity kind, from QUDT or defined by nomogram, with its scale typing.
+
+    Kinds defined by nomogram (absent from QUDT) specialize a QUDT kind
+    and have no IRI yet: their local name is stable and will become the
+    end of a persistent IRI once nomogram has one.
 
     Attributes
     ----------
     name : str
-        QUDT local name, for example ``"CelsiusTemperature"``.
-    iri : str
-        QUDT IRI.
+        Local name, for example ``"CelsiusTemperature"``.
+    origin : str
+        ``"qudt"`` or ``"nomogram"``.
+    iri : str or None
+        QUDT IRI; ``None`` for a kind defined by nomogram.
     label : str
-        QUDT English label.
+        English label.
     dimension_vector : str
         QUDT dimension vector, for example ``"A0E0L0I0M0H1T0D0"``.
     specialization_of : str or None
@@ -135,7 +141,8 @@ class QuantityKind:
     """
 
     name: str
-    iri: str
+    origin: str
+    iri: str | None
     label: str
     dimension_vector: str
     specialization_of: str | None
@@ -265,6 +272,7 @@ def _matches(items: list[dict[str, str]]) -> tuple[ExternalMatch, ...]:
 def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
     return QuantityKind(
         name=name,
+        origin="qudt",
         iri=data["iri"],
         label=data["label"],
         dimension_vector=data["dimension_vector"],
