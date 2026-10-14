@@ -201,6 +201,15 @@ matches = [
   { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
 ]
 
+[constants.epsilon_ashrae2017]
+identifier = "epsilon"
+value = 0.621945
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d"
+reference = "ashrae2017"
+# Other sources use 0.622 or 0.62198 (not read): the value used is part
+# of the formulation.
+
 # --- Notations ------------------------------------------------------------
 
 [notations.wmo]
@@ -542,4 +551,28 @@ output = { identifier = "e", kind = "VapourPressure", unit = "PA", description =
 inputs = [
   { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
   { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]
+
+[formulations.mixing_ratio_from_vapour_pressure]
+label = "Humidity mixing ratio from vapour pressure (ASHRAE 2017)"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+references = ["ashrae2017", "psychrolib"]
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 20, through PsychroLib: moist air as an ideal gas mixture."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Air pressure" },
+]
+constants = ["epsilon_ashrae2017"]
+
+[formulations.specific_humidity_from_mixing_ratio]
+label = "Specific humidity from mixing ratio"
+expression = "r / (1 + r)"
+fixed_units = false
+references = ["ashrae2017", "psychrolib"]
+note = "From the definitions (mass of water vapour per mass of moist air, per mass of dry air); ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 9b, through PsychroLib."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
 ]

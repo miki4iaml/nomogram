@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- Humidity mixing ratio r = epsilon e / (p - e) and specific humidity
+  q = r / (1 + r) (ASHRAE 2017, through PsychroLib), with the constant
+  epsilon = 0.621945 and its source; composed with any saturation vapour
+  pressure formulation they give r and q at saturation, or from (T, RH,
+  p). Checked against PsychroLib and against ASHRAE's Table 2 (the ideal
+  gas formula stays 0.4 to 0.6 % below it).
+- `compose` lets a result feed an input of a more general kind
+  (`feeds`): a saturation vapour pressure is a vapour pressure, never the
+  reverse.
 - `docs/approach.md`, "How nomogram earns trust": sources read and their
   status, checks against published values, comparison with a reference,
   units and temperature scales, objective validity domains, derived
@@ -35,6 +44,8 @@ and this project adheres to
 
 ### Fixed
 
+- The dimensional check of quantity equations no longer divides by zero
+  when inputs cancel out (p - e): probe values are distinct.
 - Archive metadata for Zenodo (`.zenodo.json`): the creator is declared by
   name (the alias), which Zenodo requires; the 0.1.0 release could not be
   archived for lack of it.

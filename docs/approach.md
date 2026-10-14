@@ -58,7 +58,12 @@ published by an independent source:
   at 99.974 °C under standard pressure);
 - the deviations of the Magnus forms from the reference match those
   reported in the literature: about -0.28 % at 20 °C for Sonntag's
-  coefficients, 2 to 3 % too high at 100 °C, outside their range.
+  coefficients, 2 to 3 % too high at 100 °C, outside their range;
+- the saturation mixing ratio, computed from the IAPWS equation with
+  the ideal gas formula, is compared with ASHRAE's table: it stays 0.4 to
+  0.6 % below, always on the same side. The tolerance is stated, and so
+  is the likely reason (the table accounts for non-ideal moist air):
+  a systematic gap is documented, not hidden by a loose tolerance.
 
 ## 3. Formulations are compared with a reference
 
