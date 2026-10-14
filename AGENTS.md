@@ -57,7 +57,9 @@ time).
   checked against the source carry `status = "to-confirm"`. Validity
   domains are objective only (physical, or stated by the source with its
   criterion); coefficients of fixed-units formulations are never
-  converted.
+  converted. Temperature inputs record the scale the formulation was
+  fitted on (stated or inferred); inputs are taken on ITS-90 and
+  converted to it before evaluation.
 - Reference data is immutable: frozen structures (`frozen=True`), no
   mutation after construction.
 - No mutable global state. The package must be safe in concurrent

@@ -106,6 +106,14 @@ and this project adheres to
   Goff (1957) triple point form. Conflicting attributions between
   secondary sources are recorded (Sonntag 1990 or 1994; Goff 1957 or
   GG46).
+- Temperature scales: each temperature input of a formulation records
+  the scale it was fitted on (ITS-90 or IPTS-68), stated by the source or
+  inferred from the scale in force at publication. `evaluate`,
+  `compare` and `compose` take ITS-90 inputs and convert them to that
+  scale by default (`scale="convert"`; `"ignore"` to disable), from the
+  table of t90 - t68 of the ITS-90 text. Hyland and Wexler's
+  coefficients, as given by ASHRAE (2017), behave as ITS-90 and get no
+  scale.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
