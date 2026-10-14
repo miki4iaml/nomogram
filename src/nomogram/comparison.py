@@ -28,7 +28,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
-from nomogram.model import Basis, Outside, Variable
+from nomogram.model import Basis, Outside, ScaleConversion, Variable
 
 __all__ = ["Comparison", "Composition", "Evaluable", "compare", "compose"]
 
@@ -49,7 +49,12 @@ class Evaluable(Protocol):
     def inputs(self) -> tuple[Variable, ...]: ...
 
     def evaluate(
-        self, *, outside: Outside = "nan", basis: Basis = "stated", **inputs: Any
+        self,
+        *,
+        outside: Outside = "nan",
+        basis: Basis = "stated",
+        scale: ScaleConversion = "convert",
+        **inputs: Any,
     ) -> Any: ...
 
 
@@ -112,6 +117,7 @@ def compare(
     *,
     outside: Outside = "nan",
     basis: Basis = "stated",
+    scale: ScaleConversion = "convert",
 ) -> Comparison:
     """Compare formulations of one quantity kind against a reference.
 
@@ -125,7 +131,7 @@ def compare(
         One value per quantity kind, for example
         ``{"ThermodynamicTemperature": Q_(grid, "degC")}``; numpy arrays
         give the whole table in one pass.
-    outside, basis
+    outside, basis, scale
         Passed to each evaluation (see
         :meth:`nomogram.model.Formulation.evaluate`). ``"nan"`` keeps
         each formulation to its own validity domains.
@@ -150,7 +156,7 @@ def compare(
             msg = f"{formulation.key} computes {formulation.output.kind}, not {kind}"
             raise ValueError(msg)
         result = formulation.evaluate(
-            outside=outside, basis=basis, **_arguments(formulation, inputs)
+            outside=outside, basis=basis, scale=scale, **_arguments(formulation, inputs)
         )
         unit = unit or result.units
         values[formulation.key] = result.to(unit)
@@ -211,7 +217,12 @@ class Composition:
         return own + tuple(extra)
 
     def evaluate(
-        self, *, outside: Outside = "nan", basis: Basis = "stated", **inputs: Any
+        self,
+        *,
+        outside: Outside = "nan",
+        basis: Basis = "stated",
+        scale: ScaleConversion = "convert",
+        **inputs: Any,
     ) -> Any:
         """Evaluate inner formulations, then the outer one.
 
@@ -225,12 +236,14 @@ class Composition:
                 for v in formulation.inputs
             }
             computed[identifier] = formulation.evaluate(
-                outside=outside, basis=basis, **arguments
+                outside=outside, basis=basis, scale=scale, **arguments
             )
         outer_arguments = {
             v.identifier: computed[v.identifier] for v in self.outer.inputs
         }
-        return self.outer.evaluate(outside=outside, basis=basis, **outer_arguments)
+        return self.outer.evaluate(
+            outside=outside, basis=basis, scale=scale, **outer_arguments
+        )
 
 
 def compose(

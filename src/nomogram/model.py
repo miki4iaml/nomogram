@@ -50,6 +50,8 @@ __all__ = [
     "PhysicalConstant",
     "Reference",
     "ReferenceStatus",
+    "ScaleBasis",
+    "TemperatureScale",
     "TradeMeaning",
     "TradeTerm",
     "ValidityDomain",
@@ -61,6 +63,9 @@ __all__ = [
 Outside = Literal["nan", "warn", "raise", "ignore"]
 #: Which validity domains :meth:`Formulation.evaluate` applies.
 Basis = Literal["stated", "physical", "all"]
+
+#: Whether :meth:`Formulation.evaluate` converts temperatures between scales.
+ScaleConversion = Literal["convert", "ignore"]
 
 #: Relative tolerance at domain bounds, for rounding in unit conversions.
 BOUND_TOLERANCE = 1e-9
@@ -130,6 +135,66 @@ class Reference:
     matches: tuple[ExternalMatch, ...]
 
 
+class ScaleBasis(Enum):
+    """How the temperature scale of a formulation is known."""
+
+    #: Stated by the source.
+    STATED = "stated"
+    #: Inferred from the scale in force when the formulation was published.
+    INFERRED = "inferred"
+
+
+@dataclass(frozen=True)
+class TemperatureScale:
+    """An international temperature scale, and how it differs from ITS-90.
+
+    Formulations were fitted to temperatures on the scale in force at the
+    time (IPTS-68, ITS-48...). Inputs are taken on ITS-90, today's scale,
+    and converted to the scale of the formulation before evaluation.
+
+    Attributes
+    ----------
+    key : str
+        Catalog key, for example ``"ipts68"``.
+    label : str
+        Name of the scale.
+    t90 : tuple of float
+        Celsius temperatures on ITS-90 where the difference is tabulated;
+        empty for ITS-90 itself.
+    difference : tuple of float
+        ``t90 - t_scale`` at those temperatures, in kelvin.
+    reference : str or None
+        Key of the source of the table.
+    """
+
+    key: str
+    label: str
+    t90: tuple[float, ...]
+    difference: tuple[float, ...]
+    reference: str | None
+
+    def from_its90(self, celsius: Any) -> tuple[Any, Any]:
+        """Celsius temperatures on this scale, from ITS-90 ones.
+
+        Parameters
+        ----------
+        celsius : array_like
+            Celsius temperatures on ITS-90.
+
+        Returns
+        -------
+        (numpy.ndarray, numpy.ndarray of bool)
+            The temperatures on this scale (linear interpolation of the
+            table), and where they fall outside the table (NaN there).
+        """
+        values = np.asarray(celsius, dtype=float)
+        if not self.t90:
+            return values, np.zeros(values.shape, dtype=bool)
+        outside = (values < self.t90[0]) | (values > self.t90[-1])
+        shift = np.interp(values, self.t90, self.difference)
+        return np.where(outside, np.nan, values - shift), outside
+
+
 @dataclass(frozen=True)
 class Variable:
     """A variable of a formulation: identifier, quantity kind and unit.
@@ -147,12 +212,19 @@ class Variable:
         QUDT name of the unit the formulation works in.
     description : str
         What the variable is, in a few words.
+    temperature_scale : TemperatureScale or None
+        For a temperature, the scale the formulation was fitted on;
+        ``None`` when unknown or not applicable.
+    scale_basis : ScaleBasis or None
+        How that scale is known.
     """
 
     identifier: str
     kind: str
     unit: str
     description: str
+    temperature_scale: TemperatureScale | None = None
+    scale_basis: ScaleBasis | None = None
 
 
 @dataclass(frozen=True)
@@ -434,7 +506,12 @@ class Formulation:
         return outside
 
     def evaluate(
-        self, *, outside: Outside = "nan", basis: Basis = "stated", **inputs: Any
+        self,
+        *,
+        outside: Outside = "nan",
+        basis: Basis = "stated",
+        scale: ScaleConversion = "convert",
+        **inputs: Any,
     ) -> Any:
         """Evaluate the formulation on pint quantities.
 
@@ -448,6 +525,11 @@ class Formulation:
             compute and warn, raise, or compute silently (comparisons).
         basis : {"stated", "physical", "all"}
             Which domains apply (default: those stated by the sources).
+        scale : {"convert", "ignore"}
+            Temperatures are taken on ITS-90. With ``"convert"`` (default)
+            they are converted to the temperature scale the formulation
+            was fitted on, when it is known (NaN beyond the conversion
+            table); ``"ignore"`` uses them as they are.
         **inputs : pint.Quantity
             One quantity per input variable, by identifier.
 
@@ -477,6 +559,16 @@ class Formulation:
             )
             for v in self.inputs
         }
+        if scale == "convert":
+            for v in self.inputs:
+                if v.temperature_scale is None or not v.temperature_scale.t90:
+                    continue
+                celsius = convert(inputs[v.identifier], "degC").magnitude
+                on_scale, _ = v.temperature_scale.from_its90(celsius)
+                values[v.identifier] = np.asarray(
+                    convert(Q_(on_scale, "degC"), units[v.unit].pint).magnitude,
+                    dtype=float,
+                )
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]

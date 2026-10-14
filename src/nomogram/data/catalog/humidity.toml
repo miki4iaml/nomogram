@@ -145,6 +145,15 @@ container = "Annales Geophysicae 8, 859-885"
 status = "to-confirm"
 note = "Not read; cited by Vömel for the range of the Goff-Gratch equation."
 
+[references.preston_thomas1990]
+authors = "Preston-Thomas, H."
+year = 1990
+title = "The International Temperature Scale of 1990 (ITS-90)"
+container = "Metrologia 27, 3-10"
+doi = "10.1088/0026-1394/27/1/002"
+status = "to-confirm"
+note = "Text and Table 6 (differences between ITS-90 and IPTS-68) read in a copy of the text, not in the journal; DOI not checked."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -225,6 +234,78 @@ kind = "MassRatioOfWaterVapourToDryGas"
 definition = "Mass of water vapour per mass of dry air."
 sources = ["cengel_boles"]
 
+# --- Temperature scales ---------------------------------------------------
+
+[temperature_scales.its90]
+label = "International Temperature Scale of 1990 (ITS-90)"
+reference = "preston_thomas1990"
+
+[temperature_scales.ipts68]
+label = "International Practical Temperature Scale of 1968 (IPTS-68)"
+reference = "preston_thomas1990"
+# Table 6 of the ITS-90 text: [t90 / degC, (t90 - t68) / K].
+differences = [
+  [-190.0, 0.008],
+  [-180.0, 0.008],
+  [-170.0, 0.010],
+  [-160.0, 0.012],
+  [-150.0, 0.013],
+  [-140.0, 0.014],
+  [-130.0, 0.014],
+  [-120.0, 0.014],
+  [-110.0, 0.013],
+  [-100.0, 0.013],
+  [-90.0, 0.012],
+  [-80.0, 0.012],
+  [-70.0, 0.011],
+  [-60.0, 0.010],
+  [-50.0, 0.009],
+  [-40.0, 0.008],
+  [-30.0, 0.006],
+  [-20.0, 0.004],
+  [-10.0, 0.002],
+  [0.0, 0.000],
+  [10.0, -0.002],
+  [20.0, -0.005],
+  [30.0, -0.007],
+  [40.0, -0.010],
+  [50.0, -0.013],
+  [60.0, -0.016],
+  [70.0, -0.018],
+  [80.0, -0.021],
+  [90.0, -0.024],
+  [100.0, -0.026],
+  [110.0, -0.028],
+  [120.0, -0.030],
+  [130.0, -0.032],
+  [140.0, -0.034],
+  [150.0, -0.036],
+  [160.0, -0.037],
+  [170.0, -0.038],
+  [180.0, -0.039],
+  [190.0, -0.039],
+  [200.0, -0.040],
+  [210.0, -0.040],
+  [220.0, -0.040],
+  [230.0, -0.040],
+  [240.0, -0.040],
+  [250.0, -0.040],
+  [260.0, -0.040],
+  [270.0, -0.039],
+  [280.0, -0.039],
+  [290.0, -0.039],
+  [300.0, -0.039],
+  [310.0, -0.039],
+  [320.0, -0.039],
+  [330.0, -0.040],
+  [340.0, -0.040],
+  [350.0, -0.041],
+  [360.0, -0.042],
+  [370.0, -0.043],
+  [380.0, -0.045],
+  [390.0, -0.046],
+]
+
 # --- Formulations ---------------------------------------------------------
 
 [formulations.sonntag1990_magnus]
@@ -235,7 +316,7 @@ references = ["sonntag1990", "wmo2024", "alduchov_eskridge1996"]
 note = "Coefficients adopted by the WMO guide and quoted as SA90 by Alduchov and Eskridge (1996, Table II), who find a maximum relative error of 0.597 % against GG46, WE76 and SO90 between -40 and 50 degC (Table III). Not to be confused with Sonntag's own formulation (sonntag1990)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "stated" },
 ]
 coefficients = { A = 17.62, B = 243.12, C = 6.112 }
 
@@ -267,7 +348,7 @@ references = ["iapws_sr1_86", "wagner_pruss1993"]
 note = "Reference formulation for comparisons. Reproduces Table 1 of the release: 611.657 Pa at 273.16 K, 101325 Pa at 373.1243 K."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)", temperature_scale = "its90", scale_basis = "stated" },
 ]
 
 [formulations.iapws_sr1_86.coefficients]
@@ -294,7 +375,7 @@ references = ["sonntag1990", "alduchov_eskridge1996", "voemel_vp"]
 note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Vömel gives the same coefficients under Sonntag (1994): the year differs between secondary sources. Range not read in the original."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)", temperature_scale = "its90", scale_basis = "stated" },
 ]
 coefficients = { a0 = -6096.9385, a1 = 16.635794, a2 = -2.711193e-2, a3 = 1.673952e-5, a4 = 2.433502 }
 
@@ -303,6 +384,7 @@ label = "Magnus form, Alduchov and Eskridge (1996) AEKR coefficients"
 expression = "C * exp(A * t / (B + t))"
 fixed_units = true
 references = ["alduchov_eskridge1996"]
+note = "Fitted to three formulations on different temperature scales (GG46, WE76, SO90): no scale is assigned."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
@@ -335,7 +417,7 @@ references = ["buck1981", "alduchov_eskridge1996", "voemel_vp"]
 note = "Maximum relative error 1.458 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred" },
 ]
 coefficients = { A = 17.502, B = 240.97, C = 6.1121 }
 
@@ -347,7 +429,7 @@ references = ["buck1981", "alduchov_eskridge1996"]
 note = "Maximum relative error 0.493 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred" },
 ]
 coefficients = { A = 18.729, B = 257.87, C = 6.1121, D = 227.3 }
 
@@ -356,7 +438,7 @@ label = "Hyland and Wexler (1983) formulation over water"
 expression = "exp(C8 / T + C9 + C10 * T + C11 * T ** 2 + C12 * T ** 3 + C13 * ln(T))"
 fixed_units = true
 references = ["hyland_wexler1983", "ashrae2017", "psychrolib", "voemel_vp"]
-note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original."
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale left unknown: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
@@ -370,7 +452,7 @@ fixed_units = true
 references = ["bolton1980", "voemel_vp"]
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred" },
 ]
 coefficients = { A = 17.67, B = 243.5, C = 6.112 }
 
@@ -399,7 +481,7 @@ references = ["buck1996", "voemel_vp"]
 note = "Update of the Buck (1981) equation (buck1981), with different coefficients."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred" },
 ]
 coefficients = { A = 18.678, B = 257.14, C = 6.1121, D = 234.5 }
 
