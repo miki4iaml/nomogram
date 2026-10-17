@@ -82,14 +82,9 @@ All sections are optional; a key may be defined in one file only.
   are then converted to the declared unit and scale before evaluation;
   coefficients are never converted. `false` for a quantity equation,
   whose dimensional homogeneity is checked at load.
-- **`coefficients`**: a number, or a table `{ value, unit, note }` when
-  the unit or a remark matters. Every coefficient needs a unit, declared
-  or inferred from the expression (`nomogram.dimensions`): in
-  `C * exp(A * t / (B + t))`, B takes the unit of t, A is a pure number
-  and C takes the unit of the result, so none needs declaring. Declare
-  a unit only when the expression does not determine it (the load says
-  so); a declared unit that contradicts the expression stops the load,
-  with the part of the expression where the conflict appears.
+- **`coefficients`**: a number, or a table
+  `{ value, unit, unit_basis, note }` when the unit or a remark matters.
+  See [units of coefficients](#units-of-coefficients).
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
 - **`domains`**: `basis` (`physical` or `stated`), `bounds` (closed
@@ -126,6 +121,33 @@ matches = [
 
 `relation` is a SKOS relation (`exact`, `close`, `broad`, `narrow`) and
 `verified` the date the link was last checked.
+
+
+## Units of coefficients
+
+Every coefficient has a unit, declared or inferred from the expression
+(`nomogram.dimensions`). In `C * exp(A * t / (B + t))`, B takes the unit
+of t, A is a pure number and C takes the unit of the result: none needs
+declaring, and the legend shows them as inferred by nomogram.
+
+- **Declare a unit only when the source states it, or when the
+  expression does not determine it.** A declared unit says where it
+  comes from: `unit_basis = "stated"` if the source gives it (read in the
+  source, as for any `verified` detail), `"added"` if you add it while
+  writing the entry, with a `note` saying why. A unit the expression
+  determines is not added: inference gives it.
+- **An incomplete formulation is refused.** If the expression does not
+  determine a unit (two coefficients tied only by their product, a
+  pressure read inside a logarithm), the load stops and says which; add
+  declarations until the inference succeeds.
+- **An inconsistent formulation is refused.** A declared unit that
+  contradicts the expression stops the load, with the part of the
+  expression where the conflict appears. Adding declarations never fixes
+  it: find the error (a unit, the transcription of the expression, or the
+  source itself, in which case the disagreement is recorded in a note).
+
+The legend of a single formulation shows each origin: unit from the
+source, added by nomogram, or inferred by nomogram.
 
 ## Checking an entry locally
 

@@ -151,17 +151,24 @@ def test_markdown_explains_each_symbol_with_its_unit() -> None:
     assert lines[2:5] == ["$$", MAGNUS.latex(), "$$"]
     assert r"- $e_{\mathrm{s}}$: Saturation vapour pressure over water [hPa]" in lines
     assert "- $t$: Celsius temperature [°C]" in lines
-    assert "- $A = 17.62$ (pure number, inferred)" in lines
-    assert "- $B = 243.12$ °C (unit inferred)" in lines  # from B + t
-    assert "- $C = 6.112$ hPa (unit inferred)" in lines  # from e_s = C ...
+    assert "- $A = 17.62$ (pure number, inferred by nomogram)" in lines
+    assert "- $B = 243.12$ °C (unit inferred by nomogram)" in lines  # from B + t
+    assert "- $C = 6.112$ hPa (unit inferred by nomogram)" in lines
     assert (
         lines[-1]
         == r"The coefficients hold for $e_{\mathrm{s}}$ in hPa, $t$ in °C only."
     )
     murray = FORMULATIONS["murray1967"].render().markdown.splitlines()
-    assert "- $B = 35.86$ K (unit declared)" in murray
+    assert "- $B = 35.86$ K (unit inferred by nomogram)" in murray
+    iapws = FORMULATIONS["iapws_sr1_86"].render().markdown.splitlines()
+    assert "- $T_{\\mathrm{c}} = 647.096$ K (unit from the source)" in iapws
+    gg = FORMULATIONS["goff_gratch1946"].render().markdown.splitlines()
+    assert "- $e_{\\mathrm{st}} = 1013.246$ hPa (unit added by nomogram)" in gg
     sonntag = FORMULATIONS["sonntag1990"].render().markdown.splitlines()
-    assert r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K² (unit inferred)" in sonntag
+    assert (
+        r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K² (unit inferred by nomogram)"
+        in sonntag
+    )
     with_values = MAGNUS.render(values=True).markdown
     assert "$A = " not in with_values
 

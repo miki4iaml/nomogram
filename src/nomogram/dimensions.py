@@ -90,16 +90,17 @@ class CoefficientUnit:
     unit : pint.Unit or None
         Its unit (dimensionless for a pure number); ``None`` when the
         expression does not determine it.
-    origin : {"declared", "inferred"} or None
-        Where the unit comes from: the catalog entry, or the dimensional
-        analysis of the expression; ``None`` without a unit.
+    origin : {"stated", "added", "inferred"} or None
+        Where the unit comes from: stated by the source, added when the
+        entry was written (a declared unit without basis counts as added),
+        or inferred from the expression; ``None`` without a unit.
     reason : str or None
         For an inferred unit, the part of the expression it follows from.
     """
 
     identifier: str
     unit: Any
-    origin: Literal["declared", "inferred"] | None
+    origin: Literal["stated", "added", "inferred"] | None
     reason: str | None
 
 
@@ -435,9 +436,12 @@ def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
     result = {}
     for coefficient in formulation.coefficients:
         name = coefficient.identifier
-        origin: Literal["declared", "inferred"] | None = None
+        origin: Literal["stated", "added", "inferred"] | None = None
         if name not in context.unknown:
-            origin = "declared"
+            basis = coefficient.unit_basis
+            origin = (
+                "stated" if basis is not None and basis.value == "stated" else "added"
+            )
         elif name in context.units:
             origin = "inferred"
         result[name] = CoefficientUnit(

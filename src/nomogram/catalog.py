@@ -45,6 +45,7 @@ from nomogram.model import (
     TemperatureScale,
     TradeMeaning,
     TradeTerm,
+    UnitBasis,
     ValidityDomain,
     Variable,
 )
@@ -353,14 +354,26 @@ class _Builder:
         result = []
         for identifier, value in (table or {}).items():
             if isinstance(value, dict):
-                f = _fields(
-                    f"{where}.{identifier}", value, ("value",), ("unit", "note")
-                )
-                unit = f["unit"]
+                place = f"{where}.{identifier}"
+                f = _fields(place, value, ("value",), ("unit", "unit_basis", "note"))
+                unit, basis = f["unit"], f["unit_basis"]
                 if unit is not None:
-                    unit = self.unit(f"{where}.{identifier}.unit", unit)
+                    unit = self.unit(f"{place}.unit", unit)
+                    if basis is None:
+                        msg = (
+                            f"{place}: a declared unit needs unit_basis: "
+                            '"stated" if the source gives it, "added" otherwise'
+                        )
+                        raise CatalogError(msg)
+                    basis = _enum(f"{place}.unit_basis", UnitBasis, basis)
+                    if basis is UnitBasis.ADDED and not f["note"]:
+                        msg = f"{place}: an added unit needs a note saying why"
+                        raise CatalogError(msg)
+                elif basis is not None:
+                    msg = f"{place}: unit_basis without a unit"
+                    raise CatalogError(msg)
                 result.append(
-                    Coefficient(identifier, float(f["value"]), unit, f["note"])
+                    Coefficient(identifier, float(f["value"]), unit, f["note"], basis)
                 )
             else:
                 result.append(Coefficient(identifier, float(value), None, None))
@@ -473,7 +486,9 @@ class _Builder:
         if undetermined:
             msg = (
                 f"{where}: the expression does not determine the unit of "
-                f"{', '.join(undetermined)}; declare it"
+                f"{', '.join(undetermined)}; declare it, with "
+                'unit_basis = "stated" if the source gives it, '
+                '"added" (and a note) otherwise'
             )
             raise CatalogError(msg)
 

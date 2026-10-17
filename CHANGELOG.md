@@ -20,12 +20,18 @@ and this project adheres to
 - The catalog checks at load that every coefficient has a unit, declared
   or inferred, and that declared units agree with the expression; a
   conflict names the part of the expression where it appears.
+- Declared units of coefficients say where they come from
+  (`unit_basis`: `"stated"` by the source, or `"added"` when the entry
+  was written, with a note); `CoefficientUnit.origin` is `"stated"`,
+  `"added"` or `"inferred"`, and the legend of a single formulation reads
+  "from the source", "added by nomogram" or "inferred by nomogram". The
+  catalog guide states the rule for contributors.
 - The Markdown legend of a single formulation gives the unit of every
-  coefficient and its origin (declared or inferred), and the units the
+  coefficient and its origin (from the source, added or inferred by
+  nomogram), and the units the
   coefficients of a formulation with fixed units hold for; tables and
   plot labels do not show origins. Renderings and tables have a short
   `repr`.
-
 - `nomogram.display`: `render` displays a formulation as LaTeX, as a
   matplotlib label and as Markdown with the meaning and unit of each
   symbol; `table` puts several formulations side by side (equation,
@@ -44,6 +50,13 @@ and this project adheres to
 
 ### Changed
 
+- Catalog: the declared units of coefficients that the expression
+  determines were removed (Murray, Goff 1957, Marti and Mauersberger,
+  and the reference temperatures of Goff-Gratch), since Vömel, the
+  source read, gives these coefficients as bare numbers; they are now
+  inferred. The units stated by the IAPWS releases are kept as stated,
+  and the two reference pressures of Goff-Gratch, read inside a
+  logarithm, as added.
 - Default typography of `Formulation.latex()`: every product shows ×
   (RH can no longer be read as R × H) and descriptive subscripts are
   upright, as in ISO 80000-2 (`e_{\mathrm{s}}` instead of `e_{s}`).
