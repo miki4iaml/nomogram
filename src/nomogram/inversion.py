@@ -38,6 +38,7 @@ from nomogram.model import (
     OutOfDomainError,
     Outside,
     ScaleConversion,
+    UnitBasis,
     ValidityDomain,
     ValidityWarning,
     Variable,
@@ -184,7 +185,13 @@ def _symbolic(
     coefficients = list(formulation.coefficients)
     if shift:
         coefficients.append(
-            Coefficient(_OFFSET, -shift, "K", "t = T - T0 (SI Brochure, section 2.3.1)")
+            Coefficient(
+                _OFFSET,
+                -shift,
+                "K",
+                "t = T - T0 (SI Brochure, section 2.3.1)",
+                UnitBasis.ADDED,
+            )
         )
     names = (
         [input.identifier]

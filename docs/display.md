@@ -47,10 +47,10 @@ label = symbol(magnus.output, wmo)  # "$e_{\mathrm{w}}$ [hPa]"
 `nomogram.plot.plot_values` uses it for its y axis.
 
 The Markdown legend of a single formulation gives the unit of every
-coefficient and where it comes from: declared in the catalog, or
-inferred from the expression (for the Magnus form, B = 243.12 °C and
-C = 6.112 hPa, both inferred, so that a reader comparing with the source
-knows they are nomogram's). For a formulation with fixed units, it also
+coefficient and where it comes from: from the source, added by nomogram
+when the entry was written, or inferred by nomogram from the expression
+(for the Magnus form, B = 243.12 °C and C = 6.112 hPa, both inferred, so
+that a reader comparing with the source knows they are nomogram's). For a formulation with fixed units, it also
 gives the units its coefficients hold for. Tables and plot labels never
 show where units come from.
 

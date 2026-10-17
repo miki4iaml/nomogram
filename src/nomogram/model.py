@@ -59,6 +59,7 @@ __all__ = [
     "TemperatureScale",
     "TradeMeaning",
     "TradeTerm",
+    "UnitBasis",
     "ValidityDomain",
     "ValidityWarning",
     "Variable",
@@ -138,6 +139,18 @@ class Reference:
     status: ReferenceStatus
     note: str | None
     matches: tuple[ExternalMatch, ...]
+
+
+class UnitBasis(Enum):
+    """Where the declared unit of a coefficient comes from."""
+
+    #: Stated by the source.
+    STATED = "stated"
+    #: Added when the entry was written; the note says why. Only for a
+    #: unit the expression does not determine (see
+    #: :mod:`nomogram.dimensions`): a unit that can be inferred is not
+    #: declared.
+    ADDED = "added"
 
 
 class ScaleBasis(Enum):
@@ -283,16 +296,22 @@ class Coefficient:
     value : float
         Value, as published.
     unit : str or None
-        QUDT name of its unit, for documentation; in a fixed-units
-        formulation coefficients are numbers tied to the declared units.
+        QUDT name of its declared unit; ``None`` when the unit is left to
+        inference (:func:`nomogram.dimensions.infer_units`). In a
+        fixed-units formulation coefficients are numbers tied to the units
+        of the variables, never converted.
     note : str or None
         Remark.
+    unit_basis : UnitBasis or None
+        Where the declared unit comes from; ``None`` without a declared
+        unit.
     """
 
     identifier: str
     value: float
     unit: str | None
     note: str | None
+    unit_basis: UnitBasis | None = None
 
 
 @dataclass(frozen=True)

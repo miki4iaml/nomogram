@@ -67,6 +67,13 @@ DecimalSeparator = Literal["period", "comma"]
 _MUL_SYMBOLS = ("times", "dot", "ldot", None)
 _DECIMAL_SEPARATORS = ("period", "comma")
 
+#: How the origin of a coefficient unit reads in a legend.
+_ORIGINS: Mapping[str, str] = {
+    "stated": "from the source",
+    "added": "added by nomogram",
+    "inferred": "inferred by nomogram",
+}
+
 #: Units shown without a symbol (QUDT's symbol for UNITLESS is a CJK sign).
 _NO_SYMBOL = frozenset({"UNITLESS"})
 
@@ -216,9 +223,10 @@ def _with_unit(text: str, unit: str | None) -> str:
 def _coefficient_unit(formulation: Formulation, coefficient: Coefficient) -> str:
     """The unit of a coefficient and its origin, as text.
 
-    For example ``°C (unit inferred)``, ``K (unit declared)`` or, for a
-    pure number, ``(pure number, inferred)``. The origin is shown only in
-    the legend of a single formulation, never in tables or plot labels.
+    For example ``°C (unit inferred by nomogram)``, ``K (unit from the
+    source)`` or, for a pure number, ``(pure number, inferred by
+    nomogram)``. The origin is shown only in the legend of a single
+    formulation, never in tables or plot labels.
     """
     try:
         found = formulation.coefficient_units[coefficient.identifier]
@@ -226,10 +234,9 @@ def _coefficient_unit(formulation: Formulation, coefficient: Coefficient) -> str
         return _unit(coefficient.unit)
     if found.origin is None:
         return "(unit undetermined)"
+    origin = _ORIGINS[found.origin]
     text = unit_text(found.unit)
-    if not text:
-        return f"(pure number, {found.origin})"
-    return f"{text} (unit {found.origin})"
+    return f"{text} (unit {origin})" if text else f"(pure number, {origin})"
 
 
 @dataclass(frozen=True, repr=False)

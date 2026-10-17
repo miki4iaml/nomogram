@@ -440,8 +440,8 @@ inputs = [
 ]
 
 [formulations.iapws_sr1_86.coefficients]
-T_c = { value = 647.096, unit = "K", note = "Critical temperature" }
-p_c = { value = 22.064e6, unit = "PA", note = "Critical pressure" }
+T_c = { value = 647.096, unit = "K", unit_basis = "stated", note = "Critical temperature" }
+p_c = { value = 22.064e6, unit = "PA", unit_basis = "stated", note = "Critical pressure" }
 a1 = -7.85951783
 a2 = 1.84408259
 a3 = -11.7866497
@@ -557,9 +557,9 @@ inputs = [
 
 [formulations.murray1967.coefficients]
 A = 17.269388
-B = { value = 35.86, unit = "K" }
-C = { value = 6.1078, unit = "HectoPA" }
-T_0 = { value = 273.16, unit = "K", note = "Triple point of water" }
+B = 35.86
+C = 6.1078
+T_0 = { value = 273.16, note = "Triple point of water" }
 
 [formulations.buck1996]
 label = "Buck (1996) equation"
@@ -591,8 +591,8 @@ a3 = -1.3816e-7
 a4 = 11.344
 a5 = 8.1328e-3
 a6 = -3.49149
-T_s = { value = 373.16, unit = "K", note = "Steam point" }
-e_st = { value = 1013.246, unit = "HectoPA", note = "Saturation pressure at the steam point" }
+T_s = { value = 373.16, note = "Steam point" }
+e_st = { value = 1013.246, unit = "HectoPA", unit_basis = "added", note = "Saturation pressure at the steam point. Unit added: Vömel gives the bare number, and inside log10 the expression cannot tell a pressure in hPa from a pure number." }
 
 [[formulations.goff_gratch1946.domains]]
 basis = "stated"
@@ -619,7 +619,7 @@ b4 = -8.2969
 b5 = 0.42873e-3
 b6 = 4.76955
 b7 = 0.78614
-T_1 = { value = 273.16, unit = "K", note = "Triple point of water" }
+T_1 = { value = 273.16, note = "Triple point of water" }
 
 [formulations.vapour_pressure_from_relative_humidity]
 label = "Vapour pressure from relative humidity"
@@ -671,8 +671,8 @@ inputs = [
 ]
 
 [formulations.iapws_r14_08_sublimation.coefficients]
-T_t = { value = 273.16, unit = "K", note = "Triple point temperature" }
-p_t = { value = 611.657, unit = "PA", note = "Triple point pressure" }
+T_t = { value = 273.16, unit = "K", unit_basis = "stated", note = "Triple point temperature" }
+p_t = { value = 611.657, unit = "PA", unit_basis = "stated", note = "Triple point pressure" }
 a1 = -21.2144006
 a2 = 27.3203819
 a3 = -6.10598130
@@ -701,8 +701,8 @@ inputs = [
 c1 = -9.09718
 c2 = -3.56654
 c3 = 0.876793
-T_0 = { value = 273.16, unit = "K" }
-e_i0 = { value = 6.1071, unit = "HectoPA" }
+T_0 = 273.16
+e_i0 = { value = 6.1071, unit = "HectoPA", unit_basis = "added", note = "Saturation pressure over ice at the triple point. Unit added: Vömel gives the bare number, and inside log10 the expression cannot tell a pressure in hPa from a pure number." }
 
 [[formulations.goff_gratch1946_ice.domains]]
 basis = "stated"
@@ -746,9 +746,9 @@ inputs = [
 
 [formulations.murray1967_ice.coefficients]
 A = 21.8745584
-B = { value = 7.66, unit = "K" }
-C = { value = 6.1078, unit = "HectoPA" }
-T_0 = { value = 273.16, unit = "K" }
+B = 7.66
+C = 6.1078
+T_0 = 273.16
 
 [formulations.buck1981_ice]
 label = "Magnus form over ice, Buck (1981) coefficients"
@@ -781,7 +781,7 @@ output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = 
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
 ]
-coefficients = { A = { value = -2663.5, unit = "K" }, B = 12.537 }
+coefficients = { A = -2663.5, B = 12.537 }
 
 [formulations.murphy_koop2005_ice]
 label = "Murphy and Koop (2005) formulation over ice"

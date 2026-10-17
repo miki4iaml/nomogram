@@ -8,7 +8,7 @@ import datetime
 import pytest
 
 from nomogram.catalog import CatalogError, catalog, load_catalog
-from nomogram.model import ReferenceStatus
+from nomogram.model import ReferenceStatus, UnitBasis
 from nomogram.semantics import MatchRelation
 
 CATALOG = catalog()
@@ -229,7 +229,7 @@ def test_bad_matches_are_refused() -> None:
         ("a * b * t", "{ a = 2.0, b = 3.0 }", "does not determine the unit of a, b"),
         (
             "c * exp(a * t / (b + t))",
-            '{ a = 1.0, b = { value = 2.0, unit = "HectoPA" }, c = 3.0 }',
+            '{ a = 1.0, b = { value = 2.0, unit = "HectoPA", unit_basis = "stated" }, c = 3.0 }',
             r"units contradict the expression, in b \+ t",
         ),
     ],
@@ -285,7 +285,8 @@ def test_table_expected() -> None:
 def test_coefficient_with_unit_and_note() -> None:
     document = replace(
         "coefficients = { a = 2.0 }",
-        'coefficients = { a = { value = 2.0, unit = "K", note = "difference" } }',
+        'coefficients = { a = { value = 2.0, unit = "K", unit_basis = "added", '
+        'note = "difference" } }',
     ).replace('expression = "a * t"', 'expression = "t * exp(a / t)"')
     coefficient = load_catalog([document]).formulations["f"].coefficients[0]
     assert (coefficient.value, coefficient.unit, coefficient.note) == (
@@ -293,6 +294,45 @@ def test_coefficient_with_unit_and_note() -> None:
         "K",
         "difference",
     )
+    assert coefficient.unit_basis is UnitBasis.ADDED
+
+
+@pytest.mark.parametrize(
+    ("table", "message"),
+    [
+        ('{ value = 2.0, unit = "K" }', 'needs unit_basis: "stated" if the source'),
+        (
+            '{ value = 2.0, unit = "K", unit_basis = "added" }',
+            "added unit needs a note",
+        ),
+        ('{ value = 2.0, unit_basis = "stated" }', "unit_basis without a unit"),
+        ('{ value = 2.0, unit = "K", unit_basis = "guessed" }', "is not one of"),
+    ],
+)
+def test_declared_units_say_where_they_come_from(table: str, message: str) -> None:
+    document = replace(
+        "coefficients = { a = 2.0 }", f"coefficients = {{ a = {table} }}"
+    )
+    document = document.replace('expression = "a * t"', 'expression = "t * exp(a / t)"')
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
+def test_catalog_declares_only_units_inference_cannot_give() -> None:
+    origins = {
+        (f.key, name): unit.origin
+        for f in CATALOG.formulations.values()
+        for name, unit in f.coefficient_units.items()
+        if unit.origin != "inferred"
+    }
+    assert origins == {
+        ("iapws_sr1_86", "T_c"): "stated",
+        ("iapws_sr1_86", "p_c"): "stated",
+        ("iapws_r14_08_sublimation", "T_t"): "stated",
+        ("iapws_r14_08_sublimation", "p_t"): "stated",
+        ("goff_gratch1946", "e_st"): "added",
+        ("goff_gratch1946_ice", "e_i0"): "added",
+    }
 
 
 def test_coefficient_table_without_unit() -> None:

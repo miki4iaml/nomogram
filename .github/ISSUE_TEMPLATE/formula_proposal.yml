@@ -30,8 +30,10 @@ body:
     attributes:
       label: Parameters and units
       description: |
-        Every symbol with its meaning and unit, including empirical
-        coefficients and the units they assume.
+        Every symbol with its meaning and unit. For empirical
+        coefficients, say which units the source states; units the
+        expression determines need not be given (nomogram infers them),
+        and a unit you add yourself needs a reason.
     validations:
       required: true
   - type: textarea
