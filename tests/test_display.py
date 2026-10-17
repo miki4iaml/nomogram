@@ -137,6 +137,12 @@ def test_rendering_targets() -> None:
     assert rendering.mathtext == f"${rendering.latex}$"
     assert rendering._repr_markdown_() == rendering.markdown
     assert MAGNUS._repr_latex_() == f"$${MAGNUS.latex()}$$"
+    assert repr(rendering) == "Rendering('sonntag1990_magnus', notation=None)"
+    assert repr(MAGNUS.render(WMO)) == "Rendering('sonntag1990_magnus', notation='wmo')"
+    pair = table([MAGNUS, IDEAL_GAS])
+    assert repr(pair) == (
+        "FormulaTable(2 formulations: sonntag1990_magnus, mass_concentration_ideal_gas)"
+    )
 
 
 def test_markdown_explains_each_symbol_with_its_unit() -> None:
@@ -145,12 +151,42 @@ def test_markdown_explains_each_symbol_with_its_unit() -> None:
     assert lines[2:5] == ["$$", MAGNUS.latex(), "$$"]
     assert r"- $e_{\mathrm{s}}$: Saturation vapour pressure over water [hPa]" in lines
     assert "- $t$: Celsius temperature [°C]" in lines
-    assert "- $A = 17.62$" in lines
-    assert "- $B = 243.12$" in lines
+    assert "- $A = 17.62$ (pure number, inferred)" in lines
+    assert "- $B = 243.12$ °C (unit inferred)" in lines  # from B + t
+    assert "- $C = 6.112$ hPa (unit inferred)" in lines  # from e_s = C ...
+    assert (
+        lines[-1]
+        == r"The coefficients hold for $e_{\mathrm{s}}$ in hPa, $t$ in °C only."
+    )
     murray = FORMULATIONS["murray1967"].render().markdown.splitlines()
-    assert "- $B = 35.86$ K" in murray
+    assert "- $B = 35.86$ K (unit declared)" in murray
+    sonntag = FORMULATIONS["sonntag1990"].render().markdown.splitlines()
+    assert r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K² (unit inferred)" in sonntag
     with_values = MAGNUS.render(values=True).markdown
     assert "$A = " not in with_values
+
+
+def test_markdown_falls_back_to_declared_units_when_they_contradict() -> None:
+    coefficients = tuple(
+        dataclasses.replace(c, unit="HectoPA") if c.identifier == "B" else c
+        for c in MAGNUS.coefficients
+    )
+    broken = dataclasses.replace(MAGNUS, coefficients=coefficients)
+    assert "- $B = 243.12$ hPa" in broken.render().markdown.splitlines()
+
+
+def test_origin_of_units_only_in_the_legend_of_one_formulation() -> None:
+    undetermined = dataclasses.replace(
+        MAGNUS, expression="A * B * t", coefficients=MAGNUS.coefficients[:2]
+    )
+    assert "- $A = 17.62$ (unit undetermined)" in undetermined.render().markdown
+    assert "inferred" not in table([MAGNUS]).to_markdown()
+    assert "inferred" not in symbol(MAGNUS.output)
+
+
+def test_quantity_equations_have_no_fixed_units_line() -> None:
+    markdown = FORMULATIONS["mixing_ratio_from_vapour_pressure"].render().markdown
+    assert "coefficients hold" not in markdown
 
 
 def test_markdown_lists_constants_and_omits_unitless_symbols() -> None:

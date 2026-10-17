@@ -83,7 +83,13 @@ All sections are optional; a key may be defined in one file only.
   coefficients are never converted. `false` for a quantity equation,
   whose dimensional homogeneity is checked at load.
 - **`coefficients`**: a number, or a table `{ value, unit, note }` when
-  the unit or a remark matters.
+  the unit or a remark matters. Every coefficient needs a unit, declared
+  or inferred from the expression (`nomogram.dimensions`): in
+  `C * exp(A * t / (B + t))`, B takes the unit of t, A is a pure number
+  and C takes the unit of the result, so none needs declaring. Declare
+  a unit only when the expression does not determine it (the load says
+  so); a declared unit that contradicts the expression stops the load,
+  with the part of the expression where the conflict appears.
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
 - **`domains`**: `basis` (`physical` or `stated`), `bounds` (closed

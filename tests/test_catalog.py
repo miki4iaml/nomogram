@@ -223,6 +223,27 @@ def test_bad_matches_are_refused() -> None:
         load_catalog([bad_relation])
 
 
+@pytest.mark.parametrize(
+    ("expression", "coefficients", "message"),
+    [
+        ("a * b * t", "{ a = 2.0, b = 3.0 }", "does not determine the unit of a, b"),
+        (
+            "c * exp(a * t / (b + t))",
+            '{ a = 1.0, b = { value = 2.0, unit = "HectoPA" }, c = 3.0 }',
+            r"units contradict the expression, in b \+ t",
+        ),
+    ],
+)
+def test_every_coefficient_needs_a_unit_declared_or_inferred(
+    expression: str, coefficients: str, message: str
+) -> None:
+    document = replace('expression = "a * t"', f'expression = "{expression}"').replace(
+        "coefficients = { a = 2.0 }", f"coefficients = {coefficients}"
+    )
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
 NOTATION = """
 [notations.n]
 label = "A notation"
@@ -265,7 +286,7 @@ def test_coefficient_with_unit_and_note() -> None:
     document = replace(
         "coefficients = { a = 2.0 }",
         'coefficients = { a = { value = 2.0, unit = "K", note = "difference" } }',
-    )
+    ).replace('expression = "a * t"', 'expression = "t * exp(a / t)"')
     coefficient = load_catalog([document]).formulations["f"].coefficients[0]
     assert (coefficient.value, coefficient.unit, coefficient.note) == (
         2.0,

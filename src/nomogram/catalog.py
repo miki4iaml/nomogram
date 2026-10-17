@@ -31,6 +31,7 @@ from typing import Any
 
 import pint
 
+from nomogram.dimensions import DimensionError
 from nomogram.expression import LATEX_COMMANDS, ExpressionError, latex_commands
 from nomogram.model import (
     Coefficient,
@@ -462,6 +463,19 @@ class _Builder:
         except pint.errors.DimensionalityError as exc:
             msg = f"{where}: not dimensionally homogeneous: {exc}"
             raise CatalogError(msg) from None
+        # Every coefficient needs a unit, declared or inferred.
+        try:
+            units = formulation.coefficient_units
+        except DimensionError as exc:
+            msg = f"{where}: units contradict the expression, {exc}"
+            raise CatalogError(msg) from None
+        undetermined = sorted(k for k, u in units.items() if u.unit is None)
+        if undetermined:
+            msg = (
+                f"{where}: the expression does not determine the unit of "
+                f"{', '.join(undetermined)}; declare it"
+            )
+            raise CatalogError(msg)
 
     def build(self) -> Catalog:
         self.build_kinds()

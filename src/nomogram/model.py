@@ -42,6 +42,7 @@ from nomogram.semantics import ExternalMatch, semantic_catalog
 from nomogram.units import Q_, convert
 
 if TYPE_CHECKING:
+    from nomogram.dimensions import CoefficientUnit
     from nomogram.display import Rendering
 
 __all__ = [
@@ -532,6 +533,16 @@ class Formulation:
     def _repr_latex_(self) -> str:
         """The equation, for notebooks."""
         return f"$${self.latex()}$$"
+
+    @cached_property
+    def coefficient_units(self) -> Mapping[str, CoefficientUnit]:
+        """The unit of each coefficient, declared or inferred.
+
+        See :func:`nomogram.dimensions.infer_units`.
+        """
+        from nomogram.dimensions import infer_units
+
+        return infer_units(self)
 
     def outside_mask(self, values: Mapping[str, Any], basis: Basis = "stated") -> Any:
         """Where input values fall outside the selected validity domains.

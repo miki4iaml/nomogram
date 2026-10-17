@@ -45,8 +45,9 @@ from typing import Any, ClassVar, Literal
 
 import sympy
 
+from nomogram.dimensions import DimensionError, unit_text
 from nomogram.expression import to_latex
-from nomogram.model import Formulation, Notation, Variable
+from nomogram.model import Coefficient, Formulation, Notation, Variable
 from nomogram.semantics import semantic_catalog
 
 __all__ = [
@@ -212,7 +213,26 @@ def _with_unit(text: str, unit: str | None) -> str:
     return f"{text} {symbol}" if symbol else text
 
 
-@dataclass(frozen=True)
+def _coefficient_unit(formulation: Formulation, coefficient: Coefficient) -> str:
+    """The unit of a coefficient and its origin, as text.
+
+    For example ``°C (unit inferred)``, ``K (unit declared)`` or, for a
+    pure number, ``(pure number, inferred)``. The origin is shown only in
+    the legend of a single formulation, never in tables or plot labels.
+    """
+    try:
+        found = formulation.coefficient_units[coefficient.identifier]
+    except DimensionError:
+        return _unit(coefficient.unit)
+    if found.origin is None:
+        return "(unit undetermined)"
+    text = unit_text(found.unit)
+    if not text:
+        return f"(pure number, {found.origin})"
+    return f"{text} (unit {found.origin})"
+
+
+@dataclass(frozen=True, repr=False)
 class Rendering:
     """A formulation displayed in one notation, with given options.
 
@@ -281,17 +301,29 @@ class Rendering:
             for coefficient in formulation.coefficients:
                 label = _identifier(coefficient.identifier, symbols, options)
                 value = f"${label} = {_number(coefficient.value, options)}$"
-                lines.append(f"- {_with_unit(value, coefficient.unit)}")
+                unit = _coefficient_unit(formulation, coefficient)
+                lines.append(f"- {value} {unit}" if unit else f"- {value}")
         for constant in formulation.constants:
             label = _identifier(constant.identifier, symbols, options)
             value = f"${label} = {_number(constant.value, options)}$"
             lines.append(
                 f"- {_with_unit(value, constant.unit)}: {constant.description}"
             )
+        if formulation.fixed_units and formulation.coefficients:
+            held = [
+                f"${_identifier(v.identifier, symbols, options)}$ in {_unit(v.unit)}"
+                for v in (formulation.output, *formulation.inputs)
+                if _unit(v.unit)
+            ]
+            lines += ["", f"The coefficients hold for {', '.join(held)} only."]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:
         return self.markdown
+
+    def __repr__(self) -> str:
+        notation = self.notation.key if self.notation else None
+        return f"Rendering({self.formulation.key!r}, notation={notation!r})"
 
 
 def render(
@@ -361,7 +393,7 @@ def _cell(text: str) -> str:
     return text.replace("|", r"\|")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class FormulaTable:
     """Several formulations side by side, as a Markdown table.
 
@@ -417,6 +449,10 @@ class FormulaTable:
 
     def _repr_markdown_(self) -> str:
         return self.to_markdown()
+
+    def __repr__(self) -> str:
+        keys = ", ".join(r.formulation.key for r in self.renderings)
+        return f"FormulaTable({len(self.renderings)} formulations: {keys})"
 
 
 def table(
