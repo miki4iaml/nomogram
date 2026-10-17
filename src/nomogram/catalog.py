@@ -31,7 +31,7 @@ from typing import Any
 
 import pint
 
-from nomogram.expression import ExpressionError
+from nomogram.expression import LATEX_COMMANDS, ExpressionError, latex_commands
 from nomogram.model import (
     Coefficient,
     DomainBasis,
@@ -249,6 +249,15 @@ class _Builder:
         for key, table in self.data["notations"].items():
             where = f"notations.{key}"
             f = _fields(where, table, ("label", "symbols"), ("reference",))
+            for identifier, tex in f["symbols"].items():
+                unknown = latex_commands(tex) - LATEX_COMMANDS
+                if unknown:
+                    msg = (
+                        f"{where}.symbols.{identifier}: LaTeX commands outside the "
+                        f"subset common to MathJax, KaTeX and mathtext: "
+                        f"{', '.join(sorted(unknown))}"
+                    )
+                    raise CatalogError(msg)
             notations[key] = Notation(
                 key=key,
                 label=f["label"],

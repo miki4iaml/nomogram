@@ -223,6 +223,20 @@ def test_bad_matches_are_refused() -> None:
         load_catalog([bad_relation])
 
 
+NOTATION = """
+[notations.n]
+label = "A notation"
+symbols = {{ e = '{symbol}' }}
+"""
+
+
+def test_notation_symbols_stay_within_the_common_latex_subset() -> None:
+    accepted = load_catalog([VALID + NOTATION.format(symbol=r"E_{\mathrm{w}}")])
+    assert accepted.notations["n"].symbols["e"] == r"E_{\mathrm{w}}"
+    with pytest.raises(CatalogError, match=r"notations.n.symbols.e: .*\\textrm"):
+        load_catalog([VALID + NOTATION.format(symbol=r"E_{\textrm{w}}")])
+
+
 KIND = """
 [kinds.{name}]
 label = "Local kind"
