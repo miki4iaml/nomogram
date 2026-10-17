@@ -87,11 +87,11 @@ def assert_methods_agree(formulation: Formulation) -> None:
 @pytest.mark.parametrize("formulation", WITH_COEFFICIENTS, ids=lambda f: f.key)
 def test_every_coefficient_of_the_catalog_has_a_unit(formulation: Formulation) -> None:
     units = infer_units(formulation)
-    assert all(u.status != "undetermined" for u in units.values())
+    assert all(u.unit is not None for u in units.values())
     assert_methods_agree(formulation)
     # Propagation suffices for the whole catalog.
     assert set(propagated(formulation)) == {
-        name for name, u in units.items() if u.status == "inferred"
+        name for name, u in units.items() if u.origin == "inferred"
     }
 
 
@@ -113,7 +113,7 @@ def test_units_found_for_known_forms(key: str, expected: dict[str, str]) -> None
 def test_magnus_reasons_point_to_the_constraint() -> None:
     units = CATALOG.formulations["sonntag1990_magnus"].coefficient_units
     assert units["B"].reason == "B + t"
-    assert units["B"].status == "inferred"
+    assert units["B"].origin == "inferred"
     assert units["C"].reason is not None
     assert units["C"].reason.startswith("e_s = ")
 
@@ -131,7 +131,7 @@ def test_hidden_declared_units_come_back(formulation: Formulation) -> None:
             dataclasses.replace(formulation, coefficients=tuple(hidden))
         )
         declared = formulation.coefficient_units[coefficient.identifier].unit
-        assert found[coefficient.identifier].status == "inferred"
+        assert found[coefficient.identifier].origin == "inferred"
         assert _dimension(found[coefficient.identifier].unit) == _dimension(declared)
 
 
@@ -151,7 +151,7 @@ def test_derived_formulations_get_units_too(key: str) -> None:
     assert isinstance(inverse, Formulation)
     units = infer_units(inverse)
     assert unit_text(units["C"].unit) == "hPa"
-    assert all(u.status != "undetermined" for u in units.values())
+    assert all(u.unit is not None for u in units.values())
 
 
 # --- Level 2: edge cases ------------------------------------------------
@@ -160,7 +160,7 @@ def test_derived_formulations_get_units_too(key: str) -> None:
 def test_product_of_unknowns_stays_undetermined() -> None:
     formulation = make("A * B * t", {"A": None, "B": None})
     units = infer_units(formulation)
-    assert {u.status for u in units.values()} == {"undetermined"}
+    assert {u.origin for u in units.values()} == {None}
     assert _linear(formulation) == {"A": None, "B": None}
 
 
@@ -301,4 +301,4 @@ def test_random_formulas_both_methods_agree_and_find_the_truth(seed: int) -> Non
     for name in names:
         if linear[name] is not None:
             assert linear[name] == _dimension(generator.truth[name]), (expression, name)
-            assert units[name].status == "inferred"
+            assert units[name].origin == "inferred"

@@ -214,12 +214,22 @@ def _with_unit(text: str, unit: str | None) -> str:
 
 
 def _coefficient_unit(formulation: Formulation, coefficient: Coefficient) -> str:
-    """The unit of a coefficient, declared or inferred, as text."""
+    """The unit of a coefficient and its origin, as text.
+
+    For example ``°C (unit inferred)``, ``K (unit declared)`` or, for a
+    pure number, ``(pure number, inferred)``. The origin is shown only in
+    the legend of a single formulation, never in tables or plot labels.
+    """
     try:
-        unit = formulation.coefficient_units[coefficient.identifier].unit
+        found = formulation.coefficient_units[coefficient.identifier]
     except DimensionError:
         return _unit(coefficient.unit)
-    return unit_text(unit)
+    if found.origin is None:
+        return "(unit undetermined)"
+    text = unit_text(found.unit)
+    if not text:
+        return f"(pure number, {found.origin})"
+    return f"{text} (unit {found.origin})"
 
 
 @dataclass(frozen=True, repr=False)

@@ -151,17 +151,17 @@ def test_markdown_explains_each_symbol_with_its_unit() -> None:
     assert lines[2:5] == ["$$", MAGNUS.latex(), "$$"]
     assert r"- $e_{\mathrm{s}}$: Saturation vapour pressure over water [hPa]" in lines
     assert "- $t$: Celsius temperature [°C]" in lines
-    assert "- $A = 17.62$" in lines
-    assert "- $B = 243.12$ °C" in lines  # inferred from B + t
-    assert "- $C = 6.112$ hPa" in lines  # inferred from e_s = C ...
+    assert "- $A = 17.62$ (pure number, inferred)" in lines
+    assert "- $B = 243.12$ °C (unit inferred)" in lines  # from B + t
+    assert "- $C = 6.112$ hPa (unit inferred)" in lines  # from e_s = C ...
     assert (
         lines[-1]
         == r"The coefficients hold for $e_{\mathrm{s}}$ in hPa, $t$ in °C only."
     )
     murray = FORMULATIONS["murray1967"].render().markdown.splitlines()
-    assert "- $B = 35.86$ K" in murray  # declared
+    assert "- $B = 35.86$ K (unit declared)" in murray
     sonntag = FORMULATIONS["sonntag1990"].render().markdown.splitlines()
-    assert r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K²" in sonntag
+    assert r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K² (unit inferred)" in sonntag
     with_values = MAGNUS.render(values=True).markdown
     assert "$A = " not in with_values
 
@@ -173,6 +173,15 @@ def test_markdown_falls_back_to_declared_units_when_they_contradict() -> None:
     )
     broken = dataclasses.replace(MAGNUS, coefficients=coefficients)
     assert "- $B = 243.12$ hPa" in broken.render().markdown.splitlines()
+
+
+def test_origin_of_units_only_in_the_legend_of_one_formulation() -> None:
+    undetermined = dataclasses.replace(
+        MAGNUS, expression="A * B * t", coefficients=MAGNUS.coefficients[:2]
+    )
+    assert "- $A = 17.62$ (unit undetermined)" in undetermined.render().markdown
+    assert "inferred" not in table([MAGNUS]).to_markdown()
+    assert "inferred" not in symbol(MAGNUS.output)
 
 
 def test_quantity_equations_have_no_fixed_units_line() -> None:

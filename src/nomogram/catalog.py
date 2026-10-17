@@ -469,7 +469,7 @@ class _Builder:
         except DimensionError as exc:
             msg = f"{where}: units contradict the expression, {exc}"
             raise CatalogError(msg) from None
-        undetermined = sorted(k for k, u in units.items() if u.status == "undetermined")
+        undetermined = sorted(k for k, u in units.items() if u.unit is None)
         if undetermined:
             msg = (
                 f"{where}: the expression does not determine the unit of "

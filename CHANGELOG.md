@@ -20,9 +20,11 @@ and this project adheres to
 - The catalog checks at load that every coefficient has a unit, declared
   or inferred, and that declared units agree with the expression; a
   conflict names the part of the expression where it appears.
-- The Markdown legend of a rendering gives the unit of every
-  coefficient, and the units the coefficients of a formulation with
-  fixed units hold for; renderings and tables have a short `repr`.
+- The Markdown legend of a single formulation gives the unit of every
+  coefficient and its origin (declared or inferred), and the units the
+  coefficients of a formulation with fixed units hold for; tables and
+  plot labels do not show origins. Renderings and tables have a short
+  `repr`.
 
 - `nomogram.display`: `render` displays a formulation as LaTeX, as a
   matplotlib label and as Markdown with the meaning and unit of each
