@@ -87,6 +87,15 @@ formulations agree, where they drift, and where they stop.
 - **Formulas with fixed units**: the coefficients of an empirical fit
   only hold in its units. They are never converted; the inputs are,
   before evaluation (a Fahrenheit point becomes a Celsius point).
+- **Units of coefficients**: sources often give coefficients as bare
+  numbers. Dimensional analysis of the expression gives them their unit
+  (the B of the Magnus form is a temperature difference in °C, its C a
+  pressure in hPa; the a₂ of Sonntag's formulation is in K⁻¹). Every
+  coefficient of the catalog has one, declared or inferred, and every
+  declared unit is checked against the expression. Two methods find
+  these units, local propagation through the expression tree and linear
+  algebra on the exponents of the dimensions; the tests check that they
+  agree on the whole catalog and on formulas generated at random.
 - **Temperature scales**: a formula fitted on IPTS-68 expects IPTS-68
   temperatures. Between 0 and 100 °C the two scales differ by up to
   0.026 K, which shifts the saturation vapour pressure by up to about
@@ -150,7 +159,8 @@ They guarantee that:
 
 - every entry of the catalog loads and is consistent (declared
   identifiers, units applicable to their quantity kinds, references
-  present, dimensional homogeneity of quantity equations);
+  present, dimensional homogeneity of quantity equations, a unit for
+  every coefficient, consistent with the expression);
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
 - examples of the documentation run, and the README code is the code

@@ -46,6 +46,11 @@ label = symbol(magnus.output, wmo)  # "$e_{\mathrm{w}}$ [hPa]"
 
 `nomogram.plot.plot_values` uses it for its y axis.
 
+The Markdown legend gives the unit of every coefficient, declared in the
+catalog or inferred from the expression (B = 243.12 °C, C = 6.112 hPa
+for the Magnus form), and, for a formulation with fixed units, the units
+its coefficients hold for.
+
 ## Typography
 
 By default:

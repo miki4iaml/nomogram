@@ -10,6 +10,20 @@ and this project adheres to
 
 ### Added
 
+- `nomogram.dimensions.infer_units` (and `Formulation.coefficient_units`):
+  the unit of each coefficient, declared or inferred by dimensional
+  analysis of the expression tree (B of the Magnus form in °C, C in hPa,
+  a2 of Sonntag's formulation in 1/K). Local propagation runs first and
+  records the part of the expression each unit follows from; linear
+  algebra settles the rest. Formulations with fixed units are read as
+  numerical value equations where needed (T/K in ln(T)).
+- The catalog checks at load that every coefficient has a unit, declared
+  or inferred, and that declared units agree with the expression; a
+  conflict names the part of the expression where it appears.
+- The Markdown legend of a rendering gives the unit of every
+  coefficient, and the units the coefficients of a formulation with
+  fixed units hold for; renderings and tables have a short `repr`.
+
 - `nomogram.display`: `render` displays a formulation as LaTeX, as a
   matplotlib label and as Markdown with the meaning and unit of each
   symbol; `table` puts several formulations side by side (equation,
