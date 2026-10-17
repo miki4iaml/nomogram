@@ -15,6 +15,7 @@ matplotlib.use("Agg")
 ROOT = Path(__file__).parents[1]
 SCRIPT = ROOT / "docs" / "examples" / "saturation_vapour_pressure.py"
 READMES = [ROOT / "README.md", ROOT / "README.fr.md"]
+DISPLAY = ROOT / "docs" / "display.md"
 
 
 def python_blocks(path: Path) -> list[str]:
@@ -55,3 +56,11 @@ def test_readme_code_runs(readme: Path) -> None:
     plt.close("all")
     assert "table" in namespace
     assert "ha" in namespace
+
+
+def test_display_guide_code_runs() -> None:
+    namespace: dict[str, object] = {}
+    for block in python_blocks(DISPLAY):
+        exec(compile(block, str(DISPLAY), "exec"), namespace)  # noqa: S102
+    assert namespace["label"] == r"$e_{\mathrm{w}}$ [hPa]"
+    assert "6{,}112" in str(namespace["french"])

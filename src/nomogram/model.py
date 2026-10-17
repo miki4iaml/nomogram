@@ -33,13 +33,16 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
-from nomogram.expression import compile_numeric, parse_expression, to_latex
+from nomogram.expression import compile_numeric, parse_expression
 from nomogram.semantics import ExternalMatch, semantic_catalog
 from nomogram.units import Q_, convert
+
+if TYPE_CHECKING:
+    from nomogram.display import Rendering
 
 __all__ = [
     "Coefficient",
@@ -511,14 +514,24 @@ class Formulation:
         result = Q_(self._function(*values))
         return float(Q_(1.0, result.units).to(units[self.output.unit].pint).magnitude)
 
-    def latex(self, notation: Notation | None = None) -> str:
-        """The formulation as a LaTeX equation, in a given notation."""
-        import sympy
+    def latex(self, notation: Notation | None = None, **options: Any) -> str:
+        """The formulation as a LaTeX equation, in a given notation.
 
-        symbols = dict(notation.symbols) if notation else {}
-        output = sympy.Symbol(self.output.identifier, real=True)
-        left = to_latex(output, symbols)
-        return f"{left} = {to_latex(self.sympy_expression, symbols)}"
+        The typography follows the display options in force
+        (:mod:`nomogram.display`), which ``options`` may override, for
+        example ``mul_symbol="dot"``.
+        """
+        return self.render(notation, **options).latex
+
+    def render(self, notation: Notation | None = None, **options: Any) -> Rendering:
+        """The formulation displayed: see :func:`nomogram.display.render`."""
+        from nomogram.display import render
+
+        return render(self, notation, **options)
+
+    def _repr_latex_(self) -> str:
+        """The equation, for notebooks."""
+        return f"$${self.latex()}$$"
 
     def outside_mask(self, values: Mapping[str, Any], basis: Basis = "stated") -> Any:
         """Where input values fall outside the selected validity domains.

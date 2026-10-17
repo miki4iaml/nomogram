@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 
 from nomogram.comparison import Comparison
-from nomogram.expression import to_latex
+from nomogram.display import symbol
 from nomogram.model import Notation
 from nomogram.semantics import semantic_catalog
 
@@ -135,7 +135,7 @@ def plot_values(
         Quantity kind of the input plotted along x.
     notation : Notation, optional
         Notation of the y-axis symbol (for example the WMO one); the
-        identifier's default rendering otherwise.
+        display options in force otherwise (:mod:`nomogram.display`).
     ax : matplotlib.axes.Axes, optional
         Axes to draw on; new ones are created otherwise.
 
@@ -151,8 +151,6 @@ def plot_values(
     ValueError
         If the input to plot along x cannot be determined.
     """
-    import sympy
-
     x_label, x = _abscissa(comparison, input_kind)
     ax = _axes(ax)
     for index, (key, quantity) in enumerate(comparison.values.items()):
@@ -166,9 +164,7 @@ def plot_values(
     reference = comparison.formulations.get(comparison.reference)
     unit = comparison.values[comparison.reference].units
     if reference is not None:
-        symbols = dict(notation.symbols) if notation else {}
-        symbol = to_latex(sympy.Symbol(reference.output.identifier), symbols)
-        ax.set_ylabel(f"${symbol}$ [{unit:~P}]")
+        ax.set_ylabel(f"{symbol(reference.output, notation, unit=False)} [{unit:~P}]")
     else:
         ax.set_ylabel(f"[{unit:~P}]")
     ax.set_xlabel(x_label)

@@ -17,6 +17,8 @@ from matplotlib.mathtext import MathTextParser
 
 from nomogram.catalog import catalog
 from nomogram.comparison import Comparison, compare
+from nomogram.display import DisplayOptions
+from nomogram.expression import LATEX_COMMANDS
 from nomogram.plot import plot_deviations, plot_values
 from nomogram.units import Q_
 
@@ -100,11 +102,29 @@ def test_missing_extra_gives_an_explicit_message(
 
 
 @pytest.mark.parametrize("notation", [None, *sorted(CATALOG.notations)])
-def test_every_formulation_renders_in_mathtext(notation: str | None) -> None:
+@pytest.mark.parametrize(
+    "options",
+    [
+        DisplayOptions(),
+        DisplayOptions.SYMPY,
+        DisplayOptions(mul_symbol="dot", values=True),
+    ],
+    ids=["default", "sympy", "values"],
+)
+def test_every_formulation_renders_in_mathtext(
+    notation: str | None, options: DisplayOptions
+) -> None:
     parser = MathTextParser("path")
     chosen = CATALOG.notations[notation] if notation else None
     for formulation in FORMULATIONS.values():
-        parser.parse(f"${formulation.latex(chosen)}$")
+        parser.parse(formulation.render(chosen, options=options).mathtext)
+
+
+@pytest.mark.parametrize("command", sorted(LATEX_COMMANDS))
+def test_every_supported_latex_command_renders_in_mathtext(command: str) -> None:
+    pair = r"\left(a\right)"
+    samples = {r"\frac": r"\frac{a}{b}", r"\left": pair, r"\right": pair}
+    MathTextParser("path").parse(f"$x {samples.get(command, command + '{a}')}$")
 
 
 def test_curves_beyond_ten_change_line_style(comparison: Comparison) -> None:

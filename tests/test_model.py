@@ -84,8 +84,8 @@ def test_missing_or_unexpected_inputs_are_reported() -> None:
 
 def test_latex_in_a_notation() -> None:
     wmo = CATALOG.notations["wmo"]
-    assert SONNTAG.latex(wmo).startswith(r"e_{\mathrm{w}} = C \exp\left(")
-    assert SONNTAG.latex().startswith("e_{s} = ")
+    assert SONNTAG.latex(wmo).startswith(r"e_{\mathrm{w}} = C \times \exp\left(")
+    assert SONNTAG.latex().startswith(r"e_{\mathrm{s}} = ")
 
 
 def test_formulations_are_immutable() -> None:

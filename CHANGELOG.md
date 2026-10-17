@@ -8,6 +8,31 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- `nomogram.display`: `render` displays a formulation as LaTeX, as a
+  matplotlib label and as Markdown with the meaning and unit of each
+  symbol; `table` puts several formulations side by side (equation,
+  validity domains, references); `symbol` labels a variable for a plot.
+  Renderings and tables display themselves in Jupyter notebooks
+  (`_repr_markdown_`, and `_repr_latex_` for a formulation), without
+  importing IPython. Guide: `docs/display.md`.
+- Display options (`DisplayOptions`): multiplication sign, decimal
+  separator, upright symbols, coefficients as values; set for one call,
+  as a reusable set, or for a block (`display_options`, a context
+  variable as `numpy.printoptions`).
+- `nomogram.expression.LATEX_COMMANDS`: the LaTeX commands nomogram
+  emits, common to MathJax, KaTeX and matplotlib's mathtext; every
+  formula of the catalog is checked against it, and notation symbols
+  outside it are refused when the catalog is loaded.
+
+### Changed
+
+- Default typography of `Formulation.latex()`: every product shows ×
+  (RH can no longer be read as R × H) and descriptive subscripts are
+  upright, as in ISO 80000-2 (`e_{\mathrm{s}}` instead of `e_{s}`).
+  `DisplayOptions.SYMPY` gives the former rendering.
+
 ## [0.2.0] - 2026-10-14
 
 ### Added
