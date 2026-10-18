@@ -222,6 +222,5 @@ def test_a_physical_domain_counts_as_a_use_of_its_reference() -> None:
         CatalogError, match="formulations.f uses references.src from family base"
     ):
         load_catalog([BASE, formulation])
-    assert load_catalog(
-        [BASE, formulation.replace("requires = []", 'requires = ["base"]')]
-    )
+    fixed = formulation.replace("requires = []", 'requires = ["base"]')
+    assert load_catalog([BASE, fixed]).formulations["f"].family == "dom"
