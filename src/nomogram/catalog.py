@@ -52,6 +52,7 @@ from nomogram.model import (
     DomainBasis,
     Formulation,
     Notation,
+    Part,
     PhysicalConstant,
     Reference,
     ReferenceStatus,
@@ -1055,6 +1056,10 @@ class _Builder:
             ),
             family=self.owners.get(("formulations", key)),
             keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            parts=(
+                *(Part(p, i, MappingProxyType(renames[i])) for i, p in inner.items()),
+                Part(outer, None),
+            ),
         )
         self.check(where, formulation)
         return formulation

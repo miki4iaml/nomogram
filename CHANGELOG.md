@@ -14,10 +14,16 @@ and this project adheres to
   bind }`): the inner expressions are substituted into the outer one,
   which gives an ordinary formulation (LaTeX, inversion, units of
   coefficients, signature) with its own citations. Inputs, coefficients
-  and constants come from the parts and must agree; physical domains
-  travel with their inputs; cycles and duplicates are refused.
-  `Derivation` records the method `"composition"` and its `parts`; the
-  legend of a single formula says what it is composed of.
+  and constants come from the parts and must agree; cycles and
+  duplicates are refused. A composition is never more permissive than
+  the chain of its parts: their domains apply to the values each part
+  receives, intermediate values included, unless a source of the
+  composed formulation states its own domain, which then replaces those
+  stated for the parts (physical domains always apply); `check` points
+  out a stated domain beyond those of the parts. `Formulation.parts`
+  (`Part`) holds the parts; `Derivation` records the method
+  `"composition"` and its `parts`; the legend of a single formula says
+  what it is composed of.
 - ITU-R P.453-14 equation 9 in the `moist-air` family: enhancement
   factors over water and over ice (`itu_r_p453_ef_water`,
   `itu_r_p453_ef_ice`), and the saturation vapour pressures in moist air

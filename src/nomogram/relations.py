@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import math
 import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -419,6 +420,65 @@ def _common_bounds(
     return bounds
 
 
+def _stated_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
+    """Per input, the extent of the domains a formulation's sources state.
+
+    Domains of one citation apply together, citations combine by union: the
+    extent is the smallest interval holding that union, infinite on a side
+    a citation leaves open.
+    """
+    boxes = []
+    for citation in formulation.citations:
+        if not citation.domains:
+            continue
+        box: dict[str, tuple[float, float]] = {}
+        for domain in citation.domains:
+            for name, (low, high) in domain.bounds.items():
+                old_low, old_high = box.get(name, (-math.inf, math.inf))
+                box[name] = (max(old_low, low), min(old_high, high))
+        boxes.append(box)
+    names = {name for box in boxes for name in box}
+    whole = (-math.inf, math.inf)
+    return {
+        name: (
+            min(box.get(name, whole)[0] for box in boxes),
+            max(box.get(name, whole)[1] for box in boxes),
+        )
+        for name in sorted(names)
+    }
+
+
+def _beyond_parts(formulation: Formulation) -> list[str]:
+    """Where the sources of a composed formulation state more than those of its parts.
+
+    A domain stated for the composed formulation replaces those stated for
+    its parts (see :meth:`~nomogram.model.Formulation.outside_mask`): a
+    disagreement is pointed out, never smoothed.
+    """
+    own = _stated_extent(formulation)
+    if not own:
+        return []
+    inputs = {v.identifier for v in formulation.inputs}
+    lines = []
+    for part in formulation.parts:
+        key = part.formulation.key
+        for name, (low, high) in _stated_extent(part.formulation).items():
+            identifier = part.rename.get(name, name)
+            if identifier not in inputs:
+                lines.append(
+                    f"  domain stated for {key} on {name}, a computed value, "
+                    "replaced by the composed formulation's"
+                )
+                continue
+            ours = own.get(identifier, (-math.inf, math.inf))
+            if ours[0] < low or ours[1] > high:
+                lines.append(
+                    f"  stated domain beyond that of {key} on {identifier}: "
+                    f"[{ours[0]:g}, {ours[1]:g}] against [{low:g}, {high:g}]"
+                )
+    return lines
+
+
 def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> str:
     """Observations on formulations, against the others of the same kind.
 
@@ -446,6 +506,7 @@ def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> st
     for key in keys:
         formulation = catalog.formulations[key]
         lines.append(f"{key} ({formulation.output.kind})")
+        lines += _beyond_parts(formulation)
         shape = form(formulation)
         others = [
             f

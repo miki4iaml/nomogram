@@ -3,14 +3,18 @@
 
 """Tests for composed formulations: catalog entries built from others."""
 
+from collections.abc import Mapping
+from typing import Any
+
 import numpy as np
 import pytest
 import sympy
 
 from nomogram.catalog import CatalogError, catalog, load_catalog
-from nomogram.comparison import compose
+from nomogram.comparison import Composition, compose
 from nomogram.inversion import invert
-from nomogram.model import Variable
+from nomogram.model import Basis, Formulation, Variable
+from nomogram.relations import report
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -76,10 +80,6 @@ HALF = """
 label = "Half"
 composition = { outer = "outer", inner = { e = "pressure" } }
 """
-
-
-def load(*documents: str) -> dict[str, object]:
-    return dict(load_catalog([PARTS, *documents]).formulations)
 
 
 def test_a_composition_substitutes_the_expressions() -> None:
@@ -425,3 +425,146 @@ def test_itu_r_p453_notation() -> None:
     latex = es.latex(es.citations[0].notation)
     assert latex.startswith("e_s = a \\times")
     assert "P \\times" in latex
+
+
+# --- Validity domains: never more permissive than the chain -----------
+
+DOMAINS = """
+[references.src]
+authors = "Author, A."
+title = "A title"
+status = "verified"
+
+[formulations.outer]
+label = "Outer"
+expression = "k * e"
+fixed_units = false
+output = { identifier = "y", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [
+  { identifier = "k", kind = "DimensionlessRatio", unit = "UNITLESS", description = "factor" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "pressure" },
+]
+domains = [{ bounds = { e = [0.0, 100.0] } }]
+{outer_citations}
+
+[formulations.pressure]
+label = "Pressure"
+expression = "a * exp(b * t)"
+fixed_units = true
+output = { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 6.0, b = 0.07 }
+domains = [{ bounds = { t = [-100.0, 100.0] } }]
+citations = [{ reference = "src", domains = [{ bounds = { t = [-40.0, 50.0] } }] }]
+
+[formulations.factor]
+label = "Factor"
+expression = "1 + c * t"
+fixed_units = true
+output = { identifier = "f", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { c = 1e-3 }
+citations = [{ reference = "src", domains = [{ bounds = { t = [-20.0, 80.0] } }] }]
+
+[formulations.half]
+label = "Half"
+composition = { outer = "outer", inner = { e = "pressure" } }
+
+[formulations.nested]
+label = "Nested"
+composition = { outer = "outer", inner = { k = "factor", e = "half" } }
+"""
+
+BOTH_DOMAINS = """
+[formulations.both]
+label = "Both"
+composition = { outer = "outer", inner = { k = "factor", e = "pressure" } }
+"""
+
+OWN = """
+[formulations.own]
+label = "With a domain of its own"
+composition = { outer = "outer", inner = { k = "factor", e = "pressure" } }
+citations = [
+  { reference = "src", equation = "1" },
+  { reference = "src", equation = "2", domains = [{ bounds = { t = [-60.0, 60.0] } }] },
+]
+"""
+
+GRID = Q_(np.arange(-110.0, 110.5, 0.5), "degC")
+
+
+def valid(values: Any) -> tuple[float, float]:
+    kept = GRID.magnitude[~np.isnan(np.asarray(values.magnitude))]
+    return float(kept.min()), float(kept.max())
+
+
+def domains(extra: str, outer_citations: str = "") -> Mapping[str, Formulation]:
+    document = DOMAINS.replace("{outer_citations}", outer_citations)
+    return load_catalog([document, extra]).formulations
+
+
+@pytest.mark.parametrize(
+    ("basis", "expected"),
+    [("stated", (-20.0, 50.0)), ("all", (-20.0, 40.0)), ("physical", (-100.0, 40.0))],
+)
+def test_without_a_domain_of_its_own_a_composition_is_the_chain(
+    basis: Basis, expected: tuple[float, float]
+) -> None:
+    # Stated: [-40, 50] and [-20, 80]; physical: t in [-100, 100] and
+    # e = 6 exp(0.07 t) <= 100 hPa, that is t <= 40.19 degC.
+    f = domains(BOTH_DOMAINS)
+    chain = compose(f["outer"], {"k": f["factor"], "e": f["pressure"]})
+    half = compose(f["outer"], {"e": f["pressure"]})
+    nested_chain = compose(f["outer"], {"k": f["factor"], "e": half})
+    cases: list[tuple[Formulation, Composition, dict[str, Any]]] = [
+        (f["both"], chain, {"t": GRID}),
+        (f["nested"], nested_chain, {"k": Q_(1.0, ""), "t": GRID}),
+    ]
+    for composed, reference, inputs in cases:
+        assert valid(composed.evaluate(basis=basis, **inputs)) == expected
+        assert valid(reference.evaluate(basis=basis, **inputs)) == expected
+
+
+@pytest.mark.parametrize(
+    ("basis", "expected"),
+    [("stated", (-60.0, 60.0)), ("all", (-60.0, 40.0)), ("physical", (-100.0, 40.0))],
+)
+def test_a_domain_of_its_own_replaces_the_stated_domains_of_the_parts(
+    basis: Basis, expected: tuple[float, float]
+) -> None:
+    own = domains(OWN)["own"]
+    assert valid(own.evaluate(basis=basis, t=GRID)) == expected
+
+
+OWN_K = """
+[formulations.own_k]
+label = "Factor only, with a domain of its own"
+composition = { outer = "outer", inner = { k = "factor" } }
+citations = [{ reference = "src", domains = [{ bounds = { t = [-10.0, 60.0] } }] }]
+"""
+
+
+def test_the_report_points_out_a_domain_beyond_those_of_the_parts() -> None:
+    outer_citations = (
+        'citations = [{ reference = "src", domains = '
+        "[{ bounds = { e = [0.0, 90.0], k = [0.5, 2.0] } }] }]"
+    )
+    document = DOMAINS.replace("{outer_citations}", outer_citations)
+    built = load_catalog([document, OWN, OWN_K])
+    own, own_k, nested = (
+        report(built, [key], budget=100) for key in ("own", "own_k", "nested")
+    )
+    assert (
+        "stated domain beyond that of factor on t: [-60, 60] against [-20, 80]" in own
+    )
+    assert (
+        "stated domain beyond that of pressure on t: [-60, 60] against [-40, 50]" in own
+    )
+    assert "domain stated for outer on e, a computed value, replaced" in own
+    assert "domain stated for outer on k, a computed value, replaced" in own_k
+    assert "beyond that of factor" not in own_k
+    assert (
+        "stated domain beyond that of outer on e: [-inf, inf] against [0, 90]" in own_k
+    )
+    assert "domain" not in nested

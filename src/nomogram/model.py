@@ -55,6 +55,7 @@ __all__ = [
     "Formulation",
     "Notation",
     "OutOfDomainError",
+    "Part",
     "PhysicalConstant",
     "Reference",
     "ReferenceStatus",
@@ -575,6 +576,27 @@ class TradeTerm:
 
 
 @dataclass(frozen=True)
+class Part:
+    """A formulation within a composed one, and how its inputs are fed.
+
+    Attributes
+    ----------
+    formulation : Formulation
+        The part.
+    computes : str or None
+        Identifier of the outer formulation's input it computes; ``None``
+        for the outer formulation itself.
+    rename : mapping of str to str
+        Its inputs taken under another identifier in the composed
+        formulation (``bind``), by its own identifier.
+    """
+
+    formulation: Formulation
+    computes: str | None
+    rename: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+
+
+@dataclass(frozen=True)
 class Formulation:
     """One author's way of computing a quantity kind.
 
@@ -614,6 +636,10 @@ class Formulation:
     keywords : tuple of str
         Keywords for discovery and search; several per formulation,
         unlike the family.
+    parts : tuple of Part
+        For a composed formulation, its parts: the inner formulations,
+        then the outer one. Their validity domains apply to the values
+        each part receives (see :meth:`outside_mask`).
     """
 
     key: str
@@ -631,6 +657,7 @@ class Formulation:
     derivation: Derivation | None = None
     family: str | None = None
     keywords: tuple[str, ...] = ()
+    parts: tuple[Part, ...] = ()
 
     @property
     def references(self) -> tuple[str, ...]:
@@ -740,6 +767,13 @@ class Formulation:
         Bounds are closed and tolerate a relative rounding of
         :data:`BOUND_TOLERANCE`, so that a value converted between units
         (0.01 degC is 273.15999999... K) is not rejected at a bound.
+
+        A composed formulation is never more permissive than the chain of
+        its parts: the domains of each part apply to the values it
+        receives, intermediate values included, unless a source of the
+        composed formulation states its own domain, which then replaces
+        the domains the sources of the parts state. Physical domains of
+        the parts always apply.
         """
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
@@ -764,7 +798,42 @@ class Formulation:
                 for domains in stating:
                     inside |= ~outside_all(domains)
                 outside |= ~inside
+        if self.parts:
+            part_basis: Basis | None = basis
+            if basis != "physical" and any(c.domains for c in self.citations):
+                part_basis = "physical" if basis == "all" else None
+            if part_basis is not None:
+                outside = outside | self._parts_outside(arrays, part_basis)
         return outside
+
+    def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:
+        """Where a part receives a value outside its domains."""
+        computed: dict[str, Any] = {}
+        outside: Any = False
+        for part in self.parts:
+            formulation = part.formulation
+            if part.computes is None:
+                arguments = {
+                    v.identifier: computed.get(v.identifier, values.get(v.identifier))
+                    for v in formulation.inputs
+                }
+            else:
+                arguments = {
+                    v.identifier: values[part.rename.get(v.identifier, v.identifier)]
+                    for v in formulation.inputs
+                }
+                computed[part.computes] = formulation._raw(arguments)
+            outside = outside | formulation.outside_mask(arguments, basis)
+        return outside
+
+    def _raw(self, values: Mapping[str, Any]) -> Any:
+        """The result in the output unit, inputs in their units and scales."""
+        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
+        arguments += [c.value for c in self.coefficients]
+        arguments += [k.value for k in self.constants]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            result = np.asarray(self._function(*arguments), dtype=float)
+        return result * self.output_factor
 
     def evaluate(
         self,
@@ -832,12 +901,7 @@ class Formulation:
                     convert(Q_(on_scale, table), units[v.unit].pint).magnitude,
                     dtype=float,
                 )
-        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
-        arguments += [c.value for c in self.coefficients]
-        arguments += [k.value for k in self.constants]
-        with np.errstate(invalid="ignore", divide="ignore"):
-            result = np.asarray(self._function(*arguments), dtype=float)
-        result = result * self.output_factor
+        result = self._raw(values)
         mask = self.outside_mask(values, basis)
         if mask.any() and outside != "ignore":
             message = (

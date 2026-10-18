@@ -184,9 +184,18 @@ bounds = { t = [-40.0, 50.0] }
   in its output unit through a factor.
 - Coefficients and constants are those of the parts; one identifier for
   two coefficients, or for two different constants, is refused.
-- Physical domains of the parts travel with the inputs they bound; those
-  on a computed input are dropped. Domains stated by sources belong to
-  the entry's own citations.
+- **Validity domains**: a composed formulation is never more permissive
+  than the chain of its parts. At evaluation, the domains of each part
+  apply to the values it receives, intermediate values included: a bound
+  on the vapour pressure an inner part computes is a bound on that
+  part's inputs, whatever its shape. One exception: a domain stated by a
+  source of the composed formulation itself (ITU-R P.453 for its
+  equation 9) replaces the domains the sources of the parts state, since
+  that source speaks of the composed formula. Physical domains of the
+  parts always apply. `python -m nomogram.catalog check` points out
+  where such a stated domain goes beyond those stated for the parts:
+  the disagreement is shown, never smoothed. Physical domains on inputs
+  carried unchanged are also listed in `physical_domains`.
 - **`output`** (optional) narrows the output to a specialization of the
   outer formulation's kind, in the same unit.
 - A composition may use another one; a cycle is refused. Parts come from
