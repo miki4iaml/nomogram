@@ -243,9 +243,9 @@ note = "Table III, r_g."
 - **`approximates`**: the deviation is checked on a grid of `bounds`,
   refined around its best points. Verdict: *reproduced* (equal at the
   precision published), *held* (smaller) or *exceeded* (larger), with
-  the value and place found. A check on points, not a proof: see
-  [how far a verification goes](verification.md), reliable with one to
-  three inputs, an estimate beyond.
+  the value and place found. A check on points, not a proof, reliable
+  with one to three inputs and an estimate beyond: see
+  [what a verdict on a stated relation guarantees](relation-verdicts.md).
 - **`equivalent`**: proved with SymPy, coefficients as exact rationals,
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or

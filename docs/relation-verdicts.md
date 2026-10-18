@@ -1,8 +1,12 @@
-# How far a verification goes
+# What a verdict on a stated relation guarantees
 
-nomogram verifies the relations that sources state between formulations
-(`nomogram.relations.verify`, see the [catalog guide](catalog.md#relations)).
-This page says what each verdict guarantees, and where it stops.
+This page is only about the relations that sources state between two
+formulations (`[relations]` in the catalog, see the
+[catalog guide](catalog.md#relations)), and the verdicts
+`nomogram.relations.verify` gives on them. It says what each verdict
+guarantees, and where it stops. The other checks of nomogram (units,
+dimensions, the catalog itself) are described in
+[How nomogram earns trust](approach.md).
 
 ## Equivalences: proved, or not
 

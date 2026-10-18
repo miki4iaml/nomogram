@@ -275,8 +275,8 @@ def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Ver
         The catalog holding its two formulations.
     budget : int, optional
         Evaluations of the first grid of an approximation (see
-        :func:`per_axis`; ``docs/verification.md`` says how far the
-        result can be trusted with the number of inputs).
+        :func:`per_axis`; ``docs/relation-verdicts.md`` says how far
+        the result can be trusted with the number of inputs).
 
     Returns
     -------
