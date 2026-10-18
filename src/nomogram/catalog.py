@@ -63,7 +63,7 @@ from nomogram.model import (
     ValidityDomain,
     Variable,
 )
-from nomogram.relations import match_inputs
+from nomogram.relations import match_inputs, report, signature
 from nomogram.semantics import (
     ExternalMatch,
     MatchRelation,
@@ -77,6 +77,7 @@ __all__ = [
     "CatalogError",
     "Family",
     "catalog",
+    "check",
     "describe",
     "load_catalog",
 ]
@@ -944,6 +945,19 @@ class _Builder:
             key: self.formulation(key, table)
             for key, table in self.data["formulations"].items()
         }
+        # Two sources of one formulation make one entry with two citations.
+        seen: dict[str, str] = {}
+        for key, formulation in formulations.items():
+            fingerprint = signature(formulation)
+            if fingerprint in seen:
+                first = seen[fingerprint]
+                msg = (
+                    f"formulations.{key}: identical to formulations.{first} (same "
+                    "expression, coefficients, quantity kinds and units); add a "
+                    f"citation to {first} instead"
+                )
+                raise CatalogError(msg)
+            seen[fingerprint] = key
         relations = {
             key: self.relation(key, table, formulations)
             for key, table in self.data["relations"].items()
@@ -1313,16 +1327,54 @@ def describe(source: Source) -> str:
     return "\n".join(lines) + "\n"
 
 
+def check(source: Source) -> str:
+    """Observations on the formulations of a catalog file, before a review.
+
+    The file is loaded with the bundled families (as a personal catalog
+    when it is not one of them): identical formulations are refused at
+    that point. For each of its formulations, the report lists those of
+    the same form and the deviations observed against every formulation
+    of the same kind (:func:`nomogram.relations.report`).
+
+    Parameters
+    ----------
+    source : path-like
+        The TOML file.
+
+    Returns
+    -------
+    str
+        The report, as plain text.
+
+    Raises
+    ------
+    CatalogError
+        If the file, loaded with the bundled families, is not valid.
+    """
+    path = Path(source).resolve()
+    folder = files("nomogram") / "data" / "catalog"
+    bundled = {Path(str(e)).resolve() for e in folder.iterdir()}
+    loaded = catalog() if path in bundled else catalog(extra=[path])
+    _, document = _read(0, path)
+    return report(loaded, list(document.get("formulations", {})))
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Command line: ``python -m nomogram.catalog describe FILE``."""
+    """Command line: ``python -m nomogram.catalog describe|check FILE``."""
     parser = argparse.ArgumentParser(prog="python -m nomogram.catalog")
     commands = parser.add_subparsers(dest="command", required=True)
-    command = commands.add_parser(
-        "describe", help="print the header a catalog file needs"
-    )
-    command.add_argument("file", type=Path)
+    for name, text in (
+        ("describe", "print the header a catalog file needs"),
+        ("check", "report on the formulations of a catalog file"),
+    ):
+        commands.add_parser(name, help=text).add_argument("file", type=Path)
     arguments = parser.parse_args(argv)
-    sys.stdout.write(describe(arguments.file))
+    try:
+        action = describe if arguments.command == "describe" else check
+        sys.stdout.write(action(arguments.file))
+    except CatalogError as exc:
+        sys.stderr.write(f"{exc}\n")
+        return 1
     return 0
 
 
