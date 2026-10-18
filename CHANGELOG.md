@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- Catalog families (`nomogram.catalog.Family`): each file declares a
+  `[catalog]` header (name, format, requires, keywords, links);
+  `catalog("water-vapour")` loads one family with those it requires,
+  `catalog()` still loads everything; `Catalog.families`;
+  `Formulation.family` (from the file) and `Formulation.keywords`.
+  Checked when loading: requires known and without cycle, entries
+  referring only to their family and its requires, every required family
+  used. `python -m nomogram.catalog describe FILE` prints the header a
+  file needs. Personal catalogs: `catalog(extra=[path])`, keys prefixed
+  with the family name; `load_catalog` accepts paths.
 - Citations (`nomogram.model.Citation`): a formulation is written once,
   and each source that gives it is a citation recording what that source
   states (equation number, notation, units of coefficients, validity
@@ -58,6 +68,10 @@ and this project adheres to
 
 ### Changed
 
+- The bundled catalog is split into families: `core` (conventional
+  scales, notations), `water-vapour` (saturation vapour pressure),
+  `moist-air` (humidity quantities) and the aggregate `humidity`; no
+  value changes.
 - Conventional reference scales (VIM 1.29): `TemperatureScale` becomes
   `ConventionalScale`, for any quantity kinds, with one reference scale
   per kind (ITS-90 for temperatures) and a conversion table to it

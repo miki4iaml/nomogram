@@ -19,14 +19,18 @@ further kinds, each specializing a QUDT kind (see
 
 from __future__ import annotations
 
+import argparse
 import dataclasses
 import datetime
+import os
+import sys
 import tomllib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
 from itertools import pairwise
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
@@ -58,7 +62,15 @@ from nomogram.semantics import (
     semantic_catalog,
 )
 
-__all__ = ["Catalog", "CatalogError", "catalog", "load_catalog"]
+__all__ = [
+    "FORMAT",
+    "Catalog",
+    "CatalogError",
+    "Family",
+    "catalog",
+    "describe",
+    "load_catalog",
+]
 
 _SECTIONS = (
     "kinds",
@@ -71,8 +83,54 @@ _SECTIONS = (
 )
 
 
+#: Version of the catalog format, declared by every named family.
+FORMAT = 2
+
+
 class CatalogError(ValueError):
     """The catalog is invalid; the message names the faulty entry."""
+
+
+@dataclass(frozen=True)
+class Family:
+    """A family of the catalog: one TOML file, and what it requires.
+
+    A family is pure when it holds entries, and an aggregate when it only
+    requires other families. Entries belong to the family of their file;
+    nothing is written in the entries themselves.
+
+    Attributes
+    ----------
+    name : str
+        Name of the family, for example ``"water-vapour"``.
+    label : str
+        Its title.
+    requires : tuple of str
+        Families it depends on.
+    matches : tuple of ExternalMatch
+        Links to external vocabularies (GCMD, PhySH, IEV, Wikidata...).
+    keywords : tuple of str
+        Keywords for discovery.
+    contents : mapping of str to tuple of str
+        Keys of the entries it defines, by section.
+    """
+
+    name: str
+    label: str
+    requires: tuple[str, ...]
+    matches: tuple[ExternalMatch, ...]
+    keywords: tuple[str, ...]
+    contents: Mapping[str, tuple[str, ...]]
+
+    @property
+    def formulations(self) -> tuple[str, ...]:
+        """Keys of the formulations of the family."""
+        return self.contents.get("formulations", ())
+
+    @property
+    def is_aggregate(self) -> bool:
+        """Whether the family holds no entry and only requires others."""
+        return not any(self.contents.values())
 
 
 @dataclass(frozen=True)
@@ -95,6 +153,8 @@ class Catalog:
         By key.
     scales : mapping of str to ConventionalScale
         By key.
+    families : mapping of str to Family
+        By key.
     """
 
     kinds: Mapping[str, QuantityKind]
@@ -104,6 +164,9 @@ class Catalog:
     notations: Mapping[str, Notation]
     trade_terms: Mapping[str, TradeTerm]
     scales: Mapping[str, ConventionalScale]
+    families: Mapping[str, Family] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def formulations_of(self, kind: str) -> tuple[Formulation, ...]:
         """The alternative formulations computing a quantity kind."""
@@ -202,6 +265,15 @@ def _stated_scales(
     return tuple(result)
 
 
+def _keywords(where: str, value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list) or not all(isinstance(k, str) and k for k in value):
+        msg = f"{where}: expected a list of non-empty strings"
+        raise CatalogError(msg)
+    return tuple(value)
+
+
 def _check_symbols(where: str, symbols: Any) -> None:
     for identifier, tex in symbols.items():
         unknown = latex_commands(tex) - LATEX_COMMANDS
@@ -215,8 +287,13 @@ def _check_symbols(where: str, symbols: Any) -> None:
 
 
 class _Builder:
-    def __init__(self, data: dict[str, dict[str, Any]]) -> None:
+    def __init__(
+        self,
+        data: dict[str, dict[str, Any]],
+        owners: Mapping[tuple[str, str], str | None] | None = None,
+    ) -> None:
         self.data = data
+        self.owners = owners or {}
         self.semantics = semantic_catalog()
         self.kinds: dict[str, QuantityKind] = dict(self.semantics.quantity_kinds)
         self.references: dict[str, Reference] = {}
@@ -657,7 +734,15 @@ class _Builder:
             where,
             table,
             ("label", "expression", "fixed_units", "output", "inputs"),
-            ("coefficients", "constants", "domains", "citations", "note", "matches"),
+            (
+                "coefficients",
+                "constants",
+                "domains",
+                "citations",
+                "note",
+                "matches",
+                "keywords",
+            ),
         )
         output = self.variable(f"{where}.output", f["output"])
         inputs = tuple(
@@ -699,6 +784,8 @@ class _Builder:
             citations=citations,
             note=f["note"],
             matches=_matches(where, f["matches"]),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
         )
         self.check(where, formulation)
         return formulation
@@ -764,15 +851,180 @@ class _Builder:
         )
 
 
-def load_catalog(sources: Iterable[str]) -> Catalog:
-    """Build a catalog from TOML texts, merged section by section.
+Source = str | os.PathLike[str]
+
+_HEADER = "catalog"
+
+
+def _read(number: int, source: Source) -> tuple[str, dict[str, Any]]:
+    """The name of a document and its content, header removed."""
+    if isinstance(source, os.PathLike):
+        label = Path(source).name
+        text = Path(source).read_text(encoding="utf-8")
+    else:
+        label, text = f"document {number}", source
+    try:
+        return label, tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        msg = f"{label}: invalid TOML: {exc}"
+        raise CatalogError(msg) from None
+
+
+def _header(label: str, table: Any) -> dict[str, Any]:
+    where = f"{label}: [{_HEADER}]"
+    f = _fields(
+        where, table, ("name", "format"), ("label", "requires", "matches", "keywords")
+    )
+    if f["format"] != FORMAT:
+        msg = f"{where}: format {f['format']!r} is not supported (expected {FORMAT})"
+        raise CatalogError(msg)
+    requires = f["requires"] or []
+    if not isinstance(requires, list) or not all(isinstance(r, str) for r in requires):
+        msg = f"{where}.requires: expected a list of family names"
+        raise CatalogError(msg)
+    f["requires"] = tuple(requires)
+    return f
+
+
+def _references(section: str, table: Any) -> set[tuple[str, str]]:
+    """The entries of other sections an entry refers to, by key.
+
+    Called on validated data only: the builder has checked every field.
+    """
+    found: set[tuple[str, str]] = set()
+
+    def add(target: str, value: Any) -> None:
+        if isinstance(value, str):  # None when absent, a table for an inline notation
+            found.add((target, value))
+
+    if section == "formulations":
+        for variable in (table["output"], *table["inputs"]):
+            add("kinds", variable["kind"])
+            add("scales", variable.get("scale"))
+        for constant in table.get("constants", ()):
+            add("constants", constant)
+        for domain in table.get("domains", ()):
+            add("references", domain.get("reference"))
+        for citation in table.get("citations", ()):
+            add("references", citation["reference"])
+            add("notations", citation.get("notation"))
+            for scale in citation.get("scales", {}).values():
+                add("scales", scale)
+    elif section in ("constants", "notations"):
+        add("references", table.get("reference"))
+    elif section == "trade_terms":
+        for meaning in table["meanings"]:
+            add("kinds", meaning["kind"])
+            for source in meaning.get("sources", ()):
+                add("references", source)
+    elif section == "kinds":
+        add("kinds", table["specialization_of"])
+    elif section == "scales":
+        for kind in table["kinds"]:
+            add("kinds", kind)
+        add("scales", table.get("reference_scale"))
+        add("references", table.get("reference"))
+    return found
+
+
+def _closure(name: str, requires: Mapping[str, tuple[str, ...]]) -> set[str]:
+    seen: set[str] = set()
+    pending = list(requires.get(name, ()))
+    while pending:
+        current = pending.pop()
+        if current not in seen:
+            seen.add(current)
+            pending.extend(requires.get(current, ()))
+    return seen
+
+
+def _used_families(
+    name: str,
+    data: Mapping[str, Mapping[str, Any]],
+    owners: Mapping[tuple[str, str], str | None],
+) -> dict[str, tuple[str, str, str, str]]:
+    """Families an entry of ``name`` refers to, with one example of use."""
+    used: dict[str, tuple[str, str, str, str]] = {}
+    for (section, key), owner in owners.items():
+        if owner != name:
+            continue
+        for target in sorted(_references(section, data[section][key])):
+            if target not in owners:
+                continue  # a QUDT kind, or unknown: the builder says so
+            other = owners[target]
+            if other == name:
+                continue
+            if other is None:
+                msg = (
+                    f"catalog {name}: {section}.{key} uses {target[0]}.{target[1]} "
+                    "from a document without [catalog] header"
+                )
+                raise CatalogError(msg)
+            used.setdefault(other, (section, key, *target))
+    return used
+
+
+def _minimal(used: set[str], requires: Mapping[str, tuple[str, ...]]) -> list[str]:
+    """The used families not already brought by another used family."""
+    return sorted(
+        u for u in used if not any(u in _closure(v, requires) for v in used if v != u)
+    )
+
+
+def _check_requires(headers: Mapping[str, dict[str, Any]]) -> None:
+    """Required families are loaded, and requires form no cycle."""
+    requires = {name: h["requires"] for name, h in headers.items()}
+    for name, needed in requires.items():
+        for other in needed:
+            if other not in requires:
+                msg = f"catalog {name}: requires unknown family {other!r}"
+                raise CatalogError(msg)
+        if name in _closure(name, requires):
+            msg = f"catalog {name}: requires form a cycle"
+            raise CatalogError(msg)
+
+
+def _check_families(
+    headers: Mapping[str, dict[str, Any]],
+    data: Mapping[str, Mapping[str, Any]],
+    owners: Mapping[tuple[str, str], str | None],
+) -> None:
+    """Each family uses only what it requires, and all that it requires."""
+    requires = {name: h["requires"] for name, h in headers.items()}
+    for name in headers:
+        if not any(owner == name for owner in owners.values()):
+            continue  # an aggregate: requires only
+        used = _used_families(name, data, owners)
+        brought = _closure(name, requires)
+        for other, (section, key, s2, k2) in sorted(used.items()):
+            if other not in brought:
+                msg = (
+                    f"catalog {name}: {section}.{key} uses {s2}.{k2} from family "
+                    f"{other}; add it to requires"
+                )
+                raise CatalogError(msg)
+        for other in requires[name]:
+            if not ({other} | _closure(other, requires)) & set(used):
+                msg = (
+                    f"catalog {name}: requires {other} but uses nothing from it; "
+                    f"requires = {_minimal(set(used), requires)}"
+                )
+                raise CatalogError(msg)
+
+
+def load_catalog(sources: Iterable[Source]) -> Catalog:
+    """Build a catalog from TOML documents, merged section by section.
 
     Parameters
     ----------
-    sources : iterable of str
-        TOML documents with the sections ``kinds``, ``references``,
-        ``constants``, ``notations``, ``trade_terms``,
-        ``scales`` and ``formulations`` (all optional).
+    sources : iterable of str or path-like
+        TOML texts, or paths to TOML files, with an optional ``[catalog]``
+        header (name, format, requires...) and the sections ``kinds``,
+        ``references``, ``constants``, ``notations``, ``trade_terms``,
+        ``scales`` and ``formulations`` (all optional). A document with a
+        header is a family: its entries may refer only to its own entries
+        and to those of the families it requires, and every family it
+        requires must be used.
 
     Returns
     -------
@@ -782,19 +1034,25 @@ def load_catalog(sources: Iterable[str]) -> Catalog:
     Raises
     ------
     CatalogError
-        If a document is not valid TOML, an entry is defined twice, or any
-        check fails; the message names the faulty entry.
+        If a document is not valid TOML, an entry or family is defined
+        twice, or any check fails; the message names the faulty entry.
     """
     data: dict[str, dict[str, Any]] = {section: {} for section in _SECTIONS}
-    for number, text in enumerate(sources, start=1):
-        try:
-            document = tomllib.loads(text)
-        except tomllib.TOMLDecodeError as exc:
-            msg = f"document {number}: invalid TOML: {exc}"
-            raise CatalogError(msg) from None
+    owners: dict[tuple[str, str], str | None] = {}
+    headers: dict[str, dict[str, Any]] = {}
+    for number, source in enumerate(sources, start=1):
+        label, document = _read(number, source)
+        name = None
+        if _HEADER in document:
+            header = _header(label, document.pop(_HEADER))
+            name = header["name"]
+            if name in headers:
+                msg = f"{label}: family {name} defined twice"
+                raise CatalogError(msg)
+            headers[name] = header
         unknown = sorted(set(document) - set(_SECTIONS))
         if unknown:
-            msg = f"document {number}: unknown sections: {', '.join(unknown)}"
+            msg = f"{label}: unknown sections: {', '.join(unknown)}"
             raise CatalogError(msg)
         for section, entries in document.items():
             twice = sorted(set(entries) & set(data[section]))
@@ -802,22 +1060,158 @@ def load_catalog(sources: Iterable[str]) -> Catalog:
                 msg = f"{section}: defined twice: {', '.join(twice)}"
                 raise CatalogError(msg)
             data[section].update(entries)
-    return _Builder(data).build()
+            owners.update(((section, key), name) for key in entries)
+    _check_requires(headers)
+    built = _Builder(data, owners).build()
+    _check_families(headers, data, owners)
+    families = {
+        name: Family(
+            name=name,
+            label=h["label"] or name,
+            requires=h["requires"],
+            matches=_matches(f"[{_HEADER}] {name}", h["matches"]),
+            keywords=_keywords(f"[{_HEADER}] {name}.keywords", h["keywords"]),
+            contents=MappingProxyType(
+                {
+                    section: tuple(
+                        k for (s, k), o in owners.items() if s == section and o == name
+                    )
+                    for section in _SECTIONS
+                }
+            ),
+        )
+        for name, h in headers.items()
+    }
+    return dataclasses.replace(built, families=MappingProxyType(families))
 
 
-@lru_cache(maxsize=1)
-def catalog() -> Catalog:
-    """Return the bundled catalog, read and validated once.
+def _bundled() -> dict[str, tuple[str, tuple[str, ...]]]:
+    """The bundled families: name to (text, requires)."""
+    folder = files("nomogram") / "data" / "catalog"
+    found = {}
+    entries = sorted(
+        (e for e in folder.iterdir() if e.name.endswith(".toml")), key=lambda e: e.name
+    )
+    for entry in entries:
+        text = entry.read_text(encoding="utf-8")
+        header = _header(entry.name, tomllib.loads(text).get(_HEADER))
+        found[header["name"]] = (text, header["requires"])
+    return found
+
+
+def catalog(*families: str, extra: Iterable[Source] = ()) -> Catalog:
+    """Return a catalog of bundled families, read and validated once.
+
+    Parameters
+    ----------
+    *families : str
+        Names of the bundled families to load, with the families they
+        require; all of them by default.
+    extra : iterable of path-like
+        Personal catalogs, loaded in addition: TOML files with a
+        ``[catalog]`` header; their keys must start with their family
+        name and a colon (``"mylab:buck1996_corrected"``), and the bundled
+        families they require are loaded too.
 
     Returns
     -------
     Catalog
-        Formulations, references, constants, notations and trade terms.
+        Formulations, references, constants, notations, trade terms,
+        scales and families.
     """
-    folder = files("nomogram") / "data" / "catalog"
-    texts = [
-        entry.read_text(encoding="utf-8")
-        for entry in sorted(folder.iterdir(), key=lambda e: e.name)
-        if entry.name.endswith(".toml")
+    return _catalog(tuple(sorted(set(families))), tuple(os.fspath(p) for p in extra))
+
+
+@lru_cache(maxsize=16)
+def _catalog(families: tuple[str, ...], extra: tuple[str, ...]) -> Catalog:
+    bundled = _bundled()
+    personal = [_read(0, Path(path)) for path in extra]
+    wanted = set(families) or set(bundled)
+    for label, document in personal:
+        header = _header(label, document.get(_HEADER))
+        if header["name"] in bundled:
+            msg = f"{label}: {header['name']} is the name of a bundled family"
+            raise CatalogError(msg)
+        prefix = f"{header['name']}:"
+        for section in _SECTIONS:
+            for key in document.get(section, {}):
+                if not key.startswith(prefix):
+                    msg = f"{label}: {section}.{key} must start with {prefix!r}"
+                    raise CatalogError(msg)
+        wanted |= {r for r in header["requires"] if r in bundled}
+    unknown = sorted(wanted - set(bundled))
+    if unknown:
+        msg = f"unknown families: {', '.join(unknown)}"
+        raise CatalogError(msg)
+    requires = {name: required for name, (_, required) in bundled.items()}
+    for name in list(wanted):
+        wanted |= _closure(name, requires) & set(bundled)
+    texts: list[Source] = [bundled[name][0] for name in sorted(wanted)]
+    return load_catalog([*texts, *(Path(path) for path in extra)])
+
+
+def describe(source: Source) -> str:
+    """The ``[catalog]`` header a TOML file needs, its requires computed.
+
+    The file is read with all the bundled families, and its requires are
+    the families its entries use (those already brought by another one
+    left out).
+
+    Parameters
+    ----------
+    source : path-like
+        The TOML file.
+
+    Returns
+    -------
+    str
+        The header, to copy into the file.
+    """
+    path = Path(source)
+    _, document = _read(0, path)
+    current = document.pop(_HEADER, None) or {}
+    name = current.get("name") or path.stem
+    data: dict[str, dict[str, Any]] = {section: {} for section in _SECTIONS}
+    owners: dict[tuple[str, str], str | None] = {}
+    requires: dict[str, tuple[str, ...]] = {}
+    documents = [
+        (n, tomllib.loads(text)) for n, (text, _) in _bundled().items() if n != name
     ]
-    return load_catalog(texts)
+    for family, content in [*documents, (name, document)]:
+        header = content.pop(_HEADER, None) or {}
+        requires[family] = tuple(header.get("requires", ()))
+        for section in _SECTIONS:
+            entries = content.get(section, {})
+            data[section].update(entries)
+            owners.update(((section, key), family) for key in entries)
+    used = set(_used_families(name, data, owners))
+    has_entries = any(document.get(section) for section in _SECTIONS)
+    # An aggregate holds no entry: its requires are its own choice.
+    needed = (
+        _minimal(used, requires) if has_entries else list(current.get("requires", ()))
+    )
+    lines = [
+        f"[{_HEADER}]",
+        f'name = "{name}"',
+        f'label = "{current.get("label") or name}"',
+        f"format = {FORMAT}",
+        "requires = [" + ", ".join(f'"{r}"' for r in needed) + "]",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Command line: ``python -m nomogram.catalog describe FILE``."""
+    parser = argparse.ArgumentParser(prog="python -m nomogram.catalog")
+    commands = parser.add_subparsers(dest="command", required=True)
+    command = commands.add_parser(
+        "describe", help="print the header a catalog file needs"
+    )
+    command.add_argument("file", type=Path)
+    arguments = parser.parse_args(argv)
+    sys.stdout.write(describe(arguments.file))
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())
