@@ -110,6 +110,7 @@ All sections are optional; a key may be defined in one file only.
 | `[catalog]` (one per file) | `name`, `format` | `label`, `requires`, `matches`, `keywords` |
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
+| `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
@@ -146,6 +147,54 @@ All sections are optional; a key may be defined in one file only.
   apply to the input's kind.
 - Every declared identifier must be used by the expression, and every
   identifier of the expression must be declared.
+
+### Composed formulations
+
+A formula is written once. When a source gives a formula built from
+others, the entry says so instead of copying them: ITU-R P.453
+equation 9 is its enhancement factor times the Buck (1996) equation.
+
+```toml
+[formulations.itu_r_p453_es_water]
+label = "Saturation vapour pressure over water in moist air (ITU-R P.453)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "itu_r_p453_ef_water", e_s = "buck1996" } }
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+
+[[formulations.itu_r_p453_es_water.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { C = "a", A = "b", B = "c", D = "d", e_ws = "e_s", p = "P" }
+
+[[formulations.itu_r_p453_es_water.citations.domains]]
+bounds = { t = [-40.0, 50.0] }
+```
+
+- **`composition`**: `outer` is the formulation evaluated last; `inner`
+  gives, for some of its inputs, the formulation computing them. Each
+  inner output must be of the input's kind or a specialization of it,
+  in the same unit.
+- **`bind`** (optional) renames inputs of inner formulations, for example
+  `{ theta = "t" }`. Inputs of the same identifier in several parts are
+  one input: same kind, unit and scale, or the entry is refused.
+- The entry writes no `expression`, `fixed_units`, `inputs`,
+  `coefficients`, `constants` nor `domains`: the inner expressions are
+  substituted into the outer one, and the result is an ordinary
+  formulation (LaTeX, inversion, units of coefficients, signature). It is
+  fixed-units when a part is; a quantity equation then keeps its value
+  in its output unit through a factor.
+- Coefficients and constants are those of the parts; one identifier for
+  two coefficients, or for two different constants, is refused.
+- Physical domains of the parts travel with the inputs they bound; those
+  on a computed input are dropped. Domains stated by sources belong to
+  the entry's own citations.
+- **`output`** (optional) narrows the output to a specialization of the
+  outer formulation's kind, in the same unit.
+- A composition may use another one; a cycle is refused. Parts come from
+  the family or the families it requires. A composition identical to a
+  written formulation is refused, like any duplicate.
+- The formulation's `derivation` records the method `"composition"`, the
+  outer formulation and the parts; the legend of a single formula says
+  what it is composed of.
 
 ### Citations
 

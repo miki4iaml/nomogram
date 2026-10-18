@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Moist air: humidity quantities computed from the vapour pressure
-# (mass concentration, mixing ratio, specific humidity).
+# (mass concentration, mixing ratio, specific humidity), and the
+# saturation vapour pressure in moist air (enhancement factor).
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -13,7 +14,32 @@ format = 2
 requires = ["water-vapour"]
 keywords = ["humidity", "psychrometrics"]
 
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.EnhancementFactor]
+label = "Enhancement Factor"
+specialization_of = "DimensionlessRatio"
+description = "Ratio of the saturation vapour pressure of water vapour in moist air to that of pure water vapour, at the same temperature."
+
+[kinds.SaturationVapourPressureOverWaterInMoistAir]
+label = "Saturation Vapour Pressure over Water in Moist Air"
+specialization_of = "VapourPressure"
+description = "Saturation vapour pressure over a plane surface of pure liquid water, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
+
+[kinds.SaturationVapourPressureOverIceInMoistAir]
+label = "Saturation Vapour Pressure over Ice in Moist Air"
+specialization_of = "VapourPressure"
+description = "Saturation vapour pressure over a plane surface of ice, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
+
 # --- References -------------------------------------------------------
+
+[references.itu_r_p453_14]
+authors = "ITU-R"
+year = 2019
+title = "Recommendation ITU-R P.453-14: The radio refractive index: its formula and refractivity data"
+url = "https://www.itu.int/rec/R-REC-P.453-14-201908-I"
+status = "verified"
+note = "Annex 1, section 1, equation 9 and the enhancement factors under it, read on the PDF (2022 electronic edition); in force on 2026-10-17."
 
 [references.ecmwf_ifs_cy49r1]
 authors = "ECMWF"
@@ -170,3 +196,79 @@ reference = "ashrae2017"
 
 [[formulations.specific_humidity_from_mixing_ratio.citations]]
 reference = "psychrolib"
+
+# Saturation vapour pressure in moist air: the enhancement factor times
+# that of pure water vapour. ITU-R P.453 equation 9 is this product with
+# the Buck (1996) equations (same coefficients a, b, c, d), so it is
+# written as a composition rather than copied.
+
+[formulations.saturation_vapour_pressure_in_moist_air]
+label = "Saturation vapour pressure in moist air"
+expression = "EF * e_s"
+fixed_units = false
+note = "The enhancement factor applied to the saturation vapour pressure of pure water vapour, over water or over ice."
+output = { identifier = "e_sm", kind = "VapourPressure", unit = "HectoPA", description = "Saturation vapour pressure in moist air" }
+inputs = [
+  { identifier = "EF", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" },
+  { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "Saturation vapour pressure of pure water vapour, over water or over ice" },
+]
+
+[formulations.itu_r_p453_ef_water]
+label = "Enhancement factor over water (ITU-R P.453)"
+expression = "1 + 1e-4 * (E_A + p * (E_B + E_C * t ** 2))"
+fixed_units = true
+note = "P is the total atmospheric pressure; P.453 adds that the dry atmospheric pressure can be used with insignificant loss of prediction accuracy."
+output = { identifier = "EF", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor over water" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total atmospheric pressure" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { E_A = 7.2, E_B = 0.0320, E_C = 5.9e-6 }
+
+[[formulations.itu_r_p453_ef_water.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { EF = 'EF_{\mathrm{water}}', p = "P" }
+
+[formulations.itu_r_p453_ef_ice]
+label = "Enhancement factor over ice (ITU-R P.453)"
+expression = "1 + 1e-4 * (E_A + p * (E_B + E_C * t ** 2))"
+fixed_units = true
+note = "P is the total atmospheric pressure; P.453 adds that the dry atmospheric pressure can be used with insignificant loss of prediction accuracy."
+output = { identifier = "EF", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor over ice" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total atmospheric pressure" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { E_A = 2.2, E_B = 0.0383, E_C = 6.4e-6 }
+
+[[formulations.itu_r_p453_ef_ice.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { EF = 'EF_{\mathrm{ice}}', p = "P" }
+
+[formulations.itu_r_p453_es_water]
+label = "Saturation vapour pressure over water in moist air (ITU-R P.453)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "itu_r_p453_ef_water", e_s = "buck1996" } }
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+
+[[formulations.itu_r_p453_es_water.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { C = "a", A = "b", B = "c", D = "d", e_ws = "e_s", p = "P" }
+
+[[formulations.itu_r_p453_es_water.citations.domains]]
+bounds = { t = [-40.0, 50.0] }
+
+[formulations.itu_r_p453_es_ice]
+label = "Saturation vapour pressure over ice in moist air (ITU-R P.453)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "itu_r_p453_ef_ice", e_s = "buck1996_ice" } }
+output = { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air" }
+
+[[formulations.itu_r_p453_es_ice.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { C = "a", A = "b", B = "c", D = "d", e_is = "e_s", p = "P" }
+
+[[formulations.itu_r_p453_es_ice.citations.domains]]
+bounds = { t = [-80.0, 0.0] }

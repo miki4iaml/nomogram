@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- Composed formulations in the catalog (`composition = { outer, inner,
+  bind }`): the inner expressions are substituted into the outer one,
+  which gives an ordinary formulation (LaTeX, inversion, units of
+  coefficients, signature) with its own citations. Inputs, coefficients
+  and constants come from the parts and must agree; physical domains
+  travel with their inputs; cycles and duplicates are refused.
+  `Derivation` records the method `"composition"` and its `parts`; the
+  legend of a single formula says what it is composed of.
+- ITU-R P.453-14 equation 9 in the `moist-air` family: enhancement
+  factors over water and over ice (`itu_r_p453_ef_water`,
+  `itu_r_p453_ef_ice`), and the saturation vapour pressures in moist air
+  (`itu_r_p453_es_water`, `itu_r_p453_es_ice`) composed from them and
+  the Buck (1996) equations, with the domains P.453 states. Kinds
+  `EnhancementFactor`, `SaturationVapourPressureOverWaterInMoistAir`,
+  `SaturationVapourPressureOverIceInMoistAir`.
 - Semantics for radio refractivity: QUDT kinds `RefractiveIndex`,
   `DimensionlessRatio` and `Height` (CF `height`), units `PPM`
   (displayed `ppm`, as ITU-R P.453 writes it), `M` and `KiloM`.
@@ -109,6 +124,9 @@ and this project adheres to
   outside it are refused when the catalog is loaded.
 
 ### Changed
+
+- `Derivation.solved_for` is optional (`None` for a composition), and
+  `Derivation` gains `parts`.
 
 - The bundled catalog is split into families: `core` (conventional
   scales, notations), `water-vapour` (saturation vapour pressure),

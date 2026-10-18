@@ -320,22 +320,28 @@ class Relation:
 
 @dataclass(frozen=True)
 class Derivation:
-    """How a formulation was derived from another one.
+    """How a formulation was derived from others.
 
     Attributes
     ----------
     source : str
-        Key of the formulation it derives from.
+        Key of the formulation it derives from; for a composition, the
+        formulation evaluated last.
     method : str
-        ``"symbolic inversion"`` (closed form found by SymPy) or
-        ``"numerical inversion"``.
-    solved_for : str
-        Identifier of the source's input that became the output.
+        ``"symbolic inversion"`` (closed form found by SymPy),
+        ``"numerical inversion"`` or ``"composition"``.
+    solved_for : str or None
+        For an inversion, identifier of the source's input that became the
+        output.
+    parts : mapping of str to str
+        For a composition, the formulation computing each input of the
+        source it replaces: input identifier to formulation key.
     """
 
     source: str
     method: str
-    solved_for: str
+    solved_for: str | None = None
+    parts: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)

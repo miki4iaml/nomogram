@@ -323,6 +323,12 @@ class Rendering:
                 if _unit(v.unit)
             ]
             lines += ["", f"The coefficients hold for {', '.join(held)} only."]
+        derivation = formulation.derivation
+        if derivation is not None and derivation.method == "composition":
+            parts = " and ".join(
+                f"{key} ({identifier})" for identifier, key in derivation.parts.items()
+            )
+            lines += ["", f"Composed of {parts} in {derivation.source}."]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:

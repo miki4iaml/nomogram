@@ -20,6 +20,7 @@ further kinds, each specializing a QUDT kind (see
 from __future__ import annotations
 
 import argparse
+import ast
 import dataclasses
 import datetime
 import os
@@ -47,6 +48,7 @@ from nomogram.model import (
     Citation,
     Coefficient,
     ConventionalScale,
+    Derivation,
     DomainBasis,
     Formulation,
     Notation,
@@ -301,6 +303,49 @@ def _check_symbols(where: str, symbols: Any) -> None:
                 f"{', '.join(sorted(unknown))}"
             )
             raise CatalogError(msg)
+
+
+#: What a composed formulation takes from its parts, never written.
+_DERIVED = (
+    "expression",
+    "fixed_units",
+    "inputs",
+    "coefficients",
+    "constants",
+    "domains",
+)
+
+
+def _substitute(
+    outer: Formulation,
+    inner: Mapping[str, Formulation],
+    renames: Mapping[str, Mapping[str, str]],
+    fixed: bool,
+) -> str:
+    """The expression of a composition: inner expressions put in the outer one.
+
+    The substitution works on the source text (its syntax tree), so that
+    the composed expression reads like the parts. In a fixed-units
+    composition, a quantity equation keeps its value in its output unit
+    through its factor (:attr:`~nomogram.model.Formulation.output_factor`).
+    """
+
+    def body(formulation: Formulation, rename: Mapping[str, str]) -> ast.expr:
+        tree = ast.parse(formulation.expression, mode="eval").body
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                node.id = rename.get(node.id, node.id)
+        if fixed and not formulation.fixed_units and formulation.output_factor != 1.0:
+            tree = ast.BinOp(ast.Constant(formulation.output_factor), ast.Mult(), tree)
+        return tree
+
+    parts = {i: body(p, renames[i]) for i, p in inner.items()}
+
+    class Substitute(ast.NodeTransformer):
+        def visit_Name(self, node: ast.Name) -> ast.expr:
+            return parts.get(node.id, node)
+
+    return ast.unparse(Substitute().visit(body(outer, {})))
 
 
 class _Builder:
@@ -815,6 +860,239 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def feeds(self, output_kind: str, input_kind: str) -> bool:
+        """Whether a result of one kind may feed an input of another.
+
+        The kinds of this catalog, not those of the bundled one (see
+        :func:`nomogram.comparison.feeds`).
+        """
+        kind = self.kinds.get(output_kind)
+        while kind is not None:
+            if kind.name == input_kind:
+                return True
+            kind = self.kinds.get(kind.specialization_of or "")
+        return False
+
+    @staticmethod
+    def part(
+        where: str, name: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        if not isinstance(name, str) or name not in formulations:
+            msg = f"{where}: unknown formulation {name!r}"
+            raise CatalogError(msg)
+        return formulations[name]
+
+    def composed(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation written as a composition of others."""
+        where = f"formulations.{key}"
+        derived = sorted(set(table) & set(_DERIVED))
+        if derived:
+            msg = f"{where}: a composed formulation takes {', '.join(derived)} from its parts"
+            raise CatalogError(msg)
+        f = _fields(
+            where,
+            table,
+            ("label", "composition"),
+            ("output", "citations", "note", "matches", "keywords"),
+        )
+        place = f"{where}.composition"
+        c = _fields(place, f["composition"], ("outer", "inner"), ("bind",))
+        outer = self.part(f"{place}.outer", c["outer"], formulations)
+        if not isinstance(c["inner"], dict) or not c["inner"]:
+            msg = f"{place}.inner: expected a table of input identifier to formulation"
+            raise CatalogError(msg)
+        outer_inputs = {v.identifier: v for v in outer.inputs}
+        inner: dict[str, Formulation] = {}
+        for identifier, name in c["inner"].items():
+            w = f"{place}.inner.{identifier}"
+            part = self.part(w, name, formulations)
+            target = outer_inputs.get(identifier)
+            if target is None:
+                msg = f"{w}: {outer.key} has no input {identifier!r}"
+                raise CatalogError(msg)
+            if not self.feeds(part.output.kind, target.kind):
+                msg = (
+                    f"{w}: {part.key} computes {part.output.kind}, "
+                    f"but {identifier} is {target.kind}"
+                )
+                raise CatalogError(msg)
+            if part.output.unit != target.unit:
+                msg = (
+                    f"{w}: {part.key} gives {part.output.unit}, "
+                    f"but {identifier} is in {target.unit}"
+                )
+                raise CatalogError(msg)
+            inner[identifier] = part
+        bind = dict(c["bind"] or {})
+        for source, name in bind.items():
+            if not any(
+                source in {v.identifier for v in p.inputs} for p in inner.values()
+            ):
+                msg = (
+                    f"{place}.bind: {source!r} is not an input of an inner formulation"
+                )
+                raise CatalogError(msg)
+            if name in inner:
+                msg = f"{place}.bind: {name!r} is computed by {inner[name].key}"
+                raise CatalogError(msg)
+        renames = {
+            identifier: {
+                v.identifier: bind[v.identifier]
+                for v in part.inputs
+                if v.identifier in bind
+            }
+            for identifier, part in inner.items()
+        }
+
+        # Inputs: those of the outer formulation it still needs, then those of
+        # the inner ones; one identifier is one input, alike in every part.
+        inputs: dict[str, Variable] = {}
+        pieces = [(outer, v) for v in outer.inputs if v.identifier not in inner]
+        for identifier, part in inner.items():
+            rename = renames[identifier]
+            pieces += [
+                (
+                    part,
+                    dataclasses.replace(
+                        v, identifier=rename.get(v.identifier, v.identifier)
+                    ),
+                )
+                for v in part.inputs
+            ]
+        for piece, variable in pieces:
+            known = inputs.setdefault(variable.identifier, variable)
+            if (known.kind, known.unit, known.scale) != (
+                variable.kind,
+                variable.unit,
+                variable.scale,
+            ):
+                msg = (
+                    f"{where}: input {variable.identifier} of {piece.key} differs "
+                    "in kind, unit or scale from the input of the same name in "
+                    "another part; rename it with bind"
+                )
+                raise CatalogError(msg)
+
+        owner: dict[str, str] = {}
+        coefficients = []
+        constants: dict[str, PhysicalConstant] = {}
+        for piece in (outer, *inner.values()):
+            for coefficient in piece.coefficients:
+                if coefficient.identifier in owner:
+                    msg = (
+                        f"{where}: coefficient {coefficient.identifier} in both "
+                        f"{owner[coefficient.identifier]} and {piece.key}"
+                    )
+                    raise CatalogError(msg)
+                owner[coefficient.identifier] = piece.key
+                coefficients.append(coefficient)
+            for constant in piece.constants:
+                found = constants.setdefault(constant.identifier, constant)
+                if found.key != constant.key:
+                    msg = (
+                        f"{where}: constant {constant.identifier} is {found.key} "
+                        f"in one part and {constant.key} in {piece.key}"
+                    )
+                    raise CatalogError(msg)
+
+        output = outer.output
+        if f["output"] is not None:
+            output = self.variable(f"{where}.output", f["output"])
+            if not self.feeds(output.kind, outer.output.kind):
+                msg = (
+                    f"{where}.output: {output.kind} is not a specialization of "
+                    f"{outer.output.kind}, the output of {outer.key}"
+                )
+                raise CatalogError(msg)
+            if output.unit != outer.output.unit:
+                msg = (
+                    f"{where}.output: the unit is that of {outer.key}'s output, "
+                    f"{outer.output.unit}"
+                )
+                raise CatalogError(msg)
+
+        # Physical domains travel with the inputs they bound.
+        domains = [d for d in outer.physical_domains if not set(d.bounds) & set(inner)]
+        for identifier, part in inner.items():
+            rename = renames[identifier]
+            domains += [
+                dataclasses.replace(
+                    d,
+                    bounds=MappingProxyType(
+                        {rename.get(k, k): b for k, b in d.bounds.items()}
+                    ),
+                )
+                for d in part.physical_domains
+            ]
+
+        fixed = any(p.fixed_units for p in (outer, *inner.values()))
+        names = {output.identifier} | set(inputs) | set(owner) | set(constants)
+        variables = tuple(inputs.values())
+        citations = self.citations(
+            f"{where}.citations", f["citations"], key, variables, names, set(owner)
+        )
+        formulation = Formulation(
+            key=key,
+            label=f["label"],
+            output=output,
+            inputs=_stated_scales(f"{where}.citations", variables, citations),
+            coefficients=_stated_units(
+                f"{where}.citations", tuple(coefficients), citations
+            ),
+            constants=tuple(constants.values()),
+            expression=_substitute(outer, inner, renames, fixed),
+            fixed_units=fixed,
+            physical_domains=tuple(domains),
+            citations=citations,
+            note=f["note"],
+            matches=_matches(where, f["matches"]),
+            derivation=Derivation(
+                outer.key,
+                "composition",
+                parts=MappingProxyType({i: p.key for i, p in inner.items()}),
+            ),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+        )
+        self.check(where, formulation)
+        return formulation
+
+    @staticmethod
+    def composition_order(tables: Mapping[str, Any]) -> list[str]:
+        """Composed formulations, each after the composed ones it uses."""
+        composed = {
+            key: table["composition"]
+            for key, table in tables.items()
+            if isinstance(table, dict) and "composition" in table
+        }
+        order: list[str] = []
+
+        def visit(key: str, path: list[str]) -> None:
+            if key in order:
+                return
+            if key in path:
+                cycle = " -> ".join([*path[path.index(key) :], key])
+                msg = f"formulations.{key}: compositions form a cycle: {cycle}"
+                raise CatalogError(msg)
+            parts = composed[key]
+            names = []
+            if isinstance(parts, dict):
+                inner = parts.get("inner")
+                names = [
+                    parts.get("outer"),
+                    *(inner.values() if isinstance(inner, dict) else ()),
+                ]
+            for name in names:
+                if isinstance(name, str) and name in composed:
+                    visit(name, [*path, key])
+            order.append(key)
+
+        for key in composed:
+            visit(key, [])
+        return order
+
     def relation(
         self, key: str, table: Any, formulations: Mapping[str, Formulation]
     ) -> Relation:
@@ -950,10 +1228,15 @@ class _Builder:
         self.build_scales()
         self.notations = self.build_notations()
         trade_terms = self.build_trade_terms()
-        formulations = {
+        tables = self.data["formulations"]
+        built = {
             key: self.formulation(key, table)
-            for key, table in self.data["formulations"].items()
+            for key, table in tables.items()
+            if not (isinstance(table, dict) and "composition" in table)
         }
+        for key in self.composition_order(tables):
+            built[key] = self.composed(key, tables[key], built)
+        formulations = {key: built[key] for key in tables}
         # Two sources of one formulation make one entry with two citations.
         seen: dict[str, str] = {}
         for key, formulation in formulations.items():
@@ -1030,7 +1313,13 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
             found.add((target, value))
 
     if section == "formulations":
-        for variable in (table["output"], *table["inputs"]):
+        composition = table.get("composition")
+        if composition is not None:
+            add("formulations", composition["outer"])
+            for name in composition["inner"].values():
+                add("formulations", name)
+        variables = [table["output"]] if "output" in table else []
+        for variable in (*variables, *table.get("inputs", ())):
             add("kinds", variable["kind"])
             add("scales", variable.get("scale"))
         for constant in table.get("constants", ()):
