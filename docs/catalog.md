@@ -300,6 +300,13 @@ uv run python -m nomogram.catalog describe my_family.toml   # the header it need
 uv run python -m nomogram.catalog check my_family.toml      # a report on its formulations
 ```
 
+After adding or changing a relation, refresh the registry of verdicts
+(see [what a verdict on a stated relation guarantees](relation-verdicts.md#recorded-verdicts)):
+
+```
+uv run python -m nomogram.catalog verify --record
+```
+
 `check` loads the file with the bundled families (as a personal catalog
 when it is not one of them), then reports, for each of its
 formulations, those of the same form (coefficients aside) and the

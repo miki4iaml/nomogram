@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- Registry of verdicts (`src/nomogram/data/catalog/verifications.json`,
+  generated): each verdict on a relation is filed under a SHA-256
+  fingerprint of everything it depends on (relation, signatures of its
+  formulations, scales, budget, version of the method `VERIFIER`).
+  `nomogram.relations.verdict` reads it when the fingerprint matches;
+  `record` and `python -m nomogram.catalog verify --record` compute only
+  what is missing and drop stale entries; a test recomputes every
+  verdict and compares it with the registry.
+- `docs/relation-verdicts.md`: examples of what SymPy proves, leaves
+  unproven or refutes, and the registry of verdicts.
 - Signatures of formulations (`nomogram.relations.signature`): equal
   for two writings of one formulation (inputs renamed canonically,
   coefficients as exact rationals); the catalog refuses a formulation

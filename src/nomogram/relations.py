@@ -26,8 +26,13 @@ from __future__ import annotations
 
 import hashlib
 import itertools
+import json
+import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from functools import lru_cache
+from importlib.resources import files
+from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -44,12 +49,17 @@ if TYPE_CHECKING:
 
 __all__ = [
     "BUDGET",
+    "VERIFIER",
     "Verdict",
+    "fingerprint",
     "form",
+    "load_registry",
     "match_inputs",
     "per_axis",
+    "record",
     "report",
     "signature",
+    "verdict",
     "verify",
 ]
 
@@ -472,3 +482,171 @@ def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> st
                 f"  observed max deviation from {other.key}: {verdict.value:.4g} % at {place}{note}"
             )
     return "\n".join(lines) + "\n"
+
+
+#: Version of the verification method. Increase it when a change of the
+#: method may change a verdict: every recorded verdict is then redone.
+VERIFIER = 1
+
+#: The registry of the bundled catalog, generated, never edited by hand.
+REGISTRY = "verifications.json"
+
+
+def fingerprint(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> str:
+    """A fingerprint (SHA-256) of everything a verdict depends on.
+
+    The relation as written, the signatures of its two formulations, the
+    conventional scales of their variables, the budget of the check and
+    the version of the method: if any changes, the fingerprint changes and
+    a recorded verdict no longer applies.
+    """
+    subject = catalog.formulations[relation.subject]
+    other = catalog.formulations[relation.object]
+    scales = sorted(
+        (
+            f.key,
+            v.identifier,
+            v.scale.key,
+            list(v.scale.points),
+            list(v.scale.difference),
+        )
+        for f in (subject, other)
+        for v in (f.output, *f.inputs)
+        if v.scale is not None
+    )
+    content = {
+        "verifier": VERIFIER,
+        "budget": budget,
+        "kind": relation.kind.value,
+        "accuracy": relation.accuracy,
+        "at": sorted(relation.at.items()),
+        "bounds": sorted((k, list(v)) for k, v in relation.bounds.items()),
+        "given": sorted(relation.given.items()),
+        "scale": relation.scale,
+        "subject": signature(subject),
+        "object": signature(other),
+        "scales": scales,
+    }
+    text = json.dumps(content, sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _to_json(key: str, found: Verdict) -> dict[str, Any]:
+    return {
+        "relation": key,
+        "status": found.status,
+        "method": found.method,
+        "value": found.value,
+        "at": dict(found.at),
+        "detail": found.detail,
+    }
+
+
+def _from_json(item: Mapping[str, Any]) -> Verdict:
+    return Verdict(
+        status=item["status"],
+        method=item["method"],
+        value=item["value"],
+        at=MappingProxyType(dict(item["at"])),
+        detail=item["detail"],
+    )
+
+
+def _registry_path() -> Path:
+    return Path(str(files("nomogram") / "data" / "catalog" / REGISTRY))
+
+
+@lru_cache(maxsize=8)
+def _read_registry(path: str) -> Mapping[str, Verdict]:
+    if not Path(path).exists():
+        return MappingProxyType({})
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return MappingProxyType({k: _from_json(v) for k, v in data["verdicts"].items()})
+
+
+def load_registry(path: str | os.PathLike[str] | None = None) -> Mapping[str, Verdict]:
+    """Recorded verdicts, by fingerprint: the bundled registry by default."""
+    return _read_registry(
+        os.fspath(path) if path is not None else str(_registry_path())
+    )
+
+
+def verdict(
+    relation: Relation,
+    catalog: Catalog,
+    *,
+    registry: str | os.PathLike[str] | None = None,
+    budget: int = BUDGET,
+) -> Verdict:
+    """The verdict on a relation: recorded when it still applies, computed otherwise.
+
+    Parameters
+    ----------
+    relation, catalog, budget
+        As for :func:`verify`.
+    registry : path-like, optional
+        A registry written by :func:`record`; the bundled one by default.
+
+    Returns
+    -------
+    Verdict
+        Read from the registry when its fingerprint matches, so that
+        nothing is recomputed; computed by :func:`verify` otherwise.
+    """
+    recorded = load_registry(registry).get(
+        fingerprint(relation, catalog, budget=budget)
+    )
+    return (
+        recorded if recorded is not None else verify(relation, catalog, budget=budget)
+    )
+
+
+def record(
+    catalog: Catalog,
+    path: str | os.PathLike[str] | None = None,
+    *,
+    budget: int = BUDGET,
+) -> tuple[int, int]:
+    """Write the registry of the verdicts on every relation of a catalog.
+
+    Verdicts whose fingerprint is already recorded are reused; the others
+    are computed; entries matching no relation any more are dropped. The
+    continuous integration recomputes every verdict and compares it with
+    the bundled registry: it has the last word.
+
+    Parameters
+    ----------
+    catalog : Catalog
+        The catalog whose relations are verified.
+    path : path-like, optional
+        The registry file; the bundled one by default.
+    budget : int, optional
+        As for :func:`verify`.
+
+    Returns
+    -------
+    (int, int)
+        Verdicts computed, verdicts reused.
+    """
+    target = Path(os.fspath(path)) if path is not None else _registry_path()
+    existing = _read_registry(str(target))
+    verdicts = {}
+    computed = reused = 0
+    for key in sorted(catalog.relations):
+        relation = catalog.relations[key]
+        print_key = fingerprint(relation, catalog, budget=budget)
+        found = existing.get(print_key)
+        if found is None:
+            found = verify(relation, catalog, budget=budget)
+            computed += 1
+        else:
+            reused += 1
+        verdicts[print_key] = _to_json(key, found)
+    content = {"verifier": VERIFIER, "verdicts": dict(sorted(verdicts.items()))}
+    target.write_text(
+        json.dumps(content, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    _read_registry.cache_clear()
+    return computed, reused
