@@ -37,7 +37,12 @@ from typing import Any
 import pint
 
 from nomogram.dimensions import DimensionError
-from nomogram.expression import LATEX_COMMANDS, ExpressionError, latex_commands
+from nomogram.expression import (
+    LATEX_COMMANDS,
+    ExpressionError,
+    latex_commands,
+    parse_expression,
+)
 from nomogram.model import (
     Citation,
     Coefficient,
@@ -48,13 +53,17 @@ from nomogram.model import (
     PhysicalConstant,
     Reference,
     ReferenceStatus,
+    Relation,
+    RelationKind,
     ScaleBasis,
+    ScaleConversion,
     TradeMeaning,
     TradeTerm,
     UnitBasis,
     ValidityDomain,
     Variable,
 )
+from nomogram.relations import match_inputs
 from nomogram.semantics import (
     ExternalMatch,
     MatchRelation,
@@ -80,6 +89,7 @@ _SECTIONS = (
     "trade_terms",
     "scales",
     "formulations",
+    "relations",
 )
 
 
@@ -153,6 +163,8 @@ class Catalog:
         By key.
     scales : mapping of str to ConventionalScale
         By key.
+    relations : mapping of str to Relation
+        Relations between formulations stated by sources, by key.
     families : mapping of str to Family
         By key.
     """
@@ -164,6 +176,9 @@ class Catalog:
     notations: Mapping[str, Notation]
     trade_terms: Mapping[str, TradeTerm]
     scales: Mapping[str, ConventionalScale]
+    relations: Mapping[str, Relation] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
     families: Mapping[str, Family] = dataclasses.field(
         default_factory=lambda: MappingProxyType({})
     )
@@ -790,6 +805,95 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def relation(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Relation:
+        where = f"relations.{key}"
+        f = _fields(
+            where,
+            table,
+            ("kind", "subject", "object", "citation"),
+            ("accuracy", "at", "bounds", "given", "scale", "note"),
+        )
+        kind = _enum(f"{where}.kind", RelationKind, f["kind"])
+        ends = []
+        for role in ("subject", "object"):
+            if f[role] not in formulations:
+                msg = f"{where}.{role}: unknown formulation {f[role]!r}"
+                raise CatalogError(msg)
+            ends.append(formulations[f[role]])
+        subject, other = ends
+        if subject.output.kind != other.output.kind:
+            msg = (
+                f"{where}: {subject.key} computes {subject.output.kind}, "
+                f"{other.key} computes {other.output.kind}"
+            )
+            raise CatalogError(msg)
+        scale: ScaleConversion = f["scale"] or "convert"
+        if scale not in ("convert", "ignore"):
+            msg = f"{where}.scale: expected convert or ignore, not {scale!r}"
+            raise CatalogError(msg)
+        bounds = self.bounds(f"{where}.bounds", f["bounds"] or {}, subject.inputs)
+        names = {v.identifier for v in subject.inputs}
+        at = {}
+        for identifier, value in (f["at"] or {}).items():
+            if identifier not in names:
+                msg = f"{where}.at: {identifier!r} is not an input of {subject.key}"
+                raise CatalogError(msg)
+            at[identifier] = float(value)
+        given = dict(f["given"] or {})
+        unfed = sorted(
+            v.identifier
+            for v in other.inputs
+            if v.identifier not in match_inputs(subject, other)
+            and v.identifier not in given
+        )
+        if unfed:
+            msg = (
+                f"{where}: inputs of {other.key} matching no input of "
+                f"{subject.key}: {', '.join(unfed)}"
+            )
+            raise CatalogError(msg)
+        if kind is RelationKind.APPROXIMATES:
+            if f["accuracy"] is None or set(bounds) != names:
+                msg = (
+                    f"{where}: an approximation states its accuracy and bounds "
+                    f"every input of {subject.key}"
+                )
+                raise CatalogError(msg)
+            if given:
+                msg = f"{where}.given: only for an equivalence"
+                raise CatalogError(msg)
+        else:
+            if f["accuracy"] is not None:
+                msg = f"{where}.accuracy: only for an approximation"
+                raise CatalogError(msg)
+            others = {v.identifier for v in other.inputs}
+            for identifier, source in given.items():
+                if identifier not in others:
+                    msg = (
+                        f"{where}.given: {identifier!r} is not an input of {other.key}"
+                    )
+                    raise CatalogError(msg)
+                try:
+                    parse_expression(str(source), sorted(names))
+                except ExpressionError as exc:
+                    msg = f"{where}.given.{identifier}: {exc}"
+                    raise CatalogError(msg) from None
+        return Relation(
+            key=key,
+            kind=kind,
+            subject=subject.key,
+            object=other.key,
+            citation=self.reference(f"{where}.citation", f["citation"]),
+            accuracy=None if f["accuracy"] is None else float(f["accuracy"]),
+            at=MappingProxyType(at),
+            bounds=bounds,
+            given=MappingProxyType({k: str(v) for k, v in given.items()}),
+            scale=scale,
+            note=f["note"],
+        )
+
     @staticmethod
     def check(where: str, formulation: Formulation) -> None:
         names = formulation.names
@@ -840,9 +944,14 @@ class _Builder:
             key: self.formulation(key, table)
             for key, table in self.data["formulations"].items()
         }
+        relations = {
+            key: self.relation(key, table, formulations)
+            for key, table in self.data["relations"].items()
+        }
         return Catalog(
             kinds=MappingProxyType(self.kinds),
             formulations=MappingProxyType(formulations),
+            relations=MappingProxyType(relations),
             references=MappingProxyType(self.references),
             constants=MappingProxyType(self.constants),
             notations=MappingProxyType(self.notations),
@@ -919,6 +1028,10 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
                 add("references", source)
     elif section == "kinds":
         add("kinds", table["specialization_of"])
+    elif section == "relations":
+        add("formulations", table["subject"])
+        add("formulations", table["object"])
+        add("references", table["citation"])
     elif section == "scales":
         for kind in table["kinds"]:
             add("kinds", kind)

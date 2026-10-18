@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- Relations between formulations (`nomogram.model.Relation`, catalog
+  section `[relations]`): what a source states, equivalence (possibly
+  given substitutions between inputs) or approximation (maximum relative
+  deviation over a domain, with where it lies), with its citation and
+  whether formulas are compared with scale conversion or as given.
+  `nomogram.relations.verify` proves equivalences with SymPy (proven,
+  refuted with a counterexample, or unproven) and checks approximations
+  on a grid refined around its best points (reproduced, held or
+  exceeded), inputs matched by identifier then by kind;
+  `Catalog.relations`. `docs/relation-verdicts.md` says what each verdict
+  guarantees: reliable with one to three inputs, an estimate beyond.
+- The maximum relative errors of Alduchov and Eskridge (1996, Table III)
+  for five Magnus forms against GG46 (triple-point form) and SO90, and
+  between GG46 and SO90: ten of twelve reproduced to the third decimal
+  with the formulas compared as given; Sonntag's Magnus coefficients
+  (SA90) give 0.610 % and 0.315 % where the table gives 0.597 % and
+  0.328 %.
 - Catalog families (`nomogram.catalog.Family`): each file declares a
   `[catalog]` header (name, format, requires, keywords, links);
   `catalog("water-vapour")` loads one family with those it requires,

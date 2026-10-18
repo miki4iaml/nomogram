@@ -700,3 +700,140 @@ reference = "sonntag1990"
 
 [[formulations.sonntag1990_ice.citations]]
 reference = "voemel_vp"
+
+# --- Relations stated by sources ------------------------------------------
+# Alduchov and Eskridge (1996), Table III: maximum relative errors (%) over
+# -40..50 degC, against GG46 in its triple-point form (goff1957) and SO90,
+# with the temperature of the maximum; the formulas are compared as given.
+
+[relations.ae96_te30_gg46]
+kind = "approximates"
+subject = "tetens1930"
+object = "goff1957"
+citation = "alduchov_eskridge1996"
+accuracy = 2.537
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_g."
+
+[relations.ae96_te30_so90]
+kind = "approximates"
+subject = "tetens1930"
+object = "sonntag1990"
+citation = "alduchov_eskridge1996"
+accuracy = 3.169
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_s."
+
+[relations.ae96_bu81_gg46]
+kind = "approximates"
+subject = "buck1981_magnus"
+object = "goff1957"
+citation = "alduchov_eskridge1996"
+accuracy = 0.769
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_g."
+
+[relations.ae96_bu81_so90]
+kind = "approximates"
+subject = "buck1981_magnus"
+object = "sonntag1990"
+citation = "alduchov_eskridge1996"
+accuracy = 1.412
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_s."
+
+[relations.ae96_sa90_gg46]
+kind = "approximates"
+subject = "sonntag1990_magnus"
+object = "goff1957"
+citation = "alduchov_eskridge1996"
+accuracy = 0.597
+at = { t = -35.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_g."
+
+[relations.ae96_sa90_so90]
+kind = "approximates"
+subject = "sonntag1990_magnus"
+object = "sonntag1990"
+citation = "alduchov_eskridge1996"
+accuracy = 0.328
+at = { t = 28.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_s."
+
+[relations.ae96_bu2_gg46]
+kind = "approximates"
+subject = "buck1981"
+object = "goff1957"
+citation = "alduchov_eskridge1996"
+accuracy = 0.493
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_g."
+
+[relations.ae96_bu2_so90]
+kind = "approximates"
+subject = "buck1981"
+object = "sonntag1990"
+citation = "alduchov_eskridge1996"
+accuracy = 0.159
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_s."
+
+[relations.ae96_aekr_gg46]
+kind = "approximates"
+subject = "alduchov_eskridge1996"
+object = "goff1957"
+citation = "alduchov_eskridge1996"
+accuracy = 0.384
+at = { t = -30.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_g."
+
+[relations.ae96_aekr_so90]
+kind = "approximates"
+subject = "alduchov_eskridge1996"
+object = "sonntag1990"
+citation = "alduchov_eskridge1996"
+accuracy = 0.337
+at = { t = -40.0 }
+bounds = { t = [-40.0, 50.0] }
+scale = "ignore"
+note = "Table III, r_s."
+
+[relations.ae96_gg46_so90]
+kind = "approximates"
+subject = "goff1957"
+object = "sonntag1990"
+citation = "alduchov_eskridge1996"
+accuracy = 0.648
+at = { T = 233.15 }
+bounds = { T = [233.15, 323.15] }
+scale = "ignore"
+note = "Table III, row GG46, r_s."
+
+[relations.ae96_so90_gg46]
+kind = "approximates"
+subject = "sonntag1990"
+object = "goff1957"
+citation = "alduchov_eskridge1996"
+accuracy = 0.653
+at = { T = 233.15 }
+bounds = { T = [233.15, 323.15] }
+scale = "ignore"
+note = "Table III, row SO90, r_g."
