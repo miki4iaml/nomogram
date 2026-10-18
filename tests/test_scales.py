@@ -94,6 +94,11 @@ def test_compare_and_compose_pass_the_scale_option() -> None:
 
 
 SCALES = """
+[references.src]
+authors = "Author, A."
+title = "A title"
+status = "verified"
+
 [temperature_scales.s]
 label = "Test scale"
 differences = {differences}
@@ -114,11 +119,29 @@ GOOD_VARIABLE = (
 def test_valid_scale_document() -> None:
     document = SCALES.format(
         differences="[[0.0, 0.0], [10.0, -0.1]]",
-        variable=GOOD_VARIABLE + ', temperature_scale = "s", scale_basis = "stated"',
+        variable=GOOD_VARIABLE
+        + ', temperature_scale = "s", scale_basis = "inferred-from-date"',
     )
     scale = load_catalog([document]).formulations["f"].inputs[0].temperature_scale
     assert scale is not None
     assert scale.difference == (0.0, -0.1)
+
+
+def test_a_stated_scale_comes_from_a_citation() -> None:
+    document = SCALES.format(differences="[[0.0, 0.0]]", variable=GOOD_VARIABLE)
+    document += (
+        '\n[[formulations.f.citations]]\nreference = "src"\nscales = { t = "s" }\n'
+    )
+    variable = load_catalog([document]).formulations["f"].inputs[0]
+    assert variable.temperature_scale is not None
+    assert variable.temperature_scale.key == "s"
+    assert variable.scale_basis is ScaleBasis.STATED
+    in_the_input = SCALES.format(
+        differences="[[0.0, 0.0]]",
+        variable=GOOD_VARIABLE + ', temperature_scale = "s", scale_basis = "stated"',
+    )
+    with pytest.raises(CatalogError, match="goes in its citation"):
+        load_catalog([in_the_input])
 
 
 @pytest.mark.parametrize(
@@ -127,7 +150,8 @@ def test_valid_scale_document() -> None:
         ("[[0.0, 0.0]]", GOOD_VARIABLE + ', temperature_scale = "s"', "go together"),
         (
             "[[0.0, 0.0]]",
-            GOOD_VARIABLE + ', temperature_scale = "x", scale_basis = "stated"',
+            GOOD_VARIABLE
+            + ', temperature_scale = "x", scale_basis = "inferred-from-date"',
             "unknown scale 'x'",
         ),
         (
@@ -138,7 +162,7 @@ def test_valid_scale_document() -> None:
         (
             "[[0.0, 0.0]]",
             GOOD_VARIABLE.replace("DEG_C", "DEG_F")
-            + ', temperature_scale = "s", scale_basis = "stated"',
+            + ', temperature_scale = "s", scale_basis = "inferred-from-date"',
             "needs a temperature in K or DEG_C",
         ),
         ("[[10.0, 0.0], [0.0, 0.0]]", GOOD_VARIABLE, "t90 must increase"),
@@ -158,7 +182,7 @@ def test_a_scale_needs_a_temperature() -> None:
     document = document.replace(
         "inputs = [{ " + GOOD_VARIABLE + " }]",
         'inputs = [{ identifier = "t", kind = "VapourPressure", unit = "PA", '
-        'description = "in", temperature_scale = "s", scale_basis = "stated" }]',
+        'description = "in", temperature_scale = "s", scale_basis = "inferred-from-date" }]',
     )
     with pytest.raises(CatalogError, match="needs a temperature"):
         load_catalog([document])

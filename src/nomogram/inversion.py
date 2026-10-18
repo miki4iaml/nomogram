@@ -25,6 +25,7 @@ fitted on another scale converts its result back.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from types import MappingProxyType
 from typing import Any, Literal
 
 import numpy as np
@@ -226,11 +227,28 @@ def _symbolic(
                 constants=formulation.constants,
                 expression=source,
                 fixed_units=formulation.fixed_units,
-                domains=_carried_domains(
-                    formulation, solve_for, input.identifier, forward
+                physical_domains=_carried_domains(
+                    formulation.physical_domains,
+                    formulation.key,
+                    solve_for,
+                    input.identifier,
+                    forward,
                 ),
-                accuracy=formulation.accuracy,
-                references=formulation.references,
+                citations=tuple(
+                    replace(
+                        citation,
+                        domains=_carried_domains(
+                            citation.domains,
+                            formulation.key,
+                            solve_for,
+                            input.identifier,
+                            forward,
+                        ),
+                        # The output carries the scale of the solved variable.
+                        scales=MappingProxyType({}),
+                    )
+                    for citation in formulation.citations
+                ),
                 note=f"Derived by symbolic inversion of {formulation.key}.",
                 matches=(),
                 derivation=Derivation(formulation.key, "symbolic inversion", solve_for),
@@ -239,16 +257,22 @@ def _symbolic(
 
 
 def _carried_domains(
-    formulation: Formulation, solve_for: str, identifier: str, forward: Any
+    domains: tuple[ValidityDomain, ...],
+    source: str,
+    solve_for: str,
+    identifier: str,
+    forward: Any,
 ) -> tuple[ValidityDomain, ...]:
     """The domains on the input, carried through the function onto its output."""
     carried = []
-    for domain in formulation.domains:
+    for domain in domains:
         if solve_for not in domain.bounds:
             continue
         low, high = domain.bounds[solve_for]
         ends = sorted(float(v) for v in forward(np.array([low, high])))
-        criterion = f"Carried by inversion from {formulation.key}: {domain.criterion or 'no criterion'}"
+        criterion = (
+            f"Carried by inversion from {source}: {domain.criterion or 'no criterion'}"
+        )
         carried.append(
             ValidityDomain(
                 domain.basis,

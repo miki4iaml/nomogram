@@ -30,9 +30,10 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
     from nomogram.display import Rendering
 
 __all__ = [
+    "Citation",
     "Coefficient",
     "Derivation",
     "DomainBasis",
@@ -393,6 +395,49 @@ class Notation:
 
 
 @dataclass(frozen=True)
+class Citation:
+    """One appearance of a formulation in a source, and what the source states.
+
+    A formulation is written once; each source that gives it is a
+    citation, with the symbols it uses and what it states about the
+    formulation. Validity domains of different citations combine by union
+    by default: a value is inside if one source says so.
+
+    Attributes
+    ----------
+    reference : str
+        Key of the source.
+    equation : str or None
+        Equation number in the source, as printed.
+    notation : Notation or None
+        The symbols the source uses, coefficients included.
+    domains : tuple of ValidityDomain
+        Validity domains the source states (basis ``stated``); they apply
+        together.
+    units : mapping of str to str
+        Units the source states for coefficients, by identifier (QUDT
+        names).
+    scales : mapping of str to TemperatureScale
+        Temperature scales the source states for inputs, by identifier.
+    accuracy : str or None
+        Accuracy the source claims, as stated.
+    note : str or None
+        Remark on this citation.
+    """
+
+    reference: str
+    equation: str | None = None
+    notation: Notation | None = None
+    domains: tuple[ValidityDomain, ...] = ()
+    units: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    scales: Mapping[str, TemperatureScale] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    accuracy: str | None = None
+    note: str | None = None
+
+
+@dataclass(frozen=True)
 class TradeMeaning:
     """One meaning of an ambiguous trade term.
 
@@ -461,12 +506,11 @@ class Formulation:
         The expression, in restricted Python syntax.
     fixed_units : bool
         Whether the formulation only holds in its declared units.
-    domains : tuple of ValidityDomain
-        Objective validity domains.
-    accuracy : str or None
-        Accuracy claimed by the source, as stated.
-    references : tuple of str
-        Keys of the references.
+    physical_domains : tuple of ValidityDomain
+        Physical validity domains (basis ``physical``); the domains stated
+        by sources belong to their citations.
+    citations : tuple of Citation
+        The sources that give the formulation, and what each states.
     note : str or None
         Remark.
     matches : tuple of ExternalMatch
@@ -484,12 +528,23 @@ class Formulation:
     constants: tuple[PhysicalConstant, ...]
     expression: str
     fixed_units: bool
-    domains: tuple[ValidityDomain, ...]
-    accuracy: str | None
-    references: tuple[str, ...]
+    physical_domains: tuple[ValidityDomain, ...]
+    citations: tuple[Citation, ...]
     note: str | None
     matches: tuple[ExternalMatch, ...]
     derivation: Derivation | None = None
+
+    @property
+    def references(self) -> tuple[str, ...]:
+        """Keys of the cited sources, in order, without repetition."""
+        return tuple(dict.fromkeys(c.reference for c in self.citations))
+
+    @property
+    def domains(self) -> tuple[ValidityDomain, ...]:
+        """All validity domains: physical ones, then those of each citation."""
+        return self.physical_domains + tuple(
+            d for c in self.citations for d in c.domains
+        )
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -580,20 +635,37 @@ class Formulation:
 
         Notes
         -----
+        Physical domains all apply. Domains stated by sources combine by
+        union between citations (inside if one source says so), and apply
+        together within a citation.
+
         Bounds are closed and tolerate a relative rounding of
         :data:`BOUND_TOLERANCE`, so that a value converted between units
         (0.01 degC is 273.15999999... K) is not rejected at a bound.
         """
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
+
+        def outside_all(domains: tuple[ValidityDomain, ...]) -> Any:
+            result = np.zeros(shape, dtype=bool)
+            for domain in domains:
+                for identifier, (low, high) in domain.bounds.items():
+                    value = arrays[identifier]
+                    margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+                    result = result | (value < low - margin) | (value > high + margin)
+            return result
+
         outside = np.zeros(shape, dtype=bool)
-        for domain in self.domains:
-            if basis != "all" and domain.basis.value != basis:
-                continue
-            for identifier, (low, high) in domain.bounds.items():
-                value = arrays[identifier]
-                margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
-                outside |= (value < low - margin) | (value > high + margin)
+        if basis in ("physical", "all"):
+            outside |= outside_all(self.physical_domains)
+        if basis in ("stated", "all"):
+            # Union between citations: inside if one source says so.
+            stating = [c.domains for c in self.citations if c.domains]
+            if stating:
+                inside = np.zeros(shape, dtype=bool)
+                for domains in stating:
+                    inside |= ~outside_all(domains)
+                outside |= ~inside
         return outside
 
     def evaluate(

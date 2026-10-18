@@ -56,9 +56,8 @@ def make(
         constants=(),
         expression=expression,
         fixed_units=fixed_units,
-        domains=(),
-        accuracy=None,
-        references=(),
+        physical_domains=(),
+        citations=(),
         note=None,
         matches=(),
     )

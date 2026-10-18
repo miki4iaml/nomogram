@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- Citations (`nomogram.model.Citation`): a formulation is written once,
+  and each source that gives it is a citation recording what that source
+  states (equation number, notation, units of coefficients, validity
+  domains, accuracy, temperature scales). `Formulation.citations`;
+  `Formulation.references` and `Formulation.domains` are derived from
+  them. A citation's notation is the source's own symbols or a
+  convention of the catalog. `CoefficientUnit.citation` names the source
+  of a stated unit.
 - `nomogram.dimensions.infer_units` (and `Formulation.coefficient_units`):
   the unit of each coefficient, declared or inferred by dimensional
   analysis of the expression tree (B of the Magnus form in °C, C in hPa,
@@ -50,6 +58,18 @@ and this project adheres to
 
 ### Changed
 
+- Catalog format: `[[formulations.<key>.citations]]` replaces
+  `references` and `accuracy`; domains, units of coefficients and
+  temperature scales stated by a source move into its citation; the
+  formulation keeps physical domains (without `basis`), units added by
+  nomogram and scales nomogram infers. `Formulation` takes
+  `physical_domains` and `citations` instead of `domains`, `accuracy`
+  and `references`. Domains stated by different sources combine by union
+  by default (inside if one source says so); within a citation they
+  apply together, as do physical domains. The catalog was converted
+  without changing any value; the range of the Goff-Gratch equation,
+  attributed to Gibbins (1990) without citing it, now comes with that
+  citation.
 - Catalog: the declared units of coefficients that the expression
   determines were removed (Murray, Goff 1957, Marti and Mauersberger,
   and the reference temperatures of Goff-Gratch), since Vömel, the

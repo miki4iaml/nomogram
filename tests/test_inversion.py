@@ -138,6 +138,11 @@ def test_numerical_inverse_outside_policies() -> None:
 
 
 DECREASING = """
+[references.src]
+authors = "Author, A."
+title = "A title"
+status = "verified"
+
 [formulations.down]
 label = "Decreasing test formulation"
 expression = "a - b * t"
@@ -147,12 +152,13 @@ inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", descr
 coefficients = { a = 1000.0, b = 10.0 }
 
 [[formulations.down.domains]]
-basis = "stated"
-bounds = { t = [0.0, 50.0] }
-
-[[formulations.down.domains]]
-basis = "physical"
 bounds = {}
+
+[[formulations.down.citations]]
+reference = "src"
+
+[[formulations.down.citations.domains]]
+bounds = { t = [0.0, 50.0] }
 
 [formulations.unsolvable]
 label = "SymPy finds no algorithm"
@@ -161,8 +167,10 @@ fixed_units = true
 output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
 inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
 
-[[formulations.unsolvable.domains]]
-basis = "stated"
+[[formulations.unsolvable.citations]]
+reference = "src"
+
+[[formulations.unsolvable.citations.domains]]
 bounds = { t = [0.5, 3.0] }
 
 [formulations.square]
@@ -172,8 +180,10 @@ fixed_units = true
 output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
 inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
 
-[[formulations.square.domains]]
-basis = "stated"
+[[formulations.square.citations]]
+reference = "src"
+
+[[formulations.square.citations.domains]]
 bounds = { t = [-5.0, -1.0] }
 
 [formulations.lambert]
@@ -183,8 +193,10 @@ fixed_units = true
 output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
 inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
 
-[[formulations.lambert.domains]]
-basis = "stated"
+[[formulations.lambert.citations]]
+reference = "src"
+
+[[formulations.lambert.citations.domains]]
 bounds = { t = [0.5, 3.0] }
 """
 TESTS = load_catalog([DECREASING]).formulations

@@ -44,18 +44,18 @@ note = "Read in the report version: Table II (formulas), Table III (errors)."
 label = "Magnus form, Alduchov and Eskridge (1996) AEKR coefficients"
 expression = "C * exp(A * t / (B + t))"
 fixed_units = true                        # coefficients only hold in these units
-references = ["alduchov_eskridge1996"]
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" },
 ]
 coefficients = { A = 17.625, B = 243.04, C = 6.1094 }
 
-[[formulations.alduchov_eskridge1996.domains]]
-basis = "stated"
+[[formulations.alduchov_eskridge1996.citations]]   # a source that gives the formula
+reference = "alduchov_eskridge1996"
+
+[[formulations.alduchov_eskridge1996.citations.domains]]   # stated by that source
 bounds = { t = [-40.0, 50.0] }
 criterion = "Maximum relative error 0.384 % against GG46, WE76 and SO90 (Table III)."
-reference = "alduchov_eskridge1996"
 ```
 
 ## Sections
@@ -65,7 +65,7 @@ All sections are optional; a key may be defined in one file only.
 | Section | Required fields | Optional fields |
 |---|---|---|
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
-| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `accuracy`, `references`, `note`, `matches` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches` |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
@@ -87,16 +87,46 @@ All sections are optional; a key may be defined in one file only.
   See [units of coefficients](#units-of-coefficients).
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
-- **`domains`**: `basis` (`physical` or `stated`), `bounds` (closed
-  intervals per input identifier, in the input's unit), `criterion` and
-  `reference`.
-- **Temperature scale**: a temperature input may carry
-  `temperature_scale` (`its90`, `ipts68`) and `scale_basis`: `stated`
-  (by the source), `inferred-from-date` (the scale in force at
-  publication; weak, scales took years to be applied) or
-  `inferred-from-numbers` (evidence given in the note).
+- **`domains`**: physical domains only: `bounds` (closed intervals per
+  input identifier, in the input's unit), and optionally `criterion` and
+  `reference`. A domain stated by a source belongs to its citation.
+- **`citations`**: the sources that give the formula; see
+  [citations](#citations).
+- **Temperature scale**: a scale stated by a source goes in its
+  citation. A temperature input may carry a scale nomogram infers:
+  `temperature_scale` (`its90`, `ipts68`) with `scale_basis`
+  `inferred-from-date` (the scale in force at publication; weak, scales
+  took years to be applied) or `inferred-from-numbers` (evidence given
+  in the note).
 - Every declared identifier must be used by the expression, and every
   identifier of the expression must be declared.
+
+### Citations
+
+A formula is written once; each source that gives it is a citation, a
+table of `[[formulations.<key>.citations]]`, with what that source
+states:
+
+- `reference` (required): key of a `[references]` entry;
+- `equation`: the equation number in the source, as printed;
+- `notation`: the symbols the source uses, coefficients included, as a
+  table identifier to LaTeX (`{ C = "a", A = "b" }`), or the key of a
+  `[notations]` convention (`"wmo"`);
+- `units`: units the source states for coefficients
+  (`{ T_c = "K", p_c = "PA" }`);
+- `scales`: temperature scales the source states for inputs
+  (`{ T = "its90" }`);
+- `accuracy`: the accuracy the source claims, as stated;
+- `note`;
+- `domains`: validity domains the source states, as
+  `[[formulations.<key>.citations.domains]]` tables with `bounds` and
+  `criterion`.
+
+A source cited for a domain or a unit must be one of the citations: the
+link is never implicit. **By default, domains of different citations
+combine by union** (a value is inside if one source says so); the
+domains of one citation apply together, and physical domains always
+apply.
 
 ### Quantity kinds and units
 
@@ -131,11 +161,12 @@ of t, A is a pure number and C takes the unit of the result: none needs
 declaring, and the legend shows them as inferred by nomogram.
 
 - **Declare a unit only when the source states it, or when the
-  expression does not determine it.** A declared unit says where it
-  comes from: `unit_basis = "stated"` if the source gives it (read in the
-  source, as for any `verified` detail), `"added"` if you add it while
-  writing the entry, with a `note` saying why. A unit the expression
-  determines is not added: inference gives it.
+  expression does not determine it.** A unit the source gives (read in
+  the source, as for any `verified` detail) goes in that source's
+  citation: `units = { T_c = "K" }`. A unit you add while writing the
+  entry is declared on the coefficient, with `unit_basis = "added"` and a
+  `note` saying why. A unit the expression determines is not added:
+  inference gives it.
 - **An incomplete formulation is refused.** If the expression does not
   determine a unit (two coefficients tied only by their product, a
   pressure read inside a logarithm), the load stops and says which; add

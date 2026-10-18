@@ -96,12 +96,15 @@ class CoefficientUnit:
         or inferred from the expression; ``None`` without a unit.
     reason : str or None
         For an inferred unit, the part of the expression it follows from.
+    citation : str or None
+        For a stated unit, the key of the source that states it.
     """
 
     identifier: str
     unit: Any
     origin: Literal["stated", "added", "inferred"] | None
     reason: str | None
+    citation: str | None = None
 
 
 def _pint(key: str) -> Any:
@@ -444,7 +447,14 @@ def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
             )
         elif name in context.units:
             origin = "inferred"
+        citation = next(
+            (c.reference for c in formulation.citations if name in c.units), None
+        )
         result[name] = CoefficientUnit(
-            name, context.units.get(name), origin, context.reasons.get(name)
+            name,
+            context.units.get(name),
+            origin,
+            context.reasons.get(name),
+            citation if origin == "stated" else None,
         )
     return MappingProxyType(result)
