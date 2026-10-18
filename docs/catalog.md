@@ -70,7 +70,7 @@ All sections are optional; a key may be defined in one file only.
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches` |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
-| `[temperature_scales.<key>]` | `label` | `differences` (`[t90, t90 - t]` pairs), `reference` |
+| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference` |
 
 ### Formulations
 
@@ -92,12 +92,13 @@ All sections are optional; a key may be defined in one file only.
   `reference`. A domain stated by a source belongs to its citation.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
-- **Temperature scale**: a scale stated by a source goes in its
-  citation. A temperature input may carry a scale nomogram infers:
-  `temperature_scale` (`its90`, `ipts68`) with `scale_basis`
-  `inferred-from-date` (the scale in force at publication; weak, scales
-  took years to be applied) or `inferred-from-numbers` (evidence given
-  in the note).
+- **Conventional scale** (VIM 1.29, such as the temperature scales
+  ITS-90 and IPTS-68): a scale stated by a source goes in its citation.
+  An input may carry a scale nomogram infers: `scale` (`its90`,
+  `ipts68`) with `scale_basis` `inferred-from-date` (the scale in force
+  at publication; weak, scales took years to be applied) or
+  `inferred-from-numbers` (evidence given in the note). The scale must
+  apply to the input's kind.
 - Every declared identifier must be used by the expression, and every
   identifier of the expression must be declared.
 
@@ -114,7 +115,7 @@ states:
   `[notations]` convention (`"wmo"`);
 - `units`: units the source states for coefficients
   (`{ T_c = "K", p_c = "PA" }`);
-- `scales`: temperature scales the source states for inputs
+- `scales`: conventional scales the source states for inputs
   (`{ T = "its90" }`);
 - `accuracy`: the accuracy the source claims, as stated;
 - `note`;
@@ -127,6 +128,26 @@ link is never implicit. **By default, domains of different citations
 combine by union** (a value is inside if one source says so); the
 domains of one citation apply together, and physical domains always
 apply.
+
+### Conventional scales
+
+A conventional reference scale (VIM 1.29) is a quantity-value scale
+defined by formal agreement; the international temperature scales are
+the first examples. Each applies to quantity kinds (`kinds`); each kind
+has one reference scale, on which inputs are taken and results given
+(`its90` for temperatures). Another scale of the same kinds names its
+reference (`reference_scale`) and gives the conversion as a table of
+`[reference value, reference value - value]` pairs, in a declared
+`unit`, values increasing:
+
+```toml
+[scales.ipts68]
+label = "International Practical Temperature Scale of 1968 (IPTS-68)"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference_scale = "its90"
+unit = "DEG_C"
+differences = [[-190.0, 0.008], [-180.0, 0.008]]   # extract of Table 6 of the ITS-90 text
+```
 
 ### Quantity kinds and units
 

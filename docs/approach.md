@@ -106,7 +106,10 @@ formulations agree, where they drift, and where they stop.
   formulation records its scale and how that is known: stated by the
   source, inferred from the publication date only (weak: ITS-90 itself
   took years to be applied), or inferred from numbers. Inputs and
-  results are on ITS-90; conversions are done by default.
+  results are on ITS-90; conversions are done by default. Temperature
+  scales are the first conventional reference scales (VIM 1.29) of the
+  catalog; the same mechanism will serve other quantities defined by
+  agreement (salinity, heights, time scales...).
 
 The last category came from the data itself: the Hyland and Wexler
 coefficients published in 1983 (the IPTS-68 era), as given today by

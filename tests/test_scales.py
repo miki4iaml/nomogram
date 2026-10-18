@@ -15,7 +15,7 @@ from nomogram.units import Q_
 
 CATALOG = catalog()
 FORMULATIONS = CATALOG.formulations
-IPTS68 = CATALOG.temperature_scales["ipts68"]
+IPTS68 = CATALOG.scales["ipts68"]
 IAPWS = FORMULATIONS["iapws_sr1_86"]
 BOLTON = FORMULATIONS["bolton1980"]
 
@@ -25,36 +25,36 @@ BOLTON = FORMULATIONS["bolton1980"]
     # Table 6 of the ITS-90 text: t90 - t68 = -0.005, -0.026, +0.008 K.
     [(20.0, 20.005), (100.0, 100.026), (-40.0, -40.008), (0.0, 0.0)],
 )
-def test_ipts68_from_its90_follows_table_6(t90: float, t68: float) -> None:
-    converted, outside = IPTS68.from_its90(t90)
+def test_ipts68_from_reference_follows_table_6(t90: float, t68: float) -> None:
+    converted, outside = IPTS68.from_reference(t90)
     assert float(converted) == pytest.approx(t68, abs=1e-9)
     assert not outside
 
 
 def test_beyond_the_table_is_nan_and_flagged() -> None:
-    converted, outside = IPTS68.from_its90(np.array([20.0, 500.0]))
+    converted, outside = IPTS68.from_reference(np.array([20.0, 500.0]))
     assert math.isnan(converted[1])
     assert outside.tolist() == [False, True]
 
 
 def test_its90_is_the_identity() -> None:
-    converted, outside = CATALOG.temperature_scales["its90"].from_its90([12.3])
+    converted, outside = CATALOG.scales["its90"].from_reference([12.3])
     assert converted.tolist() == [12.3]
     assert not outside.any()
 
 
 def test_scales_of_formulations_and_how_they_are_known() -> None:
-    assert IAPWS.inputs[0].temperature_scale is not None
-    assert IAPWS.inputs[0].temperature_scale.key == "its90"
+    assert IAPWS.inputs[0].scale is not None
+    assert IAPWS.inputs[0].scale.key == "its90"
     assert IAPWS.inputs[0].scale_basis is ScaleBasis.STATED
-    assert BOLTON.inputs[0].temperature_scale is IPTS68
+    assert BOLTON.inputs[0].scale is IPTS68
     assert BOLTON.inputs[0].scale_basis is ScaleBasis.INFERRED_FROM_DATE
     # Fitted to formulations on several scales: none assigned.
-    assert FORMULATIONS["alduchov_eskridge1996"].inputs[0].temperature_scale is None
+    assert FORMULATIONS["alduchov_eskridge1996"].inputs[0].scale is None
     # Coefficients transmitted by ASHRAE 2017 behave as ITS-90.
     hyland_wexler = FORMULATIONS["hyland_wexler1983"].inputs[0]
-    assert hyland_wexler.temperature_scale is not None
-    assert hyland_wexler.temperature_scale.key == "its90"
+    assert hyland_wexler.scale is not None
+    assert hyland_wexler.scale.key == "its90"
     assert hyland_wexler.scale_basis is ScaleBasis.INFERRED_FROM_NUMBERS
     assert "0.022 %" in (FORMULATIONS["hyland_wexler1983"].note or "")
 
@@ -99,8 +99,15 @@ authors = "Author, A."
 title = "A title"
 status = "verified"
 
-[temperature_scales.s]
+[scales.ref]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.s]
 label = "Test scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "ref"
+unit = "DEG_C"
 differences = {differences}
 
 [formulations.f]
@@ -119,10 +126,9 @@ GOOD_VARIABLE = (
 def test_valid_scale_document() -> None:
     document = SCALES.format(
         differences="[[0.0, 0.0], [10.0, -0.1]]",
-        variable=GOOD_VARIABLE
-        + ', temperature_scale = "s", scale_basis = "inferred-from-date"',
+        variable=GOOD_VARIABLE + ', scale = "s", scale_basis = "inferred-from-date"',
     )
-    scale = load_catalog([document]).formulations["f"].inputs[0].temperature_scale
+    scale = load_catalog([document]).formulations["f"].inputs[0].scale
     assert scale is not None
     assert scale.difference == (0.0, -0.1)
 
@@ -133,12 +139,12 @@ def test_a_stated_scale_comes_from_a_citation() -> None:
         '\n[[formulations.f.citations]]\nreference = "src"\nscales = { t = "s" }\n'
     )
     variable = load_catalog([document]).formulations["f"].inputs[0]
-    assert variable.temperature_scale is not None
-    assert variable.temperature_scale.key == "s"
+    assert variable.scale is not None
+    assert variable.scale.key == "s"
     assert variable.scale_basis is ScaleBasis.STATED
     in_the_input = SCALES.format(
         differences="[[0.0, 0.0]]",
-        variable=GOOD_VARIABLE + ', temperature_scale = "s", scale_basis = "stated"',
+        variable=GOOD_VARIABLE + ', scale = "s", scale_basis = "stated"',
     )
     with pytest.raises(CatalogError, match="goes in its citation"):
         load_catalog([in_the_input])
@@ -147,26 +153,27 @@ def test_a_stated_scale_comes_from_a_citation() -> None:
 @pytest.mark.parametrize(
     ("differences", "variable", "message"),
     [
-        ("[[0.0, 0.0]]", GOOD_VARIABLE + ', temperature_scale = "s"', "go together"),
+        ("[[0.0, 0.0]]", GOOD_VARIABLE + ', scale = "s"', "go together"),
         (
             "[[0.0, 0.0]]",
-            GOOD_VARIABLE
-            + ', temperature_scale = "x", scale_basis = "inferred-from-date"',
+            GOOD_VARIABLE + ', scale = "x", scale_basis = "inferred-from-date"',
             "unknown scale 'x'",
         ),
         (
             "[[0.0, 0.0]]",
-            GOOD_VARIABLE + ', temperature_scale = "s", scale_basis = "guessed"',
+            GOOD_VARIABLE + ', scale = "s", scale_basis = "guessed"',
             "is not one of stated, inferred-from-date, inferred-from-numbers",
         ),
         (
             "[[0.0, 0.0]]",
-            GOOD_VARIABLE.replace("DEG_C", "DEG_F")
-            + ', temperature_scale = "s", scale_basis = "inferred-from-date"',
-            "needs a temperature in K or DEG_C",
+            GOOD_VARIABLE.replace(
+                "CelsiusTemperature", "ThermodynamicTemperature"
+            ).replace("DEG_C", "K")
+            + ', scale = "s", scale_basis = "inferred-from-date"',
+            "scale s does not apply to ThermodynamicTemperature",
         ),
-        ("[[10.0, 0.0], [0.0, 0.0]]", GOOD_VARIABLE, "t90 must increase"),
-        ("[[10.0]]", GOOD_VARIABLE, "expected \\[t90, t90 - t\\] pairs"),
+        ("[[10.0, 0.0], [0.0, 0.0]]", GOOD_VARIABLE, "reference values must increase"),
+        ("[[10.0]]", GOOD_VARIABLE, "expected \\[reference value"),
     ],
 )
 def test_invalid_scales_are_refused(
@@ -182,7 +189,80 @@ def test_a_scale_needs_a_temperature() -> None:
     document = document.replace(
         "inputs = [{ " + GOOD_VARIABLE + " }]",
         'inputs = [{ identifier = "t", kind = "VapourPressure", unit = "PA", '
-        'description = "in", temperature_scale = "s", scale_basis = "inferred-from-date" }]',
+        'description = "in", scale = "s", scale_basis = "inferred-from-date" }]',
     )
-    with pytest.raises(CatalogError, match="needs a temperature"):
+    with pytest.raises(CatalogError, match="scale s does not apply to VapourPressure"):
         load_catalog([document])
+
+
+TABLE = """
+[scales.ref]
+label = "Reference"
+kinds = ["CelsiusTemperature", "VapourPressure"]
+
+[scales.p]
+label = "Derived for pressures"
+kinds = ["VapourPressure"]
+reference_scale = "ref"
+unit = "DEG_C"
+differences = [[0.0, 0.0], [10.0, 0.1]]
+"""
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        ('[scales.x]\nlabel = "X"\nkinds = []\n', "at least one quantity kind"),
+        ('[scales.x]\nlabel = "X"\nkinds = ["Nope"]\n', "unknown kind"),
+        (
+            '[scales.x]\nlabel = "X"\nkinds = ["CelsiusTemperature"]\n',
+            "CelsiusTemperature already has a reference scale, ref",
+        ),
+        (
+            '[scales.x]\nlabel = "X"\nkinds = ["Pressure"]\nunit = "K"\n',
+            "a reference scale has no conversion table",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["CelsiusTemperature"]\n'
+                'reference_scale = "p"\nunit = "DEG_C"\ndifferences = [[0.0, 0.0]]\n'
+            ),
+            "'p' is not a reference scale",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["Pressure"]\nreference_scale = "ref"\n'
+                'unit = "DEG_C"\ndifferences = [[0.0, 0.0]]\n'
+            ),
+            "Pressure not covered by ref",
+        ),
+        (
+            '[scales.x]\nlabel = "X"\nkinds = ["CelsiusTemperature"]\nreference_scale = "ref"\n',
+            "a derived scale needs a unit and differences",
+        ),
+    ],
+)
+def test_invalid_scale_tables_are_refused(extra: str, message: str) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([TABLE + extra])
+
+
+def test_a_scale_needs_a_convertible_unit() -> None:
+    document = TABLE + (
+        '\n[formulations.f]\nlabel = "F"\nexpression = "2 * p"\nfixed_units = true\n'
+        'output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", '
+        'description = "out" }\n'
+        'inputs = [{ identifier = "p", kind = "VapourPressure", unit = "PA", '
+        'description = "in", scale = "p", scale_basis = "inferred-from-date" }]\n'
+    )
+    with pytest.raises(CatalogError, match="PA cannot be converted to DEG_C"):
+        load_catalog([document])
+
+
+def test_conventional_scales_follow_the_vim() -> None:
+    its90, ipts68 = CATALOG.scales["its90"], CATALOG.scales["ipts68"]
+    assert its90.is_reference
+    assert not ipts68.is_reference
+    assert ipts68.reference_scale == "its90"
+    assert ipts68.unit == "DEG_C"
+    assert set(ipts68.kinds) <= set(its90.kinds)

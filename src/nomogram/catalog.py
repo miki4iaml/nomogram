@@ -37,6 +37,7 @@ from nomogram.expression import LATEX_COMMANDS, ExpressionError, latex_commands
 from nomogram.model import (
     Citation,
     Coefficient,
+    ConventionalScale,
     DomainBasis,
     Formulation,
     Notation,
@@ -44,7 +45,6 @@ from nomogram.model import (
     Reference,
     ReferenceStatus,
     ScaleBasis,
-    TemperatureScale,
     TradeMeaning,
     TradeTerm,
     UnitBasis,
@@ -66,15 +66,9 @@ _SECTIONS = (
     "constants",
     "notations",
     "trade_terms",
-    "temperature_scales",
+    "scales",
     "formulations",
 )
-
-#: Kinds that may carry a temperature scale, and the units allowed for them.
-_SCALED_KINDS = frozenset(
-    {"ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"}
-)
-_SCALED_UNITS = frozenset({"K", "DEG_C"})
 
 
 class CatalogError(ValueError):
@@ -99,7 +93,7 @@ class Catalog:
         By key.
     trade_terms : mapping of str to TradeTerm
         By key.
-    temperature_scales : mapping of str to TemperatureScale
+    scales : mapping of str to ConventionalScale
         By key.
     """
 
@@ -109,7 +103,7 @@ class Catalog:
     constants: Mapping[str, PhysicalConstant]
     notations: Mapping[str, Notation]
     trade_terms: Mapping[str, TradeTerm]
-    temperature_scales: Mapping[str, TemperatureScale]
+    scales: Mapping[str, ConventionalScale]
 
     def formulations_of(self, kind: str) -> tuple[Formulation, ...]:
         """The alternative formulations computing a quantity kind."""
@@ -196,13 +190,13 @@ def _stated_scales(
         if len(stated) > 1:
             msg = f"{where}: citations state different scales for {variable.identifier}"
             raise CatalogError(msg)
-        if stated and variable.temperature_scale is not None:
+        if stated and variable.scale is not None:
             msg = f"{where}: the scale of {variable.identifier} is both inferred and stated"
             raise CatalogError(msg)
         if stated:
             (scale,) = stated.values()
             variable = dataclasses.replace(
-                variable, temperature_scale=scale, scale_basis=ScaleBasis.STATED
+                variable, scale=scale, scale_basis=ScaleBasis.STATED
             )
         result.append(variable)
     return tuple(result)
@@ -227,7 +221,7 @@ class _Builder:
         self.kinds: dict[str, QuantityKind] = dict(self.semantics.quantity_kinds)
         self.references: dict[str, Reference] = {}
         self.constants: dict[str, PhysicalConstant] = {}
-        self.scales: dict[str, TemperatureScale] = {}
+        self.scales: dict[str, ConventionalScale] = {}
         self.notations: dict[str, Notation] = {}
 
     def reference(self, where: str, key: Any) -> str:
@@ -358,48 +352,114 @@ class _Builder:
         return self.kinds[name]
 
     def build_scales(self) -> None:
-        for key, table in self.data["temperature_scales"].items():
-            where = f"temperature_scales.{key}"
-            f = _fields(where, table, ("label",), ("differences", "reference"))
-            pairs = [tuple(float(x) for x in row) for row in f["differences"] or ()]
-            if any(len(row) != 2 for row in pairs):
-                msg = f"{where}.differences: expected [t90, t90 - t] pairs"
+        tables = self.data["scales"]
+        # Reference scales first: derived scales refer to them.
+        order = sorted(tables, key=lambda k: "reference_scale" in tables[k])
+        reference_of: dict[str, str] = {}
+        for key in order:
+            where = f"scales.{key}"
+            f = _fields(
+                where,
+                tables[key],
+                ("label", "kinds"),
+                ("reference_scale", "unit", "differences", "reference"),
+            )
+            kinds = tuple(self.kind(f"{where}.kinds", k).name for k in f["kinds"])
+            if not kinds:
+                msg = f"{where}.kinds: at least one quantity kind"
                 raise CatalogError(msg)
-            t90 = tuple(row[0] for row in pairs)
-            if any(b <= a for a, b in pairwise(t90)):
-                msg = f"{where}.differences: t90 must increase"
-                raise CatalogError(msg)
-            self.scales[key] = TemperatureScale(
+            parent = f["reference_scale"]
+            points: tuple[float, ...] = ()
+            difference: tuple[float, ...] = ()
+            unit = None
+            if parent is None:
+                if f["differences"] is not None or f["unit"] is not None:
+                    msg = f"{where}: a reference scale has no conversion table"
+                    raise CatalogError(msg)
+                for kind in kinds:
+                    if kind in reference_of:
+                        msg = (
+                            f"{where}: {kind} already has a reference scale, "
+                            f"{reference_of[kind]}"
+                        )
+                        raise CatalogError(msg)
+                    reference_of[kind] = key
+            else:
+                base = self.scales.get(parent)
+                if base is None or not base.is_reference:
+                    msg = (
+                        f"{where}.reference_scale: {parent!r} is not a reference scale"
+                    )
+                    raise CatalogError(msg)
+                outside = sorted(set(kinds) - set(base.kinds))
+                if outside:
+                    msg = f"{where}.kinds: {', '.join(outside)} not covered by {parent}"
+                    raise CatalogError(msg)
+                if f["unit"] is None or not f["differences"]:
+                    msg = f"{where}: a derived scale needs a unit and differences"
+                    raise CatalogError(msg)
+                unit = self.unit(f"{where}.unit", f["unit"])
+                pairs = [tuple(float(x) for x in row) for row in f["differences"]]
+                if any(len(row) != 2 for row in pairs):
+                    msg = (
+                        f"{where}.differences: expected [reference value, "
+                        "reference value - value] pairs"
+                    )
+                    raise CatalogError(msg)
+                points = tuple(row[0] for row in pairs)
+                if any(b <= a for a, b in pairwise(points)):
+                    msg = f"{where}.differences: reference values must increase"
+                    raise CatalogError(msg)
+                difference = tuple(row[1] for row in pairs)
+            self.scales[key] = ConventionalScale(
                 key=key,
                 label=f["label"],
-                t90=t90,
-                difference=tuple(row[1] for row in pairs),
+                kinds=kinds,
+                reference_scale=parent,
+                unit=unit,
+                points=points,
+                difference=difference,
                 reference=self.optional_reference(f"{where}.reference", f["reference"]),
             )
+
+    def check_scale(
+        self, where: str, variable: Variable, key: Any
+    ) -> ConventionalScale:
+        """The scale ``key`` for a variable, if it applies to its kind and unit."""
+        scale = self.scales.get(key)
+        if scale is None:
+            msg = f"{where}: unknown scale {key!r}"
+            raise CatalogError(msg)
+        if variable.kind not in scale.kinds:
+            msg = f"{where}: scale {key} does not apply to {variable.kind}"
+            raise CatalogError(msg)
+        if scale.unit is not None:
+            units = self.semantics.units
+            ours = units[variable.unit].dimension_vector
+            if ours != units[scale.unit].dimension_vector:
+                msg = f"{where}: {variable.unit} cannot be converted to {scale.unit}"
+                raise CatalogError(msg)
+        return scale
 
     def variable(self, where: str, table: Any) -> Variable:
         f = _fields(
             where,
             table,
             ("identifier", "kind", "unit", "description"),
-            ("temperature_scale", "scale_basis"),
+            ("scale", "scale_basis"),
         )
         kind = self.kind(f"{where}.kind", f["kind"])
         unit = self.unit(f"{where}.unit", f["unit"])
         if unit not in kind.applicable_units:
             msg = f"{where}.unit: {unit} does not apply to {kind.name}"
             raise CatalogError(msg)
-        scale, basis = f["temperature_scale"], f["scale_basis"]
+        scale, basis = f["scale"], f["scale_basis"]
         if (scale is None) != (basis is None):
-            msg = f"{where}: temperature_scale and scale_basis go together"
+            msg = f"{where}: scale and scale_basis go together"
             raise CatalogError(msg)
         if scale is not None:
-            if kind.name not in _SCALED_KINDS or unit not in _SCALED_UNITS:
-                msg = f"{where}: a temperature scale needs a temperature in K or DEG_C"
-                raise CatalogError(msg)
-            if scale not in self.scales:
-                msg = f"{where}.temperature_scale: unknown scale {scale!r}"
-                raise CatalogError(msg)
+            plain = Variable(f["identifier"], kind.name, unit, f["description"])
+            found = self.check_scale(f"{where}.scale", plain, scale)
             basis = _enum(f"{where}.scale_basis", ScaleBasis, basis)
             if basis is ScaleBasis.STATED:
                 msg = (
@@ -412,7 +472,7 @@ class _Builder:
                 kind.name,
                 unit,
                 f["description"],
-                self.scales[scale],
+                found,
                 basis,
             )
         return Variable(f["identifier"], kind.name, unit, f["description"])
@@ -547,16 +607,9 @@ class _Builder:
                 if variable is None:
                     msg = f"{w}.scales: {identifier!r} is not an input"
                     raise CatalogError(msg)
-                if (
-                    variable.kind not in _SCALED_KINDS
-                    or variable.unit not in _SCALED_UNITS
-                ):
-                    msg = f"{w}.scales.{identifier}: a temperature scale needs a temperature in K or DEG_C"
-                    raise CatalogError(msg)
-                if scale not in self.scales:
-                    msg = f"{w}.scales.{identifier}: unknown scale {scale!r}"
-                    raise CatalogError(msg)
-                scales[identifier] = self.scales[scale]
+                scales[identifier] = self.check_scale(
+                    f"{w}.scales.{identifier}", variable, scale
+                )
             result.append(
                 Citation(
                     reference=reference,
@@ -707,7 +760,7 @@ class _Builder:
             constants=MappingProxyType(self.constants),
             notations=MappingProxyType(self.notations),
             trade_terms=MappingProxyType(trade_terms),
-            temperature_scales=MappingProxyType(self.scales),
+            scales=MappingProxyType(self.scales),
         )
 
 
@@ -719,7 +772,7 @@ def load_catalog(sources: Iterable[str]) -> Catalog:
     sources : iterable of str
         TOML documents with the sections ``kinds``, ``references``,
         ``constants``, ``notations``, ``trade_terms``,
-        ``temperature_scales`` and ``formulations`` (all optional).
+        ``scales`` and ``formulations`` (all optional).
 
     Returns
     -------

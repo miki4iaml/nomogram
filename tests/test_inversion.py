@@ -98,7 +98,7 @@ def test_validity_domain_is_carried_through_the_function() -> None:
 def test_scale_of_the_source_is_kept_and_undone() -> None:
     bolton = FORMULATIONS["bolton1980"]  # IPTS-68, inferred from the date
     inverse = dew_point(bolton)
-    assert inverse.output.temperature_scale is bolton.inputs[0].temperature_scale
+    assert inverse.output.scale is bolton.inputs[0].scale
     numerical = dew_point(bolton, method="numerical")
     vapour = bolton.evaluate(t=Q_(20, "degC"))
     for candidate in (inverse, numerical):
@@ -290,8 +290,8 @@ def test_numerical_inverse_composes() -> None:
 
 
 def test_its90_back_conversion_is_the_identity() -> None:
-    its90 = CATALOG.temperature_scales["its90"]
-    assert its90.to_its90([12.3]).tolist() == [12.3]
+    its90 = CATALOG.scales["its90"]
+    assert its90.to_reference([12.3]).tolist() == [12.3]
 
 
 def test_only_domains_bounding_the_unknown_are_carried() -> None:
