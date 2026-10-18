@@ -14,8 +14,11 @@ terms, misattributions).
 
 ## 1. Sources are read, not assumed
 
-Every formulation cites its sources, and every reference carries a
-status:
+A formulation is written once; each source that gives it is a
+**citation**, which records what that source states: its equation
+number, its symbols, the units and the validity domain it gives, the
+accuracy it claims, the temperature scale. A detail never floats free of
+its source. Every reference carries a status:
 
 - **`verified`**: the detail was read in the source itself (an equation,
   a coefficient, a validity range, a table);

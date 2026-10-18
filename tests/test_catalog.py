@@ -23,7 +23,7 @@ status = "verified"
 label = "Test formulation"
 expression = "a * t"
 fixed_units = true
-references = ["src"]
+citations = [{ reference = "src" }]
 output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }
 inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
 coefficients = { a = 2.0 }
@@ -121,7 +121,7 @@ def replace(old: str, new: str) -> str:
             replace('expression = "a * t"', 'expression = "t"'),
             "declared but not used: a",
         ),
-        (replace('references = ["src"]', 'references = ["nope"]'), "unknown reference"),
+        (replace('reference = "src"', 'reference = "nope"'), "unknown reference"),
         (replace('unit = "HectoPA"', 'unit = "NOPE"'), "unknown unit"),
         (
             replace('unit = "DEG_C"', 'unit = "K"'),
@@ -153,23 +153,23 @@ def test_entry_defined_twice_is_refused() -> None:
 
 DOMAIN = """
 [[formulations.f.domains]]
-basis = "{basis}"
-bounds = {{ {name} = [{low}, {high}] }}
+{extra}bounds = {{ {name} = [{low}, {high}] }}
 """
 
 
 @pytest.mark.parametrize(
-    ("basis", "name", "low", "high", "message"),
+    ("extra", "name", "low", "high", "message"),
     [
-        ("stated", "x", 0, 1, "'x' is not an input"),
-        ("stated", "t", 1, 0, "empty interval"),
-        ("guessed", "t", 0, 1, "is not one of physical, stated"),
+        ("", "x", 0, 1, "'x' is not an input"),
+        ("", "t", 1, 0, "empty interval"),
+        # A domain stated by a source belongs to its citation.
+        ('basis = "stated"\n', "t", 0, 1, "unknown keys: basis"),
     ],
 )
 def test_invalid_domains_are_refused(
-    basis: str, name: str, low: float, high: float, message: str
+    extra: str, name: str, low: float, high: float, message: str
 ) -> None:
-    domain = DOMAIN.format(basis=basis, name=name, low=low, high=high)
+    domain = DOMAIN.format(extra=extra, name=name, low=low, high=high)
     with pytest.raises(CatalogError, match=message):
         load_catalog([VALID + domain])
 
@@ -229,7 +229,10 @@ def test_bad_matches_are_refused() -> None:
         ("a * b * t", "{ a = 2.0, b = 3.0 }", "does not determine the unit of a, b"),
         (
             "c * exp(a * t / (b + t))",
-            '{ a = 1.0, b = { value = 2.0, unit = "HectoPA", unit_basis = "stated" }, c = 3.0 }',
+            (
+                '{ a = 1.0, b = { value = 2.0, unit = "HectoPA", unit_basis = "added", '
+                'note = "x" }, c = 3.0 }'
+            ),
             r"units contradict the expression, in b \+ t",
         ),
     ],
@@ -300,7 +303,8 @@ def test_coefficient_with_unit_and_note() -> None:
 @pytest.mark.parametrize(
     ("table", "message"),
     [
-        ('{ value = 2.0, unit = "K" }', 'needs unit_basis: "stated" if the source'),
+        ('{ value = 2.0, unit = "K" }', 'needs unit_basis: "added" \\(with a note\\)'),
+        ('{ value = 2.0, unit = "K", unit_basis = "stated" }', "goes in its citation"),
         (
             '{ value = 2.0, unit = "K", unit_basis = "added" }',
             "added unit needs a note",

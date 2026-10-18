@@ -19,6 +19,7 @@ further kinds, each specializing a QUDT kind (see
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import tomllib
 from collections.abc import Iterable, Mapping
@@ -34,6 +35,7 @@ import pint
 from nomogram.dimensions import DimensionError
 from nomogram.expression import LATEX_COMMANDS, ExpressionError, latex_commands
 from nomogram.model import (
+    Citation,
     Coefficient,
     DomainBasis,
     Formulation,
@@ -153,6 +155,71 @@ def _matches(where: str, items: Any) -> tuple[ExternalMatch, ...]:
     return tuple(result)
 
 
+def _stated_units(
+    where: str, coefficients: tuple[Coefficient, ...], citations: tuple[Citation, ...]
+) -> tuple[Coefficient, ...]:
+    """Coefficients with the units their citations state."""
+    result = []
+    for coefficient in coefficients:
+        stated = {
+            c.units[coefficient.identifier]
+            for c in citations
+            if coefficient.identifier in c.units
+        }
+        if len(stated) > 1:
+            msg = (
+                f"{where}: citations state different units for {coefficient.identifier}"
+            )
+            raise CatalogError(msg)
+        if stated and coefficient.unit is not None:
+            msg = f"{where}: the unit of {coefficient.identifier} is both added and stated"
+            raise CatalogError(msg)
+        if stated:
+            coefficient = dataclasses.replace(
+                coefficient, unit=stated.pop(), unit_basis=UnitBasis.STATED
+            )
+        result.append(coefficient)
+    return tuple(result)
+
+
+def _stated_scales(
+    where: str, inputs: tuple[Variable, ...], citations: tuple[Citation, ...]
+) -> tuple[Variable, ...]:
+    """Inputs with the temperature scales their citations state."""
+    result = []
+    for variable in inputs:
+        stated = {
+            c.scales[variable.identifier].key: c.scales[variable.identifier]
+            for c in citations
+            if variable.identifier in c.scales
+        }
+        if len(stated) > 1:
+            msg = f"{where}: citations state different scales for {variable.identifier}"
+            raise CatalogError(msg)
+        if stated and variable.temperature_scale is not None:
+            msg = f"{where}: the scale of {variable.identifier} is both inferred and stated"
+            raise CatalogError(msg)
+        if stated:
+            (scale,) = stated.values()
+            variable = dataclasses.replace(
+                variable, temperature_scale=scale, scale_basis=ScaleBasis.STATED
+            )
+        result.append(variable)
+    return tuple(result)
+
+
+def _check_symbols(where: str, symbols: Any) -> None:
+    for identifier, tex in symbols.items():
+        unknown = latex_commands(tex) - LATEX_COMMANDS
+        if unknown:
+            msg = (
+                f"{where}.{identifier}: LaTeX commands outside the "
+                f"subset common to MathJax, KaTeX and mathtext: "
+                f"{', '.join(sorted(unknown))}"
+            )
+            raise CatalogError(msg)
+
+
 class _Builder:
     def __init__(self, data: dict[str, dict[str, Any]]) -> None:
         self.data = data
@@ -161,6 +228,7 @@ class _Builder:
         self.references: dict[str, Reference] = {}
         self.constants: dict[str, PhysicalConstant] = {}
         self.scales: dict[str, TemperatureScale] = {}
+        self.notations: dict[str, Notation] = {}
 
     def reference(self, where: str, key: Any) -> str:
         if key not in self.references:
@@ -251,15 +319,7 @@ class _Builder:
         for key, table in self.data["notations"].items():
             where = f"notations.{key}"
             f = _fields(where, table, ("label", "symbols"), ("reference",))
-            for identifier, tex in f["symbols"].items():
-                unknown = latex_commands(tex) - LATEX_COMMANDS
-                if unknown:
-                    msg = (
-                        f"{where}.symbols.{identifier}: LaTeX commands outside the "
-                        f"subset common to MathJax, KaTeX and mathtext: "
-                        f"{', '.join(sorted(unknown))}"
-                    )
-                    raise CatalogError(msg)
+            _check_symbols(f"{where}.symbols", f["symbols"])
             notations[key] = Notation(
                 key=key,
                 label=f["label"],
@@ -340,13 +400,20 @@ class _Builder:
             if scale not in self.scales:
                 msg = f"{where}.temperature_scale: unknown scale {scale!r}"
                 raise CatalogError(msg)
+            basis = _enum(f"{where}.scale_basis", ScaleBasis, basis)
+            if basis is ScaleBasis.STATED:
+                msg = (
+                    f"{where}: a scale stated by a source goes in its citation "
+                    f'(scales = {{ {f["identifier"]} = "{scale}" }})'
+                )
+                raise CatalogError(msg)
             return Variable(
                 f["identifier"],
                 kind.name,
                 unit,
                 f["description"],
                 self.scales[scale],
-                _enum(f"{where}.scale_basis", ScaleBasis, basis),
+                basis,
             )
         return Variable(f["identifier"], kind.name, unit, f["description"])
 
@@ -362,11 +429,18 @@ class _Builder:
                     if basis is None:
                         msg = (
                             f"{place}: a declared unit needs unit_basis: "
-                            '"stated" if the source gives it, "added" otherwise'
+                            '"added" (with a note) here; a unit stated by the '
+                            "source goes in its citation (units = { ... })"
                         )
                         raise CatalogError(msg)
                     basis = _enum(f"{place}.unit_basis", UnitBasis, basis)
-                    if basis is UnitBasis.ADDED and not f["note"]:
+                    if basis is UnitBasis.STATED:
+                        msg = (
+                            f"{place}: a unit stated by the source goes in its "
+                            f'citation (units = {{ {identifier} = "{unit}" }})'
+                        )
+                        raise CatalogError(msg)
+                    if not f["note"]:
                         msg = f"{place}: an added unit needs a note saying why"
                         raise CatalogError(msg)
                 elif basis is not None:
@@ -379,33 +453,150 @@ class _Builder:
                 result.append(Coefficient(identifier, float(value), None, None))
         return tuple(result)
 
-    def domains(
-        self, where: str, items: Any, inputs: tuple[Variable, ...]
-    ) -> tuple[ValidityDomain, ...]:
+    @staticmethod
+    def bounds(
+        where: str, table: Any, inputs: tuple[Variable, ...]
+    ) -> Mapping[str, tuple[float, float]]:
         names = {v.identifier for v in inputs}
+        bounds = {}
+        for identifier, interval in table.items():
+            if identifier not in names:
+                msg = f"{where}: {identifier!r} is not an input"
+                raise CatalogError(msg)
+            low, high = (float(x) for x in interval)
+            if not low < high:
+                msg = f"{where}.{identifier}: empty interval"
+                raise CatalogError(msg)
+            bounds[identifier] = (low, high)
+        return MappingProxyType(bounds)
+
+    def domains(
+        self,
+        where: str,
+        items: Any,
+        inputs: tuple[Variable, ...],
+        reference: str | None,
+    ) -> tuple[ValidityDomain, ...]:
+        """Physical domains (``reference`` None), or those a citation states."""
         result = []
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
-            f = _fields(w, item, ("basis", "bounds"), ("criterion", "reference"))
-            bounds = {}
-            for identifier, interval in f["bounds"].items():
-                if identifier not in names:
-                    msg = f"{w}.bounds: {identifier!r} is not an input"
-                    raise CatalogError(msg)
-                low, high = (float(x) for x in interval)
-                if not low < high:
-                    msg = f"{w}.bounds.{identifier}: empty interval"
-                    raise CatalogError(msg)
-                bounds[identifier] = (low, high)
+            optional = (
+                ("criterion", "reference") if reference is None else ("criterion",)
+            )
+            f = _fields(w, item, ("bounds",), optional)
             result.append(
                 ValidityDomain(
-                    basis=_enum(f"{w}.basis", DomainBasis, f["basis"]),
-                    bounds=MappingProxyType(bounds),
+                    basis=DomainBasis.PHYSICAL
+                    if reference is None
+                    else DomainBasis.STATED,
+                    bounds=self.bounds(f"{w}.bounds", f["bounds"], inputs),
                     criterion=f["criterion"],
-                    reference=self.optional_reference(f"{w}.reference", f["reference"]),
+                    reference=(
+                        reference
+                        if reference is not None
+                        else self.optional_reference(f"{w}.reference", f["reference"])
+                    ),
                 )
             )
         return tuple(result)
+
+    def citations(
+        self,
+        where: str,
+        items: Any,
+        formulation: str,
+        inputs: tuple[Variable, ...],
+        names: set[str],
+        coefficients: set[str],
+    ) -> tuple[Citation, ...]:
+        result = []
+        seen = set()
+        by_identifier = {v.identifier: v for v in inputs}
+        for i, item in enumerate(items or ()):
+            w = f"{where}[{i}]"
+            f = _fields(
+                w,
+                item,
+                ("reference",),
+                (
+                    "equation",
+                    "notation",
+                    "domains",
+                    "units",
+                    "scales",
+                    "accuracy",
+                    "note",
+                ),
+            )
+            reference = self.reference(f"{w}.reference", f["reference"])
+            equation = None if f["equation"] is None else str(f["equation"])
+            if (reference, equation) in seen:
+                msg = f"{w}: {reference} cited twice for the same equation"
+                raise CatalogError(msg)
+            seen.add((reference, equation))
+            units = {}
+            for identifier, unit in (f["units"] or {}).items():
+                if identifier not in coefficients:
+                    msg = f"{w}.units: {identifier!r} is not a coefficient"
+                    raise CatalogError(msg)
+                units[identifier] = self.unit(f"{w}.units.{identifier}", unit)
+            scales = {}
+            for identifier, scale in (f["scales"] or {}).items():
+                variable = by_identifier.get(identifier)
+                if variable is None:
+                    msg = f"{w}.scales: {identifier!r} is not an input"
+                    raise CatalogError(msg)
+                if (
+                    variable.kind not in _SCALED_KINDS
+                    or variable.unit not in _SCALED_UNITS
+                ):
+                    msg = f"{w}.scales.{identifier}: a temperature scale needs a temperature in K or DEG_C"
+                    raise CatalogError(msg)
+                if scale not in self.scales:
+                    msg = f"{w}.scales.{identifier}: unknown scale {scale!r}"
+                    raise CatalogError(msg)
+                scales[identifier] = self.scales[scale]
+            result.append(
+                Citation(
+                    reference=reference,
+                    equation=equation,
+                    notation=self.citation_notation(
+                        f"{w}.notation", f["notation"], formulation, reference, names
+                    ),
+                    domains=self.domains(
+                        f"{w}.domains", f["domains"], inputs, reference
+                    ),
+                    units=MappingProxyType(units),
+                    scales=MappingProxyType(scales),
+                    accuracy=f["accuracy"],
+                    note=f["note"],
+                )
+            )
+        return tuple(result)
+
+    def citation_notation(
+        self, where: str, value: Any, formulation: str, reference: str, names: set[str]
+    ) -> Notation | None:
+        """A convention of the catalog by key, or the source's own symbols."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            if value not in self.notations:
+                msg = f"{where}: unknown notation {value!r}"
+                raise CatalogError(msg)
+            return self.notations[value]
+        unknown = sorted(set(value) - names)
+        if unknown:
+            msg = f"{where}: not identifiers of the formulation: {', '.join(unknown)}"
+            raise CatalogError(msg)
+        _check_symbols(where, value)
+        return Notation(
+            key=f"{formulation}:{reference}",
+            label=f"Notation of {reference}",
+            symbols=MappingProxyType(dict(value)),
+            reference=reference,
+        )
 
     def formulation(self, key: str, table: Any) -> Formulation:
         where = f"formulations.{key}"
@@ -413,15 +604,7 @@ class _Builder:
             where,
             table,
             ("label", "expression", "fixed_units", "output", "inputs"),
-            (
-                "coefficients",
-                "constants",
-                "domains",
-                "accuracy",
-                "references",
-                "note",
-                "matches",
-            ),
+            ("coefficients", "constants", "domains", "citations", "note", "matches"),
         )
         output = self.variable(f"{where}.output", f["output"])
         inputs = tuple(
@@ -433,20 +616,34 @@ class _Builder:
                 msg = f"{where}.constants: unknown constant {name!r}"
                 raise CatalogError(msg)
             constants.append(self.constants[name])
+        coefficients = self.coefficients(f"{where}.coefficients", f["coefficients"])
+        names = (
+            {output.identifier}
+            | {v.identifier for v in inputs}
+            | {c.identifier for c in coefficients}
+            | {k.identifier for k in constants}
+        )
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            inputs,
+            names,
+            {c.identifier for c in coefficients},
+        )
         formulation = Formulation(
             key=key,
             label=f["label"],
             output=output,
-            inputs=inputs,
-            coefficients=self.coefficients(f"{where}.coefficients", f["coefficients"]),
+            inputs=_stated_scales(f"{where}.citations", inputs, citations),
+            coefficients=_stated_units(f"{where}.citations", coefficients, citations),
             constants=tuple(constants),
             expression=f["expression"],
             fixed_units=bool(f["fixed_units"]),
-            domains=self.domains(f"{where}.domains", f["domains"], inputs),
-            accuracy=f["accuracy"],
-            references=tuple(
-                self.reference(f"{where}.references", r) for r in f["references"] or ()
+            physical_domains=self.domains(
+                f"{where}.domains", f["domains"], inputs, None
             ),
+            citations=citations,
             note=f["note"],
             matches=_matches(where, f["matches"]),
         )
@@ -486,9 +683,9 @@ class _Builder:
         if undetermined:
             msg = (
                 f"{where}: the expression does not determine the unit of "
-                f"{', '.join(undetermined)}; declare it, with "
-                'unit_basis = "stated" if the source gives it, '
-                '"added" (and a note) otherwise'
+                f"{', '.join(undetermined)}; declare it: in the citation of "
+                "the source that gives it (units = { ... }), or on the "
+                'coefficient with unit_basis = "added" and a note'
             )
             raise CatalogError(msg)
 
@@ -497,7 +694,7 @@ class _Builder:
         self.build_references()
         self.build_constants()
         self.build_scales()
-        notations = self.build_notations()
+        self.notations = self.build_notations()
         trade_terms = self.build_trade_terms()
         formulations = {
             key: self.formulation(key, table)
@@ -508,7 +705,7 @@ class _Builder:
             formulations=MappingProxyType(formulations),
             references=MappingProxyType(self.references),
             constants=MappingProxyType(self.constants),
-            notations=MappingProxyType(notations),
+            notations=MappingProxyType(self.notations),
             trade_terms=MappingProxyType(trade_terms),
             temperature_scales=MappingProxyType(self.scales),
         )
