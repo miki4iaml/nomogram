@@ -111,7 +111,7 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
-| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches` |
+| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference` |
@@ -200,8 +200,13 @@ Kinds and units come from the bundled QUDT subset (see
 [rosetta.md](rosetta.md)): kinds such as `ThermodynamicTemperature`,
 `CelsiusTemperature`, `RelativeHumidity`, `VapourPressure`,
 `MassConcentrationOfWaterVapour`; units such as `K`, `DEG_C`, `PA`,
-`HectoPA`, `GM-PER-M3`, `PERCENT`. A kind missing from QUDT can be
-declared in `[kinds]` as a specialization of a QUDT kind. A missing
+`HectoPA`, `GM-PER-M3`, `PERCENT`, and for radio refractivity
+`RefractiveIndex`, `DimensionlessRatio` (units `UNITLESS`, `PERCENT`,
+`PPM`) and `Height` (`M`, `KiloM`). A kind missing from QUDT can be
+declared in `[kinds]` as a specialization of a QUDT kind; it takes the
+scale type of its parent unless `scale_type` says otherwise (a quantity
+with a conventional origin is on an interval scale even under a
+ratio-scale parent; it is then never a difference). A missing
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
 

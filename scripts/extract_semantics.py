@@ -110,6 +110,12 @@ KINDS: dict[str, KindSpec] = {
     # Kept although nomogram does not use it as a kind: the term is
     # ambiguous across trades (see docs/rosetta.md).
     "AbsoluteHumidity": KindSpec("ratio", delta=False),
+    # Radio refractivity (ITU-R P.453): the refractive index, the parent of
+    # the dimensionless kinds nomogram defines, and heights above the
+    # surface (CF: "the vertical distance above the surface").
+    "RefractiveIndex": KindSpec("ratio", delta=False),
+    "DimensionlessRatio": KindSpec("ratio", delta=False),
+    "Height": KindSpec("ratio", delta=False, cf_standard_names=("height",)),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -127,6 +133,16 @@ UNITS: dict[str, str] = {
     "PERCENT": "percent",
     "UNITLESS": "dimensionless",
     "J-PER-KiloGM-K": "J/(kg*K)",
+    "PPM": "ppm",
+    "M": "m",
+    "KiloM": "km",
+}
+
+#: Symbols nomogram displays instead of QUDT's, with the reason.
+SYMBOLS: dict[str, str] = {
+    # QUDT writes "PPM"; ITU-R P.453 writes "ppm" (its N_wet in ppm), as
+    # does UCUM ("[ppm]") in lower case.
+    "PPM": "ppm",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
@@ -237,7 +253,7 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
         units[name] = {
             "iri": str(subject),
             "label": _english_label(graph, subject),
-            "symbol": _value(graph, subject, QUDT.symbol),
+            "symbol": SYMBOLS.get(name, _value(graph, subject, QUDT.symbol)),
             "dimension_vector": _local(_value(graph, subject, QUDT.hasDimensionVector)),
             "multiplier": float(multiplier) if multiplier is not None else 1.0,
             "offset": float(offset) if offset is not None else 0.0,

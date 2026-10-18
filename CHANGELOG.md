@@ -10,6 +10,11 @@ and this project adheres to
 
 ### Added
 
+- Semantics for radio refractivity: QUDT kinds `RefractiveIndex`,
+  `DimensionlessRatio` and `Height` (CF `height`), units `PPM`
+  (displayed `ppm`, as ITU-R P.453 writes it), `M` and `KiloM`.
+- A kind declared in a catalog may set `scale_type` (`ratio`,
+  `interval`); it otherwise takes that of its parent.
 - Registry of verdicts (`src/nomogram/data/catalog/verifications.json`,
   generated): each verdict on a relation is filed under a SHA-256
   fingerprint of everything it depends on (relation, signatures of its

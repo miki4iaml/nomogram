@@ -70,6 +70,7 @@ from nomogram.semantics import (
     QuantityKind,
     semantic_catalog,
 )
+from nomogram.units import ScaleType
 
 __all__ = [
     "FORMAT",
@@ -336,7 +337,10 @@ class _Builder:
         for name, table in self.data["kinds"].items():
             where = f"kinds.{name}"
             f = _fields(
-                where, table, ("label", "specialization_of"), ("description", "matches")
+                where,
+                table,
+                ("label", "specialization_of"),
+                ("description", "matches", "scale_type"),
             )
             if name in self.kinds:
                 msg = f"{where}: already a QUDT kind"
@@ -345,6 +349,11 @@ class _Builder:
             if parent is None:
                 msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
                 raise CatalogError(msg)
+            # A kind may be on an interval scale under a ratio-scale parent:
+            # the modified refractivity M has a conventional origin.
+            scale_type = parent.scale_type
+            if f["scale_type"] is not None:
+                scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
             self.kinds[name] = QuantityKind(
                 name=name,
                 origin="nomogram",
@@ -352,8 +361,8 @@ class _Builder:
                 label=f["label"],
                 dimension_vector=parent.dimension_vector,
                 specialization_of=parent.name,
-                scale_type=parent.scale_type,
-                delta=parent.delta,
+                scale_type=scale_type,
+                delta=parent.delta and scale_type is ScaleType.RATIO,
                 cf_standard_names=(),
                 applicable_units=parent.applicable_units,
                 added_units=(),

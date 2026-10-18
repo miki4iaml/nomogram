@@ -280,6 +280,16 @@ def test_invalid_kinds_are_refused(name: str, parent: str, message: str) -> None
         load_catalog([KIND.format(name=name, parent=parent)])
 
 
+def test_a_local_kind_may_declare_an_interval_scale() -> None:
+    document = KIND.format(name="Modified", parent="DimensionlessRatio")
+    kind = load_catalog([document + 'scale_type = "interval"\n']).kinds["Modified"]
+    assert kind.scale_type.value == "interval"
+    assert kind.delta is False
+    assert load_catalog([document]).kinds["Modified"].scale_type.value == "ratio"
+    with pytest.raises(CatalogError, match="is not one of"):
+        load_catalog([document + 'scale_type = "ordinal"\n'])
+
+
 def test_table_expected() -> None:
     with pytest.raises(CatalogError, match="expected a table"):
         load_catalog(["[formulations]\nf = 1\n"])

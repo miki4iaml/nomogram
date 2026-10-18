@@ -76,6 +76,16 @@ def test_units_are_extracted_with_qudt_conversions() -> None:
     assert units["DEG_C"]["matches"] == []
 
 
+def test_symbols_declared_by_nomogram_replace_qudt_ones(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(extract_semantics, "SYMBOLS", {"K": "kelvin"})
+    units = run()["units"]
+    assert isinstance(units, dict)
+    assert units["K"]["symbol"] == "kelvin"
+    assert units["PA"]["symbol"] is None  # no symbol in the fixture
+
+
 def test_kinds_inherit_units_and_follow_the_scale_rule() -> None:
     kinds = run()["quantity_kinds"]
     assert isinstance(kinds, dict)
