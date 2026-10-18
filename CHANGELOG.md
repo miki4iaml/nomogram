@@ -17,7 +17,10 @@ and this project adheres to
   whether formulas are compared with scale conversion or as given.
   `nomogram.relations.verify` proves equivalences with SymPy (proven,
   refuted with a counterexample, or unproven) and checks approximations
-  on a dense grid (reproduced, held or exceeded); `Catalog.relations`.
+  on a grid refined around its best points (reproduced, held or
+  exceeded), inputs matched by identifier then by kind;
+  `Catalog.relations`. `docs/verification.md` says how far each verdict
+  goes: reliable with one to three inputs, an estimate beyond.
 - The maximum relative errors of Alduchov and Eskridge (1996, Table III)
   for five Magnus forms against GG46 (triple-point form) and SO90, and
   between GG46 and SO90: ten of twelve reproduced to the third decimal

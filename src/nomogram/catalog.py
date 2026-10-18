@@ -63,6 +63,7 @@ from nomogram.model import (
     ValidityDomain,
     Variable,
 )
+from nomogram.relations import match_inputs
 from nomogram.semantics import (
     ExternalMatch,
     MatchRelation,
@@ -841,6 +842,18 @@ class _Builder:
                 raise CatalogError(msg)
             at[identifier] = float(value)
         given = dict(f["given"] or {})
+        unfed = sorted(
+            v.identifier
+            for v in other.inputs
+            if v.identifier not in match_inputs(subject, other)
+            and v.identifier not in given
+        )
+        if unfed:
+            msg = (
+                f"{where}: inputs of {other.key} matching no input of "
+                f"{subject.key}: {', '.join(unfed)}"
+            )
+            raise CatalogError(msg)
         if kind is RelationKind.APPROXIMATES:
             if f["accuracy"] is None or set(bounds) != names:
                 msg = (

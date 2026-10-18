@@ -9,7 +9,7 @@ import pytest
 
 from nomogram.catalog import CatalogError, catalog, load_catalog
 from nomogram.model import Relation, RelationKind
-from nomogram.relations import Verdict, verify
+from nomogram.relations import Verdict, per_axis, verify
 
 CATALOG = catalog()
 
@@ -168,6 +168,7 @@ def test_an_equivalence_sympy_cannot_settle_stays_unproven() -> None:
     ("subject", "other", "extra", "message"),
     [
         ("nope", "eq2", "", "unknown formulation 'nope'"),
+        ("eq6", "logs", "", "inputs of logs matching no input of eq6: x, y"),
         ("eq6", "eq2", 'given = { x = "P" }', "'x' is not an input of eq2"),
         ("eq6", "eq2", 'given = { P_d = "P - q" }', "given.P_d"),
         ("eq6", "eq2", "accuracy = 0.1", "accuracy: only for an approximation"),
@@ -253,3 +254,57 @@ def test_a_relation_belongs_to_a_family_requiring_its_formulations() -> None:
         load_catalog([formulas, claims])
     fixed = claims.replace("requires = []", 'requires = ["formulas"]')
     assert load_catalog([formulas, fixed]).relations["r"].subject == "eq6"
+
+
+PEAK = """
+[references.src]
+authors = "Author, A."
+title = "A title"
+status = "verified"
+
+[formulations.plane]
+label = "A plane"
+expression = "x + y + z + 3"
+fixed_units = true
+output = { identifier = "w", kind = "RelativeHumidity", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "x", kind = "RelativeHumidity", unit = "UNITLESS", description = "x" },
+  { identifier = "y", kind = "RelativeHumidity", unit = "UNITLESS", description = "y" },
+  { identifier = "z", kind = "RelativeHumidity", unit = "UNITLESS", description = "z" },
+]
+
+[formulations.peak]
+label = "The plane with a narrow bump of 1 %"
+expression = "(x + y + z + 3) * (1 + 0.01 * exp(-((x - 0.3) ** 2 + (y - 0.6) ** 2 + (z - 0.45) ** 2) / 0.002))"
+fixed_units = true
+output = { identifier = "w", kind = "RelativeHumidity", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "x", kind = "RelativeHumidity", unit = "UNITLESS", description = "x" },
+  { identifier = "y", kind = "RelativeHumidity", unit = "UNITLESS", description = "y" },
+  { identifier = "z", kind = "RelativeHumidity", unit = "UNITLESS", description = "z" },
+]
+
+[relations.bump]
+kind = "approximates"
+subject = "peak"
+object = "plane"
+citation = "src"
+accuracy = 1.0
+bounds = { x = [0.0, 1.0], y = [0.0, 1.0], z = [0.0, 1.0] }
+"""
+
+
+def test_refinement_finds_an_interior_maximum_in_three_variables() -> None:
+    loaded = load_catalog([PEAK])
+    verdict = verify(loaded.relations["bump"], loaded)
+    # The grid alone (58 points per axis) peaks near 0.9 %; the refinement
+    # reaches the maximum itself.
+    assert verdict.value == pytest.approx(1.0, abs=1e-6)
+    assert dict(verdict.at) == pytest.approx({"x": 0.3, "y": 0.6, "z": 0.45}, abs=1e-4)
+    assert verdict.status == "reproduced"
+    assert "grid of 58 points per axis (3 input(s))" in verdict.method
+
+
+def test_points_per_axis_follow_the_number_of_inputs() -> None:
+    assert [per_axis(d) for d in range(1, 8)] == [9001, 447, 58, 21, 11, 7, 5]
+    assert per_axis(1, budget=101) == 101
