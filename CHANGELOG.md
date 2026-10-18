@@ -58,6 +58,15 @@ and this project adheres to
 
 ### Changed
 
+- Conventional reference scales (VIM 1.29): `TemperatureScale` becomes
+  `ConventionalScale`, for any quantity kinds, with one reference scale
+  per kind (ITS-90 for temperatures) and a conversion table to it
+  (`from_reference`, `to_reference` replace `from_its90`, `to_its90`).
+  `Variable.scale` replaces `Variable.temperature_scale` and
+  `Catalog.scales` replaces `Catalog.temperature_scales`. Catalog format:
+  `[scales.<key>]` with `kinds`, and for a derived scale
+  `reference_scale`, `unit` and `differences`; inputs take `scale`
+  instead of `temperature_scale`. No value changes.
 - Catalog format: `[[formulations.<key>.citations]]` replaces
   `references` and `accuracy`; domains, units of coefficients and
   temperature scales stated by a source move into its citation; the

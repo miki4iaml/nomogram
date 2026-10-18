@@ -372,10 +372,18 @@ class NumericalInverse:
             else:
                 solved = np.where(mask, np.nan, solved)
         quantity = Q_(solved, units[source_input.unit].pint)
-        scale_of_source = source_input.temperature_scale
-        if scale == "convert" and scale_of_source is not None and scale_of_source.t90:
-            celsius = scale_of_source.to_its90(convert(quantity, "degC").magnitude)
-            quantity = Q_(celsius, "degC")
+        scale_of_source = source_input.scale
+        if (
+            scale == "convert"
+            and scale_of_source is not None
+            and not scale_of_source.is_reference
+            and scale_of_source.unit is not None
+        ):
+            table = units[scale_of_source.unit].pint
+            on_reference = scale_of_source.to_reference(
+                convert(quantity, table).magnitude
+            )
+            quantity = Q_(on_reference, table)
         result = np.asarray(
             convert(quantity, units[self.output.unit].pint).magnitude, dtype=float
         )
@@ -431,7 +439,7 @@ def invert(
     source_input = formulation.inputs[0]
     output = replace(
         output,
-        temperature_scale=source_input.temperature_scale,
+        scale=source_input.scale,
         scale_basis=source_input.scale_basis,
     )
     key = key or f"{formulation.key}_inverse"

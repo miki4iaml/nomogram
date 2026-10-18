@@ -25,11 +25,16 @@ authors = "Two, B."
 title = "Second source"
 status = "to-confirm"
 
-[temperature_scales.s1]
+[scales.s1]
 label = "Scale one"
+kinds = ["CelsiusTemperature"]
 
-[temperature_scales.s2]
+[scales.s2]
 label = "Scale two"
+kinds = ["CelsiusTemperature"]
+reference_scale = "s1"
+unit = "DEG_C"
+differences = [[0.0, 0.0], [10.0, 0.0]]
 
 [formulations.f]
 label = "Test formulation"
@@ -138,12 +143,12 @@ def test_invalid_citations_are_refused(
         load_catalog([document(*citations)])
 
 
-def test_a_stated_scale_needs_a_temperature() -> None:
+def test_a_stated_scale_applies_to_its_kinds_only() -> None:
     pressure = document(("one", 'scales = { t = "s1" }')).replace(
         'kind = "CelsiusTemperature", unit = "DEG_C"',
         'kind = "VapourPressure", unit = "PA"',
     )
-    with pytest.raises(CatalogError, match="needs a temperature in K or DEG_C"):
+    with pytest.raises(CatalogError, match="scale s1 does not apply to VapourPressure"):
         load_catalog([pressure])
 
 
@@ -159,7 +164,7 @@ def test_a_unit_is_either_added_or_stated() -> None:
 def test_a_scale_is_either_inferred_or_stated() -> None:
     both = document(("one", 'scales = { t = "s1" }')).replace(
         'description = "in" }',
-        'description = "in", temperature_scale = "s1", scale_basis = "inferred-from-date" }',
+        'description = "in", scale = "s1", scale_basis = "inferred-from-date" }',
     )
     with pytest.raises(CatalogError, match="both inferred and stated"):
         load_catalog([both])

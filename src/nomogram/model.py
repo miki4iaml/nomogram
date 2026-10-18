@@ -49,6 +49,7 @@ if TYPE_CHECKING:
 __all__ = [
     "Citation",
     "Coefficient",
+    "ConventionalScale",
     "Derivation",
     "DomainBasis",
     "Formulation",
@@ -58,7 +59,6 @@ __all__ = [
     "Reference",
     "ReferenceStatus",
     "ScaleBasis",
-    "TemperatureScale",
     "TradeMeaning",
     "TradeTerm",
     "UnitBasis",
@@ -156,7 +156,7 @@ class UnitBasis(Enum):
 
 
 class ScaleBasis(Enum):
-    """How the temperature scale of a formulation is known."""
+    """How the conventional scale of a variable is known."""
 
     #: Stated by the source.
     STATED = "stated"
@@ -169,12 +169,15 @@ class ScaleBasis(Enum):
 
 
 @dataclass(frozen=True)
-class TemperatureScale:
-    """An international temperature scale, and how it differs from ITS-90.
+class ConventionalScale:
+    """A conventional reference scale: a quantity-value scale defined by formal agreement.
 
-    Formulations were fitted to temperatures on the scale in force at the
-    time (IPTS-68, ITS-48...). Inputs are taken on ITS-90, today's scale,
-    and converted to the scale of the formulation before evaluation.
+    The term is that of the VIM (JCGM 200:2012, 1.29). The international
+    temperature scales are examples: formulations were fitted to
+    temperatures on the scale in force at the time (IPTS-68, ITS-48...).
+    Each quantity kind has one reference scale (ITS-90 for temperatures);
+    inputs are taken on it and converted to the scale of the formulation
+    before evaluation, and results converted back.
 
     Attributes
     ----------
@@ -182,57 +185,74 @@ class TemperatureScale:
         Catalog key, for example ``"ipts68"``.
     label : str
         Name of the scale.
-    t90 : tuple of float
-        Celsius temperatures on ITS-90 where the difference is tabulated;
-        empty for ITS-90 itself.
+    kinds : tuple of str
+        Quantity kinds the scale applies to.
+    reference_scale : str or None
+        Key of the reference scale of these kinds; ``None`` for the
+        reference scale itself.
+    unit : str or None
+        QUDT name of the unit of the conversion table.
+    points : tuple of float
+        Values on the reference scale where the difference is tabulated;
+        empty for a reference scale.
     difference : tuple of float
-        ``t90 - t_scale`` at those temperatures, in kelvin.
+        Value on the reference scale minus value on this scale, at those
+        points.
     reference : str or None
-        Key of the source of the table.
+        Key of the source of the scale or of its table.
     """
 
     key: str
     label: str
-    t90: tuple[float, ...]
+    kinds: tuple[str, ...]
+    reference_scale: str | None
+    unit: str | None
+    points: tuple[float, ...]
     difference: tuple[float, ...]
     reference: str | None
 
-    def from_its90(self, celsius: Any) -> tuple[Any, Any]:
-        """Celsius temperatures on this scale, from ITS-90 ones.
+    @property
+    def is_reference(self) -> bool:
+        """Whether this is the reference scale of its kinds."""
+        return self.reference_scale is None
+
+    def from_reference(self, values: Any) -> tuple[Any, Any]:
+        """Values on this scale, from values on the reference scale.
 
         Parameters
         ----------
-        celsius : array_like
-            Celsius temperatures on ITS-90.
+        values : array_like
+            Values on the reference scale, in the unit of the table.
 
         Returns
         -------
         (numpy.ndarray, numpy.ndarray of bool)
-            The temperatures on this scale (linear interpolation of the
-            table), and where they fall outside the table (NaN there).
+            The values on this scale (linear interpolation of the table),
+            and where they fall outside the table (NaN there).
         """
-        values = np.asarray(celsius, dtype=float)
-        if not self.t90:
+        values = np.asarray(values, dtype=float)
+        if not self.points:
             return values, np.zeros(values.shape, dtype=bool)
-        outside = (values < self.t90[0]) | (values > self.t90[-1])
-        shift = np.interp(values, self.t90, self.difference)
+        outside = (values < self.points[0]) | (values > self.points[-1])
+        shift = np.interp(values, self.points, self.difference)
         return np.where(outside, np.nan, values - shift), outside
 
-    def to_its90(self, celsius: Any) -> Any:
-        """ITS-90 Celsius temperatures, from temperatures on this scale.
+    def to_reference(self, values: Any) -> Any:
+        """Values on the reference scale, from values on this scale.
 
-        Inverts :meth:`from_its90` by fixed-point iteration (the
-        differences are millikelvins and vary slowly); NaN beyond the
-        table.
+        Inverts :meth:`from_reference` by fixed-point iteration (the
+        differences are small and vary slowly); NaN beyond the table.
         """
-        values = np.asarray(celsius, dtype=float)
-        if not self.t90:
+        values = np.asarray(values, dtype=float)
+        if not self.points:
             return values
-        t90 = values
+        on_reference = values
         for _ in range(4):
-            t90 = values + np.interp(t90, self.t90, self.difference)
-        outside = (t90 < self.t90[0]) | (t90 > self.t90[-1])
-        return np.where(outside, np.nan, t90)
+            on_reference = values + np.interp(
+                on_reference, self.points, self.difference
+            )
+        outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
+        return np.where(outside, np.nan, on_reference)
 
 
 @dataclass(frozen=True)
@@ -272,7 +292,7 @@ class Variable:
         QUDT name of the unit the formulation works in.
     description : str
         What the variable is, in a few words.
-    temperature_scale : TemperatureScale or None
+    scale : ConventionalScale or None
         For a temperature, the scale the formulation was fitted on;
         ``None`` when unknown or not applicable.
     scale_basis : ScaleBasis or None
@@ -283,7 +303,7 @@ class Variable:
     kind: str
     unit: str
     description: str
-    temperature_scale: TemperatureScale | None = None
+    scale: ConventionalScale | None = None
     scale_basis: ScaleBasis | None = None
 
 
@@ -417,8 +437,9 @@ class Citation:
     units : mapping of str to str
         Units the source states for coefficients, by identifier (QUDT
         names).
-    scales : mapping of str to TemperatureScale
-        Temperature scales the source states for inputs, by identifier.
+    scales : mapping of str to ConventionalScale
+        Conventional reference scales the source states for inputs, by
+        identifier.
     accuracy : str or None
         Accuracy the source claims, as stated.
     note : str or None
@@ -430,7 +451,7 @@ class Citation:
     notation: Notation | None = None
     domains: tuple[ValidityDomain, ...] = ()
     units: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
-    scales: Mapping[str, TemperatureScale] = field(
+    scales: Mapping[str, ConventionalScale] = field(
         default_factory=lambda: MappingProxyType({})
     )
     accuracy: str | None = None
@@ -689,10 +710,11 @@ class Formulation:
         basis : {"stated", "physical", "all"}
             Which domains apply (default: those stated by the sources).
         scale : {"convert", "ignore"}
-            Temperatures are taken on ITS-90. With ``"convert"`` (default)
-            they are converted to the temperature scale the formulation
-            was fitted on, when it is known (NaN beyond the conversion
-            table); ``"ignore"`` uses them as they are.
+            Inputs are taken on the reference scale of their kind (ITS-90
+            for temperatures). With ``"convert"`` (default) they are
+            converted to the conventional scale the formulation was fitted
+            on, when it is known (NaN beyond the conversion table), and
+            the result converted back; ``"ignore"`` uses them as they are.
         **inputs : pint.Quantity
             One quantity per input variable, by identifier.
 
@@ -724,12 +746,13 @@ class Formulation:
         }
         if scale == "convert":
             for v in self.inputs:
-                if v.temperature_scale is None or not v.temperature_scale.t90:
+                if v.scale is None or v.scale.is_reference or v.scale.unit is None:
                     continue
-                celsius = convert(inputs[v.identifier], "degC").magnitude
-                on_scale, _ = v.temperature_scale.from_its90(celsius)
+                table = units[v.scale.unit].pint
+                on_reference = convert(inputs[v.identifier], table).magnitude
+                on_scale, _ = v.scale.from_reference(on_reference)
                 values[v.identifier] = np.asarray(
-                    convert(Q_(on_scale, "degC"), units[v.unit].pint).magnitude,
+                    convert(Q_(on_scale, table), units[v.unit].pint).magnitude,
                     dtype=float,
                 )
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
@@ -750,12 +773,20 @@ class Formulation:
             else:
                 result = np.where(mask, np.nan, result)
         output_unit = units[self.output.unit].pint
-        output_scale = self.output.temperature_scale
-        if scale == "convert" and output_scale is not None and output_scale.t90:
-            # A temperature computed on the formulation's scale goes back to
-            # ITS-90, the scale of inputs and results.
-            celsius = convert(Q_(result, output_unit), "degC").magnitude
-            its90 = Q_(output_scale.to_its90(celsius), "degC")
-            result = np.asarray(convert(its90, output_unit).magnitude, dtype=float)
+        output_scale = self.output.scale
+        if (
+            scale == "convert"
+            and output_scale is not None
+            and not output_scale.is_reference
+            and output_scale.unit is not None
+        ):
+            # A value computed on the formulation's scale goes back to the
+            # reference scale, that of inputs and results.
+            table = units[output_scale.unit].pint
+            on_scale = convert(Q_(result, output_unit), table).magnitude
+            on_reference = Q_(output_scale.to_reference(on_scale), table)
+            result = np.asarray(
+                convert(on_reference, output_unit).magnitude, dtype=float
+            )
         magnitude = result.item() if result.ndim == 0 else result
         return Q_(magnitude, output_unit)

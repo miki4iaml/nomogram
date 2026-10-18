@@ -322,14 +322,18 @@ kind = "MassRatioOfWaterVapourToDryGas"
 definition = "Mass of water vapour per mass of dry air."
 sources = ["cengel_boles"]
 
-# --- Temperature scales ---------------------------------------------------
+# --- Conventional reference scales (VIM 1.29) ------------------------------
 
-[temperature_scales.its90]
+[scales.its90]
 label = "International Temperature Scale of 1990 (ITS-90)"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference = "preston_thomas1990"
 
-[temperature_scales.ipts68]
+[scales.ipts68]
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference_scale = "its90"
+unit = "DEG_C"
 reference = "preston_thomas1990"
 # Table 6 of the ITS-90 text: [t90 / degC, (t90 - t68) / K].
 differences = [
@@ -533,7 +537,7 @@ fixed_units = true
 note = "Maximum relative error 1.458 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 17.502, B = 240.97, C = 6.1121 }
 
@@ -553,7 +557,7 @@ fixed_units = true
 note = "Maximum relative error 0.493 % against GG46, WE76 and SO90 between -40 and 50 degC (Alduchov and Eskridge 1996, Table III)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 18.729, B = 257.87, C = 6.1121, D = 227.3 }
 
@@ -570,7 +574,7 @@ fixed_units = true
 note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-numbers" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { C8 = -5.8002206e3, C9 = 1.3914993, C10 = -4.8640239e-2, C11 = 4.1764768e-5, C12 = -1.4452093e-8, C13 = 6.5459673 }
 
@@ -592,7 +596,7 @@ expression = "C * exp(A * t / (t + B))"
 fixed_units = true
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 17.67, B = 243.5, C = 6.112 }
 
@@ -631,7 +635,7 @@ fixed_units = true
 note = "Update of the Buck (1981) equation (buck1981), with different coefficients."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 18.678, B = 257.14, C = 6.1121, D = 234.5 }
 
@@ -823,7 +827,7 @@ fixed_units = true
 note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 5, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: as over water, these coefficients agree with IAPWS R14-08 within 0.032 % from -80 to -1 degC without conversion, and drift to -0.18 % at -80 degC with the IPTS-68 conversion."
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-numbers" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { C1 = -5.6745359e3, C2 = 6.3925247, C3 = -9.677843e-3, C4 = 6.2215701e-7, C5 = 2.0747825e-9, C6 = -9.484024e-13, C7 = 4.1635019 }
 
@@ -845,7 +849,7 @@ expression = "C * exp(A * t / (B + t))"
 fixed_units = true
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 22.46, B = 272.62, C = 6.112 }
 
@@ -883,7 +887,7 @@ expression = "C * exp(A * t / (B + t))"
 fixed_units = true
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "ipts68", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "ipts68", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 22.452, B = 272.55, C = 6.1115 }
 
@@ -899,7 +903,7 @@ expression = "C * exp((A - t / D) * t / (B + t))"
 fixed_units = true
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 23.036, B = 279.82, C = 6.1115, D = 333.7 }
 
@@ -915,7 +919,7 @@ expression = "10 ** (A / T + B)"
 fixed_units = true
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = -2663.5, B = 12.537 }
 
@@ -931,7 +935,7 @@ expression = "exp(c0 + c1 / T + c2 * ln(T) + c3 * T)"
 fixed_units = true
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { c0 = 9.550426, c1 = -5723.265, c2 = 3.53068, c3 = -0.00728332 }
 
@@ -948,7 +952,7 @@ fixed_units = true
 note = "As quoted by Vömel, who dates it 1994 (as for the formulation over water)."
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", temperature_scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { a0 = -6024.5282, a1 = 24.721994, a2 = 1.0613868e-2, a3 = -1.3198825e-5, a4 = -0.49382577 }
 
