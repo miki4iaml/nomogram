@@ -115,6 +115,7 @@ All sections are optional; a key may be defined in one file only.
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference` |
+| `[relations.<key>]` | `kind` (`equivalent`, `approximates`), `subject`, `object`, `citation` | `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 
 ### Formulations
 
@@ -217,6 +218,44 @@ matches = [
 `relation` is a SKOS relation (`exact`, `close`, `broad`, `narrow`) and
 `verified` the date the link was last checked.
 
+
+## Relations
+
+A relation records what a **source states** between two formulations of
+the same quantity kind; nomogram verifies it
+(`nomogram.relations.verify`), but never invents one. A deviation
+nomogram computes without a source is an observation
+(`nomogram.comparison.compare`), not a relation.
+
+```toml
+[relations.ae96_aekr_gg46]
+kind = "approximates"                 # or "equivalent"
+subject = "alduchov_eskridge1996"
+object = "goff1957"
+citation = "alduchov_eskridge1996"    # the source that states it
+accuracy = 0.384                      # maximum relative deviation, in percent
+at = { t = -30.0 }                    # where the source places the maximum
+bounds = { t = [-40.0, 50.0] }        # every input of the subject
+scale = "ignore"                      # formulas compared as given
+note = "Table III, r_g."
+```
+
+- **`approximates`**: the deviation is checked on a dense grid of
+  `bounds`. Verdict: *reproduced* (equal at the precision published),
+  *held* (smaller) or *exceeded* (larger), with the value and place
+  found. A check on points, not a proof.
+- **`equivalent`**: proved with SymPy, coefficients as exact rationals,
+  the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
+  Verdict: *proven*, *refuted* (with a numerical counterexample) or
+  *unproven*.
+- **`scale`**: `"convert"` (default) evaluates with conversion of
+  temperature scales; `"ignore"` compares the formulas as given, as many
+  sources did.
+
+Verification runs in the tests and on demand, not when the catalog is
+loaded, which only checks the structure. A relation lives in the family
+of its subject, which must require the families of its formulations and
+of its citation.
 
 ## Units of coefficients
 

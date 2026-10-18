@@ -62,6 +62,15 @@ published by an independent source:
 - the deviations of the Magnus forms from the reference match those
   reported in the literature: about -0.28 % at 20 °C for Sonntag's
   coefficients, 2 to 3 % too high at 100 °C, outside their range;
+- the maximum relative errors that Alduchov and Eskridge (1996, Table
+  III) give for five Magnus forms against GG46 and SO90 are recorded as
+  relations and verified: ten of twelve are reproduced to the third
+  decimal, at the temperature they give, once the formulas are compared
+  as given (each on its own temperature scale), as the authors did, and
+  GG46 taken in its triple-point form; for Sonntag's Magnus
+  coefficients (SA90) we find 0.610 % against GG46 where the table gives
+  0.597 %, and 0.315 % against SO90 where it gives 0.328 %, with the same
+  coefficients as their Table II: the disagreement is recorded;
 - over ice, the IAPWS sublimation equation (R14-08, 2011) reproduces
   the table of its release (8.94735 × 10⁻⁶ MPa at 230 K) and meets the
   equation over water at the triple point; the formulations quoted by

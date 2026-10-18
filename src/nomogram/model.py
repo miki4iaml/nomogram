@@ -58,6 +58,8 @@ __all__ = [
     "PhysicalConstant",
     "Reference",
     "ReferenceStatus",
+    "Relation",
+    "RelationKind",
     "ScaleBasis",
     "TradeMeaning",
     "TradeTerm",
@@ -253,6 +255,67 @@ class ConventionalScale:
             )
         outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
         return np.where(outside, np.nan, on_reference)
+
+
+class RelationKind(Enum):
+    """What a relation between two formulations states."""
+
+    #: The subject equals the object, possibly given substitutions.
+    EQUIVALENT = "equivalent"
+    #: The subject approximates the object within a stated deviation.
+    APPROXIMATES = "approximates"
+
+
+@dataclass(frozen=True)
+class Relation:
+    """A relation between two formulations, as a source states it.
+
+    A relation is a claim, cited: nomogram verifies it
+    (:func:`nomogram.relations.verify`) but never invents one. Deviations
+    nomogram computes are observations (:func:`nomogram.comparison.compare`).
+
+    Attributes
+    ----------
+    key : str
+        Catalog key.
+    kind : RelationKind
+        Equivalence or approximation.
+    subject, object : str
+        Keys of the two formulations.
+    citation : str
+        Key of the source that states the relation.
+    accuracy : float or None
+        For an approximation, the maximum relative deviation the source
+        states, in percent.
+    at : mapping of str to float
+        Where the source places that maximum, by input identifier of the
+        subject.
+    bounds : mapping of str to (float, float)
+        Domain over which the source states it, by input identifier of the
+        subject, in the input's unit.
+    given : mapping of str to str
+        For an equivalence, inputs of the object expressed with those of
+        the subject (``{"P_d": "P - e"}``).
+    scale : {"convert", "ignore"}
+        How the formulations are evaluated for the claim: with conversion
+        of temperature scales, or as given, each on its own scale.
+    note : str or None
+        Remark.
+    """
+
+    key: str
+    kind: RelationKind
+    subject: str
+    object: str
+    citation: str
+    accuracy: float | None = None
+    at: Mapping[str, float] = field(default_factory=lambda: MappingProxyType({}))
+    bounds: Mapping[str, tuple[float, float]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    given: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    scale: ScaleConversion = "convert"
+    note: str | None = None
 
 
 @dataclass(frozen=True)
