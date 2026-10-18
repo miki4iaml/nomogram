@@ -539,6 +539,12 @@ class Formulation:
     derivation : Derivation or None
         For a formulation derived from another one (see
         :mod:`nomogram.inversion`), how it was derived.
+    family : str or None
+        Name of the catalog family it belongs to, set when the catalog is
+        loaded (the file it comes from).
+    keywords : tuple of str
+        Keywords for discovery and search; several per formulation,
+        unlike the family.
     """
 
     key: str
@@ -554,6 +560,8 @@ class Formulation:
     note: str | None
     matches: tuple[ExternalMatch, ...]
     derivation: Derivation | None = None
+    family: str | None = None
+    keywords: tuple[str, ...] = ()
 
     @property
     def references(self) -> tuple[str, ...]:

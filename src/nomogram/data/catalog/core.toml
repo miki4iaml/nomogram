@@ -1,0 +1,128 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Shared ground of the catalog: conventional reference scales, notation
+# conventions and the references they cite.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "core"
+label = "Core: scales and notations"
+format = 2
+requires = []
+keywords = ["conventional reference scales", "notations"]
+
+# --- References -------------------------------------------------------
+
+[references.preston_thomas1990]
+authors = "Preston-Thomas, H."
+year = 1990
+title = "The International Temperature Scale of 1990 (ITS-90)"
+container = "Metrologia 27, 3-10"
+doi = "10.1088/0026-1394/27/1/002"
+status = "to-confirm"
+note = "Text and Table 6 (differences between ITS-90 and IPTS-68) read in a copy of the text, not in the journal; DOI not checked."
+
+[references.wmo2024]
+authors = "World Meteorological Organization"
+year = 2024
+title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I, Annex 4.B"
+doi = "10.59327/WMO/CIMO/1"
+status = "to-confirm"
+note = "Primary text not read; formula and range cross-checked with WMO training material. Notation e_w to confirm in the text."
+
+[references.ashrae2017]
+authors = "ASHRAE"
+year = 2017
+title = "ASHRAE Handbook - Fundamentals, chapter 1: Psychrometrics"
+status = "to-confirm"
+note = "Cited through the tests of PsychroLib; notation p_ws to confirm in the text."
+
+# --- Notations --------------------------------------------------------
+
+[notations.wmo]
+label = "WMO Guide to Instruments and Methods of Observation"
+symbols = { e_s = 'e_{\mathrm{w}}', rho_v = '\rho_{\mathrm{v}}' }
+reference = "wmo2024"
+
+[notations.ashrae]
+label = "ASHRAE Handbook - Fundamentals"
+symbols = { e_s = 'p_{\mathrm{ws}}', RH = '\phi' }
+reference = "ashrae2017"
+
+# --- Conventional reference scales (VIM 1.29) -------------------------
+
+[scales.its90]
+label = "International Temperature Scale of 1990 (ITS-90)"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference = "preston_thomas1990"
+
+[scales.ipts68]
+label = "International Practical Temperature Scale of 1968 (IPTS-68)"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference_scale = "its90"
+unit = "DEG_C"
+reference = "preston_thomas1990"
+# Table 6 of the ITS-90 text: [t90 / degC, (t90 - t68) / K].
+differences = [
+  [-190.0, 0.008],
+  [-180.0, 0.008],
+  [-170.0, 0.010],
+  [-160.0, 0.012],
+  [-150.0, 0.013],
+  [-140.0, 0.014],
+  [-130.0, 0.014],
+  [-120.0, 0.014],
+  [-110.0, 0.013],
+  [-100.0, 0.013],
+  [-90.0, 0.012],
+  [-80.0, 0.012],
+  [-70.0, 0.011],
+  [-60.0, 0.010],
+  [-50.0, 0.009],
+  [-40.0, 0.008],
+  [-30.0, 0.006],
+  [-20.0, 0.004],
+  [-10.0, 0.002],
+  [0.0, 0.000],
+  [10.0, -0.002],
+  [20.0, -0.005],
+  [30.0, -0.007],
+  [40.0, -0.010],
+  [50.0, -0.013],
+  [60.0, -0.016],
+  [70.0, -0.018],
+  [80.0, -0.021],
+  [90.0, -0.024],
+  [100.0, -0.026],
+  [110.0, -0.028],
+  [120.0, -0.030],
+  [130.0, -0.032],
+  [140.0, -0.034],
+  [150.0, -0.036],
+  [160.0, -0.037],
+  [170.0, -0.038],
+  [180.0, -0.039],
+  [190.0, -0.039],
+  [200.0, -0.040],
+  [210.0, -0.040],
+  [220.0, -0.040],
+  [230.0, -0.040],
+  [240.0, -0.040],
+  [250.0, -0.040],
+  [260.0, -0.040],
+  [270.0, -0.039],
+  [280.0, -0.039],
+  [290.0, -0.039],
+  [300.0, -0.039],
+  [310.0, -0.039],
+  [320.0, -0.039],
+  [330.0, -0.040],
+  [340.0, -0.040],
+  [350.0, -0.041],
+  [360.0, -0.042],
+  [370.0, -0.043],
+  [380.0, -0.045],
+  [390.0, -0.046],
+]

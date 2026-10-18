@@ -58,14 +58,58 @@ bounds = { t = [-40.0, 50.0] }
 criterion = "Maximum relative error 0.384 % against GG46, WE76 and SO90 (Table III)."
 ```
 
+## Families
+
+Each file of the catalog is a **family**, declared by a `[catalog]`
+header:
+
+```toml
+[catalog]
+name = "moist-air"
+label = "Humidity of moist air"
+format = 2                       # version of the catalog format
+requires = ["water-vapour"]      # families it depends on
+keywords = ["humidity", "psychrometrics"]
+```
+
+Families are layered: a **core** without dependency (conventional
+scales, notation conventions), **pure** families holding one domain
+(`water-vapour`, `moist-air`), and **aggregates** holding no entry, only
+`requires` (`humidity`). An entry belongs to the family of its file:
+nothing is written in the entry itself. `catalog()` loads every family;
+`catalog("water-vapour")` loads one family with the families it requires.
+
+Checked when loading:
+
+- requires name loaded families and form no cycle;
+- an entry refers only to its own family and to the families it requires
+  (references, quantity kinds, scales, notations, constants), and every
+  required family is used: the message names the entry and proposes the
+  exact list;
+- the format is the current one.
+
+`python -m nomogram.catalog describe FILE` prints the header a file
+needs, its requires computed from its entries.
+
+`keywords` (on a family or a formulation) are free words for discovery,
+several per entry; unlike the family, they decide nothing.
+
+**Personal catalogs** extend the bundled ones without touching the
+repository: `catalog(extra=["mylab.toml"])`. A personal family has a
+header like any other; its keys start with its name and a colon, quoted
+in TOML (`[formulations."mylab:corrected_buck"]`), and the bundled
+families it requires are loaded with it. It is checked like the bundled
+ones.
+
 ## Sections
 
 All sections are optional; a key may be defined in one file only.
 
 | Section | Required fields | Optional fields |
 |---|---|---|
+| `[catalog]` (one per file) | `name`, `format` | `label`, `requires`, `matches`, `keywords` |
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
-| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches` |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |

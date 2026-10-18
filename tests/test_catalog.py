@@ -358,9 +358,9 @@ def test_catalog_guide_example_matches_the_catalog() -> None:
     )
     assert block is not None
     example = tomllib.loads(block.group(1))["formulations"]["alduchov_eskridge1996"]
-    bundled_text = (files("nomogram") / "data" / "catalog" / "humidity.toml").read_text(
-        encoding="utf-8"
-    )
+    bundled_text = (
+        files("nomogram") / "data" / "catalog" / "water-vapour.toml"
+    ).read_text(encoding="utf-8")
     bundled = tomllib.loads(bundled_text)["formulations"]["alduchov_eskridge1996"]
     for key, value in example.items():
         assert bundled[key] == value, key
