@@ -63,7 +63,7 @@ from nomogram.model import (
     ValidityDomain,
     Variable,
 )
-from nomogram.relations import match_inputs, report, signature
+from nomogram.relations import match_inputs, record, report, signature, verdict
 from nomogram.semantics import (
     ExternalMatch,
     MatchRelation,
@@ -1359,8 +1359,22 @@ def check(source: Source) -> str:
     return report(loaded, list(document.get("formulations", {})))
 
 
+def _verdicts(write: bool) -> str:
+    """The verdicts on the relations of the bundled catalog, one per line."""
+    loaded = catalog()
+    lines = []
+    if write:
+        computed, reused = record(loaded)
+        lines.append(f"registry written: {computed} computed, {reused} reused")
+    for key in sorted(loaded.relations):
+        found = verdict(loaded.relations[key], loaded)
+        value = "" if found.value is None else f" {found.value:.4g} %"
+        lines.append(f"{key}: {found.status}{value}")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Command line: ``python -m nomogram.catalog describe|check FILE``."""
+    """Command line: ``python -m nomogram.catalog describe|check FILE``, ``verify``."""
     parser = argparse.ArgumentParser(prog="python -m nomogram.catalog")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, text in (
@@ -1368,8 +1382,19 @@ def main(argv: list[str] | None = None) -> int:
         ("check", "report on the formulations of a catalog file"),
     ):
         commands.add_parser(name, help=text).add_argument("file", type=Path)
+    verify_command = commands.add_parser(
+        "verify", help="verdicts on the relations of the bundled catalog"
+    )
+    verify_command.add_argument(
+        "--record",
+        action="store_true",
+        help="compute what is missing and write the registry",
+    )
     arguments = parser.parse_args(argv)
     try:
+        if arguments.command == "verify":
+            sys.stdout.write(_verdicts(arguments.record))
+            return 0
         action = describe if arguments.command == "describe" else check
         sys.stdout.write(action(arguments.file))
     except CatalogError as exc:

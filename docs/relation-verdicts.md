@@ -21,6 +21,30 @@ must simplify to zero.
   among random points. Nothing is guaranteed either way: equivalence of
   expressions with exponentials and logarithms is undecidable in general.
 
+### What SymPy settles, and what it does not
+
+These pairs were run through `verify` (inputs are real numbers, not
+assumed positive; without stated bounds, the counterexample is looked
+for between 0.5 and 2):
+
+| Pair | Verdict | Why |
+|---|---|---|
+| `A * x / (B + x)` and `A - A * B / (B + x)` | proven | rational algebra: `simplify` reduces the difference to zero |
+| `(x + 1) ** 2` and `x ** 2 + 2 * x + 1` | proven | polynomial expansion |
+| `exp(x + y)` and `exp(x) * exp(y)` | proven | holds for every real x and y |
+| `log10(x * y)` and `log10(x) + log10(y)` | unproven | true for positive x and y only; SymPy does not assume positivity, and no counterexample exists among positive samples |
+| `(x * y) ** 0.5` and `x ** 0.5 * y ** 0.5` | unproven | same reason: true when x and y are not negative |
+| `sqrt(x ** 2)` and `x` | unproven | SymPy keeps `Abs(x) - x`; positive samples cannot tell |
+| the same, with `bounds = { x = [-2.0, -0.5] }` | refuted | on negative values, `Abs(x) - x` is not zero |
+| `x + 0.001 * x ** 2` and `x` | refuted | an approximation is not an equivalence: the difference `x**2/1000` is found |
+| `exp(ln(x))` and `x` | not a relation | SymPy writes both as `x`: the second formulation is refused as identical to the first when the catalog is loaded |
+
+Two lessons. An **unproven** verdict does not mean false, nor true: the
+logarithm of a product is right for the positive quantities of physics,
+the square root of a square is wrong for negative ones. And stating the
+**bounds** of the inputs, when the source gives them, lets the search for
+a counterexample look where the formula is used.
+
 ## Approximations: checked on points, never proved
 
 An approximation states a maximum relative deviation over a domain. It
@@ -59,6 +83,32 @@ and the number of evaluations.
 - In every case the verdict is a check on points: an approximation is
   never *proven*. A guaranteed bound would require interval arithmetic
   over the domain, which nomogram does not implement.
+
+## Recorded verdicts
+
+Verifying a relation takes time (a proof, or a grid of thousands of
+points). The verdicts on the relations of the bundled catalog are kept in
+a registry, `src/nomogram/data/catalog/verifications.json`, generated and
+never edited by hand:
+
+- each verdict is filed under a **fingerprint** (SHA-256) of everything
+  it depends on: the relation as written, the signatures of its two
+  formulations (expression, coefficients, kinds and units), the
+  conventional scales of their variables, the budget of the check and
+  the version of the method (`VERIFIER`);
+- `nomogram.relations.verdict` reads the registry when the fingerprint
+  matches, and computes the verdict otherwise; any change to a relation
+  or to one of its formulations changes the fingerprint, so a recorded
+  verdict never outlives what it was computed for;
+- `uv run python -m nomogram.catalog verify --record` computes only what
+  is missing, reuses the rest and drops entries matching no relation: a
+  contributor checks locally the new relations alone;
+- the continuous integration recomputes every verdict and compares it
+  with the registry: it has the last word.
+
+A personal catalog can keep its own registry
+(`nomogram.relations.record(catalog, path)`), or none: verdicts are then
+computed on demand.
 
 ## What is never verified
 
