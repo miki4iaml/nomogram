@@ -125,6 +125,13 @@ silently.
     `https://www.wikidata.org/wiki/Q…`; the data uses
     `http://www.wikidata.org/entity/Q…`.
 11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph.
+12. The symbol of `unit:PPM` is `PPM`; ITU-R P.453 writes `ppm`, as
+    UCUM does (`[ppm]`). nomogram displays `ppm`, an override declared
+    with its reason in the extraction script (`SYMBOLS`).
+13. `quantitykind:RefractiveIndex` and `quantitykind:DimensionlessRatio`
+    specialize no kind: dimensionless kinds share no common parent in
+    QUDT. nomogram uses `DimensionlessRatio` as the parent of the
+    dimensionless kinds it defines.
 
 CF table 95 has no standard name for the saturation vapour pressure
 either, and its `relative_humidity` entry has an empty description (it

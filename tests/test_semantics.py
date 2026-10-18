@@ -97,6 +97,21 @@ def test_applicable_units_follow_the_scale_rule(name: str) -> None:
     assert set(kind.added_units) <= set(kind.applicable_units)
 
 
+def test_radio_refractivity_kinds_and_units() -> None:
+    kinds, units = CATALOG.quantity_kinds, CATALOG.units
+    assert kinds["RefractiveIndex"].applicable_units == ("UNITLESS",)
+    assert set(kinds["DimensionlessRatio"].applicable_units) == {
+        "PERCENT",
+        "PPM",
+        "UNITLESS",
+    }
+    assert set(kinds["Height"].applicable_units) == {"M", "KiloM"}
+    assert kinds["Height"].cf_standard_names == ("height",)
+    # QUDT writes PPM; nomogram displays ppm, as ITU-R P.453 does.
+    assert units["PPM"].symbol == "ppm"
+    assert units["PPM"].multiplier == 1e-6
+
+
 def test_celsius_is_not_a_unit_of_thermodynamic_temperature() -> None:
     kinds = CATALOG.quantity_kinds
     assert kinds["ThermodynamicTemperature"].applicable_units == ("K",)
