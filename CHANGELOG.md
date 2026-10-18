@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- Signatures of formulations (`nomogram.relations.signature`): equal
+  for two writings of one formulation (inputs renamed canonically,
+  coefficients as exact rationals); the catalog refuses a formulation
+  identical to another, naming it so that a citation is added instead.
+  `form` leaves coefficients aside (the Magnus forms share one).
+- `python -m nomogram.catalog check FILE` (`check`, and
+  `nomogram.relations.report`): for each formulation of a file, those of
+  the same form and the maximum relative deviation observed against every
+  formulation of the same kind on their common domain; numerically
+  identical pairs are pointed out. Observations, never relations.
 - Relations between formulations (`nomogram.model.Relation`, catalog
   section `[relations]`): what a source states, equivalence (possibly
   given substitutions between inputs) or approximation (maximum relative

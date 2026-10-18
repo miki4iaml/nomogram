@@ -24,7 +24,9 @@ Deviations nomogram computes without a source are observations, given by
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import hashlib
+import itertools
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal
@@ -40,7 +42,16 @@ from nomogram.units import Q_
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
 
-__all__ = ["BUDGET", "Verdict", "match_inputs", "per_axis", "verify"]
+__all__ = [
+    "BUDGET",
+    "Verdict",
+    "form",
+    "match_inputs",
+    "per_axis",
+    "report",
+    "signature",
+    "verify",
+]
 
 #: Relative difference below which two values are taken as equal, when
 #: looking for a counterexample to an equivalence.
@@ -101,6 +112,73 @@ CANDIDATES = 5
 ZOOMS = 8
 ZOOM_POINTS = 2_000
 RESOLUTION = 1e-9
+
+
+def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
+    """The expression with canonical input names, as SymPy writes it.
+
+    Inputs are renamed by quantity kind and unit; when several share both,
+    every order is tried and the smallest text kept, so that the result
+    does not depend on the identifiers chosen by the source.
+    """
+    expr = formulation.sympy_expression
+    if keep_coefficients:
+        pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+        pairs += [(k.identifier, k.value) for k in formulation.constants]
+        expr = expr.xreplace(
+            {sympy.Symbol(n, real=True): sympy.Rational(repr(v)) for n, v in pairs}
+        )
+    else:
+        names = [c.identifier for c in formulation.coefficients]
+        names += [k.identifier for k in formulation.constants]
+        expr = expr.xreplace(
+            {sympy.Symbol(n, real=True): sympy.Symbol("c") for n in names}
+        )
+    groups: dict[tuple[str, str], list[str]] = {}
+    for variable in formulation.inputs:
+        groups.setdefault((variable.kind, variable.unit), []).append(
+            variable.identifier
+        )
+    ordered = sorted(groups)
+    texts: list[str] = []
+    for orders in itertools.product(
+        *(itertools.permutations(groups[k]) for k in ordered)
+    ):
+        renaming = {}
+        for index, name in enumerate(n for order in orders for n in order):
+            renaming[sympy.Symbol(name, real=True)] = sympy.Symbol(f"x{index}")
+        texts.append(str(sympy.srepr(expr.xreplace(renaming))))
+    head = [
+        formulation.output.kind,
+        formulation.output.unit,
+        str(formulation.fixed_units),
+    ]
+    head += [f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in ordered]
+    return "|".join(head) + "|" + min(texts)
+
+
+def signature(formulation: Formulation) -> str:
+    """A fingerprint of a formulation: equal for two writings of the same one.
+
+    Same quantity kinds and units, same expression once inputs are named
+    canonically and coefficients written as exact rationals (6.112 and
+    6.1120 are the same number); SymPy's own simplifications apply (a
+    coefficient C gives ``exp(ln(C) + x) = C * exp(x)``). Two forms equal
+    only after further algebra (``A * t / (B + t)`` and
+    ``A - A * B / (B + t)``) have different signatures.
+    """
+    text = _canonical(formulation, keep_coefficients=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def form(formulation: Formulation) -> str:
+    """A fingerprint of the form alone: coefficients and constants left aside.
+
+    Equal for the Magnus forms of Sonntag, Bolton or Alduchov and Eskridge,
+    which differ only by their coefficients.
+    """
+    text = _canonical(formulation, keep_coefficients=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def match_inputs(subject: Formulation, other: Formulation) -> dict[str, str]:
@@ -288,3 +366,109 @@ def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Ver
     if relation.kind is RelationKind.APPROXIMATES:
         return _approximation(relation, subject, other, budget)
     return _equivalence(relation, subject, other, SAMPLES)
+
+
+def _common_bounds(
+    subject: Formulation, other: Formulation
+) -> dict[str, tuple[float, float]] | None:
+    """A domain where both formulations are stated valid, on the subject's inputs."""
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    feeds = {source: name for name, source in match_inputs(subject, other).items()}
+    bounds = {}
+    for variable in subject.inputs:
+        own = next(
+            (
+                d.bounds[variable.identifier]
+                for d in subject.domains
+                if variable.identifier in d.bounds
+            ),
+            None,
+        )
+        theirs = None
+        name = feeds.get(variable.identifier)
+        if name is not None:
+            unit = next(v.unit for v in other.inputs if v.identifier == name)
+            found = next(
+                (d.bounds[name] for d in other.domains if name in d.bounds), None
+            )
+            if found is not None:
+                converted = Q_(np.array(found), units[unit].pint).to(
+                    units[variable.unit].pint
+                )
+                theirs = (float(converted.magnitude[0]), float(converted.magnitude[1]))
+        candidates = [b for b in (own, theirs) if b is not None]
+        if not candidates:
+            return None
+        low = max(b[0] for b in candidates)
+        high = min(b[1] for b in candidates)
+        if not low < high:
+            return None
+        bounds[variable.identifier] = (low, high)
+    return bounds
+
+
+def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> str:
+    """Observations on formulations, against the others of the same kind.
+
+    For each formulation: those of the same form, and the maximum relative
+    deviation observed against each other
+    formulation of the same output kind on the domain where both are
+    stated valid. These are observations, never claims: only a relation
+    with a citation states an approximation or an equivalence.
+
+    Parameters
+    ----------
+    catalog : Catalog
+        The catalog holding the formulations.
+    keys : iterable of str
+        The formulations to report on.
+    budget : int, optional
+        Evaluations of the first grid of each comparison.
+
+    Returns
+    -------
+    str
+        The report, as plain text.
+    """
+    lines = []
+    for key in keys:
+        formulation = catalog.formulations[key]
+        lines.append(f"{key} ({formulation.output.kind})")
+        shape = form(formulation)
+        others = [
+            f
+            for f in catalog.formulations.values()
+            if f.key != key and f.output.kind == formulation.output.kind
+        ]
+        # Identical formulations never reach a report: loading refuses them.
+        alike = [f.key for f in others if form(f) == shape]
+        if alike:
+            lines.append(f"  same form, other coefficients: {', '.join(alike)}")
+        for other in others:
+            bounds = _common_bounds(formulation, other)
+            if bounds is None or len(match_inputs(formulation, other)) != len(
+                other.inputs
+            ):
+                continue
+            probe = Relation(
+                key="observation",
+                kind=RelationKind.APPROXIMATES,
+                subject=key,
+                object=other.key,
+                citation="",
+                accuracy=0.0,
+                bounds=MappingProxyType(bounds),
+            )
+            verdict = verify(probe, catalog, budget=budget)
+            place = ", ".join(f"{n} = {v:.6g}" for n, v in verdict.at.items())
+            note = (
+                "  (numerically identical: an equivalence to state?)"
+                if (verdict.value or 0.0) < 1e-9
+                else ""
+            )
+            lines.append(
+                f"  observed max deviation from {other.key}: {verdict.value:.4g} % at {place}{note}"
+            )
+    return "\n".join(lines) + "\n"

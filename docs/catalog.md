@@ -293,25 +293,38 @@ uv sync --all-extras
 uv run pytest
 ```
 
-The tests load the whole catalog. To try a new entry before adding it,
-load it together with the bundled files (it may use their kinds and
-references):
+The tests load the whole catalog. Before adding a file, two commands help:
+
+```
+uv run python -m nomogram.catalog describe my_family.toml   # the header it needs
+uv run python -m nomogram.catalog check my_family.toml      # a report on its formulations
+```
+
+`check` loads the file with the bundled families (as a personal catalog
+when it is not one of them), then reports, for each of its
+formulations, those of the same form (coefficients aside) and the
+maximum relative deviation **observed** against every formulation of the
+same kind, on the domain where both are valid. These are observations:
+only a relation with a citation states an approximation or an
+equivalence. A pair that comes out numerically identical deserves a
+look: an equivalence to state, or the same formulation written twice.
+
+**A formulation already in the catalog is not entered again.** Two
+writings of one formulation (same quantity kinds and units, same
+expression once inputs are renamed, same coefficients as exact
+decimals) are refused when loading, with the key of the existing one:
+add a **citation** to it instead, with the source's notation, equation
+number and statements.
+
+To use a new entry in Python before adding it, load it with the bundled
+families:
 
 ```python
-from importlib.resources import files
-from pathlib import Path
-
-from nomogram.catalog import load_catalog
+from nomogram.catalog import catalog
 from nomogram.units import Q_
 
-bundled = [
-    entry.read_text(encoding="utf-8")
-    for entry in (files("nomogram") / "data" / "catalog").iterdir()
-    if entry.name.endswith(".toml")
-]
-mine = Path("my_entry.toml").read_text(encoding="utf-8")
-catalog = load_catalog([*bundled, mine])
-catalog.formulations["my_key"].evaluate(t=Q_(20, "degC"))
+mine = catalog(extra=["my_family.toml"])  # keys start with "my_family:"
+mine.formulations["my_family:my_key"].evaluate(t=Q_(20, "degC"))
 ```
 
 Add a test against a **published value** (a table of the source, a
