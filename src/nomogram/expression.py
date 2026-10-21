@@ -294,9 +294,10 @@ def to_latex(
 ) -> str:
     """Render an expression in LaTeX, in a given notation.
 
-    The output stays within :data:`LATEX_COMMANDS`, rendered alike by
-    MathJax, KaTeX and matplotlib's mathtext, so that one string serves
-    documentation, notebooks and plot labels. The defaults reproduce
+    The default rendering of identifiers stays within
+    :data:`LATEX_COMMANDS` (the symbols of a notation are used as given),
+    rendered alike by MathJax, KaTeX and matplotlib's mathtext, so that one
+    string serves documentation, notebooks and plot labels. The defaults reproduce
     SymPy's own rendering; :mod:`nomogram.display` chooses the typography.
 
     Parameters

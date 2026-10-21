@@ -375,9 +375,11 @@ def _linear(
     With ``in_units``, the exponents are those of the units the
     formulation is written with (:func:`_factors`) instead of base
     dimensions: the unit a coefficient of a numerical value equation
-    holds for. Constraints that units of the same dimension (hPa and Pa)
-    satisfy only together then have no solution, and every coefficient
-    maps to ``None`` instead of raising.
+    holds for. Units of the same dimension (hPa and Pa) are then distinct
+    factors: constraints they satisfy only together have no solution, and
+    every coefficient maps to ``None`` instead of raising; a solution may
+    also mix them (hPa^0.5/Pa^0.5), which is the unit the numerical value
+    holds for.
     """
     context, constraints, _ = _setup(formulation)
     basis = _factors if in_units else _dimension
