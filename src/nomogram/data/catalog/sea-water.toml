@@ -23,7 +23,7 @@ description = "Mass fraction of dissolved material in sea water, estimated on a 
 [kinds.Chlorinity]
 label = "Chlorinity"
 specialization_of = "MassFraction"
-description = "Mass of chlorine equivalent to the halides of sea water, per mass of sea water, determined by titration with silver (Jacobsen and Knudsen 1940)."
+description = "Chlorinity of sea water, in per mille: Cl = 0.3285234 Ag, Ag being the mass in grams of atomic-weight silver just necessary to precipitate the halogens in 1 kg of sea water (Jacobsen and Knudsen 1940, p. 8), which replaced the definition of Sorensen (1902)."
 
 # --- References -------------------------------------------------------
 
@@ -34,7 +34,7 @@ title = "Second report of the Joint Panel on Oceanographic Tables and Standards,
 container = "UNESCO Technical Papers in Marine Science 4"
 url = "https://www.vliz.be/imisdocs/publications/ocrd/270535.pdf"
 status = "verified"
-note = "p. 6: S = 1.80655 Cl recommended instead of the Knudsen equation. Stated differences with earlier estimates: 0 at 35, 0.0023 at 32 and 38 (salinity from conductivity, which carries a +0.00018 shift; the two chlorinity formulas differ by 0.0025), about 0.02 at 11 and 0.025 at 6 (per mille)."
+note = "Recommendation 2: S = 1.80655 Cl rather than the Sorensen equation (S = 0.030 + 1.805 Cl, Forch, Knudsen and Sorensen 1902). The stated differences between the new conductivity-defined salinity and earlier chlorinity estimates (0 at 35, 0.0023 at 32 and 38, about 0.02 at 11 and 0.025 at 6 per mille) concern that new salinity; the two chlorinity formulas differ by 0.0025 at 32 and 0.0026 at 38."
 
 [references.knudsen1901]
 authors = "Knudsen, M. (ed.)"
@@ -65,7 +65,7 @@ note = "p. 325: no true conversion from chlorinity to PSS-78 exists; errors of t
 [scales.reference_salinity2008]
 label = "Reference-Composition Salinity Scale (Millero et al. 2008)"
 kinds = ["SeaWaterSalinity"]
-symbol = "S_R"
+symbol = "Reference Salinity"
 subscript = "R"
 cf_standard_names = ["sea_water_reference_salinity"]
 reference = "teos10_manual"
@@ -93,8 +93,8 @@ conversion = "x"
 symbol = "Cox"
 subscript = "C"
 cf_standard_names = ["sea_water_cox_salinity"]
-reference = "lewis_perkin1981"
-note = "Taken as Practical Salinity (CF: S_P = S_C; TEOS-10 A.4 converts pre-1978 salinities as S_R = u_PS S). Lewis and Perkin (1981): no true conversion exists, errors unlikely to exceed 0.03."
+reference = "teos10_manual"
+note = "Taken as Practical Salinity: TEOS-10 (A.4) converts pre-1978 salinities as S_R = u_PS S, and CF writes S_P = S_C. For chlorinity values, Lewis and Perkin (1981) find no true conversion to PSS-78 and recommend a route through R15 (errors unlikely to exceed 0.03)."
 
 [scales.knudsen1901]
 label = "Knudsen salinity (Knudsen 1901, S = 0.030 + 1.805 Cl)"
@@ -107,14 +107,14 @@ symbol = "Knudsen"
 subscript = "K"
 cf_standard_names = ["sea_water_knudsen_salinity"]
 reference = "gsw_sp_from_sk"
-note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF). Sources disagree: Feistel (2008, eq. 2.9) writes S_K = 0.03 g/kg + 0.994453 S_R, TEOS-10 A.4 converts pre-1978 salinities as S_R = u_PS S without the 0.03 offset; Lewis and Perkin (1981) find Knudsen salinities within 0.001 of PSS-78 for 25 < S < 38."
+note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF), as Feistel (2008, eq. 2.9) does too. TEOS-10 A.4 disagrees: it converts pre-1978 salinities as S_R = u_PS S, without the 0.03 offset. Lewis and Perkin (1981) find Knudsen salinities within 0.001 of PSS-78 for 25 < S < 38."
 
 [scales.absolute_salinity2010]
 label = "Absolute Salinity (TEOS-10)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
 convertible = false
-symbol = "S_A"
+symbol = "Absolute Salinity"
 subscript = "A"
 cf_standard_names = ["sea_water_absolute_salinity"]
 reference = "teos10_manual"
@@ -126,7 +126,7 @@ note = "S_A = S_R + delta S_A, the anomaly depending on the location (TEOS-10 lo
 label = "Knudsen salinity from chlorinity (Knudsen 1901)"
 expression = "a + b * Cl"
 fixed_units = true
-note = "Knudsen's relation, on nine samples (Baltic, North Sea, North Atlantic, Red Sea); the offset reflects river-borne salts of the Baltic."
+note = "On nine samples (Baltic, North Sea, North Atlantic, Red Sea); the offset reflects river-borne salts of the Baltic. JPOTS (1966) calls it the Sorensen equation, from Forch, Knudsen and Sorensen (1902)."
 output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Knudsen salinity" }
 inputs = [
   { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
@@ -145,7 +145,7 @@ reference = "knudsen1901"
 label = "Cox salinity from chlorinity (JPOTS 1966)"
 expression = "b * Cl"
 fixed_units = true
-note = "Recommended by JPOTS instead of the Knudsen relation; agrees with it within the normal precision in the ocean range (32 to 39 per mille)."
+note = "Recommended by JPOTS (1966) rather than the Sorensen equation, S = 0.030 + 1.805 Cl."
 output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Cox salinity" }
 inputs = [
   { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },

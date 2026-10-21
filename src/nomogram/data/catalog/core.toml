@@ -110,7 +110,7 @@ bounds = [-2.0, 30.0]
 symbol = "IPTS-48"
 subscript = "48"
 reference = "fofonoff_bryden1975"
-note = "t68 from t48, then IPTS-68 to ITS-90. Bennett (1976, quoted by Perkin and Lewis 1980) and Douglas (1969) give other formulas, within 0.5 mK. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908) have no documented conversion."
+note = "t68 from t48, then IPTS-68 to ITS-90. Bennett (1976, quoted by Perkin and Lewis 1980) and Douglas (1969) give other formulas, within 0.5 mK. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908): ICES calls their conversion uncertain, the TEOS-10 Manual (A.1) points to published conversions of obsolete scales; nomogram holds none."
 
 [scales.ipts68]
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"

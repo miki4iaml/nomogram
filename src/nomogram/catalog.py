@@ -23,6 +23,7 @@ import argparse
 import ast
 import dataclasses
 import datetime
+import math
 import os
 import sys
 import tomllib
@@ -370,7 +371,7 @@ def _stated_units(
 def _stated_scales(
     where: str, inputs: tuple[Variable, ...], citations: tuple[Citation, ...]
 ) -> tuple[Variable, ...]:
-    """Inputs with the temperature scales their citations state."""
+    """Variables with the conventional scales their citations state."""
     result = []
     for variable in inputs:
         stated = {
@@ -612,14 +613,21 @@ class _Builder:
         reference_of: dict[str, str] = {}
         pending = dict(tables)
         # Reference scales first, then each scale after the one it converts to.
+        for key, table in pending.items():
+            if not isinstance(table, dict):
+                msg = f"scales.{key}: expected a table"
+                raise CatalogError(msg)
+            for name in ("reference_scale", "base"):
+                if name in table and not isinstance(table[name], str):
+                    msg = f"scales.{key}.{name}: expected a scale key"
+                    raise CatalogError(msg)
         while pending:
             ready = [
                 key
                 for key, table in pending.items()
-                if not isinstance(table, dict)
-                or "reference_scale" not in table
-                or table.get("base", table.get("reference_scale")) in self.scales
-                or table.get("base", table.get("reference_scale")) not in tables
+                if "reference_scale" not in table
+                or table.get("base") in self.scales
+                or table.get("base") not in tables
             ]
             if not ready:
                 msg = f"scales: conversions form a cycle: {', '.join(sorted(pending))}"
@@ -660,7 +668,18 @@ class _Builder:
             msg = f"{where}.kinds: at least one quantity kind"
             raise CatalogError(msg)
         parent = f["reference_scale"]
-        convertible = f["convertible"] is None or bool(f["convertible"])
+        if f["convertible"] is not None and not isinstance(f["convertible"], bool):
+            msg = f"{where}.convertible: expected true or false"
+            raise CatalogError(msg)
+        convertible = f["convertible"] is None or f["convertible"]
+        cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
+        unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
+        if unknown:
+            msg = (
+                f"{where}.cf_standard_names: not in the frozen CF subset: "
+                f"{', '.join(unknown)} (scripts/extract_semantics.py, SCALE_CF_NAMES)"
+            )
+            raise CatalogError(msg)
         conversion_fields = ("unit", "differences", "conversion", "base", "bounds")
         common = {
             "key": key,
@@ -670,9 +689,7 @@ class _Builder:
             "reference": self.optional_reference(f"{where}.reference", f["reference"]),
             "symbol": f["symbol"],
             "subscript": f["subscript"],
-            "cf_standard_names": _keywords(
-                f"{where}.cf_standard_names", f["cf_standard_names"]
-            ),
+            "cf_standard_names": cf_names,
             "note": f["note"],
         }
         if parent is None:
@@ -742,8 +759,16 @@ class _Builder:
         base = None
         if f["base"] is not None and f["base"] != parent:
             base = self.scales.get(f["base"])
-            if base is None or base.is_reference or not set(kinds) <= set(base.kinds):
-                msg = f"{where}.base: {f['base']!r} is not a scale of the same kinds"
+            if (
+                base is None
+                or base.is_reference
+                or not base.convertible
+                or not set(kinds) <= set(base.kinds)
+            ):
+                msg = (
+                    f"{where}.base: {f['base']!r} is not a convertible scale of "
+                    "the same kinds"
+                )
                 raise CatalogError(msg)
             if base.reference_scale != parent or base.unit != unit:
                 msg = (
@@ -753,7 +778,16 @@ class _Builder:
                 raise CatalogError(msg)
         bounds = None
         if f["bounds"] is not None:
-            low, high = (float(x) for x in f["bounds"])
+            values = f["bounds"]
+            if (
+                not isinstance(values, list)
+                or len(values) != 2
+                or not all(isinstance(v, int | float) for v in values)
+                or not all(math.isfinite(v) for v in values)
+            ):
+                msg = f"{where}.bounds: expected [low, high], two finite numbers"
+                raise CatalogError(msg)
+            low, high = (float(v) for v in values)
             if not low < high:
                 msg = f"{where}.bounds: empty interval"
                 raise CatalogError(msg)
@@ -1125,6 +1159,13 @@ class _Builder:
                     f"but {identifier} is in {target.unit}"
                 )
                 raise CatalogError(msg)
+            if part.output.scale != target.scale:
+                msg = (
+                    f"{w}: {part.key} gives a value on scale "
+                    f"{getattr(part.output.scale, 'key', None)}, but {identifier} "
+                    f"is on {getattr(target.scale, 'key', None)}"
+                )
+                raise CatalogError(msg)
             inner[identifier] = part
         bind = dict(c["bind"] or {})
         for source, name in bind.items():
@@ -1213,6 +1254,17 @@ class _Builder:
                     f"{outer.output.unit}"
                 )
                 raise CatalogError(msg)
+            if output.scale is not None and output.scale != outer.output.scale:
+                msg = (
+                    f"{where}.output: the scale is that of {outer.key}'s output, "
+                    f"{getattr(outer.output.scale, 'key', None)}"
+                )
+                raise CatalogError(msg)
+            output = dataclasses.replace(
+                output,
+                scale=outer.output.scale,
+                scale_basis=outer.output.scale_basis,
+            )
 
         # Physical domains travel with the inputs they bound.
         domains = [d for d in outer.physical_domains if not set(d.bounds) & set(inner)]
@@ -1655,6 +1707,7 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
         for kind in table["kinds"]:
             add("kinds", kind)
         add("scales", table.get("reference_scale"))
+        add("scales", table.get("base"))
         add("references", table.get("reference"))
     return found
 

@@ -18,8 +18,10 @@ origin. When there is none, or when the unknown appears more than
 result is a :class:`NumericalInverse`, solved by vectorised bisection
 over a search interval.
 
-Temperatures stay on ITS-90 at both ends: an inverse of a formulation
-fitted on another scale converts its result back.
+Values stay on the reference scales of their kinds at both ends (ITS-90
+for temperatures, Reference Salinity for salinities): the inverse takes
+its input on the scale of the source's output, and converts its result
+back from the scale of the source's input.
 """
 
 from __future__ import annotations
@@ -330,16 +332,59 @@ class NumericalInverse:
         scale: ScaleConversion = "convert",
         **inputs: Any,
     ) -> Any:
-        """Solve for the output, by vectorised bisection."""
+        """Solve for the output, by vectorised bisection.
+
+        Parameters
+        ----------
+        outside : {"nan", "warn", "raise", "ignore"}
+            Behaviour outside the validity domains of the source, as for
+            :meth:`~nomogram.model.Formulation.evaluate`.
+        basis : {"stated", "physical", "all"}
+            Which domains of the source apply.
+        scale : {"convert", "ignore"}
+            With ``"convert"`` (default), the input is taken on the
+            reference scale of its kind and converted to the scale of the
+            source's output, and the result converted from the scale of
+            the source's input to the reference scale; ``"ignore"`` uses
+            values as they are.
+        **inputs : pint.Quantity
+            The one input, by identifier.
+
+        Returns
+        -------
+        pint.Quantity
+            The result, in the output unit; NaN where the input is beyond
+            the image of the search interval.
+
+        Raises
+        ------
+        TypeError
+            If the input is missing or unexpected.
+        OutOfDomainError
+            With ``outside="raise"``, if a result is outside a domain.
+        ScaleConversionError
+            With ``scale="convert"``, if a scale cannot be converted.
+        """
         if set(inputs) != {self.input.identifier}:
             msg = f"{self.key}: expected the input {self.input.identifier}"
             raise TypeError(msg)
         units = semantic_catalog().units
         source_input = self.source.inputs[0]
+        given = inputs[self.input.identifier]
+        target_scale = self.input.scale
+        if (
+            scale == "convert"
+            and target_scale is not None
+            and not target_scale.is_reference
+        ):
+            # The target is given on the reference scale: the source computes
+            # on its own.
+            target_scale.check_convertible()
+            table = units[str(target_scale.unit)].pint
+            on_scale, _ = target_scale.from_reference(convert(given, table).magnitude)
+            given = Q_(on_scale, table)
         target = np.asarray(
-            convert(
-                inputs[self.input.identifier], units[self.input.unit].pint
-            ).magnitude,
+            convert(given, units[self.input.unit].pint).magnitude,
             dtype=float,
         )
         forward = _forward(self.source)
@@ -441,6 +486,12 @@ def invert(
         output,
         scale=source_input.scale,
         scale_basis=source_input.scale_basis,
+    )
+    # The new input is on the scale of the source's output, if any.
+    input = replace(
+        input,
+        scale=formulation.output.scale,
+        scale_basis=formulation.output.scale_basis,
     )
     key = key or f"{formulation.key}_inverse"
     label = label or f"Inverse of: {formulation.label}"

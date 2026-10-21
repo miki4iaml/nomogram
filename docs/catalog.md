@@ -74,7 +74,7 @@ keywords = ["humidity", "psychrometrics"]
 
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
-(`water-vapour`, `moist-air`, `radio`), and **aggregates** holding no entry, only
+(`water-vapour`, `moist-air`, `radio`, `sea-water`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -115,7 +115,7 @@ All sections are optional; a key may be defined in one file only.
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
-| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`) |
+| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`), `subject`, `object`, `citation` | `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
 
@@ -288,8 +288,13 @@ note = "Derived; sources disagree (Feistel 2008, TEOS-10 A.4)."
   of the ITS-90 text (`ipts68`) or by the linear relation of Saunders
   (1990) that oceanographic algorithms take (`ipts68_saunders1990`).
 - `symbol` and `subscript` name the scale in axis labels; CF standard
-  names (`cf_standard_names`) and the `note` (disagreements between
-  sources) are searchable.
+  names (`cf_standard_names`, checked against the frozen CF subset, where
+  the extraction script lists them in `SCALE_CF_NAMES`) and the `note`
+  (disagreements between sources) are searchable.
+- A composition checks that an inner output and the outer input share
+  their scale, and a composed formulation keeps the scale of the outer
+  output; an inverse takes its input on the scale of the source's
+  output.
 - A citation may state the scale of the output too
   (`scales = { S = "knudsen1901" }`): the result is converted back to the
   reference scale.

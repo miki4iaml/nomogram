@@ -13,8 +13,9 @@ import numpy as np
 import pytest
 
 from nomogram.catalog import CatalogError, catalog, load_catalog
-from nomogram.model import ScaleConversionError
-from nomogram.relations import _conversion_chain
+from nomogram.inversion import invert
+from nomogram.model import ScaleConversionError, Variable
+from nomogram.relations import _conversion_chain, fingerprint
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -51,9 +52,10 @@ def test_knudsen_and_cox_salinities_from_chlorinity() -> None:
     assert gap(35.0) == pytest.approx(0.0, abs=1e-4)
     assert gap(11.0) == pytest.approx(0.02, abs=1e-3)
     assert gap(6.0) == pytest.approx(0.025, abs=1e-3)
-    # JPOTS prints 0.0023 at 32 and 38 for the salinity from conductivity,
-    # which carries a +0.00018 shift; the two formulas differ by 0.0025.
-    assert gap(32.0) == pytest.approx(0.0023 + 0.00018, abs=1e-4)
+    # The two chlorinity formulas differ by 0.0025 at 32 and 0.0026 at 38;
+    # JPOTS's 0.0023 there concerns the conductivity-defined salinity.
+    assert gap(32.0) == pytest.approx(0.00255, abs=5e-5)
+    assert gap(38.0) == pytest.approx(0.00261, abs=5e-5)
     # Converted to the reference scale, both near 35.16504 g/kg at Cl = 19.374.
     cl = Q_(19.374, "permille")
     for f in (knudsen, cox):
@@ -123,7 +125,7 @@ def test_scales_are_searchable_by_their_cf_names() -> None:
     assert found.refs == ("scales.pss78",)
     assert "scales.knudsen1901" in CATALOG.search("knudsen", section="scales").refs
     # The note too: the scales whose conversion sources dispute.
-    assert "scales.knudsen1901" in CATALOG.search("disagree", section="scales").refs
+    assert "scales.knudsen1901" in CATALOG.search("disagree*", section="scales").refs
 
 
 PARTS = """
@@ -185,7 +187,7 @@ conversion = "2 * x"
                 '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
                 'unit = "PERMILLE"\nconversion = "x"\nbase = "nope"\n'
             ),
-            "'nope' is not a scale of the same kinds",
+            "'nope' is not a convertible scale of the same kinds",
         ),
         (
             (
@@ -256,3 +258,226 @@ def test_a_conversion_to_the_reference_needs_no_base() -> None:
     # A constant conversion broadcasts to the shape of its input.
     constant = dataclasses.replace(scale, conversion="3")
     assert constant.to_reference(np.zeros(3)) == pytest.approx([3.0, 3.0, 3.0])
+
+
+def test_an_inverse_takes_its_input_on_the_scale_of_the_source_output() -> None:
+    knudsen = F["knudsen1901_salinity"]
+    s_r = knudsen.evaluate(Cl=Q_(19.374, "permille"))
+    output = Variable("Cl", "Chlorinity", "PERMILLE", "Chlorinity")
+    target = Variable("S", "SeaWaterSalinity", "PERMILLE", "Salinity")
+    for method in ("symbolic", "numerical"):
+        inverse = invert(
+            knudsen,
+            "Cl",
+            output=output,
+            input=target,
+            method=method,
+            search=(1.0, 25.0),
+        )
+        assert inverse.inputs[0].scale is SCALES["knudsen1901"]
+        found = inverse.evaluate(S=s_r)
+        assert found.to("permille").magnitude == pytest.approx(19.374, abs=1e-9), method
+
+
+def test_scales_of_compositions() -> None:
+    document = (
+        PARTS
+        + """
+[formulations.inner]
+label = "Inner"
+expression = "c * Cl"
+fixed_units = true
+output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "S" }
+inputs = [{ identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Cl" }]
+coefficients = { c = 1.5 }
+citations = [{ reference = "r", scales = { S = "p" } }]
+
+[formulations.outer]
+label = "Outer"
+expression = "k * S"
+fixed_units = true
+output = { identifier = "y", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "y" }
+inputs = [{ identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "S" }]
+coefficients = { k = 3.0 }
+citations = [{ reference = "r", scales = { S = "p", y = "p" } }]
+
+[formulations.plain]
+label = "Plain outer"
+expression = "k * S"
+fixed_units = true
+output = { identifier = "y", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "y" }
+inputs = [{ identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "S" }]
+coefficients = { k = 4.0 }
+"""
+    )
+    kinds = (
+        '[kinds.Chlorinity]\nlabel = "Chlorinity"\nspecialization_of = "MassFraction"\n'
+    )
+    composed = """
+[formulations.both]
+label = "Both"
+composition = { outer = "outer", inner = { S = "inner" } }
+output = { identifier = "w", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "w" }
+"""
+    built = load_catalog([document + kinds + composed])
+    both = built.formulations["both"]
+    # The declared output keeps the scale of the outer output.
+    assert both.output.scale is built.scales["p"]
+    cl = Q_(2.0, "permille")
+    step = built.formulations["outer"].evaluate(
+        S=built.formulations["inner"].evaluate(Cl=cl)
+    )
+    assert both.evaluate(Cl=cl).magnitude == pytest.approx(step.magnitude)
+    mismatch = composed.replace('outer = "outer"', 'outer = "plain"')
+    with pytest.raises(
+        CatalogError, match="gives a value on scale p, but S is on None"
+    ):
+        load_catalog([document + kinds + mismatch])
+    other = composed.replace(
+        'description = "w" }',
+        'description = "w", scale = "abs", scale_basis = "inferred-from-date" }',
+    )
+    with pytest.raises(CatalogError, match="the scale is that of outer's output, p"):
+        load_catalog([document + kinds + other])
+
+
+def test_bounds_hold_through_a_chain() -> None:
+    knudsen = SCALES["knudsen1901"]
+    # S_K = 1 gives S_P below 2: outside PSS-78, so NaN on the reference.
+    assert np.isnan(knudsen.to_reference(np.array([1.0]))).all()
+    found, outside = knudsen.from_reference(np.array([1.0]))
+    assert outside.all()
+    assert np.isnan(found).all()
+
+
+def test_inverse_by_iteration_and_its_convergence() -> None:
+    base = dataclasses.replace(SCALES["pss78"], base=None, bounds=None)
+    # SymPy cannot solve this one: the inverse iterates, and converges.
+    unsolved = dataclasses.replace(base, conversion="x + exp(x ** 2) / 1000")
+    y = unsolved.to_reference(np.array([0.5, 1.0]))
+    found, outside = unsolved.from_reference(y)
+    assert found == pytest.approx([0.5, 1.0], abs=1e-9)
+    assert not outside.any()
+    # Two roots, and a slope far from 1: no convergence, flagged.
+    square = dataclasses.replace(base, conversion="x ** 2", bounds=(1.0, 10.0))
+    found, outside = square.from_reference(np.array([9.0]))
+    assert outside.all()
+    assert np.isnan(found).all()
+
+
+def test_scales_without_conversion_on_outputs_and_inverses() -> None:
+    document = (
+        PARTS
+        + """
+[formulations.g]
+label = "Output on Absolute Salinity"
+expression = "a * S"
+fixed_units = true
+output = { identifier = "y", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "y" }
+inputs = [{ identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "S" }]
+coefficients = { a = 2.0 }
+citations = [{ reference = "r", scales = { y = "abs" } }]
+"""
+    )
+    g = load_catalog([document]).formulations["g"]
+    with pytest.raises(ScaleConversionError):
+        g.evaluate(S=Q_(35.0, "permille"))
+    inverse = invert(
+        g,
+        "S",
+        output=Variable("S", "SeaWaterSalinity", "PERMILLE", "S"),
+        input=Variable("y", "SeaWaterSalinity", "PERMILLE", "y"),
+        method="numerical",
+        search=(1.0, 50.0),
+    )
+    with pytest.raises(ScaleConversionError):
+        inverse.evaluate(y=Q_(70.0, "permille"))
+    assert inverse.evaluate(y=Q_(70.0, "permille"), scale="ignore").magnitude == (
+        pytest.approx(35.0)
+    )
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        ("[scales]\nx = 3\n", "scales.x: expected a table"),
+        (
+            '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = 3\n',
+            "reference_scale: expected a scale key",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
+                'unit = "PERMILLE"\nconversion = "x"\nbounds = [1.0]\n'
+            ),
+            "bounds: expected \\[low, high\\]",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
+                'unit = "PERMILLE"\nconversion = "x"\nbounds = [1.0, inf]\n'
+            ),
+            "two finite numbers",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
+                'convertible = "false"\n'
+            ),
+            "convertible: expected true or false",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
+                'unit = "PERMILLE"\nconversion = "x"\nbase = "abs"\n'
+            ),
+            "'abs' is not a convertible scale",
+        ),
+        (
+            (
+                '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
+                'unit = "PERMILLE"\nconversion = "x"\ncf_standard_names = ["sea_water_nonsense"]\n'
+            ),
+            "not in the frozen CF subset: sea_water_nonsense",
+        ),
+    ],
+)
+def test_malformed_scales_are_refused(extra: str, message: str) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([PARTS + extra])
+
+
+def test_fingerprint_follows_the_whole_conversion() -> None:
+    def relation_with(conversion: str) -> str:
+        document = PARTS.replace('conversion = "2 * x"', f'conversion = "{conversion}"')
+        document += """
+[formulations.f1]
+label = "F1"
+expression = "a * S"
+fixed_units = true
+output = { identifier = "y", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "y" }
+inputs = [{ identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "S" }]
+coefficients = { a = 2.0 }
+citations = [{ reference = "r", scales = { S = "p" } }]
+
+[formulations.f2]
+label = "F2"
+expression = "b * S"
+fixed_units = true
+output = { identifier = "y", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "y" }
+inputs = [{ identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "S" }]
+coefficients = { b = 3.0 }
+
+[relations.r1]
+kind = "equivalent"
+subject = "f1"
+object = "f2"
+citation = "r"
+"""
+        built = load_catalog([document])
+        return fingerprint(built.relations["r1"], built)
+
+    assert relation_with("2 * x") != relation_with("3 * x")
+    # A chain through a table records the table too.
+    chain = _conversion_chain(SCALES["ipts48"])
+    assert [step[0] for step in chain] == ["ipts48", "ipts68"]

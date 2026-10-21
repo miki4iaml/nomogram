@@ -182,10 +182,12 @@ class ConventionalScale:
 
     The term is that of the VIM (JCGM 200:2012, 1.29). The international
     temperature scales are examples: formulations were fitted to
-    temperatures on the scale in force at the time (IPTS-68, ITS-48...).
-    Each quantity kind has one reference scale (ITS-90 for temperatures);
-    inputs are taken on it and converted to the scale of the formulation
-    before evaluation, and results converted back.
+    temperatures on the scale in force at the time (IPTS-68, ITS-48...),
+    and salinity scales followed one another the same way (Knudsen, PSS-78,
+    Reference Salinity). Each quantity kind has one reference scale
+    (ITS-90 for temperatures, Reference Salinity for salinities); inputs
+    are taken on it and converted to the scale of the formulation before
+    evaluation, and results converted back.
 
     Attributes
     ----------
@@ -199,10 +201,12 @@ class ConventionalScale:
         Key of the reference scale of these kinds; ``None`` for the
         reference scale itself.
     unit : str or None
-        QUDT name of the unit of the conversion table.
+        QUDT name of the unit of the conversion (table or expression);
+        ``None`` for a reference scale, and possibly for a scale without
+        conversion.
     points : tuple of float
         Values on the reference scale where the difference is tabulated;
-        empty for a reference scale.
+        empty without a table.
     difference : tuple of float
         Value on the reference scale minus value on this scale, at those
         points.
@@ -215,8 +219,8 @@ class ConventionalScale:
         ``"90"`` (the ITS-90 writes t90 and T90).
     base : ConventionalScale or None
         For a conversion by expression, the scale it leads to; ``None``
-        for the reference scale itself. Chains end on the reference scale
-        (Knudsen salinity to Practical Salinity, then to Reference
+        when it leads to the reference scale. Chains end on the reference
+        scale (Knudsen salinity to Practical Salinity, then to Reference
         Salinity).
     conversion : str or None
         The value on ``base`` (or on the reference scale) as an expression
@@ -275,15 +279,25 @@ class ConventionalScale:
             raise ScaleConversionError(msg)
 
     @cached_property
-    def _functions(self) -> tuple[Callable[..., Any], Callable[..., Any] | None]:
-        """The conversion, and its inverse when SymPy finds a single one."""
+    def _expression(self) -> Any:
         assert self.conversion is not None
-        expr = parse_expression(self.conversion, ["x"])
+        return parse_expression(self.conversion, ["x"])
+
+    @cached_property
+    def _forward_function(self) -> Callable[..., Any]:
+        return compile_numeric(self._expression, ("x",))
+
+    @cached_property
+    def _inverse_function(self) -> Callable[..., Any] | None:
+        """The inverse when SymPy finds a single one; ``None`` otherwise."""
+        expr = self._expression
         x = next(iter(expr.free_symbols), sympy.Symbol("x", real=True))
         y = sympy.Symbol("y", real=True)
-        found = sympy.solve(sympy.Eq(y, expr), x)
-        inverse = compile_numeric(found[0], ("y",)) if len(found) == 1 else None
-        return compile_numeric(expr, ("x",)), inverse
+        try:
+            found = sympy.solve(sympy.Eq(y, expr), x)
+        except (NotImplementedError, ValueError, TypeError):
+            return None
+        return compile_numeric(found[0], ("y",)) if len(found) == 1 else None
 
     def _outside(self, values: Any) -> Any:
         if self.bounds is None:
@@ -294,9 +308,8 @@ class ConventionalScale:
             return (values < low - margin) | (values > high + margin)
 
     def _forward(self, values: Any) -> Any:
-        forward, _ = self._functions
-        with np.errstate(invalid="ignore", divide="ignore"):
-            result = np.asarray(forward(values), dtype=float)
+        with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+            result = np.asarray(self._forward_function(values), dtype=float)
         return np.broadcast_to(result, np.shape(values)).astype(float)
 
     def from_reference(self, values: Any) -> tuple[Any, Any]:
@@ -332,17 +345,22 @@ class ConventionalScale:
             if self.base is None
             else self.base.from_reference(values)
         )
-        _, inverse = self._functions
+        inverse = self._inverse_function
         if inverse is not None:
-            with np.errstate(invalid="ignore", divide="ignore"):
+            with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
                 found = np.asarray(inverse(on_base), dtype=float)
             found = np.broadcast_to(found, on_base.shape).astype(float)
         else:
-            # Conversions are close to the identity: fixed-point iteration.
+            # Conversions are close to the identity: fixed-point iteration,
+            # kept only where it converged.
             found = on_base.copy()
-            for _ in range(50):
-                found = found - (self._forward(found) - on_base)
-        outside = outside | self._outside(found)
+            with np.errstate(invalid="ignore", over="ignore"):
+                for _ in range(50):
+                    found = found - (self._forward(found) - on_base)
+                residual = np.abs(self._forward(found) - on_base)
+                converged = residual <= 1e-9 * np.maximum(1.0, np.abs(on_base))
+            outside = outside | ~converged
+        outside = outside | np.isnan(found) | self._outside(found)
         return np.where(outside, np.nan, found), outside
 
     def to_reference(self, values: Any) -> Any:
@@ -418,7 +436,7 @@ class Relation:
         the subject (``{"P_d": "P - e"}``).
     scale : {"convert", "ignore"}
         How the formulations are evaluated for the claim: with conversion
-        of temperature scales, or as given, each on its own scale.
+        of conventional scales, or as given, each on its own scale.
     note : str or None
         Remark.
     """
@@ -546,8 +564,10 @@ class Variable:
     description : str
         What the variable is, in a few words.
     scale : ConventionalScale or None
-        For a temperature, the scale the formulation was fitted on;
-        ``None`` when unknown or not applicable.
+        The conventional scale of the value: for an input, the one the
+        formulation was fitted on (a temperature scale, a salinity
+        scale); for an output, the one it gives values on. ``None`` when
+        unknown or not applicable.
     scale_basis : ScaleBasis or None
         How that scale is known.
     """
@@ -691,8 +711,8 @@ class Citation:
         Units the source states for coefficients, by identifier (QUDT
         names).
     scales : mapping of str to ConventionalScale
-        Conventional reference scales the source states for inputs, by
-        identifier.
+        Conventional reference scales the source states for the inputs
+        and the output, by identifier.
     accuracy : str or None
         Accuracy the source claims, as stated.
     note : str or None
@@ -1040,10 +1060,12 @@ class Formulation:
             Which domains apply (default: those stated by the sources).
         scale : {"convert", "ignore"}
             Inputs are taken on the reference scale of their kind (ITS-90
-            for temperatures). With ``"convert"`` (default) they are
-            converted to the conventional scale the formulation was fitted
-            on, when it is known (NaN beyond the conversion table), and
-            the result converted back; ``"ignore"`` uses them as they are.
+            for temperatures, Reference Salinity for salinities). With
+            ``"convert"`` (default) they are converted to the conventional
+            scale the formulation was fitted on, when it is known (NaN
+            beyond the conversion table or the bounds of the conversion),
+            and the result converted to the reference scale of its kind;
+            ``"ignore"`` uses them as they are.
         **inputs : pint.Quantity
             One quantity per input variable, by identifier.
 
@@ -1058,6 +1080,9 @@ class Formulation:
             If an input is missing or unexpected.
         OutOfDomainError
             With ``outside="raise"``, if a value is outside a domain.
+        ScaleConversionError
+            With ``scale="convert"``, if an input or the output is on a
+            scale nomogram cannot convert (Absolute Salinity).
         """
         expected = {v.identifier for v in self.inputs}
         if set(inputs) != expected:

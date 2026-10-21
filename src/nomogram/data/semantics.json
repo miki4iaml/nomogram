@@ -32,6 +32,26 @@
       "canonical_units": "1",
       "pint": "dimensionless"
     },
+    "sea_water_absolute_salinity": {
+      "canonical_units": "g kg-1",
+      "pint": "g * kg ** -1"
+    },
+    "sea_water_cox_salinity": {
+      "canonical_units": "1e-3",
+      "pint": "1e-3"
+    },
+    "sea_water_knudsen_salinity": {
+      "canonical_units": "1e-3",
+      "pint": "1e-3"
+    },
+    "sea_water_practical_salinity": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "sea_water_reference_salinity": {
+      "canonical_units": "g kg-1",
+      "pint": "g * kg ** -1"
+    },
     "specific_humidity": {
       "canonical_units": "1",
       "pint": "dimensionless"
