@@ -89,6 +89,14 @@ repos:
         entry: python scripts/check_anonymity.py --commit-msg
         language: python
         stages: [commit-msg]
+      # Images carry no metadata at all (nomogram draws them); PDFs keep
+      # theirs (the authors of a reference) and pass the anonymity
+      # patterns only, compressed metadata included.
+      - id: check-image-metadata
+        name: image metadata
+        entry: python scripts/check_image_metadata.py
+        language: python
+        files: '(?i)\.(png|jpe?g|gif|webp|svg|tiff?|bmp|ico|heic|heif|avif|jp2)$'
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: 3db014c16a9d31997ab8c07a4d61fcce936c8f0d  # frozen: v4.4.0

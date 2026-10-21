@@ -53,7 +53,7 @@ tests cover. The second command installs the hooks at all three stages
 
 | Stage | Checks |
 |---|---|
-| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity |
+| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity, image metadata |
 | commit-msg | anonymity of the message, Conventional Commits, ASCII-only subject |
 | pre-push | strict mypy, pytest |
 
@@ -133,8 +133,17 @@ any file containing it is rejected, even in CI: a copy of your list
 cannot be committed by mistake. Keep that line; a partial copy without
 it is not detected.
 
-**What the hook does not cover.** Compressed contents (docx, compressed
-PDF), history that was already pushed, branch and tag names, and
+**Images and PDFs.** An image carries no metadata at all: the
+`scripts/check_image_metadata.py` hook refuses text, EXIF (with the
+place a photograph was taken), XMP, IPTC, comments, timestamps and
+colour profiles, and any block it does not know, in PNG, JPEG, GIF,
+WebP and SVG; other formats are refused as not checked. The message
+names the block, never its contents. A PDF keeps its metadata (the
+official authors of a reference): the anonymity hook searches it,
+decompressed when it sits in a compressed stream.
+
+**What the hook does not cover.** Compressed contents (docx, the pages
+of a PDF), history that was already pushed, branch and tag names, and
 anything typed on GitHub itself: pull request titles and descriptions,
 issues, comments. Reread those before posting. The hook can also be
 skipped locally (`git commit --no-verify`); CI then still applies the

@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Pre-commit hook `check-image-metadata`: an image carries no metadata
+  (text, EXIF and its geolocation, XMP, IPTC, comments, timestamps,
+  colour profiles), PNG, JPEG, GIF, WebP and SVG read, other formats
+  refused as not checked. The anonymity hook searches the metadata of
+  PDF files, decompressed when compressed, which keep their authors.
+
 ## [0.3.0] - 2026-10-21
 
 ### Added
