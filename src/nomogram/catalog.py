@@ -1315,7 +1315,7 @@ class _Builder:
 
         # Part, and formulation that defines it, of each coefficient.
         owner: dict[str, tuple[str, str]] = {}
-        coefficients = []
+        coefficients: list[Coefficient] = []
         constants: dict[str, PhysicalConstant] = {}
         for piece in (outer, *inner.values()):
             for coefficient in piece.coefficients:
@@ -1323,7 +1323,23 @@ class _Builder:
                 if coefficient.identifier in owner:
                     first, defined = owner[coefficient.identifier]
                     if defined == origin:
-                        # One part reached twice (directly and inside another).
+                        # One part reached twice (directly and inside another):
+                        # one coefficient, with the unit a citation states.
+                        index = next(
+                            i
+                            for i, c in enumerate(coefficients)
+                            if c.identifier == coefficient.identifier
+                        )
+                        kept = coefficients[index]
+                        if kept.unit is None:
+                            coefficients[index] = coefficient
+                        elif coefficient.unit not in (None, kept.unit):
+                            msg = (
+                                f"{where}: coefficient {coefficient.identifier} of "
+                                f"{origin} is in {kept.unit} in {first} and in "
+                                f"{coefficient.unit} in {piece.key}"
+                            )
+                            raise CatalogError(msg)
                         continue
                     msg = (
                         f"{where}: coefficient {coefficient.identifier} in both "
@@ -1516,7 +1532,13 @@ class _Builder:
             if not accuracy > 0:
                 msg = f"{where}.accuracy: expected a positive percentage, not {accuracy!r}"
                 raise CatalogError(msg)
-        given = dict(f["given"] or {})
+        raw_given = f["given"] or {}
+        if not isinstance(raw_given, dict) or not all(
+            isinstance(v, str) for v in raw_given.values()
+        ):
+            msg = f"{where}.given: expected a table of expressions, by input identifier"
+            raise CatalogError(msg)
+        given = dict(raw_given)
         unfed = sorted(
             v.identifier
             for v in other.inputs

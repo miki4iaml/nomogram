@@ -456,6 +456,14 @@ def sections(**changes: str) -> str:
     return VALID + SECTIONS.format(**(GOOD | changes))
 
 
+def test_a_malformed_given_names_the_relation() -> None:
+    document = sections().replace(
+        'citation = "src"\naccuracy', 'citation = "src"\ngiven = [1]\naccuracy', 1
+    )
+    with pytest.raises(CatalogError, match=r"relations\.r\.given: expected a table"):
+        load_catalog([document])
+
+
 def test_relations_cross_checks_and_scale_tables_load() -> None:
     loaded = load_catalog([sections()])
     assert loaded.relations["r"].accuracy == 1.0

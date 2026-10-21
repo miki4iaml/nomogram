@@ -276,7 +276,7 @@ class ConventionalScale:
     base : ConventionalScale or None
         For a conversion by expression, the scale it leads to; ``None``
         when it leads to the reference scale. Chains end on the reference
-        scale (Knudsen salinity to Practical Salinity, then to Reference
+        scale (Knudsen salinity to Cox salinity, then to Reference
         Salinity).
     conversion : str or None
         The value on ``base`` (or on the reference scale) as an expression

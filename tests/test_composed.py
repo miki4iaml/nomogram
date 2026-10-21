@@ -233,6 +233,47 @@ composition = { outer = "outer_two", inner = { f = "of_t", r = "ratio", e = "pre
     assert found.evaluate(t=t).magnitude == pytest.approx(chain)
 
 
+def test_a_part_reached_twice_keeps_the_unit_a_citation_states() -> None:
+    # Pressure reaches c2 directly and through c1, whose source states the
+    # unit of its coefficient a: one coefficient, with that unit, in any order.
+    extra = """
+[formulations.c1]
+label = "C1"
+composition = { outer = "outer", inner = { e = "pressure" } }
+citations = [{ reference = "src", units = { a = "HectoPA" } }]
+
+[formulations.diff]
+label = "Diff"
+expression = "e1 - e2"
+fixed_units = false
+output = { identifier = "d", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [
+  { identifier = "e1", kind = "VapourPressure", unit = "HectoPA", description = "p1" },
+  { identifier = "e2", kind = "VapourPressure", unit = "HectoPA", description = "p2" },
+]
+
+[formulations.c2]
+label = "C2"
+composition = { outer = "diff", inner = { e1 = "{A}", e2 = "{B}" } }
+"""
+    for first, second in (("c1", "pressure"), ("pressure", "c1")):
+        document = extra.replace("{A}", first).replace("{B}", second)
+        c2 = load_catalog([PARTS, document]).formulations["c2"]
+        (a,) = [c for c in c2.coefficients if c.identifier == "a"]
+        assert a.unit == "HectoPA", (first, second)
+    clash = (
+        extra.replace("{A}", "c1").replace("{B}", "c3")
+        + """
+[formulations.c3]
+label = "C3"
+composition = { outer = "outer", inner = { e = "pressure" } }
+citations = [{ reference = "src", units = { a = "PA" } }]
+"""
+    )
+    with pytest.raises(CatalogError, match="coefficient a of pressure is in HectoPA"):
+        load_catalog([PARTS, clash])
+
+
 def test_parts_may_share_a_constant() -> None:
     shared = """
 [formulations.outer_g]
