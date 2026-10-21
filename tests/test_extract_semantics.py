@@ -98,6 +98,22 @@ def test_kinds_inherit_units_and_follow_the_scale_rule() -> None:
     assert kinds["VapourPressure"]["specialization_of"] == "Pressure"
 
 
+def test_an_interval_scale_may_take_multiplicative_units(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = extract_semantics.KINDS["VapourPressure"]
+    interval = spec._replace(scale_type="interval", added_units=())
+    kinds = dict(extract_semantics.KINDS, VapourPressure=interval)
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["VapourPressure"]["applicable_units"] == []
+    kinds["VapourPressure"] = interval._replace(offset_units=False)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["VapourPressure"]["applicable_units"] == ["HectoPA"]
+
+
 def test_english_label_is_preferred_and_plain_label_accepted() -> None:
     kinds = run()["quantity_kinds"]
     assert isinstance(kinds, dict)

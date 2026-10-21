@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- Family `radio` (ITU-R P.453-14, read on the PDF): refractive index
+  from the refractivity (eq. 1), radio refractivity (eq. 2), its dry and
+  wet terms (eq. 3, 4), the form with the total pressure (eq. 6) with the
+  equivalence stated by P.453 and proven by SymPy, the approximate form
+  (eq. 7) with its stated domain and criterion, the reference profile
+  and the surface refractivity (eq. 11, 12), the modified refractivity
+  (eq. 17), and the height above the surface h = z - z_s. Kinds
+  `RadioRefractivity`, its dry and wet terms, `ModifiedRadioRefractivity`
+  (interval scale), `SurfaceAltitude`.
+- In `moist-air`: P.453 equations 8 (vapour pressure from the relative
+  humidity in percent and the saturation vapour pressure in moist air)
+  and 10 (from the water vapour density); kinds `DryAirPressure` and
+  `SaturationVapourPressureInMoistAir`, parent of the saturation vapour
+  pressures over water and over ice in moist air.
+- QUDT kind `Altitude` (CF `altitude`), on an interval scale with
+  multiplicative units: the extraction script gains `offset_units` for
+  scales whose zero is a reference surface rather than a unit.
 - Composed formulations in the catalog (`composition = { outer, inner,
   bind }`): the inner expressions are substituted into the outer one,
   which gives an ordinary formulation (LaTeX, inversion, units of

@@ -74,7 +74,7 @@ keywords = ["humidity", "psychrometrics"]
 
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
-(`water-vapour`, `moist-air`), and **aggregates** holding no entry, only
+(`water-vapour`, `moist-air`, `radio`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -260,7 +260,11 @@ Kinds and units come from the bundled QUDT subset (see
 `MassConcentrationOfWaterVapour`; units such as `K`, `DEG_C`, `PA`,
 `HectoPA`, `GM-PER-M3`, `PERCENT`, and for radio refractivity
 `RefractiveIndex`, `DimensionlessRatio` (units `UNITLESS`, `PERCENT`,
-`PPM`) and `Height` (`M`, `KiloM`). A kind missing from QUDT can be
+`PPM`), `Height` (above the surface) and `Altitude` (above the geoid),
+both in `M` or `KiloM`. An altitude and a height never feed each other:
+a height above the surface is h = z - z_s (`height_above_surface`), with
+the altitude z_s of the surface given by the user (a terrain model is
+outside nomogram). A kind missing from QUDT can be
 declared in `[kinds]` as a specialization of a QUDT kind; it takes the
 scale type of its parent unless `scale_type` says otherwise (a quantity
 with a conventional origin is on an interval scale even under a

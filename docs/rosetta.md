@@ -81,6 +81,13 @@ British Standard BS 1339-1:2002 deprecates the term in favour of
 "volumetric humidity". No source was found defining absolute humidity
 per volume of *dry* air.
 
+Symbols collide as well as terms. ITU-R P.453-14 writes h for an
+altitude in its equation 11 (the reference profile, N_0 being
+extrapolated to sea level) and for a height above ground in its equation
+17 (figure 12). nomogram keeps the identifiers apart (z, z_s, h, with
+distinct kinds) and gives each source its own symbols in the notation of
+its citation.
+
 ## QUDT findings
 
 Found while reading QUDT 3.5.2; documented here, not worked around
@@ -132,6 +139,17 @@ silently.
     specialize no kind: dimensionless kinds share no common parent in
     QUDT. nomogram uses `DimensionlessRatio` as the parent of the
     dimensionless kinds it defines.
+14. The description of `quantitykind:Altitude` says that altitude or
+    height "is defined based on the context in which it is used"; CF is
+    precise (`altitude`: above the geoid; `height`: above the surface;
+    also `surface_altitude`, `height_above_mean_sea_level`,
+    `height_above_reference_ellipsoid`). nomogram follows CF. An altitude
+    is on an interval scale (its zero is a reference surface) yet in
+    metres: the extraction marks it so (`offset_units=False`), the
+    reference surface rather than the unit setting the zero.
+15. QUDT also has `quantitykind:ElevationRelativeToNAP`, an elevation
+    relative to the Dutch datum: the reference surface is part of the
+    meaning of the quantity.
 
 CF table 95 has no standard name for the saturation vapour pressure
 either, and its `relative_humidity` entry has an empty description (it
