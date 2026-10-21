@@ -36,6 +36,11 @@ label = "Saturation Vapour Pressure over Ice in Moist Air"
 specialization_of = "SaturationVapourPressureInMoistAir"
 description = "Saturation vapour pressure over a plane surface of ice, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
 
+[kinds.SaturationSpecificHumidity]
+label = "Saturation Specific Humidity"
+specialization_of = "SpecificHumidity"
+description = "Specific humidity of air saturated with respect to a plane surface of pure water (or ice) at a given temperature and pressure."
+
 [kinds.DryAirPressure]
 label = "Partial Pressure of Dry Air"
 specialization_of = "Pressure"
@@ -57,7 +62,7 @@ year = 2024
 title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808."
+note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
 
 [references.metpy171]
 authors = "MetPy developers"

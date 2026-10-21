@@ -348,6 +348,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("goff_gratch1946_ice", "e_i0"): "added",
         ("itu_r_p453_reference_profile", "h_0"): "stated",
         ("itu_r_p453_surface_refractivity", "h_0"): "stated",
+        ("ittc2011_vapour_pressure", "T_c"): "stated",
+        ("ittc2011_vapour_pressure", "p_c"): "stated",
+        ("coare36_salinity_factor", "S_0"): "stated",
     }
 
 

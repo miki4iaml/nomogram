@@ -90,6 +90,16 @@ extrapolated to sea level) and for a height above ground in its equation
 distinct kinds) and gives each source its own symbols in the notation of
 its citation.
 
+Over sea water, "about 98 %" is said of three close quantities: the
+vapour pressure of sea water relative to pure water at the same
+temperature (`RelativeVapourPressureOfSeaWater`), the activity of water
+in sea water, which equals the relative fugacity of sea air (TEOS-10
+Manual, eq. 3.40.11), and the relative humidity of air in equilibrium
+with sea water. They are not the same quantity. The 0.98 of flux
+algorithms is applied to the saturation specific humidity (IFS, Beljaars
+1998, Fairall et al. 1996) or to the saturation vapour pressure (COARE
+code); since q is not linear in e, the two differ slightly.
+
 ## QUDT findings
 
 Found while reading QUDT 3.5.2; documented here, not worked around
