@@ -16,7 +16,11 @@ and this project adheres to
   `ScaleConversionError` unless values are taken as given); CF standard
   names and a note on scales, searchable. A citation may state the scale
   of the output. Compositions check the scales of their pieces; an
-  inverse takes its input on the scale of the source's output.
+  inverse takes its input on the scale of the source's output. A value
+  beyond the bounds of a conversion follows `outside=` like a value
+  outside a domain (NaN, `OutOfDomainError` with `"raise"`, a warning
+  with `"warn"`); `evaluate` refuses an unknown `scale`, `outside` or
+  `basis`.
 - Guide `docs/sea-water.md`: salinity on conventional scales, the
   vapour pressures of sea water against TEOS-10, and the 2 % at the sea
   surface (the equivalent cooling of Beljaars 1998, found again by
@@ -67,7 +71,8 @@ and this project adheres to
   `family`, `keyword`. Results are `Selection`s, searched again or
   combined with `&`, `|` and `-`, displayed as tables in notebooks.
   `Catalog.uses` and `Catalog.used_by` follow the links between entries
-  (`Catalog.links`). Guide: `docs/search.md`.
+  (`Catalog.links`, with the kinds and scales a composed formulation
+  takes from its parts), in catalog order. Guide: `docs/search.md`.
 - Family `radio` (ITU-R P.453-14, read on the PDF): refractive index
   from the refractivity (eq. 1), radio refractivity (eq. 2), its dry and
   wet terms (eq. 3, 4), the form with the total pressure (eq. 6) with the
