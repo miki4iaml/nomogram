@@ -169,8 +169,8 @@ silently.
     relative to the Dutch datum: the reference surface is part of the
     meaning of the quantity.
 16. QUDT has no kind for the salinity or the chlorinity of sea water;
-    `quantitykind:MassFraction` has no per mille or g/kg unit (QUDT 3.5.3
-    gives it FRACTION, PERCENT and UNITLESS), although CF writes
+    `quantitykind:MassFraction` has no per mille or g/kg unit (QUDT 3.5.2
+    gives it FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM), although CF writes
     salinities in 1e-3 and g kg-1 (nomogram adds them). `unit:PSU` has a
     conversion multiplier of 0, the value QUDT gives units without a
     multiplicative conversion (decibel, Beaufort...): Practical Salinity

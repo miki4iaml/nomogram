@@ -51,13 +51,24 @@ Cl = 19.374 per mille), against the TEOS-10 Manual (section 3.37:
 | `millero_leung1976_vapour_pressure` | Millero and Leung (1976), p_0 from TEOS-10 | 3111.06 Pa | +0.016 % |
 | `weiss_price1980_vapour_pressure` | Weiss and Price (1980) | 3108.79 Pa | -0.057 % |
 
-The forms based on measurements agree within 0.03 %; Raoult's law, an
-ideal-solution estimate, lowers the vapour pressure about 10 % too much.
-These are observations, computed by nomogram: no source states them.
+The ratios based on measurements agree within 0.03 %, and the vapour
+pressures of Dickson et al. and of Millero and Leung within 0.02 %;
+Weiss and Price is 0.06 % low. Raoult's law, an ideal-solution estimate,
+lowers the vapour pressure about 9 % too much. These are observations,
+computed by nomogram: no source states them.
+
+Dickson et al. name no salinity scale: their S = 35 for Cl = 19.374 is
+taken as Practical Salinity, inferred from these numbers. Two
+conversions hold over less than some stated domains: IPTS-48, converted
+from -2 to 30 degC, and PSS-78, from 2 to 42. Beyond them the default
+evaluation gives NaN: Weiss and Price, stated from 0 to 40 degC and
+from S_P = 0, above t90 = 29.98 degC and below S_P = 2; COARE below
+S_P = 2.
+`scale="ignore"` evaluates the formula as written.
 
 ```python
 t = Q_(298.15, "K")
-c.formulations["dickson2007_vapour_pressure"].evaluate(T=t, S=Q_(35, "permille"))   # 3110.56 Pa
+c.formulations["dickson2007_vapour_pressure"].evaluate(T=t, S=s_r)   # 3110.56 Pa
 c.formulations["ittc2011_vapour_pressure"].evaluate(T=t, S=s_r, scale="ignore")     # Absolute Salinity
 c.search(output="RelativeVapourPressureOfSeaWater")    # every ratio
 ```

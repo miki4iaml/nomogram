@@ -12,9 +12,12 @@ Quantity kinds and unit definitions are extracted from
 
 Changes: a subset of quantity kinds and units was selected and
 restructured as JSON; nomogram adds the scale type and point/difference
-typing of each kind, the units QUDT does not declare for some kinds
-(`added_units`), the pint expression of each unit, and the link from
-each kind to CF standard names. Links from QUDT's `wikidataMatch` are
+typing of each kind (with `offset_units` for a kind on an interval
+scale whose units carry no offset, such as Altitude), the units QUDT
+does not declare for some kinds (`added_units`), the pint expression of
+each unit, and the link from each kind to CF standard names; it
+replaces some unit symbols with those of the SI Brochure (`SYMBOLS`:
+`1` for UNITLESS, `ppm` for PPM). Links from QUDT's `wikidataMatch` are
 recorded as SKOS close matches, with the extraction date as their
 verification date.
 

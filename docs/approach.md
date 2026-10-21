@@ -92,7 +92,8 @@ formulations agree, where they drift, and where they stop.
 When another implementation of a formulation exists, its values are
 recorded once as a **cross-check** (implementation, version, date,
 points), and the tests compute them again: ITU-R P.453 against ITU-Rpy
-agrees to the last digit on every point tried (see the
+agrees on every point tried, to the last digit, or within 10⁻¹² when the
+value went through (n − 1) × 10⁶ (see the
 [catalog guide](catalog.md#cross-checks-against-other-implementations)).
 
 ## 4. Units and temperature scales are explicit
@@ -122,9 +123,10 @@ agrees to the last digit on every point tried (see the
   source, inferred from the publication date only (weak: ITS-90 itself
   took years to be applied), or inferred from numbers. Inputs and
   results are on ITS-90; conversions are done by default. Temperature
-  scales are the first conventional reference scales (VIM 1.29) of the
-  catalog; the same mechanism will serve other quantities defined by
-  agreement (salinity, heights, time scales...).
+  scales were the first conventional reference scales (VIM 1.29) of the
+  catalog; the same mechanism serves salinity (see
+  [sea-water.md](sea-water.md)) and will serve other quantities defined
+  by agreement (heights, time scales...).
 
 The last category came from the data itself: the Hyland and Wexler
 coefficients published in 1983 (the IPTS-68 era), as given today by
@@ -184,8 +186,9 @@ They guarantee that:
   every coefficient, consistent with the expression);
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
-- examples of the documentation run, and the README code is the code
-  that drew its plot.
+- the Python examples of the README and of the guides run (those of the
+  sea water guide give the values their comments state), and the README
+  code is the code that drew its plot.
 
 They do not guarantee that:
 
