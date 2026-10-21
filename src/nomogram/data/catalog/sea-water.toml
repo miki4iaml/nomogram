@@ -140,7 +140,7 @@ container = "American Journal of Science 276, 1035-1077"
 doi = "10.2475/ajs.276.9.1035"
 url = "https://ajsonline.org/article/59869.pdf"
 status = "verified"
-note = "Read on the page images: p. 1035 (abstract: 0 to 40 degC, 0 to 40 per mille), p. 1039 (S = 1.80655 Cl, UNESCO 1966), p. 1062 (eq. 108, fit std deviation 0.001 mm Hg), p. 1063 (Table 20, vapour pressure of seawater; p_0 from Ambrose and Lawrenson 1972)."
+note = "Read on the page images: p. 1035 (abstract: 0 to 40 degC, 0 to 40 per mille), p. 1039 (S = 1.80655 Cl, UNESCO 1966), p. 1062 (eq. 108, fit std deviation 0.001 mm Hg), p. 1063 (Table 20, vapour pressure of seawater; p_0 from Ambrose and Lawrenson 1972). Erratum, Am. J. Sci. 278, 1024 (1978), read: it concerns the heat capacity only."
 
 [references.weiss_price1980]
 authors = "Weiss, R. F.; Price, B. A."
@@ -413,7 +413,7 @@ note = "Function qsat26sea; salinity in PSU."
 label = "Vapour pressure of sea water (Millero and Leung 1976)"
 expression = "p_0 + (a_0 + a_1 * t + a_2 * t ** 2 + a_3 * t ** 3) * S + (b_0 + b_1 * t + b_2 * t ** 2 + b_3 * t ** 3) * S ** 1.5"
 fixed_units = true
-note = "Fitted to vapour pressures derived from osmotic coefficients (Table 20), the pure-water values p_0 coming from Ambrose and Lawrenson (1972); std deviation 0.001 mm Hg. Eq. 108 reproduces Table 20 within 0.0015 mm Hg up to 10 degC, then departs from it as the temperature rises: 0.003 mm Hg at 20 degC, up to 0.029 mm Hg (0.05 %) at 40 degC. Sharqawy et al. (eq. 33) print the same coefficients; the erratum of the paper (Am. J. Sci. 278, 1024, 1978) was not read."
+note = "Fitted to vapour pressures derived from osmotic coefficients (Table 20), the pure-water values p_0 coming from Ambrose and Lawrenson (1972); std deviation 0.001 mm Hg. Eq. 108 reproduces Table 20 within 0.0015 mm Hg up to 10 degC, then departs from it as the temperature rises: 0.003 mm Hg at 20 degC, up to 0.029 mm Hg (0.05 %) at 40 degC. Sharqawy et al. (eq. 33) print the same coefficients; the erratum of the paper (Am. J. Sci. 278, 1024, 1978) corrects only the heat capacity (eq. 52, Table 2)."
 output = { identifier = "p", kind = "SaturationVapourPressureOverSeaWater", unit = "MilliM_HG", description = "Vapour pressure of sea water" }
 inputs = [
   { identifier = "p_0", kind = "SaturationVapourPressureOverWater", unit = "MilliM_HG", description = "Vapour pressure of pure water" },
