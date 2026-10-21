@@ -105,6 +105,27 @@ catalogue, nouvelles formules et code sont tous bienvenus : voir
 (version anglaise de référence : [CONTRIBUTING.md](.github/CONTRIBUTING.md))
 et le [guide du catalogue](docs/catalog.md) (en anglais).
 
+## Sources des données
+
+Les unités de nomogram viennent de QUDT, comme ses natures de grandeur,
+sauf celles que QUDT ne définit pas : nomogram les définit comme
+spécialisations de natures de grandeur QUDT. nomogram relie certaines
+natures de grandeur à des noms standard CF, repris avec leurs unités
+canoniques de la table des noms standard CF. Le paquet embarque un
+sous-ensemble de chaque source :
+
+- QUDT — Quantities, Units, Dimensions and Types, par QUDT.org
+  (<https://qudt.org>), version 3.5.2, sous licence
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ;
+- la [table des noms standard CF](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
+  version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) ;
+- les codes UCUM des unités, tels que QUDT les donne : © Regenstrief
+  Institute, Inc., [licence UCUM](https://ucum.org/license).
+
+Ce que nomogram sélectionne, modifie et ajoute est détaillé dans
+[NOTICE.md](src/nomogram/data/NOTICE.md) (en anglais).
+
 ## Licence
 
-[BSD-3-Clause](LICENSE).
+Code : [BSD-3-Clause](LICENSE). Données embarquées : voir
+[Sources des données](#sources-des-données).

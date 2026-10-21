@@ -5,10 +5,10 @@ sources below. Never edit it by hand.
 
 ## QUDT
 
-Quantity kinds and unit definitions are extracted from
-[QUDT](https://qudt.org/) release 3.5.2, © QUDT.org, licensed under the
-[Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/)
-(CC BY 4.0).
+Quantity kinds and unit definitions are extracted from QUDT —
+Quantities, Units, Dimensions and Types, by QUDT.org
+(<https://qudt.org>), release 3.5.2, licensed under CC BY 4.0
+(<https://creativecommons.org/licenses/by/4.0/>).
 
 Changes: a subset of quantity kinds and units was selected and
 restructured as JSON; nomogram adds the scale type and point/difference
@@ -21,8 +21,17 @@ replaces some unit symbols with those of the SI Brochure (`SYMBOLS`:
 recorded as SKOS close matches, with the extraction date as their
 verification date.
 
+## UCUM codes
+
+The `ucum` value of a unit is its code in the Unified Code for Units of
+Measure (UCUM), taken unchanged from QUDT (`qudt:ucumCode`), which
+identifies these codes as third-party material. UCUM is copyright ©
+1999-2024 Regenstrief Institute, Inc., under the UCUM Copyright Notice
+and License, Version 1.1 (<https://ucum.org/license>).
+
 ## CF standard names
 
 Standard names and canonical units are extracted from the
-[CF standard name table](https://cfconventions.org/) version 95,
-published under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+[CF standard name table](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html)
+version 95, published under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
