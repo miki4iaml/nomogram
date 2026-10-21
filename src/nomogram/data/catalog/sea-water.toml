@@ -198,33 +198,32 @@ symbol = "PSS-78"
 subscript = "P"
 cf_standard_names = ["sea_water_practical_salinity"]
 reference = "teos10_manual"
-note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42; Practical Salinity is a number, written here in per mille so that S_P = 35 is 35."
+note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42, the limits of PSS-78: below S_P = 2 the conversion is undefined, and a formulation on this scale gives NaN under the default evaluation (scale='ignore' takes the salinity as given). Practical Salinity is a number, written here in per mille so that S_P = 35 is 35."
 
 [scales.cox1967]
 label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
-base = "pss78"
 unit = "PERMILLE"
-conversion = "x"
+conversion = "35.16504 / 35 * x"
 symbol = "Cox"
 subscript = "C"
 cf_standard_names = ["sea_water_cox_salinity"]
 reference = "teos10_manual"
-note = "Taken as Practical Salinity: TEOS-10 (A.4) converts pre-1978 salinities as S_R = u_PS S, and CF writes S_P = S_C. For chlorinity values, Lewis and Perkin (1981) find no true conversion to PSS-78 and recommend a route through R15 (errors unlikely to exceed 0.03)."
+note = "Converted as TEOS-10 (A.4) converts salinities measured before PSS-78, S_R = u_PS S, for which it states no range: chlorinity salinities are defined below S = 2, where PSS-78 is not, so this scale has no bounds. CF writes S_P = S_C. For chlorinity values, Lewis and Perkin (1981) find no true conversion to PSS-78 and recommend a route through R15 (errors unlikely to exceed 0.03)."
 
 [scales.knudsen1901]
 label = "Knudsen salinity (Knudsen 1901, S = 0.030 + 1.805 Cl)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
-base = "pss78"
+base = "cox1967"
 unit = "PERMILLE"
 conversion = "(x - 0.03) * 1.80655 / 1.805"
 symbol = "Knudsen"
 subscript = "K"
 cf_standard_names = ["sea_water_knudsen_salinity"]
 reference = "gsw_sp_from_sk"
-note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF), as Feistel (2008, eq. 2.9) does too. TEOS-10 A.4 disagrees: it converts pre-1978 salinities as S_R = u_PS S, without the 0.03 offset. Lewis and Perkin (1981) find Knudsen salinities within 0.001 of PSS-78 for 25 < S < 38."
+note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF), as Feistel (2008, eq. 2.9) does too; then on as Cox salinity, without bounds. Two sources disagree. TEOS-10 A.4 converts pre-1978 salinities as S_R = u_PS S, without the 0.03 offset. Lewis and Perkin (1981, p. 325) find Knudsen salinities within 0.001 of PSS-78 directly for 25 < S < 38, which this conversion departs from by up to about 0.009 at S = 25 (S_K = 25 gives 24.9914): their finding sides with TEOS-10 A.4."
 
 [scales.absolute_salinity2010]
 label = "Absolute Salinity (TEOS-10)"
@@ -345,7 +344,7 @@ accuracy = "+/-0.2 % (Sharqawy et al.; Robinson gives no accuracy for this fit)"
 label = "Relative vapour pressure of sea water by Raoult's law (Sharqawy et al. 2010)"
 expression = "1 / (1 + a * S / (S_0 - S))"
 fixed_units = true
-note = "Printed as the inverse ratio, p_w/p_sw = 1 + 0.57357 S/(1000 - S). An ideal-solution estimate: at ocean salinity it lowers the vapour pressure about 10 % more than the measurement-based forms (0.9795 against about 0.9813 at S = 35). Sharqawy et al. write S in g/kg with no stated scale; the ITTC writes Absolute Salinity, a scale nomogram cannot convert: evaluate with scale='ignore'."
+note = "Printed as the inverse ratio, p_w/p_sw = 1 + 0.57357 S/(1000 - S). An ideal-solution estimate: at ocean salinity it lowers the vapour pressure about 9 % more than the measurement-based forms (0.9796 against about 0.9813 at S = 35). Sharqawy et al. write S in g/kg with no stated scale; the ITTC writes Absolute Salinity, a scale nomogram cannot convert: evaluate with scale='ignore'."
 output = { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water at the same temperature" }
 inputs = [
   { identifier = "S", kind = "SeaWaterSalinity", unit = "GM-PER-KiloGM", description = "Salinity" },
@@ -393,7 +392,7 @@ criterion = "Range of validity of eq. 5, Table 2: 0 to 160 g/kg (primary data 0 
 label = "Salinity factor of the surface vapour pressure (COARE 3.6)"
 expression = "1 - a * S / S_0"
 fixed_units = true
-note = "Linear in salinity: 0.98 at 35, the fixed factor of COARE 3.0, and 1 for fresh water (the Great Lakes example of the code)."
+note = "Linear in salinity: 0.98 at 35, the fixed factor of COARE 3.0. The expression gives 1 for fresh water (the Great Lakes example of the code, Ss = 0), but PSS-78 holds for 2 < S_P < 42: below S_P = 2 the default evaluation gives NaN, and scale='ignore' takes the salinity as given."
 output = { identifier = "f_s", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Salinity factor of the saturation vapour pressure" }
 inputs = [
   { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Sea surface salinity" },
@@ -442,7 +441,7 @@ note = "Sharqawy et al. label the temperature t68 and the salinity S_P; Millero 
 label = "Vapour pressure of sea water (Weiss and Price 1980)"
 expression = "p_0 * exp(a - b * T_0 / T - c * ln(T / T_0) - d * S)"
 fixed_units = true
-note = "Printed as ln(p_v,sw) = 24.4543 - 67.4509 (100/T48) - 4.8489 ln(T48/100) - 5.44e-4 S_P, p_v,sw in atm. Based on Robinson's 25 degC data (Sharqawy et al., p. 367)."
+note = "Printed as ln(p_v,sw) = 24.4543 - 67.4509 (100/T48) - 4.8489 ln(T48/100) - 5.44e-4 S_P, p_v,sw in atm. Based on Robinson's 25 degC data (Sharqawy et al., p. 367). The stated domain outruns the scale conversions: IPTS-48 is converted over -2 to 30 degC (Fofonoff and Bryden 1975) and PSS-78 holds for 2 < S_P < 42, so above t48 = 30 degC (t90 about 29.98 degC) and below S_P = 2 the conversion is undefined and the default evaluation gives NaN; scale='ignore' evaluates the formula as written (about 0.09 % lower near 30 degC than with the conversion, the ITS-90 value being taken as t48, about 16 mK below it)."
 output = { identifier = "p", kind = "SaturationVapourPressureOverSeaWater", unit = "ATM", description = "Vapour pressure of sea water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
@@ -499,10 +498,10 @@ notation = { e_sw = 'p_{v,sw}', S = 'S_{A}' }
 label = "Total molality of dissolved species in sea water (Dickson et al. 2007)"
 expression = "c * S / (S_1 - d * S)"
 fixed_units = true
-note = "For sea water of the composition Dickson et al. give (chapter 5, section 6.1: S = 35 for Cl = 19.374). Printed as the sum of m_B/m°, m° = 1 mol/kg."
+note = "For sea water of the composition Dickson et al. give (chapter 5, section 6.1, Table 2: S = 35 for Cl = 19.374). Printed as the sum of m_B/m°, m° = 1 mol/kg. The guide names no salinity scale. S = 35 for Cl = 19.374 is S = 1.80655 Cl, the relation used in the definition of Practical Salinity and exact for Standard Seawater (TEOS-10 A.4): PSS-78 is inferred from these numbers. Cox salinity fits them too, and converts to Reference Salinity alike."
 output = { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" }
 inputs = [
-  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Salinity" },
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Practical Salinity", scale = "pss78", scale_basis = "inferred-from-numbers" },
 ]
 
 [formulations.dickson2007_total_molality.coefficients]
@@ -579,8 +578,8 @@ equation = "2"
 notation = { e_sw = 'p_{\sigma}(\mathrm{s/w})' }
 
 [[formulations.dickson2007_vapour_pressure.citations.domains]]
-bounds = { S = [16.0, 40.0] }
-criterion = "Range of the osmotic coefficient, eq. 4: I = 0.3 - 0.8 mol kg-H2O-1 (S = 16-40)."
+bounds = { S = [16.0, 40.0], T = [273.0, 647.0] }
+criterion = "Range of the osmotic coefficient, eq. 4: I = 0.3 - 0.8 mol kg-H2O-1 (S = 16-40); pure water of eq. 1 'over the temperature range 273 to 647 K'."
 
 # The salinity effect on the surface humidity of flux algorithms.
 

@@ -145,17 +145,20 @@ def test_vapour_pressures_against_teos10() -> None:
 def test_dickson_against_the_values_printed() -> None:
     # Dickson et al. (2007), chapter 5: 3.1698 kPa for pure water (eq. 1)
     # and 3.1106 kPa for sea water of S = 35 (eqs. 2-4), at 25 degC.
+    # S = 35 is Practical Salinity: as given, or converted from the
+    # Reference Salinity of the standard ocean, the same value.
     t = Q_(298.15, "K")
     pure = F["iapws_sr1_86"].evaluate(T=t)
     dickson = F["dickson2007_vapour_pressure"]
-    sea = dickson.evaluate(T=t, S=Q_(35.0, "permille"))
+    sea = dickson.evaluate(T=t, S=Q_(35.0, "permille"), scale="ignore")
     assert pure.to("kPa").magnitude == pytest.approx(3.1698, abs=5e-5)
     assert sea.to("kPa").magnitude == pytest.approx(3.1106, abs=5e-5)
     # Within 0.001 % of TEOS-10 at the standard ocean.
-    on_teos10 = dickson.evaluate(T=t, S=Q_(35.0, "permille")).to("Pa").magnitude
+    on_teos10 = dickson.evaluate(T=t, S=S_SO).to("Pa").magnitude
+    assert on_teos10 == pytest.approx(sea.to("Pa").magnitude, rel=1e-12)
     assert on_teos10 / TEOS10_SEA_25C - 1 == pytest.approx(0.0, abs=1e-5)
     # The osmotic coefficient holds for S = 16-40.
-    assert np.isnan(dickson.evaluate(T=t, S=Q_(10.0, "permille")).magnitude)
+    assert np.isnan(dickson.evaluate(T=t, S=Q_(10.0, "g/kg")).magnitude)
     assert "kinds.OsmoticCoefficient" in CATALOG.search(kind="OsmoticCoefficient").refs
 
 
@@ -177,6 +180,61 @@ def test_scales_of_the_salinity_inputs() -> None:
     assert scale("coare36_salinity_factor", "S") == ("pss78", "stated")
     assert scale("millero_leung1976_vapour_pressure", "S") == ("cox1967", "stated")
     assert scale("weiss_price1980_vapour_pressure", "T") == ("ipts48", "stated")
+    # Dickson et al. name no scale: S = 35 for Cl = 19.374 is Practical
+    # Salinity, and the composed formulations take it from their part.
+    for key in (
+        "dickson2007_total_molality",
+        "dickson2007_osmotic_coefficient_of_salinity",
+        "dickson2007_vapour_pressure",
+    ):
+        assert scale(key, "S") == ("pss78", "inferred-from-numbers"), key
+
+
+def test_where_the_scale_conversions_end() -> None:
+    # Cox and Knudsen salinities convert below S = 2: the domains stated
+    # from S = 0 hold under the default evaluation.
+    zero = Q_(0.0, "g/kg")
+    millero = F["millero_leung1976_vapour_pressure"].evaluate(
+        p_0=Q_(23.7665, "mmHg"), t=Q_(25.0, "degC"), S=zero
+    )
+    assert millero.to("mmHg").magnitude == pytest.approx(23.7665)
+    sverdrup = F["sverdrup1942_vapour_pressure_ratio"].evaluate(S=zero).magnitude
+    assert sverdrup == pytest.approx(1.0, abs=2e-5)
+    # PSS-78 keeps its limits, 2 to 42: COARE gives 1 for fresh water only
+    # with the salinity taken as given, which its note says.
+    coare = F["coare36_salinity_factor"]
+    assert np.isnan(coare.evaluate(S=zero).magnitude)
+    assert coare.evaluate(S=zero, scale="ignore").magnitude == 1.0
+    assert "scale='ignore'" in (coare.note or "")
+    # IPTS-48 is converted over -2 to 30 degC: Weiss and Price, stated up
+    # to 313 K, gives NaN beyond, and its note and the scale's say so.
+    weiss = F["weiss_price1980_vapour_pressure"]
+    t = Q_([302.5, 303.15, 313.0], "K")
+    found = weiss.evaluate(T=t, S=S_SO).magnitude
+    assert not np.isnan(found[0])
+    assert np.isnan(found[1:]).all()
+    as_written = weiss.evaluate(T=t, S=Q_(35.0, "permille"), scale="ignore")
+    assert not np.isnan(as_written.magnitude).any()
+    assert "scale='ignore'" in (weiss.note or "")
+    # Taken as given, an ITS-90 temperature is read as a lower t48: the note
+    # says about 0.09 % lower near 30 degC.
+    ratio = as_written.magnitude[0] / found[0] - 1
+    assert ratio == pytest.approx(-9.2e-4, abs=5e-5)
+    assert "0.09 % lower" in (weiss.note or "")
+    assert "30 degC" in (CATALOG.scales["ipts48"].note or "")
+
+
+def test_raoult_note_figures() -> None:
+    # The note: 0.9796 against about 0.9813 at S = 35, a lowering about 9 %
+    # larger than Robinson's measurement-based one.
+    raoult = F["raoult_sharqawy2010"]
+    r = raoult.evaluate(S=Q_(35.0, "g/kg"), scale="ignore").magnitude
+    robinson = F["robinson1954_vapour_pressure_ratio"].evaluate(Cl=CL_SO).magnitude
+    assert round(float(r), 4) == 0.9796
+    assert round(float(robinson), 4) == 0.9813
+    assert round((1 - r) / (1 - robinson) - 1, 2) == 0.09
+    assert "0.9796 against about 0.9813 at S = 35" in (raoult.note or "")
+    assert "about 9 %" in (raoult.note or "")
 
 
 def test_surface_humidity_and_search() -> None:

@@ -220,10 +220,10 @@ note = "Section 1: since P_d = P - e, equation 2 can be rewritten as equation 6.
 
 [cross_checks.itu_rpy_p453]
 implementation = "ITU-Rpy"
-version = "0.4.0, master commit f739993"
+version = "master commit f739993 (version string 0.4.0, unreleased)"
 url = "https://github.com/inigodelportillo/ITU-Rpy"
 checked = 2026-10-21
-note = "ITU-Rpy implements P.453-13, its default version; the values agree with the P.453-14 equations of the catalog. Its wet term adds 273.15 to the temperature it converts to kelvins (ITU-Rpy issue 115): it is called with a Celsius temperature. Calls are those of itur.models.itu453."
+note = "ITU-Rpy implements P.453-13, its default version; the values agree with the P.453-14 equations of the catalog. Its wet term adds 273.15 to the temperature it converts to kelvins (ITU-Rpy issue 115): it is called with a Celsius temperature. The 0.4.0 release also multiplies the wet term by 1e-6 (fixed on master by PR #99), so the wet-term cases reproduce only from this commit; the other cases agree on both. Calls are those of itur.models.itu453."
 
 [[cross_checks.itu_rpy_p453.cases]]
 formulation = "itu_r_p453_refractivity_dry"

@@ -66,7 +66,7 @@ def test_knudsen_and_cox_salinities_from_chlorinity() -> None:
 
 def test_a_chain_of_scales_is_followed() -> None:
     knudsen = SCALES["knudsen1901"]
-    assert knudsen.base is SCALES["pss78"]
+    assert knudsen.base is SCALES["cox1967"]
     s_k = np.array([10.0, 35.0, 40.0])
     on_reference = knudsen.to_reference(s_k)
     expected = (s_k - 0.03) * 1.80655 / 1.805 * 35.16504 / 35
@@ -74,8 +74,38 @@ def test_a_chain_of_scales_is_followed() -> None:
     back, outside = knudsen.from_reference(on_reference)
     assert back == pytest.approx(s_k)
     assert not outside.any()
-    assert [step[0] for step in _conversion_chain(knudsen)] == ["knudsen1901", "pss78"]
+    assert [step[0] for step in _conversion_chain(knudsen)] == [
+        "knudsen1901",
+        "cox1967",
+    ]
     assert _conversion_chain(SCALES["ipts68"]) == []
+
+
+def test_chlorinity_salinities_convert_below_the_limits_of_pss78() -> None:
+    # TEOS-10 A.4: S_R = u_PS S for salinities measured before PSS-78, with
+    # no range; Knudsen goes through Cox. PSS-78 keeps its limits, 2 to 42.
+    cox, knudsen = SCALES["cox1967"], SCALES["knudsen1901"]
+    assert cox.base is None
+    assert cox.bounds is None
+    assert knudsen.bounds is None
+    s = np.array([0.0, 1.0, 45.0])
+    assert cox.to_reference(s) == pytest.approx(35.16504 / 35 * s)
+    assert knudsen.to_reference(s) == pytest.approx(
+        (s - 0.03) * 1.80655 / 1.805 * 35.16504 / 35
+    )
+    for scale in (cox, knudsen):
+        back, outside = scale.from_reference(scale.to_reference(s))
+        assert back == pytest.approx(s)
+        assert not outside.any()
+    assert np.isnan(SCALES["pss78"].to_reference(np.array([1.0]))).all()
+    # Lewis and Perkin (1981, p. 325) find Knudsen salinities within 0.001 of
+    # PSS-78 directly for 25 < S < 38; the conversion carried departs from
+    # that by up to about 0.009 at 25, the disagreement the note records.
+    s_k = np.array([25.0, 32.0, 38.0])
+    s_p = SCALES["pss78"].from_reference(knudsen.to_reference(s_k))[0]
+    assert s_p - s_k == pytest.approx([-0.0086, -0.0025, 0.0026], abs=5e-5)
+    assert "Lewis and Perkin" in (knudsen.note or "")
+    assert "0.009" in (knudsen.note or "")
 
 
 def test_temperature_scales_of_oceanography() -> None:
@@ -91,6 +121,12 @@ def test_temperature_scales_of_oceanography() -> None:
     back, outside = ipts48.from_reference(ipts48.to_reference(t48))
     assert back == pytest.approx(t48, abs=1e-9)
     assert not outside.any()
+    # Fofonoff and Bryden build it over -2 to 30 degC: t90 = 29.98 degC is
+    # still inside, t90 = 30 degC (t48 = 30.016) is not.
+    back, outside = ipts48.from_reference(np.array([29.98, 30.0]))
+    assert back[0] == pytest.approx(29.996, abs=1e-3)
+    assert list(outside) == [False, True]
+    assert np.isnan(back[1])
 
 
 def test_absolute_salinity_is_not_converted() -> None:
@@ -342,10 +378,18 @@ output = { identifier = "w", kind = "SeaWaterSalinity", unit = "PERMILLE", descr
 
 
 def test_bounds_hold_through_a_chain() -> None:
-    knudsen = SCALES["knudsen1901"]
-    # S_K = 1 gives S_P below 2: outside PSS-78, so NaN on the reference.
-    assert np.isnan(knudsen.to_reference(np.array([1.0]))).all()
-    found, outside = knudsen.from_reference(np.array([1.0]))
+    document = PARTS + (
+        '[scales.b]\nlabel = "Bounded"\nkinds = ["SeaWaterSalinity"]\n'
+        'reference_scale = "ref"\nunit = "PERMILLE"\nconversion = "2 * x"\n'
+        "bounds = [2.0, 42.0]\n"
+        '[scales.k]\nlabel = "On the bounded scale"\nkinds = ["SeaWaterSalinity"]\n'
+        'reference_scale = "ref"\nbase = "b"\nunit = "PERMILLE"\nconversion = "x - 1"\n'
+    )
+    k = load_catalog([document]).scales["k"]
+    assert k.to_reference(np.array([11.0])) == pytest.approx([20.0])
+    # k = 2 gives b = 1, below the bounds of b: NaN on the reference.
+    assert np.isnan(k.to_reference(np.array([2.0]))).all()
+    found, outside = k.from_reference(np.array([2.0]))
     assert outside.all()
     assert np.isnan(found).all()
 

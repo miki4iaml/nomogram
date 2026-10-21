@@ -110,7 +110,7 @@ bounds = [-2.0, 30.0]
 symbol = "IPTS-48"
 subscript = "48"
 reference = "fofonoff_bryden1975"
-note = "t68 from t48, then IPTS-68 to ITS-90. Bennett (1976, quoted by Perkin and Lewis 1980) and Douglas (1969) give other formulas, within 0.5 mK. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908): ICES calls their conversion uncertain, the TEOS-10 Manual (A.1) points to published conversions of obsolete scales; nomogram holds none."
+note = "t68 from t48, then IPTS-68 to ITS-90. Fofonoff and Bryden build the conversion over -2 to 30 degC: above t48 = 30 degC (t90 about 29.98 degC) it is undefined, and a formulation on this scale gives NaN under the default evaluation, inside its stated domain for Weiss and Price (1980, up to 313 K); scale='ignore' evaluates the formula as written, IPTS-48 being about 16 mK above ITS-90 near 30 degC. Bennett (1976, quoted by Perkin and Lewis 1980) and Douglas (1969) give other formulas, within 0.5 mK. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908): ICES calls their conversion uncertain, the TEOS-10 Manual (A.1) points to published conversions of obsolete scales; nomogram holds none."
 
 [scales.ipts68]
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"

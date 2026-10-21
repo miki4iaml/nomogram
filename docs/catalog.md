@@ -261,8 +261,9 @@ differences = [[-190.0, 0.008], [-180.0, 0.008]]   # extract of Table 6 of the I
 
 A conversion may instead be an expression of `x`, the value on the
 scale, giving the value on its `base` (the reference scale by default),
-both in `unit`; `bounds` give the values where it holds (NaN beyond).
-Chains end on the reference scale, and each relation is written once:
+both in `unit`; `bounds` give the values where it holds (NaN beyond),
+and a chain holds where each of its steps does. Chains end on the
+reference scale, and each relation is written once:
 
 ```toml
 [scales.pss78]
@@ -271,17 +272,24 @@ kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
 unit = "PERMILLE"
 conversion = "35.16504 / 35 * x"       # TEOS-10 eq. 2.4.1
-bounds = [2.0, 42.0]
+bounds = [2.0, 42.0]                   # the limits of PSS-78
 cf_standard_names = ["sea_water_practical_salinity"]
+
+[scales.cox1967]
+label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+unit = "PERMILLE"
+conversion = "35.16504 / 35 * x"       # TEOS-10 A.4, no bounds
 
 [scales.knudsen1901]
 label = "Knudsen salinity (Knudsen 1901, S = 0.030 + 1.805 Cl)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
-base = "pss78"                          # Knudsen, then PSS-78, then S_R
+base = "cox1967"                        # Knudsen, then Cox, then S_R
 unit = "PERMILLE"
 conversion = "(x - 0.03) * 1.80655 / 1.805"
-note = "Derived; sources disagree (Feistel 2008, TEOS-10 A.4)."
+note = "Derived; sources disagree (TEOS-10 A.4, Lewis and Perkin 1981)."
 ```
 
 - The inverse comes from SymPy when it is unique, and otherwise by
@@ -390,7 +398,7 @@ the points tried, not that the equation is right.
 ```toml
 [cross_checks.itu_rpy_p453]
 implementation = "ITU-Rpy"
-version = "0.4.0, master commit f739993"
+version = "master commit f739993 (version string 0.4.0, unreleased)"
 url = "https://github.com/inigodelportillo/ITU-Rpy"
 checked = 2026-10-21
 note = "Its wet term is called with a Celsius temperature (ITU-Rpy issue 115)."
