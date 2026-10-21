@@ -464,6 +464,19 @@ def test_a_malformed_given_names_the_relation() -> None:
         load_catalog([document])
 
 
+@pytest.mark.parametrize(
+    ("written", "message"),
+    [
+        ("bounds = { t = [0.0, 10.0] }", r"relations\.r\.bounds: expected a table"),
+        ("at = { t = 10.0 }", r"relations\.r\.at: expected a table"),
+    ],
+)
+def test_relation_bounds_and_at_are_tables(written: str, message: str) -> None:
+    key = written.split(" = ")[0]
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([sections().replace(written, f"{key} = 3", 1)])
+
+
 def test_relations_cross_checks_and_scale_tables_load() -> None:
     loaded = load_catalog([sections()])
     assert loaded.relations["r"].accuracy == 1.0
