@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- Search (`Catalog.search`, `nomogram.search`): one index of every entry
+  of the catalog (formulations, kinds, references, constants, notations,
+  trade terms, scales, relations, cross-checks, families, units); terms
+  are shell-style wildcards matched against words, without case or
+  accents, identifiers split at CamelCase and underscores; symbols in a
+  normal form (`\rho_{\mathrm{v}}`, `ρ_v`, `rhô_v` are `rho_v`); field
+  filters `key`, `kind` (with its specializations), `output`, `input`,
+  `variable`, `symbol` with `notation`, `source` with `equation`,
+  `family`, `keyword`. Results are `Selection`s, searched again or
+  combined with `&`, `|` and `-`, displayed as tables in notebooks.
+  `Catalog.uses` and `Catalog.used_by` follow the links between entries
+  (`Catalog.links`). Guide: `docs/search.md`.
 - Family `radio` (ITU-R P.453-14, read on the PDF): refractive index
   from the refractivity (eq. 1), radio refractivity (eq. 2), its dry and
   wet terms (eq. 3, 4), the form with the total pressure (eq. 6) with the

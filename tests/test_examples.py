@@ -64,3 +64,11 @@ def test_display_guide_code_runs() -> None:
         exec(compile(block, str(DISPLAY), "exec"), namespace)  # noqa: S102
     assert namespace["label"] == r"$e_{\mathrm{w}}$ [hPa]"
     assert "6{,}112" in str(namespace["french"])
+
+
+def test_search_guide_code_runs() -> None:
+    guide = ROOT / "docs" / "search.md"
+    namespace: dict[str, object] = {}
+    for block in python_blocks(guide):
+        exec(compile(block, str(guide), "exec"), namespace)  # noqa: S102
+    assert "c" in namespace
