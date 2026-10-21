@@ -24,6 +24,17 @@ and this project adheres to
   and 10 (from the water vapour density); kinds `DryAirPressure` and
   `SaturationVapourPressureInMoistAir`, parent of the saturation vapour
   pressures over water and over ice in moist air.
+- Cross-checks against other implementations (catalog section
+  `[cross_checks]`, `nomogram.model.CrossCheck` and `CheckCase`): values
+  of formulations computed once with outside software, with its version
+  and the date of the check; `nomogram.relations.replay` computes them
+  again (the tests do it for every case), and
+  `python -m nomogram.catalog verify` lists them. First one: ITU-R P.453
+  against ITU-Rpy, 16 cases, all agreeing.
+- An equivalence between formulations is refused when they do not work
+  in the same units, since its proof compares the expressions as written.
+  `docs/relation-verdicts.md` works through the equivalence of P.453
+  equations 2 and 6.
 - QUDT kind `Altitude` (CF `altitude`), on an interval scale with
   multiplicative units: the extraction script gains `offset_units` for
   scales whose zero is a reference surface rather than a unit.

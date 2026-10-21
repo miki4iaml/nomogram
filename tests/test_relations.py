@@ -242,6 +242,51 @@ def test_outputs_of_different_kinds_are_refused() -> None:
         load_catalog([document])
 
 
+PASCALS = """
+[formulations.eq2_pa]
+label = "Refractivity from dry pressure in pascals"
+expression = "k1 * P_d / T + k2 * e / T + k3 * e / T ** 2"
+fixed_units = true
+output = { identifier = "N", kind = "RelativeHumidity", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "P_d", kind = "Pressure", unit = "PA", description = "dry pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "temperature" },
+]
+coefficients = { k1 = 0.776, k2 = 72, k3 = 3.75e5 }
+
+[formulations.eq2_percent]
+label = "Refractivity from dry pressure, in percent"
+expression = "k1 * P_d / T + k2 * e / T + k3 * e / T ** 2"
+fixed_units = true
+output = { identifier = "N", kind = "RelativeHumidity", unit = "PERCENT", description = "out" }
+inputs = [
+  { identifier = "P_d", kind = "Pressure", unit = "HectoPA", description = "dry pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "temperature" },
+]
+coefficients = { k1 = 7760, k2 = 72, k3 = 3.75e7 }
+"""
+
+
+@pytest.mark.parametrize(
+    ("other", "message"),
+    [
+        ("eq2_pa", "P_d in PA fed by P in HectoPA; P_d in PA fed by e in HectoPA"),
+        ("eq2_percent", "output in UNITLESS and PERCENT; e in PA fed by e in HectoPA"),
+    ],
+)
+def test_an_equivalence_needs_the_same_units(other: str, message: str) -> None:
+    extra = 'given = { P_d = "P - e" }'
+    document = (
+        BASE + PASCALS + RELATION.format(subject="eq6", object=other, extra=extra)
+    )
+    with pytest.raises(CatalogError, match="proved on the expressions as written"):
+        load_catalog([document])
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
 def test_a_relation_belongs_to_a_family_requiring_its_formulations() -> None:
     header = '[catalog]\nname = "{name}"\nformat = 2\nrequires = [{requires}]\n'
     formulas = header.format(name="formulas", requires="") + BASE
