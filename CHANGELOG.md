@@ -8,17 +8,6 @@ and this project adheres to
 
 ## [Unreleased]
 
-### Changed
-
-- Compositions: a part reached twice, directly and inside another part,
-  is one part, its coefficients counted once; the units of coefficients
-  are inferred with each inner part keeping the unit of its output.
-
-- The symbol of the unit one is 1, as in the SI Brochure, rather than
-  QUDT's `一` (a deliberate QUDT choice, qudt/qudt-public-repo#712);
-  displays still leave it unwritten. Unit symbols follow the SI Brochure,
-  departures from QUDT being declared in the extraction script.
-
 ### Added
 
 - Conventional scales converted by an expression of `x` (`conversion`),
@@ -171,7 +160,7 @@ and this project adheres to
   (SA90) give 0.610 % and 0.315 % where the table gives 0.597 % and
   0.328 %.
 - Catalog families (`nomogram.catalog.Family`): each file declares a
-  `[catalog]` header (name, format, requires, keywords, links);
+  `[catalog]` header (name, format, requires, keywords, `matches`);
   `catalog("water-vapour")` loads one family with those it requires,
   `catalog()` still loads everything; `Catalog.families`;
   `Formulation.family` (from the file) and `Formulation.keywords`.
@@ -228,6 +217,13 @@ and this project adheres to
 
 ### Changed
 
+- Compositions: a part reached twice, directly and inside another part,
+  is one part, its coefficients counted once; the units of coefficients
+  are inferred with each inner part keeping the unit of its output.
+- The symbol of the unit one is 1, as in the SI Brochure, rather than
+  QUDT's `一` (a deliberate QUDT choice, qudt/qudt-public-repo#712);
+  displays still leave it unwritten. Unit symbols follow the SI Brochure,
+  departures from QUDT being declared in the extraction script.
 - Plot axes and `display.symbol` labels follow `axis_labels` (SI form
   by default, instead of a unit in brackets). A temperature axis names
   the temperature its values are: in °C a Celsius temperature t, in K or
@@ -238,7 +234,6 @@ and this project adheres to
   The deviation axis reads "Relative deviation from ... δ/%".
 - `Derivation.solved_for` is optional (`None` for a composition), and
   `Derivation` gains `parts`.
-
 - The bundled catalog is split into families: `core` (conventional
   scales, notations), `water-vapour` (saturation vapour pressure),
   `moist-air` (humidity quantities) and the aggregate `humidity`; no
@@ -275,6 +270,14 @@ and this project adheres to
   (RH can no longer be read as R × H) and descriptive subscripts are
   upright, as in ISO 80000-2 (`e_{\mathrm{s}}` instead of `e_{s}`).
   `DisplayOptions.SYMPY` gives the former rendering.
+
+### Fixed
+
+- Notes of the catalog checked again against their sources: the
+  Goff-Gratch equation over water is not the form Alduchov and Eskridge
+  (1996) print (their GG45, with the opposite sign in the last exponent,
+  which they report more than 5 % from GG46): the disagreement is
+  recorded; Buck's (1981) formulas over ice come from Vömel only.
 
 ## [0.2.0] - 2026-10-14
 
