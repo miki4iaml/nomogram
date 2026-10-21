@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- Axis labels in three styles, display option `axis_labels`: `"si"`
+  (default), the quotient of the quantity by its unit with the
+  conventional scale as a subscript of the symbol, as the SI Brochure
+  writes them (`Celsius temperature t₉₀/°C`); `"explicit"`
+  (`Celsius temperature - t [°C] {ITS-90}`); `"simple"`
+  (`Celsius temperature t [°C]`). `nomogram.display.axis_label` and
+  `reference_scale`; conventional scales gain a short name (`symbol`)
+  and a `subscript`, searchable.
 - Search (`Catalog.search`, `nomogram.search`): one index of every entry
   of the catalog (formulations, kinds, references, constants, notations,
   trade terms, scales, relations, cross-checks, families, units); terms
@@ -171,6 +179,14 @@ and this project adheres to
 
 ### Changed
 
+- Plot axes and `display.symbol` labels follow `axis_labels` (SI form
+  by default, instead of a unit in brackets). A temperature axis names
+  the temperature its values are: in °C a Celsius temperature t, in K or
+  °R a thermodynamic temperature T, in °F a temperature (it said
+  "Thermodynamic Temperature [°C]"). The y axis of `plot_values` gains
+  the name of the output kind, the x axis a symbol (in the notation
+  given); names are in sentence case, units take the catalog's symbols.
+  The deviation axis reads "Relative deviation from ... δ/%".
 - `Derivation.solved_for` is optional (`None` for a composition), and
   `Derivation` gains `parts`.
 

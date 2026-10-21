@@ -55,11 +55,15 @@ reference = "ashrae2017"
 
 [scales.its90]
 label = "International Temperature Scale of 1990 (ITS-90)"
+symbol = "ITS-90"
+subscript = "90"
 kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference = "preston_thomas1990"
 
 [scales.ipts68]
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"
+symbol = "IPTS-68"
+subscript = "68"
 kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 unit = "DEG_C"

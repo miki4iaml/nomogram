@@ -11,7 +11,10 @@ Everything derives from one LaTeX string, produced by
   unit of each symbol;
 - :func:`symbol` gives the label of one variable, for an axis or a
   legend;
-- :func:`table` gives a Markdown table of several formulations.
+- :func:`table` gives a Markdown table of several formulations;
+- :func:`axis_label` gives the label of a plot axis, in the style of the
+  ``axis_labels`` option, with :func:`reference_scale` and
+  :func:`sentence_case` as helpers.
 
 In a Jupyter notebook, a :class:`Rendering` or a :class:`FormulaTable`
 left at the end of a cell displays itself, through ``_repr_markdown_``;
@@ -37,6 +40,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import re
 from collections.abc import Iterable, Iterator, Mapping
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -47,25 +51,36 @@ import sympy
 
 from nomogram.dimensions import DimensionError, unit_text
 from nomogram.expression import to_latex
-from nomogram.model import Coefficient, Formulation, Notation, Variable
+from nomogram.model import (
+    Coefficient,
+    ConventionalScale,
+    Formulation,
+    Notation,
+    Variable,
+)
 from nomogram.semantics import semantic_catalog
 
 __all__ = [
     "DisplayOptions",
     "FormulaTable",
     "Rendering",
+    "axis_label",
     "display_options",
     "get_display_options",
+    "reference_scale",
     "render",
+    "sentence_case",
     "symbol",
     "table",
 ]
 
 MulSymbol = Literal["times", "dot", "ldot"] | None
 DecimalSeparator = Literal["period", "comma"]
+AxisLabels = Literal["si", "explicit", "simple"]
 
 _MUL_SYMBOLS = ("times", "dot", "ldot", None)
 _DECIMAL_SEPARATORS = ("period", "comma")
+_AXIS_LABELS = ("si", "explicit", "simple")
 
 #: How the origin of a coefficient unit reads in a legend.
 _ORIGINS: Mapping[str, str] = {
@@ -99,12 +114,19 @@ class DisplayOptions:
     values : bool
         Whether coefficients appear as their values instead of their
         symbols.
+    axis_labels : {"si", "explicit", "simple"}
+        How axis labels read (:func:`axis_label`): the quotient of the
+        quantity by its unit, the scale as a subscript of the symbol, as
+        the SI Brochure writes them (``t₉₀/°C``, default); name, symbol,
+        unit in brackets and scale in braces (``t [°C] {ITS-90}``); or
+        name, symbol and unit only (``t [°C]``).
     """
 
     mul_symbol: MulSymbol = "times"
     decimal_separator: DecimalSeparator = "period"
     upright: bool = True
     values: bool = False
+    axis_labels: AxisLabels = "si"
 
     #: SymPy's own rendering: juxtaposition, default symbols.
     SYMPY: ClassVar[DisplayOptions]
@@ -118,6 +140,9 @@ class DisplayOptions:
                 f"decimal_separator must be one of {_DECIMAL_SEPARATORS}, "
                 f"not {self.decimal_separator!r}"
             )
+            raise ValueError(msg)
+        if self.axis_labels not in _AXIS_LABELS:
+            msg = f"axis_labels must be one of {_AXIS_LABELS}, not {self.axis_labels!r}"
             raise ValueError(msg)
 
 
@@ -369,6 +394,127 @@ def render(
     return Rendering(formulation, notation, _resolve(options, overrides))
 
 
+def reference_scale(kind: str) -> ConventionalScale | None:
+    """The reference scale of a quantity kind in the bundled catalog.
+
+    Plots and :func:`symbol` read the bundled catalog: the scales of a
+    personal catalog do not reach their labels.
+
+    Values of the kind are given and returned on it (ITS-90 for the
+    temperatures); ``None`` for a kind without conventional scale.
+    """
+    from nomogram.catalog import catalog
+
+    for scale in catalog().scales.values():
+        if scale.is_reference and kind in scale.kinds:
+            return scale
+    return None
+
+
+def _with_subscript(tex: str, subscript: str) -> str:
+    """A symbol marked with a scale: ``t`` gives ``t_{90}``.
+
+    The mark joins an existing subscript group (``T_{d}`` gives
+    ``T_{d,90}``), never a superscript.
+    """
+    mark = subscript if subscript.isdigit() else rf"\mathrm{{{subscript}}}"
+    start = tex.find("_{")
+    if start < 0:
+        return f"{tex}_{{{mark}}}"
+    depth = 0
+    for index in range(start + 1, len(tex)):
+        depth += {"{": 1, "}": -1}.get(tex[index], 0)
+        if depth == 0:
+            return f"{tex[:index]},{mark}{tex[index:]}"
+    return f"{tex}_{{{mark}}}"
+
+
+#: Words kept capitalised when a label is put in sentence case.
+_PROPER_NOUNS = frozenset({"Celsius", "Fahrenheit", "Kelvin", "Rankine"})
+
+
+def sentence_case(label: str) -> str:
+    """A label in sentence case, as the SI and ISO 80000 write names.
+
+    ``"Celsius Temperature"`` gives ``"Celsius temperature"``; acronyms and
+    proper nouns keep their capitals, the first word too.
+    """
+    words = label.split(" ")
+    return " ".join(
+        [words[0]]
+        + [
+            w.lower()
+            if w[:1].isupper() and w[1:].islower() and w not in _PROPER_NOUNS
+            else w
+            for w in words[1:]
+        ]
+    )
+
+
+def axis_label(
+    name: str | None,
+    symbol: str | None,
+    unit: str,
+    *,
+    scale: ConventionalScale | None = None,
+    options: DisplayOptions | None = None,
+    **overrides: Any,
+) -> str:
+    """The label of a plot axis, in the style of the display options.
+
+    Parameters
+    ----------
+    name : str or None
+        Name of the quantity, for example ``"Celsius temperature"``.
+    symbol : str or None
+        Its symbol, in LaTeX without dollars, for example ``"t"``.
+    unit : str
+        Its unit symbol, for example ``"°C"``; empty for a number.
+    scale : ConventionalScale, optional
+        The conventional scale of the values (ITS-90...).
+    options, **overrides
+        As for :func:`render`; ``axis_labels`` chooses the style.
+
+    Returns
+    -------
+    str
+        ``"si"`` (default): ``Celsius temperature $t_{90}$/°C``, the
+        quotient of the quantity by its unit and the scale as a subscript
+        of the symbol (SI Brochure, 9th edition, 5.4.1 and 5.4.2: a unit
+        is never qualified, the information goes on the symbol);
+        ``"explicit"``: ``Celsius temperature - $t$ [°C] {ITS-90}``;
+        ``"simple"``: ``Celsius temperature $t$ [°C]``.
+
+    Notes
+    -----
+    A compound unit goes in parentheses in the quotient (``(g/m³)``,
+    ``(Pa⋅s)``); a number has no unit (``[1]`` in the explicit style);
+    the scale subscript joins an existing subscript; without a name, the
+    slash stands apart (``Height / km``); with neither name nor symbol,
+    the unit stands alone (``[Pa]`` in the explicit and simple styles).
+    """
+    chosen = _resolve(options, overrides)
+    style = chosen.axis_labels
+    if style == "si" and symbol and scale is not None and scale.subscript:
+        symbol = _with_subscript(symbol, scale.subscript)
+    shown = f"${symbol}$" if symbol else None
+    if style == "explicit":
+        head = " - ".join(p for p in (name, shown) if p)
+        text = f"{head} [{unit or '1'}]" if head else f"[{unit or '1'}]"
+        if scale is not None and scale.symbol:
+            text += f" {{{scale.symbol}}}"
+        return text
+    head = " ".join(p for p in (name, shown) if p)
+    if not unit:
+        return head
+    if style == "simple":
+        return f"{head} [{unit}]" if head else f"[{unit}]"
+    if not head:
+        return unit
+    quotient = f"({unit})" if re.search(r"[/·⋅×* ]", unit) else unit
+    return f"{head}/{quotient}" if shown else f"{head} / {quotient}"
+
+
 def symbol(
     variable: Variable,
     notation: Notation | None = None,
@@ -386,20 +532,24 @@ def symbol(
     notation : Notation, optional
         The notation of its symbol.
     unit : bool, optional
-        Whether the unit follows, in brackets.
+        Whether the unit follows, in the style of the ``axis_labels``
+        option (:func:`axis_label`), with the reference scale of the
+        variable's kind.
     options, **overrides
         As for :func:`render`.
 
     Returns
     -------
     str
-        For example ``"$e_{\\mathrm{w}}$ [hPa]"``.
+        For example ``"$e_{\\mathrm{w}}$/hPa"``.
     """
     chosen = _resolve(options, overrides)
     symbols = dict(notation.symbols) if notation else {}
-    label = f"${_identifier(variable.identifier, symbols, chosen)}$"
-    text = _unit(variable.unit) if unit else ""
-    return f"{label} [{text}]" if text else label
+    tex = _identifier(variable.identifier, symbols, chosen)
+    if not unit:
+        return f"${tex}$"
+    scale = reference_scale(variable.kind)
+    return axis_label(None, tex, _unit(variable.unit), scale=scale, options=chosen)
 
 
 def _cell(text: str) -> str:

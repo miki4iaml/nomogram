@@ -14,9 +14,12 @@ from nomogram.display import (
     DisplayOptions,
     FormulaTable,
     Rendering,
+    axis_label,
     display_options,
     get_display_options,
+    reference_scale,
     render,
+    sentence_case,
     symbol,
     table,
 )
@@ -107,6 +110,7 @@ def test_block_options_stay_in_their_thread() -> None:
     [
         ({"mul_symbol": "star"}, ValueError),
         ({"decimal_separator": "space"}, ValueError),
+        ({"axis_labels": "fancy"}, ValueError),
         ({"colour": "red"}, TypeError),
     ],
 )
@@ -203,7 +207,9 @@ def test_markdown_lists_constants_and_omits_unitless_symbols() -> None:
 
 
 def test_symbol_labels_an_axis() -> None:
-    assert symbol(MAGNUS.output, WMO) == r"$e_{\mathrm{w}}$ [hPa]"
+    assert symbol(MAGNUS.output, WMO) == r"$e_{\mathrm{w}}$/hPa"
+    assert symbol(MAGNUS.output, WMO, axis_labels="simple") == r"$e_{\mathrm{w}}$ [hPa]"
+    assert symbol(MAGNUS.inputs[0]) == "$t_{90}$/°C"
     assert symbol(MAGNUS.output, unit=False) == r"$e_{\mathrm{s}}$"
     assert symbol(IDEAL_GAS.inputs[0], upright=False) == "$RH$"
 
@@ -232,3 +238,64 @@ def test_table_follows_options_and_escapes_vertical_bars() -> None:
         [FORMULATIONS["iapws_r14_08_sublimation"]], decimal_separator="comma"
     )
     assert "50 to 273,16 K" in commas.to_markdown()
+
+
+def test_axis_labels_in_the_three_styles() -> None:
+    its90 = reference_scale("CelsiusTemperature")
+    assert its90 is not None
+    assert (its90.symbol, its90.subscript) == ("ITS-90", "90")
+    args = ("Celsius temperature", "t", "°C")
+    assert axis_label(*args, scale=its90) == "Celsius temperature $t_{90}$/°C"
+    assert (
+        axis_label(*args, scale=its90, axis_labels="explicit")
+        == "Celsius temperature - $t$ [°C] {ITS-90}"
+    )
+    assert axis_label(*args, scale=its90, axis_labels="simple") == (
+        "Celsius temperature $t$ [°C]"
+    )
+    with display_options(axis_labels="simple"):
+        assert axis_label(*args, scale=its90) == "Celsius temperature $t$ [°C]"
+
+
+def test_axis_label_details() -> None:
+    # A compound unit goes in parentheses; a name alone keeps the slash apart.
+    assert axis_label(None, r"\rho_{\mathrm{v}}", "g/m³") == (
+        r"$\rho_{\mathrm{v}}$/(g/m³)"
+    )
+    assert axis_label("Height", None, "km") == "Height / km"
+    # A number has no unit, except in brackets.
+    assert axis_label("Practical salinity", "S", "") == "Practical salinity $S$"
+    assert axis_label("Ratio", None, "", axis_labels="explicit") == "Ratio [1]"
+    assert axis_label(None, None, "Pa", axis_labels="explicit") == "[Pa]"
+    assert axis_label(None, None, "Pa", axis_labels="simple") == "[Pa]"
+    assert axis_label(None, None, "Pa") == "Pa"
+    # Product units from pint take parentheses too.
+    assert axis_label(None, r"\eta", "Pa⋅s") == r"$\eta$/(Pa⋅s)"
+    # The scale subscript joins an existing one, upright when not a number.
+    its90 = reference_scale("CelsiusTemperature")
+    assert its90 is not None
+    scale = dataclasses.replace(its90, subscript="P")
+    assert axis_label(None, r"T_{\mathrm{d}}", "K", scale=scale) == (
+        r"$T_{\mathrm{d},\mathrm{P}}$/K"
+    )
+    # Never into a superscript.
+    assert axis_label(None, r"x_{\mathrm{a}}^{2}", "K", scale=scale) == (
+        r"$x_{\mathrm{a},\mathrm{P}}^{2}$/K"
+    )
+    assert axis_label(None, r"x^{2}", "K", scale=scale) == r"$x^{2}_{\mathrm{P}}$/K"
+    # An unbalanced symbol is left as written, the mark appended.
+    assert axis_label(None, r"x_{a", "K", scale=scale) == r"$x_{a_{\mathrm{P}}$/K"
+    # A scale without subscript or short name leaves the label plain.
+    bare = dataclasses.replace(its90, subscript=None, symbol=None)
+    assert axis_label(None, "t", "°C", scale=bare) == "$t$/°C"
+    assert axis_label(None, "t", "°C", scale=bare, axis_labels="explicit") == "$t$ [°C]"
+    assert reference_scale("VapourPressure") is None
+
+
+def test_sentence_case() -> None:
+    assert sentence_case("Celsius Temperature") == "Celsius temperature"
+    assert sentence_case("Saturation Vapour Pressure over Water") == (
+        "Saturation vapour pressure over water"
+    )
+    assert sentence_case("IAPWS Formulation") == "IAPWS formulation"
+    assert sentence_case("Temperature in Fahrenheit") == "Temperature in Fahrenheit"

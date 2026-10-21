@@ -18,10 +18,11 @@ from typing import Any
 
 import numpy as np
 
-from nomogram.comparison import Comparison
-from nomogram.display import symbol
+from nomogram.comparison import TEMPERATURE_POINTS, Comparison, same_state
+from nomogram.dimensions import unit_text
+from nomogram.display import axis_label, reference_scale, sentence_case, symbol
 from nomogram.model import Notation
-from nomogram.semantics import semantic_catalog
+from nomogram.units import is_offset_unit, ureg
 
 __all__ = ["plot_deviations", "plot_values"]
 
@@ -42,7 +43,9 @@ def _axes(ax: Any) -> Any:
     return created
 
 
-def _abscissa(comparison: Comparison, kind: str | None) -> tuple[str, Any]:
+def _abscissa(
+    comparison: Comparison, kind: str | None, notation: Notation | None = None
+) -> tuple[str, Any]:
     """The input plotted along x: its label and its values."""
     if kind is None:
         varying = [k for k, q in comparison.inputs.items() if np.ndim(q.magnitude) == 1]
@@ -57,9 +60,48 @@ def _abscissa(comparison: Comparison, kind: str | None) -> tuple[str, Any]:
         msg = f"no input of kind {kind!r} in the comparison"
         raise ValueError(msg)
     quantity = comparison.inputs[kind]
-    kinds = semantic_catalog().quantity_kinds
-    name = kinds[kind].label if kind in kinds else kind
-    return f"{name} [{quantity.units:~P}]", np.asarray(quantity.magnitude, dtype=float)
+    name, shown = None, kind
+    if kind in TEMPERATURE_POINTS:
+        # The values say which temperature is plotted: in degC a Celsius
+        # temperature t, in an absolute unit (K, degR) a thermodynamic
+        # temperature T; another offset unit (degF) is neither.
+        if quantity.units == ureg.degC:
+            shown = "CelsiusTemperature"
+        elif not is_offset_unit(quantity.units):
+            shown = "ThermodynamicTemperature"
+        else:
+            name, shown = "Temperature", ""
+    label = axis_label(
+        name or _kind_name(shown),
+        _symbol_of(comparison, shown, notation),
+        unit_text(quantity.units),
+        scale=reference_scale(kind if not shown else shown),
+    )
+    return label, np.asarray(quantity.magnitude, dtype=float)
+
+
+#: Symbols of ISO 80000-5 for the temperatures; other kinds take the
+#: symbol of the reference formulation's input.
+_KIND_SYMBOLS = {"ThermodynamicTemperature": "T", "CelsiusTemperature": "t"}
+
+
+def _kind_name(kind: str) -> str:
+    from nomogram.catalog import catalog
+
+    kinds = catalog().kinds
+    return sentence_case(kinds[kind].label) if kind in kinds else kind
+
+
+def _symbol_of(
+    comparison: Comparison, kind: str, notation: Notation | None
+) -> str | None:
+    if kind in _KIND_SYMBOLS:
+        return _KIND_SYMBOLS[kind]
+    reference = comparison.formulations.get(comparison.reference)
+    for variable in getattr(reference, "inputs", ()):
+        if same_state(variable.kind, kind):
+            return symbol(variable, notation, unit=False)[1:-1]
+    return None
 
 
 #: Line styles taken in turn once the colour cycle (10 colours) is used up.
@@ -113,7 +155,8 @@ def plot_deviations(
         ax.plot(x, 100 * values, label=_label(comparison, key), **_style(index))
     ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
     ax.set_xlabel(x_label)
-    ax.set_ylabel(f"Deviation from {_label(comparison, comparison.reference)} [%]")
+    name = f"Relative deviation from {_label(comparison, comparison.reference)}"
+    ax.set_ylabel(axis_label(name, r"\delta", "%"))
     ax.legend(fontsize="small")
     return ax
 
@@ -151,7 +194,7 @@ def plot_values(
     ValueError
         If the input to plot along x cannot be determined.
     """
-    x_label, x = _abscissa(comparison, input_kind)
+    x_label, x = _abscissa(comparison, input_kind, notation)
     ax = _axes(ax)
     for index, (key, quantity) in enumerate(comparison.values.items()):
         values = np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), x.shape)
@@ -162,11 +205,19 @@ def plot_values(
         )
         ax.plot(x, values, label=_label(comparison, key), **style)
     reference = comparison.formulations.get(comparison.reference)
-    unit = comparison.values[comparison.reference].units
+    unit = unit_text(comparison.values[comparison.reference].units)
     if reference is not None:
-        ax.set_ylabel(f"{symbol(reference.output, notation, unit=False)} [{unit:~P}]")
+        output = reference.output
+        ax.set_ylabel(
+            axis_label(
+                _kind_name(output.kind),
+                symbol(output, notation, unit=False)[1:-1],
+                unit,
+                scale=reference_scale(output.kind),
+            )
+        )
     else:
-        ax.set_ylabel(f"[{unit:~P}]")
+        ax.set_ylabel(axis_label(None, None, unit))
     ax.set_xlabel(x_label)
     ax.legend(fontsize="small")
     return ax

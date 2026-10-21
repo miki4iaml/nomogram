@@ -41,10 +41,54 @@ For a plot, `symbol` labels a variable, in a notation if wanted:
 from nomogram.display import symbol
 
 wmo = c.notations["wmo"]
-label = symbol(magnus.output, wmo)  # "$e_{\mathrm{w}}$ [hPa]"
+label = symbol(magnus.output, wmo)  # "$e_{\mathrm{w}}$/hPa"
 ```
 
-`nomogram.plot.plot_values` uses it for its y axis.
+`nomogram.plot.plot_values` labels its y axis with the name of the
+output kind, this symbol (in the notation given) and the unit, in the
+style below.
+
+### Axis labels
+
+Axis labels follow the option `axis_labels`, set like the others
+(`display_options(axis_labels="simple")`, or for one call):
+
+| `axis_labels` | Celsius temperature on ITS-90 | Saturation vapour pressure |
+|---|---|---|
+| `"si"` (default) | Celsius temperature t₉₀/°C | e_w/hPa |
+| `"explicit"` | Celsius temperature - t [°C] {ITS-90} | e_w [hPa] |
+| `"simple"` | Celsius temperature t [°C] | e_w [hPa] |
+
+- `"si"` writes the quotient of the quantity by its unit, as the SI
+  Brochure (9th edition, 5.4.1) labels table columns and graph axes, so
+  that ticks are plain numbers; a compound unit goes in parentheses
+  (`ρ_v/(g/m³)`), a number has no unit. A unit is never qualified by
+  information on the quantity (5.4.2): the conventional scale of the
+  values marks the symbol, as the ITS-90 writes t₉₀ and T₉₀.
+- `"explicit"` gives the name, the symbol, the unit in brackets and the
+  short name of the scale in braces.
+- `"simple"` gives the name, the symbol and the unit in brackets, without
+  scale: enough for a technical note where scales would only add to the
+  reader's burden.
+
+The scale shown is the reference scale of the quantity kind, on which
+nomogram takes inputs and returns results (read from the bundled
+catalog). A temperature axis follows the values plotted: in °C a Celsius
+temperature t, in K or °R a thermodynamic temperature T, in °F simply a
+temperature. Names are in sentence case, as the SI and ISO 80000 write
+them ("Celsius temperature"); units take the catalog's symbols (a
+temperature difference in °C, never Δ°C).
+
+```python
+from nomogram.display import axis_label, display_options, reference_scale
+
+its90 = reference_scale("CelsiusTemperature")
+axis_label("Celsius temperature", "t", "°C", scale=its90)
+# "Celsius temperature $t_{90}$/°C"
+with display_options(axis_labels="simple"):
+    simple = axis_label("Celsius temperature", "t", "°C", scale=its90)
+# "Celsius temperature $t$ [°C]"
+```
 
 The Markdown legend of a single formulation gives the unit of every
 coefficient and where it comes from: from the source, added by nomogram
