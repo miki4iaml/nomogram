@@ -146,16 +146,22 @@ and this project adheres to
   `nomogram.relations.report`): for each formulation of a file, those of
   the same form and the maximum relative deviation observed against every
   formulation of the same kind on their common domain; numerically
-  identical pairs are pointed out. Observations, never relations.
+  identical pairs are pointed out, pairs that cannot be compared (a scale
+  without conversion, no finite point) are named. Observations, never
+  relations.
 - Relations between formulations (`nomogram.model.Relation`, catalog
   section `[relations]`): what a source states, equivalence (possibly
   given substitutions between inputs) or approximation (maximum relative
   deviation over a domain, with where it lies), with its citation and
   whether formulas are compared with scale conversion or as given.
   `nomogram.relations.verify` proves equivalences with SymPy (proven,
-  refuted with a counterexample, or unproven) and checks approximations
-  on a grid refined around its best points (reproduced, held or
-  exceeded), inputs matched by identifier then by kind;
+  refuted with a counterexample, or unproven), results compared in their
+  output unit, and checks approximations on a grid refined around its
+  best points (reproduced, held or exceeded, the share of the grid where
+  both are finite stated), inputs matched by identifier then by kind; a
+  claim that cannot be checked as it stands is unverified (an
+  equivalence across scales under conversion, an approximation finite
+  nowhere);
   `Catalog.relations`. `docs/relation-verdicts.md` says what each verdict
   guarantees: reliable with one to three inputs, an estimate beyond.
 - The maximum relative errors of Alduchov and Eskridge (1996, Table III)
