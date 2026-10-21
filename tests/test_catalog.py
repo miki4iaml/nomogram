@@ -401,3 +401,171 @@ subscript = "x"
     assert load_catalog([document]).search("XYZ-1").refs == ("scales.s",)
     with pytest.raises(CatalogError, match="subscript: expected a non-empty string"):
         load_catalog([document.replace('subscript = "x"', "subscript = 3")])
+
+
+# --- Numbers, relations and cross-checks ------------------------------------
+
+SECTIONS = """
+[formulations.g]
+label = "Another test formulation"
+expression = "b * t"
+fixed_units = true
+citations = [{{ reference = "src" }}]
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }}]
+coefficients = {{ b = 2.01 }}
+
+[relations.r]
+kind = "approximates"
+subject = "g"
+object = "f"
+citation = "src"
+accuracy = {accuracy}
+at = {{ t = {at} }}
+bounds = {{ t = {bounds} }}
+
+[cross_checks.x]
+implementation = "Other"
+version = "1.0"
+checked = 2026-10-21
+cases = [{{ formulation = "f", inputs = {{ t = {input} }}, value = {value} }}]
+
+[scales.s0]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.s1]
+label = "Older scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "s0"
+unit = "DEG_C"
+differences = {differences}
+"""
+
+GOOD = {
+    "accuracy": "1.0",
+    "at": "10.0",
+    "bounds": "[0.0, 10.0]",
+    "input": "5.0",
+    "value": "10.0",
+    "differences": "[[0.0, 0.0], [10.0, 0.01]]",
+}
+
+
+def sections(**changes: str) -> str:
+    return VALID + SECTIONS.format(**(GOOD | changes))
+
+
+def test_a_malformed_given_names_the_relation() -> None:
+    document = sections().replace(
+        'citation = "src"\naccuracy', 'citation = "src"\ngiven = [1]\naccuracy', 1
+    )
+    with pytest.raises(CatalogError, match=r"relations\.r\.given: expected a table"):
+        load_catalog([document])
+
+
+@pytest.mark.parametrize(
+    ("written", "message"),
+    [
+        ("bounds = { t = [0.0, 10.0] }", r"relations\.r\.bounds: expected a table"),
+        ("at = { t = 10.0 }", r"relations\.r\.at: expected a table"),
+    ],
+)
+def test_relation_bounds_and_at_are_tables(written: str, message: str) -> None:
+    key = written.split(" = ")[0]
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([sections().replace(written, f"{key} = 3", 1)])
+
+
+def test_relations_cross_checks_and_scale_tables_load() -> None:
+    loaded = load_catalog([sections()])
+    assert loaded.relations["r"].accuracy == 1.0
+    assert dict(loaded.relations["r"].at) == {"t": 10.0}
+    assert loaded.cross_checks["x"].cases[0].value == 10.0
+    assert loaded.scales["s1"].difference == (0.0, 0.01)
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        # A negative or zero accuracy could only ever be exceeded.
+        ({"accuracy": "-2.0"}, r"relations\.r\.accuracy: expected a positive"),
+        ({"accuracy": "0.0"}, r"relations\.r\.accuracy: expected a positive"),
+        ({"accuracy": "nan"}, r"relations\.r\.accuracy: expected a finite number"),
+        ({"at": "50.0"}, r"relations\.r\.at\.t: 50\.0 is outside the bounds"),
+        ({"at": '"high"'}, r"relations\.r\.at\.t: expected a finite number"),
+        ({"bounds": "[0.0, 10.0, 20.0]"}, r"relations\.r\.bounds\.t: expected"),
+        ({"bounds": "[0.0, nan]"}, r"relations\.r\.bounds\.t\[1\]: expected a finite"),
+        ({"bounds": "5.0"}, r"relations\.r\.bounds\.t: expected"),
+        ({"value": '"abc"'}, r"cross_checks\.x\.cases\[0\]\.value: expected a finite"),
+        ({"input": "inf"}, r"cross_checks\.x\.cases\[0\]\.inputs\.t: expected"),
+        (
+            {"differences": '[[0.0, 0.0], ["a", 0.1]]'},
+            r"scales\.s1\.differences\[1\]\[0\]: expected a finite number",
+        ),
+        # NaN would slip past the check that reference values increase.
+        (
+            {"differences": "[[0.0, 0.0], [nan, 0.1], [10.0, 0.2]]"},
+            r"scales\.s1\.differences\[1\]\[0\]: expected a finite number",
+        ),
+        (
+            {"differences": "[[0.0, nan], [10.0, 0.2]]"},
+            r"scales\.s1\.differences\[0\]\[1\]: expected a finite number",
+        ),
+        (
+            {"differences": "[[0.0, 0.0, 1.0]]"},
+            r"scales\.s1\.differences\[0\]: expected \[reference value",
+        ),
+        ({"differences": "[]"}, r"scales\.s1\.differences: expected \[reference"),
+    ],
+)
+def test_malformed_numbers_are_refused_with_their_place(
+    changes: dict[str, str], message: str
+) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([sections(**changes)])
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("a = 2.0", 'a = "2.0"', r"formulations\.f\.coefficients\.a: expected"),
+        ("a = 2.0", "a = nan", r"formulations\.f\.coefficients\.a: expected"),
+        (
+            "a = 2.0",
+            "a = { value = true }",
+            r"formulations\.f\.coefficients\.a\.value: expected a finite number",
+        ),
+    ],
+)
+def test_malformed_coefficients_are_refused_with_their_place(
+    old: str, new: str, message: str
+) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([replace(old, new)])
+
+
+def test_a_domain_bound_must_be_a_finite_number() -> None:
+    domain = DOMAIN.format(extra="", name="t", low=0, high="nan")
+    with pytest.raises(CatalogError, match=r"bounds\.t\[1\]: expected a finite"):
+        load_catalog([VALID + domain])
+
+
+def test_a_constant_must_be_a_finite_number() -> None:
+    constant = QUANTITY.format(unit="GM-PER-M3").replace("value = 2.0", "value = inf")
+    with pytest.raises(CatalogError, match=r"constants\.k\.value: expected a finite"):
+        load_catalog([VALID + constant])
+
+
+# --- Links ---------------------------------------------------------------
+
+
+def test_uses_and_used_by_follow_the_catalog_order() -> None:
+    order = {ref: i for i, ref in enumerate(CATALOG.search().refs)}
+    targets = {t for found in CATALOG.links.values() for t in found}
+    for ref in CATALOG.links:
+        found = CATALOG.uses(ref).refs
+        assert list(found) == sorted(found, key=order.__getitem__), ref
+    for ref in targets:
+        found = CATALOG.used_by(ref).refs
+        assert list(found) == sorted(found, key=order.__getitem__), ref

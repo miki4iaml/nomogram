@@ -190,7 +190,8 @@ class Catalog:
         Values of formulations computed by other implementations, by key.
     links : mapping of str to tuple of str
         For each entry (``section.key``), the entries it refers to: kinds
-        of its variables, cited references, notations, constants, scales,
+        of its variables (those a composition takes from its parts
+        included), cited references, notations, constants, scales,
         the formulations a composition, a relation or a cross-check uses,
         the families a family requires.
     """
@@ -281,25 +282,39 @@ class Catalog:
             filters=fields,
         )
 
+    @cached_property
+    def _positions(self) -> Mapping[str, int]:
+        """Position of each entry (``section.key``) in catalog order."""
+        records = self._search_index.records
+        return MappingProxyType({r.entry.ref: i for i, r in enumerate(records)})
+
+    def _in_order(self, selection: Selection) -> Selection:
+        """The same entries, in catalog order."""
+        from nomogram.search import Selection
+
+        positions = self._positions
+        entries = sorted(selection.entries, key=lambda e: positions[e.ref])
+        return Selection(tuple(entries), self)
+
     def uses(self, entry: str | Entry) -> Selection:
-        """The entries an entry refers to (see :attr:`links`).
+        """The entries an entry refers to (see :attr:`links`), in catalog order.
 
         ``catalog().uses("formulations.itu_r_p453_es_water")`` gives its
         parts, its kinds and its reference.
         """
         from nomogram.search import uses
 
-        return uses(self, entry)
+        return self._in_order(uses(self, entry))
 
     def used_by(self, entry: str | Entry) -> Selection:
-        """The entries that refer to an entry.
+        """The entries that refer to an entry, in catalog order.
 
         ``catalog().used_by("references.itu_r_p453_14")`` gives everything
         citing ITU-R P.453.
         """
         from nomogram.search import used_by
 
-        return used_by(self, entry)
+        return self._in_order(used_by(self, entry))
 
 
 def _fields(
@@ -329,6 +344,27 @@ def _enum(where: str, enum: Any, value: Any) -> Any:
         raise CatalogError(msg) from None
 
 
+def _number(where: str, value: Any) -> float:
+    """A finite number of the catalog (TOML allows nan and inf)."""
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or not math.isfinite(value)
+    ):
+        msg = f"{where}: expected a finite number, not {value!r}"
+        raise CatalogError(msg)
+    return float(value)
+
+
+def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
+    """Two finite numbers, as a TOML array of two."""
+    if not isinstance(value, list) or len(value) != 2:
+        msg = f"{where}: expected {expected}, not {value!r}"
+        raise CatalogError(msg)
+    first, second = (_number(f"{where}[{i}]", v) for i, v in enumerate(value))
+    return first, second
+
+
 def _matches(where: str, items: Any) -> tuple[ExternalMatch, ...]:
     result = []
     for i, item in enumerate(items or ()):
@@ -342,9 +378,17 @@ def _matches(where: str, items: Any) -> tuple[ExternalMatch, ...]:
 
 
 def _stated_units(
-    where: str, coefficients: tuple[Coefficient, ...], citations: tuple[Citation, ...]
+    where: str,
+    coefficients: tuple[Coefficient, ...],
+    citations: tuple[Citation, ...],
+    inherited: Mapping[str, str] | None = None,
 ) -> tuple[Coefficient, ...]:
-    """Coefficients with the units their citations state."""
+    """Coefficients with the units their citations state.
+
+    ``inherited`` gives, for a composed formulation, the part each
+    coefficient comes from: a citation may restate the unit it has there,
+    not contradict it.
+    """
     result = []
     for coefficient in coefficients:
         stated = {
@@ -357,7 +401,17 @@ def _stated_units(
                 f"{where}: citations state different units for {coefficient.identifier}"
             )
             raise CatalogError(msg)
-        if stated and coefficient.unit is not None:
+        part = (inherited or {}).get(coefficient.identifier)
+        if stated and coefficient.unit is not None and part is not None:
+            if stated != {coefficient.unit}:
+                basis = getattr(coefficient.unit_basis, "value", None)
+                msg = (
+                    f"{where}: states the unit {next(iter(stated))} for "
+                    f"{coefficient.identifier}, but {part} gives "
+                    f"{coefficient.unit} ({basis})"
+                )
+                raise CatalogError(msg)
+        elif stated and coefficient.unit is not None:
             msg = f"{where}: the unit of {coefficient.identifier} is both added and stated"
             raise CatalogError(msg)
         if stated:
@@ -369,9 +423,17 @@ def _stated_units(
 
 
 def _stated_scales(
-    where: str, inputs: tuple[Variable, ...], citations: tuple[Citation, ...]
+    where: str,
+    inputs: tuple[Variable, ...],
+    citations: tuple[Citation, ...],
+    inherited: Mapping[str, str] | None = None,
 ) -> tuple[Variable, ...]:
-    """Variables with the conventional scales their citations state."""
+    """Variables with the conventional scales their citations state.
+
+    ``inherited`` gives, for a composed formulation, the part each
+    variable comes from: a citation may restate the scale it has there,
+    not contradict it.
+    """
     result = []
     for variable in inputs:
         stated = {
@@ -382,7 +444,17 @@ def _stated_scales(
         if len(stated) > 1:
             msg = f"{where}: citations state different scales for {variable.identifier}"
             raise CatalogError(msg)
-        if stated and variable.scale is not None:
+        part = (inherited or {}).get(variable.identifier)
+        if stated and variable.scale is not None and part is not None:
+            if set(stated) != {variable.scale.key}:
+                basis = getattr(variable.scale_basis, "value", None)
+                msg = (
+                    f"{where}: states the scale {next(iter(stated))} for "
+                    f"{variable.identifier}, but {part} gives "
+                    f"{variable.scale.key} ({basis})"
+                )
+                raise CatalogError(msg)
+        elif stated and variable.scale is not None:
             msg = f"{where}: the scale of {variable.identifier} is both inferred and stated"
             raise CatalogError(msg)
         if stated:
@@ -424,6 +496,14 @@ _DERIVED = (
     "constants",
     "domains",
 )
+
+
+def _defined_in(formulation: Formulation, identifier: str) -> str:
+    """Key of the formulation that defines a coefficient, through compositions."""
+    for part in formulation.parts:
+        if any(c.identifier == identifier for c in part.formulation.coefficients):
+            return _defined_in(part.formulation, identifier)
+    return formulation.key
 
 
 def _substitute(
@@ -558,7 +638,7 @@ class _Builder:
             self.constants[key] = PhysicalConstant(
                 key=key,
                 identifier=f["identifier"],
-                value=float(f["value"]),
+                value=_number(f"{where}.value", f["value"]),
                 unit=self.unit(f"{where}.unit", f["unit"]),
                 description=f["description"],
                 reference=self.reference(f"{where}.reference", f["reference"]),
@@ -734,13 +814,15 @@ class _Builder:
             if f["base"] is not None or f["bounds"] is not None:
                 msg = f"{where}: a table converts to the reference scale, without base or bounds"
                 raise CatalogError(msg)
-            pairs = [tuple(float(x) for x in row) for row in f["differences"]]
-            if not pairs or any(len(row) != 2 for row in pairs):
-                msg = (
-                    f"{where}.differences: expected [reference value, "
-                    "reference value - value] pairs"
-                )
+            expected = "[reference value, reference value - value] pairs"
+            rows = f["differences"]
+            if not isinstance(rows, list) or not rows:
+                msg = f"{where}.differences: expected {expected}"
                 raise CatalogError(msg)
+            pairs = [
+                _pair(f"{where}.differences[{i}]", row, expected)
+                for i, row in enumerate(rows)
+            ]
             points = tuple(row[0] for row in pairs)
             if any(b <= a for a, b in pairwise(points)):
                 msg = f"{where}.differences: reference values must increase"
@@ -887,10 +969,17 @@ class _Builder:
                     msg = f"{place}: unit_basis without a unit"
                     raise CatalogError(msg)
                 result.append(
-                    Coefficient(identifier, float(f["value"]), unit, f["note"], basis)
+                    Coefficient(
+                        identifier,
+                        _number(f"{place}.value", f["value"]),
+                        unit,
+                        f["note"],
+                        basis,
+                    )
                 )
             else:
-                result.append(Coefficient(identifier, float(value), None, None))
+                number = _number(f"{where}.{identifier}", value)
+                result.append(Coefficient(identifier, number, None, None))
         return tuple(result)
 
     @staticmethod
@@ -899,11 +988,16 @@ class _Builder:
     ) -> Mapping[str, tuple[float, float]]:
         names = {v.identifier for v in inputs}
         bounds = {}
+        if not isinstance(table, dict):
+            msg = f"{where}: expected a table of input identifier to [low, high]"
+            raise CatalogError(msg)
         for identifier, interval in table.items():
             if identifier not in names:
                 msg = f"{where}: {identifier!r} is not an input"
                 raise CatalogError(msg)
-            low, high = (float(x) for x in interval)
+            low, high = _pair(
+                f"{where}.{identifier}", interval, "[low, high], two finite numbers"
+            )
             if not low < high:
                 msg = f"{where}.{identifier}: empty interval"
                 raise CatalogError(msg)
@@ -1191,6 +1285,7 @@ class _Builder:
         # Inputs: those of the outer formulation it still needs, then those of
         # the inner ones; one identifier is one input, alike in every part.
         inputs: dict[str, Variable] = {}
+        came_from: dict[str, str] = {}
         pieces = [(outer, v) for v in outer.inputs if v.identifier not in inner]
         for identifier, part in inner.items():
             rename = renames[identifier]
@@ -1204,6 +1299,7 @@ class _Builder:
                 for v in part.inputs
             ]
         for piece, variable in pieces:
+            came_from.setdefault(variable.identifier, piece.key)
             known = inputs.setdefault(variable.identifier, variable)
             if (known.kind, known.unit, known.scale) != (
                 variable.kind,
@@ -1217,22 +1313,40 @@ class _Builder:
                 )
                 raise CatalogError(msg)
 
-        owner: dict[str, tuple[str, Coefficient]] = {}
-        coefficients = []
+        # Part, and formulation that defines it, of each coefficient.
+        owner: dict[str, tuple[str, str]] = {}
+        coefficients: list[Coefficient] = []
         constants: dict[str, PhysicalConstant] = {}
         for piece in (outer, *inner.values()):
             for coefficient in piece.coefficients:
+                origin = _defined_in(piece, coefficient.identifier)
                 if coefficient.identifier in owner:
-                    first, taken = owner[coefficient.identifier]
-                    if taken == coefficient:
-                        # One part reached twice (directly and inside another).
+                    first, defined = owner[coefficient.identifier]
+                    if defined == origin:
+                        # One part reached twice (directly and inside another):
+                        # one coefficient, with the unit a citation states.
+                        index = next(
+                            i
+                            for i, c in enumerate(coefficients)
+                            if c.identifier == coefficient.identifier
+                        )
+                        kept = coefficients[index]
+                        if kept.unit is None:
+                            coefficients[index] = coefficient
+                        elif coefficient.unit not in (None, kept.unit):
+                            msg = (
+                                f"{where}: coefficient {coefficient.identifier} of "
+                                f"{origin} is in {kept.unit} in {first} and in "
+                                f"{coefficient.unit} in {piece.key}"
+                            )
+                            raise CatalogError(msg)
                         continue
                     msg = (
                         f"{where}: coefficient {coefficient.identifier} in both "
                         f"{first} and {piece.key}"
                     )
                     raise CatalogError(msg)
-                owner[coefficient.identifier] = (piece.key, coefficient)
+                owner[coefficient.identifier] = (piece.key, origin)
                 coefficients.append(coefficient)
             for constant in piece.constants:
                 found = constants.setdefault(constant.identifier, constant)
@@ -1296,13 +1410,19 @@ class _Builder:
             set(owner),
             (output,),
         )
+        stated = f"{where}.citations"
         formulation = Formulation(
             key=key,
             label=f["label"],
-            output=_stated_scales(f"{where}.citations", (output,), citations)[0],
-            inputs=_stated_scales(f"{where}.citations", variables, citations),
+            output=_stated_scales(
+                stated, (output,), citations, {output.identifier: outer.key}
+            )[0],
+            inputs=_stated_scales(stated, variables, citations, came_from),
             coefficients=_stated_units(
-                f"{where}.citations", tuple(coefficients), citations
+                stated,
+                tuple(coefficients),
+                citations,
+                {identifier: part for identifier, (part, _) in owner.items()},
             ),
             constants=tuple(constants.values()),
             expression=_substitute(outer, inner, renames, fixed),
@@ -1391,12 +1511,34 @@ class _Builder:
         bounds = self.bounds(f"{where}.bounds", f["bounds"] or {}, subject.inputs)
         names = {v.identifier for v in subject.inputs}
         at = {}
+        if not isinstance(f["at"] or {}, dict):
+            msg = f"{where}.at: expected a table of input identifier to value"
+            raise CatalogError(msg)
         for identifier, value in (f["at"] or {}).items():
             if identifier not in names:
                 msg = f"{where}.at: {identifier!r} is not an input of {subject.key}"
                 raise CatalogError(msg)
-            at[identifier] = float(value)
-        given = dict(f["given"] or {})
+            at[identifier] = _number(f"{where}.at.{identifier}", value)
+            low, high = bounds.get(identifier, (-math.inf, math.inf))
+            if not low <= at[identifier] <= high:
+                msg = (
+                    f"{where}.at.{identifier}: {value!r} is outside the bounds "
+                    f"[{low}, {high}]"
+                )
+                raise CatalogError(msg)
+        accuracy = None
+        if f["accuracy"] is not None:
+            accuracy = _number(f"{where}.accuracy", f["accuracy"])
+            if not accuracy > 0:
+                msg = f"{where}.accuracy: expected a positive percentage, not {accuracy!r}"
+                raise CatalogError(msg)
+        raw_given = f["given"] or {}
+        if not isinstance(raw_given, dict) or not all(
+            isinstance(v, str) for v in raw_given.values()
+        ):
+            msg = f"{where}.given: expected a table of expressions, by input identifier"
+            raise CatalogError(msg)
+        given = dict(raw_given)
         unfed = sorted(
             v.identifier
             for v in other.inputs
@@ -1442,7 +1584,7 @@ class _Builder:
             subject=subject.key,
             object=other.key,
             citation=self.reference(f"{where}.citation", f["citation"]),
-            accuracy=None if f["accuracy"] is None else float(f["accuracy"]),
+            accuracy=accuracy,
             at=MappingProxyType(at),
             bounds=bounds,
             given=MappingProxyType({k: str(v) for k, v in given.items()}),
@@ -1511,7 +1653,7 @@ class _Builder:
                     f"{formulation.key}: {', '.join(sorted(names))}"
                 )
                 raise CatalogError(msg)
-            rtol = 1e-12 if c["rtol"] is None else float(c["rtol"])
+            rtol = 1e-12 if c["rtol"] is None else _number(f"{w}.rtol", c["rtol"])
             if not rtol > 0:
                 msg = f"{w}.rtol: expected a positive tolerance"
                 raise CatalogError(msg)
@@ -1519,9 +1661,12 @@ class _Builder:
                 CheckCase(
                     formulation=formulation.key,
                     inputs=MappingProxyType(
-                        {k: float(v) for k, v in c["inputs"].items()}
+                        {
+                            k: _number(f"{w}.inputs.{k}", v)
+                            for k, v in c["inputs"].items()
+                        }
                     ),
-                    value=float(c["value"]),
+                    value=_number(f"{w}.value", c["value"]),
                     call=c["call"],
                     rtol=rtol,
                 )
@@ -1810,10 +1955,10 @@ def load_catalog(sources: Iterable[Source]) -> Catalog:
         TOML texts, or paths to TOML files, with an optional ``[catalog]``
         header (name, format, requires...) and the sections ``kinds``,
         ``references``, ``constants``, ``notations``, ``trade_terms``,
-        ``scales`` and ``formulations`` (all optional). A document with a
-        header is a family: its entries may refer only to its own entries
-        and to those of the families it requires, and every family it
-        requires must be used.
+        ``scales``, ``formulations``, ``relations`` and ``cross_checks``
+        (all optional). A document with a header is a family: its entries
+        may refer only to its own entries and to those of the families it
+        requires, and every family it requires must be used.
 
     Returns
     -------
@@ -1884,10 +2029,22 @@ def _links(
     headers: Mapping[str, dict[str, Any]],
     built: Catalog,
 ) -> Mapping[str, tuple[str, ...]]:
-    """For each entry, the existing entries it refers to (``section.key``)."""
+    """For each entry, the existing entries it refers to (``section.key``).
+
+    A formulation also refers to the kinds and scales of its variables as
+    built: a composition writes none, it takes them from its parts. The
+    family check reads the written tables only (:func:`_references`).
+    """
     links: dict[str, tuple[str, ...]] = {}
     for section, key in owners:
-        targets = sorted(_references(section, data[section][key]))
+        references = _references(section, data[section][key])
+        if section == "formulations":
+            formulation = built.formulations[key]
+            for variable in (formulation.output, *formulation.inputs):
+                references.add(("kinds", variable.kind))
+                if variable.scale is not None:
+                    references.add(("scales", variable.scale.key))
+        targets = sorted(references)
         found = tuple(
             f"{s}.{k}"
             for s, k in targets
@@ -1935,7 +2092,7 @@ def catalog(*families: str, extra: Iterable[Source] = ()) -> Catalog:
     -------
     Catalog
         Formulations, references, constants, notations, trade terms,
-        scales and families.
+        scales, relations, cross-checks and families.
     """
     return _catalog(tuple(sorted(set(families))), tuple(os.fspath(p) for p in extra))
 

@@ -215,6 +215,86 @@ def test_decreasing_function_inverts_numerically() -> None:
     assert inverse.label.startswith("Inverse of:")
 
 
+SCALED = """
+[references.src]
+authors = "Author, A."
+title = "A title"
+status = "verified"
+
+[scales.t0]
+label = "Reference temperature scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.t1]
+label = "Bounded temperature scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "t0"
+unit = "DEG_C"
+conversion = "x"
+bounds = [-2.0, 30.0]
+
+[scales.p0]
+label = "Reference pressure scale"
+kinds = ["VapourPressure"]
+
+[scales.p1]
+label = "Bounded pressure scale"
+kinds = ["VapourPressure"]
+reference_scale = "p0"
+unit = "PA"
+conversion = "x"
+bounds = [0.0, 500.0]
+
+[formulations.scaled]
+label = "On bounded scales"
+expression = "a * t"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out", scale = "p1", scale_basis = "inferred-from-numbers" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in", scale = "t1", scale_basis = "inferred-from-date" }]
+coefficients = { a = 10.0 }
+citations = [{ reference = "src", domains = [{ bounds = { t = [0.0, 40.0] } }] }]
+"""
+
+
+@pytest.mark.parametrize(
+    ("pressures", "identifier"),
+    [
+        # 350 Pa gives 35 degC on the bounded scale: no reference value.
+        ([200.0, 350.0], "t"),
+        # 600 Pa is beyond the bounded pressure scale.
+        ([200.0, 600.0], "p"),
+    ],
+)
+def test_numerical_inverse_values_beyond_a_scale_conversion_follow_outside(
+    pressures: list[float], identifier: str
+) -> None:
+    source = load_catalog([SCALED]).formulations["scaled"]
+    inverse = invert(
+        source, "t", output=TEMPERATURE, input=PRESSURE, method="numerical"
+    )
+    assert isinstance(inverse, NumericalInverse)
+    p = Q_(np.array(pressures), "Pa")
+    message = f"1 value\\(s\\) of {identifier} beyond the conversion of scale"
+    default = inverse.evaluate(p=p).magnitude
+    assert default[0] == pytest.approx(20.0)
+    assert np.isnan(default[1])
+    assert np.isnan(inverse.evaluate(p=p, outside="ignore").magnitude[1])
+    with pytest.raises(OutOfDomainError, match=message):
+        inverse.evaluate(p=p, outside="raise")
+    with pytest.warns(ValidityWarning, match=message):
+        inverse.evaluate(p=p, outside="warn")
+
+
+@pytest.mark.parametrize(
+    "option", [{"scale": "Convert"}, {"outside": "nans"}, {"basis": "stat"}]
+)
+def test_numerical_inverse_refuses_a_misspelt_option(option: dict[str, str]) -> None:
+    inverse = dew_point(FORMULATIONS["iapws_sr1_86"])
+    name = next(iter(option))
+    with pytest.raises(ValueError, match=f"{name}: expected one of"):
+        inverse.evaluate(e=Q_(2000.0, "Pa"), **option)  # type: ignore[arg-type]
+
+
 @pytest.mark.parametrize("key", ["square", "lambert", "unsolvable"])
 def test_no_usable_closed_form_falls_back_or_refuses(key: str) -> None:
     # x ** 2 on negative x: the solution found is the positive branch;
