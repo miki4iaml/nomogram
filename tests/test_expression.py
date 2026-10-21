@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from nomogram.expression import (
+    LATEX_COMMANDS,
     MAX_SOURCE_LENGTH,
     ExpressionError,
     compile_numeric,
@@ -201,6 +202,34 @@ def test_to_latex_passes_typography_to_sympy() -> None:
     styled = to_latex(expr, mul_symbol="times", decimal_separator="comma", upright=True)
     assert styled == r"2{,}5 \times \mathrm{RH} \times e_{\mathrm{s}}"
     assert to_latex(expr, {"RH": r"\phi"}, upright=True).startswith(r"2.5 \phi")
+
+
+@pytest.mark.parametrize(
+    ("source", "names", "default", "upright"),
+    [
+        (
+            "C * exp(Tbar)",
+            ["C", "Tbar"],
+            r"C \exp\left(\mathrm{Tbar}\right)",
+            r"C \exp\left(\mathrm{Tbar}\right)",
+        ),
+        ("k * ell", ["k", "ell"], r"\mathrm{ell} k", r"\mathrm{ell} k"),
+        ("k * hbar", ["k", "hbar"], r"\mathrm{hbar} k", r"\mathrm{hbar} k"),
+        ("varkappa * x", ["x", "varkappa"], r"\mathrm{varkappa} x", None),
+        ("xdot * t", ["t", "xdot"], r"t \mathrm{xdot}", None),
+    ],
+)
+def test_identifiers_sympy_writes_with_other_commands_stay_in_the_subset(
+    source: str, names: list[str], default: str, upright: str | None
+) -> None:
+    expr = parse_expression(source, names)
+    for found in (to_latex(expr), to_latex(expr, upright=True)):
+        assert latex_commands(found) <= LATEX_COMMANDS, found
+    assert to_latex(expr) == default
+    if upright is not None:
+        assert to_latex(expr, upright=True) == upright
+    # A notation still decides when it names that identifier.
+    assert r"\Theta" in to_latex(expr, {names[1]: r"\Theta"})
 
 
 def test_latex_commands_are_listed() -> None:

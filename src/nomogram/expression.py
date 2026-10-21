@@ -251,7 +251,10 @@ def upright_symbol(identifier: str) -> str:
     numeric indices keep their usual rendering, every other subscript is
     taken as descriptive, and a base name of several letters as an
     abbreviation (``RH`` gives ``\\mathrm{RH}``, never a product R H). A
-    running index (x_i) needs a notation.
+    running index (x_i) needs a notation. The result stays within
+    :data:`LATEX_COMMANDS`: a name SymPy would write with another command
+    (``Tbar`` as ``\\bar{T}``, ``hbar``, ``ell``) is written upright as
+    it is spelt (``\\mathrm{Tbar}``).
 
     Parameters
     ----------
@@ -267,8 +270,10 @@ def upright_symbol(identifier: str) -> str:
 
     def part(text: str, *, base: bool = False) -> str:
         translated = str(translate(text))
-        if translated != text or text.isdigit() or (base and len(text) == 1):
+        if translated != text and latex_commands(translated) <= LATEX_COMMANDS:
             return translated
+        if translated == text and (text.isdigit() or (base and len(text) == 1)):
+            return text
         return rf"\mathrm{{{text}}}"
 
     tex = part(base, base=True)
@@ -300,9 +305,12 @@ def to_latex(
         An expression returned by :func:`parse_expression`.
     notation : mapping of str to str, optional
         LaTeX symbol for each identifier, for example
-        ``{"e_s": r"E_{\\mathrm{w}}"}``. Identifiers not listed keep
-        SymPy's default rendering, or :func:`upright_symbol` if
-        ``upright``.
+        ``{"e_s": r"E_{\\mathrm{w}}"}``, used as given (the catalog checks
+        the symbols of its notations against :data:`LATEX_COMMANDS`).
+        Identifiers not listed keep SymPy's default rendering, or
+        :func:`upright_symbol` if ``upright``; a default rendering that
+        would use another command (``Tbar`` as ``\\bar{T}``) is replaced
+        by :func:`upright_symbol`.
     mul_symbol : {None, "times", "dot", "ldot"}, optional
         Multiplication sign, passed to SymPy's printer: ``None`` writes
         products by juxtaposition.
@@ -318,10 +326,11 @@ def to_latex(
         The LaTeX code, without surrounding dollar signs.
     """
     names = {}
+    default = _NotationPrinter()
     for symbol in expr.free_symbols:
         if notation and symbol.name in notation:
             names[symbol] = notation[symbol.name]
-        elif upright:
+        elif upright or not latex_commands(default.doprint(symbol)) <= LATEX_COMMANDS:
             names[symbol] = upright_symbol(symbol.name)
     printer = _NotationPrinter(
         {
