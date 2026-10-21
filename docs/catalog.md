@@ -253,6 +253,47 @@ unit = "DEG_C"
 differences = [[-190.0, 0.008], [-180.0, 0.008]]   # extract of Table 6 of the ITS-90 text
 ```
 
+A conversion may instead be an expression of `x`, the value on the
+scale, giving the value on its `base` (the reference scale by default),
+both in `unit`; `bounds` give the values where it holds (NaN beyond).
+Chains end on the reference scale, and each relation is written once:
+
+```toml
+[scales.pss78]
+label = "Practical Salinity Scale 1978 (PSS-78)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+unit = "PERMILLE"
+conversion = "35.16504 / 35 * x"       # TEOS-10 eq. 2.4.1
+bounds = [2.0, 42.0]
+cf_standard_names = ["sea_water_practical_salinity"]
+
+[scales.knudsen1901]
+label = "Knudsen salinity (Knudsen 1901, S = 0.030 + 1.805 Cl)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+base = "pss78"                          # Knudsen, then PSS-78, then S_R
+unit = "PERMILLE"
+conversion = "(x - 0.03) * 1.80655 / 1.805"
+note = "Derived; sources disagree (Feistel 2008, TEOS-10 A.4)."
+```
+
+- The inverse comes from SymPy when it is unique, and otherwise by
+  fixed-point iteration (conversions are close to the identity).
+- A scale whose conversion needs data nomogram does not hold declares
+  `convertible = false` (Absolute Salinity: its anomaly depends on the
+  location); a formulation on it is evaluated with `scale="ignore"`,
+  values as given, and refuses a conversion otherwise.
+- Several conversions may join the same two scales: IPTS-68 by the table
+  of the ITS-90 text (`ipts68`) or by the linear relation of Saunders
+  (1990) that oceanographic algorithms take (`ipts68_saunders1990`).
+- `symbol` and `subscript` name the scale in axis labels; CF standard
+  names (`cf_standard_names`) and the `note` (disagreements between
+  sources) are searchable.
+- A citation may state the scale of the output too
+  (`scales = { S = "knudsen1901" }`): the result is converted back to the
+  reference scale.
+
 ### Quantity kinds and units
 
 Kinds and units come from the bundled QUDT subset (see

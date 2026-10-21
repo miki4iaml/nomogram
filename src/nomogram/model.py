@@ -38,6 +38,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
+import sympy
 
 from nomogram.expression import compile_numeric, parse_expression
 from nomogram.semantics import ExternalMatch, semantic_catalog
@@ -65,6 +66,7 @@ __all__ = [
     "Relation",
     "RelationKind",
     "ScaleBasis",
+    "ScaleConversionError",
     "TradeMeaning",
     "TradeTerm",
     "UnitBasis",
@@ -211,6 +213,27 @@ class ConventionalScale:
     subscript : str or None
         Subscript that marks a quantity on this scale, for example
         ``"90"`` (the ITS-90 writes t90 and T90).
+    base : ConventionalScale or None
+        For a conversion by expression, the scale it leads to; ``None``
+        for the reference scale itself. Chains end on the reference scale
+        (Knudsen salinity to Practical Salinity, then to Reference
+        Salinity).
+    conversion : str or None
+        The value on ``base`` (or on the reference scale) as an expression
+        of ``x``, the value on this scale, both in ``unit``, for example
+        ``"35.16504 / 35 * x"``; ``None`` for a table or no conversion.
+    bounds : (float, float) or None
+        Values on this scale where the conversion holds; NaN beyond.
+    convertible : bool
+        ``False`` when the conversion needs data nomogram does not hold
+        (Absolute Salinity needs the anomaly of its location): values on
+        such a scale are taken as given, ``scale="ignore"``.
+    cf_standard_names : tuple of str
+        CF standard names of quantities on this scale
+        (``sea_water_practical_salinity``).
+    note : str or None
+        Remark: disagreements between sources on the conversion, its
+        domain...
     """
 
     key: str
@@ -223,11 +246,58 @@ class ConventionalScale:
     reference: str | None
     symbol: str | None = None
     subscript: str | None = None
+    base: ConventionalScale | None = None
+    conversion: str | None = None
+    bounds: tuple[float, float] | None = None
+    convertible: bool = True
+    cf_standard_names: tuple[str, ...] = ()
+    note: str | None = None
 
     @property
     def is_reference(self) -> bool:
         """Whether this is the reference scale of its kinds."""
         return self.reference_scale is None
+
+    def check_convertible(self) -> None:
+        """Raise :class:`ScaleConversionError` if nomogram cannot convert.
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale whose conversion needs data nomogram does not hold.
+        """
+        if not self.convertible:
+            msg = (
+                f"{self.key}: nomogram holds no conversion to the reference "
+                f"scale {self.reference_scale}; give values on this scale and "
+                'evaluate with scale="ignore"'
+            )
+            raise ScaleConversionError(msg)
+
+    @cached_property
+    def _functions(self) -> tuple[Callable[..., Any], Callable[..., Any] | None]:
+        """The conversion, and its inverse when SymPy finds a single one."""
+        assert self.conversion is not None
+        expr = parse_expression(self.conversion, ["x"])
+        x = next(iter(expr.free_symbols), sympy.Symbol("x", real=True))
+        y = sympy.Symbol("y", real=True)
+        found = sympy.solve(sympy.Eq(y, expr), x)
+        inverse = compile_numeric(found[0], ("y",)) if len(found) == 1 else None
+        return compile_numeric(expr, ("x",)), inverse
+
+    def _outside(self, values: Any) -> Any:
+        if self.bounds is None:
+            return np.zeros(np.shape(values), dtype=bool)
+        low, high = self.bounds
+        margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+        with np.errstate(invalid="ignore"):
+            return (values < low - margin) | (values > high + margin)
+
+    def _forward(self, values: Any) -> Any:
+        forward, _ = self._functions
+        with np.errstate(invalid="ignore", divide="ignore"):
+            result = np.asarray(forward(values), dtype=float)
+        return np.broadcast_to(result, np.shape(values)).astype(float)
 
     def from_reference(self, values: Any) -> tuple[Any, Any]:
         """Values on this scale, from values on the reference scale.
@@ -240,32 +310,71 @@ class ConventionalScale:
         Returns
         -------
         (numpy.ndarray, numpy.ndarray of bool)
-            The values on this scale (linear interpolation of the table),
-            and where they fall outside the table (NaN there).
+            The values on this scale (linear interpolation of the table, or
+            the inverse of the conversion through the chain of scales), and
+            where they fall outside the table or the bounds (NaN there).
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale nomogram cannot convert.
         """
         values = np.asarray(values, dtype=float)
-        if not self.points:
+        if self.is_reference:
             return values, np.zeros(values.shape, dtype=bool)
-        outside = (values < self.points[0]) | (values > self.points[-1])
-        shift = np.interp(values, self.points, self.difference)
-        return np.where(outside, np.nan, values - shift), outside
+        self.check_convertible()
+        if self.conversion is None:
+            outside = (values < self.points[0]) | (values > self.points[-1])
+            shift = np.interp(values, self.points, self.difference)
+            return np.where(outside, np.nan, values - shift), outside
+        on_base, outside = (
+            (values, np.zeros(values.shape, dtype=bool))
+            if self.base is None
+            else self.base.from_reference(values)
+        )
+        _, inverse = self._functions
+        if inverse is not None:
+            with np.errstate(invalid="ignore", divide="ignore"):
+                found = np.asarray(inverse(on_base), dtype=float)
+            found = np.broadcast_to(found, on_base.shape).astype(float)
+        else:
+            # Conversions are close to the identity: fixed-point iteration.
+            found = on_base.copy()
+            for _ in range(50):
+                found = found - (self._forward(found) - on_base)
+        outside = outside | self._outside(found)
+        return np.where(outside, np.nan, found), outside
 
     def to_reference(self, values: Any) -> Any:
         """Values on the reference scale, from values on this scale.
 
-        Inverts :meth:`from_reference` by fixed-point iteration (the
-        differences are small and vary slowly); NaN beyond the table.
+        A table is inverted by fixed-point iteration (the differences are
+        small and vary slowly); a conversion by expression is applied, then
+        that of its base. NaN beyond the table or the bounds.
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale nomogram cannot convert.
         """
         values = np.asarray(values, dtype=float)
-        if not self.points:
+        if self.is_reference:
             return values
-        on_reference = values
-        for _ in range(4):
-            on_reference = values + np.interp(
-                on_reference, self.points, self.difference
-            )
-        outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
-        return np.where(outside, np.nan, on_reference)
+        self.check_convertible()
+        if self.conversion is None:
+            on_reference = values
+            for _ in range(4):
+                on_reference = values + np.interp(
+                    on_reference, self.points, self.difference
+                )
+            outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
+            return np.where(outside, np.nan, on_reference)
+        on_base = np.where(self._outside(values), np.nan, self._forward(values))
+        return on_base if self.base is None else self.base.to_reference(on_base)
+
+
+class ScaleConversionError(ValueError):
+    """A value cannot be converted between conventional scales."""
 
 
 class RelationKind(Enum):
@@ -966,9 +1075,10 @@ class Formulation:
         }
         if scale == "convert":
             for v in self.inputs:
-                if v.scale is None or v.scale.is_reference or v.scale.unit is None:
+                if v.scale is None or v.scale.is_reference:
                     continue
-                table = units[v.scale.unit].pint
+                v.scale.check_convertible()
+                table = units[str(v.scale.unit)].pint
                 on_reference = convert(inputs[v.identifier], table).magnitude
                 on_scale, _ = v.scale.from_reference(on_reference)
                 values[v.identifier] = np.asarray(
@@ -993,11 +1103,11 @@ class Formulation:
             scale == "convert"
             and output_scale is not None
             and not output_scale.is_reference
-            and output_scale.unit is not None
         ):
             # A value computed on the formulation's scale goes back to the
             # reference scale, that of inputs and results.
-            table = units[output_scale.unit].pint
+            output_scale.check_convertible()
+            table = units[str(output_scale.unit)].pint
             on_scale = convert(Q_(result, output_unit), table).magnitude
             on_reference = Q_(output_scale.to_reference(on_scale), table)
             result = np.asarray(

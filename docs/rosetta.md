@@ -152,6 +152,19 @@ silently.
 15. QUDT also has `quantitykind:ElevationRelativeToNAP`, an elevation
     relative to the Dutch datum: the reference surface is part of the
     meaning of the quantity.
+16. QUDT has no kind for the salinity or the chlorinity of sea water;
+    `quantitykind:MassFraction` has only % and 1 as units, not the per
+    mille and g/kg that CF uses for salinities (nomogram adds them).
+    `unit:PSU` has a conversion multiplier of 0: the Practical Salinity
+    Scale 1978 defines a number, and UNESCO (1985, Technical Papers in
+    Marine Science 45) discourages "psu".
+
+CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
+`sea_water_cox_salinity`, `sea_water_practical_salinity`,
+`sea_water_reference_salinity`, `sea_water_absolute_salinity` and
+`sea_water_preformed_salinity`, with `sea_water_salinity` for the
+unqualified quantity. nomogram keeps one kind, `SeaWaterSalinity`, and
+puts these names on its conventional scales.
 
 CF table 95 has no standard name for the saturation vapour pressure
 either, and its `relative_humidity` entry has an empty description (it

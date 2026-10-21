@@ -434,7 +434,11 @@ def _records(catalog: Catalog) -> list[_Record]:
         records.append(
             _Record(
                 Entry("scales", key, s.label, s),
-                words(_join(key, s.label, s.symbol, *s.kinds)),
+                words(
+                    _join(
+                        key, s.label, s.symbol, s.note, *s.kinds, *s.cf_standard_names
+                    )
+                ),
                 {},
                 citations=_sourced(catalog, s.reference),
             )

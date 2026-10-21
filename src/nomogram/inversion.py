@@ -377,9 +377,9 @@ class NumericalInverse:
             scale == "convert"
             and scale_of_source is not None
             and not scale_of_source.is_reference
-            and scale_of_source.unit is not None
         ):
-            table = units[scale_of_source.unit].pint
+            scale_of_source.check_convertible()
+            table = units[str(scale_of_source.unit)].pint
             on_reference = scale_of_source.to_reference(
                 convert(quantity, table).magnitude
             )

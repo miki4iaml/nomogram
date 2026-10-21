@@ -129,6 +129,15 @@ KINDS: dict[str, KindSpec] = {
         cf_standard_names=("altitude",),
         offset_units=False,
     ),
+    # Salinity and chlorinity of sea water are mass fractions; QUDT has no
+    # kind for either (nomogram defines them in the sea-water family). QUDT
+    # gives MassFraction only % and 1; CF writes salinities in 1e-3 (per
+    # mille) and g/kg, added here.
+    "MassFraction": KindSpec(
+        "ratio",
+        delta=False,
+        added_units=("PERMILLE", "GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
+    ),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -147,6 +156,9 @@ UNITS: dict[str, str] = {
     "UNITLESS": "dimensionless",
     "J-PER-KiloGM-K": "J/(kg*K)",
     "PPM": "ppm",
+    "PERMILLE": "permille",
+    "MilliM_HG": "mmHg",
+    "ATM": "atm",
     "M": "m",
     "KiloM": "km",
 }

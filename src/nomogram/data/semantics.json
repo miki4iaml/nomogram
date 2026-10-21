@@ -122,6 +122,7 @@
       "added_units": [],
       "applicable_units": [
         "PERCENT",
+        "PERMILLE",
         "PPM",
         "UNITLESS"
       ],
@@ -180,6 +181,34 @@
       "scale_type": "ratio",
       "specialization_of": "MassConcentration"
     },
+    "MassFraction": {
+      "added_units": [
+        "GM-PER-KiloGM",
+        "KiloGM-PER-KiloGM",
+        "PERMILLE"
+      ],
+      "applicable_units": [
+        "GM-PER-KiloGM",
+        "KiloGM-PER-KiloGM",
+        "PERCENT",
+        "PERMILLE",
+        "UNITLESS"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/MassFraction",
+      "label": "Mass Fraction",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q899138",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "MassRatioOfWaterVapourToDryGas": {
       "added_units": [
         "GM-PER-KiloGM",
@@ -210,8 +239,10 @@
     "Pressure": {
       "added_units": [],
       "applicable_units": [
+        "ATM",
         "HectoPA",
         "KiloPA",
+        "MilliM_HG",
         "PA"
       ],
       "cf_standard_names": [
@@ -335,8 +366,10 @@
     "VapourPressure": {
       "added_units": [],
       "applicable_units": [
+        "ATM",
         "HectoPA",
         "KiloPA",
+        "MilliM_HG",
         "PA"
       ],
       "cf_standard_names": [
@@ -365,6 +398,24 @@
     }
   },
   "units": {
+    "ATM": {
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/ATM",
+      "label": "Standard Atmosphere",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q177974",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 101325.0,
+      "offset": 0.0,
+      "pint": "atm",
+      "symbol": "atm",
+      "ucum": "atm",
+      "udunits": "atm"
+    },
     "DEG_C": {
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/unit/DEG_C",
@@ -581,6 +632,24 @@
       "ucum": "m",
       "udunits": "m"
     },
+    "MilliM_HG": {
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/MilliM_HG",
+      "label": "Millimetre of Mercury",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q6859652",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 133.322387415,
+      "offset": 0.0,
+      "pint": "mmHg",
+      "symbol": "mmHg",
+      "ucum": "mm[Hg]",
+      "udunits": "mmHg"
+    },
     "PA": {
       "dimension_vector": "A0E0L-1I0M1H0T-2D0",
       "iri": "http://qudt.org/vocab/unit/PA",
@@ -616,6 +685,24 @@
       "symbol": "%",
       "ucum": "%",
       "udunits": "%"
+    },
+    "PERMILLE": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/PERMILLE",
+      "label": "Permille",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q11229",
+          "verified": "2026-10-14"
+        }
+      ],
+      "multiplier": 0.001,
+      "offset": 0.0,
+      "pint": "permille",
+      "symbol": "\u2030",
+      "ucum": null,
+      "udunits": "permille"
     },
     "PPM": {
       "dimension_vector": "A0E0L0I0M0H0T0D1",

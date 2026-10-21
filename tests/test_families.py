@@ -22,7 +22,14 @@ FOLDER = Path(__file__).parents[1] / "src" / "nomogram" / "data" / "catalog"
 
 def test_bundled_families_are_layered() -> None:
     families = catalog().families
-    assert set(families) == {"core", "water-vapour", "moist-air", "humidity", "radio"}
+    assert set(families) == {
+        "core",
+        "water-vapour",
+        "moist-air",
+        "humidity",
+        "radio",
+        "sea-water",
+    }
     assert families["core"].requires == ()
     assert families["water-vapour"].requires == ("core",)
     assert families["moist-air"].requires == ("water-vapour",)
