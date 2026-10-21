@@ -42,7 +42,7 @@ import sympy
 
 from nomogram.comparison import same_state
 from nomogram.expression import parse_expression
-from nomogram.model import Formulation, Relation, RelationKind
+from nomogram.model import CheckCase, CrossCheck, Formulation, Relation, RelationKind
 from nomogram.units import Q_
 
 if TYPE_CHECKING:
@@ -51,6 +51,7 @@ if TYPE_CHECKING:
 __all__ = [
     "BUDGET",
     "VERIFIER",
+    "Replay",
     "Verdict",
     "fingerprint",
     "form",
@@ -58,6 +59,7 @@ __all__ = [
     "match_inputs",
     "per_axis",
     "record",
+    "replay",
     "report",
     "signature",
     "verdict",
@@ -477,6 +479,69 @@ def _beyond_parts(formulation: Formulation) -> list[str]:
                     f"[{ours[0]:g}, {ours[1]:g}] against [{low:g}, {high:g}]"
                 )
     return lines
+
+
+@dataclass(frozen=True)
+class Replay:
+    """A case of a cross-check, computed again by nomogram.
+
+    Attributes
+    ----------
+    case : CheckCase
+        The case, with the value of the other implementation.
+    value : float
+        The value nomogram computes, in the unit of the formulation's
+        output.
+    deviation : float
+        Relative deviation from the recorded value (absolute when it is 0).
+    """
+
+    case: CheckCase
+    value: float
+    deviation: float
+
+    @property
+    def agrees(self) -> bool:
+        """Whether the deviation is within the case's tolerance."""
+        return self.deviation <= self.case.rtol
+
+
+def replay(check: CrossCheck, catalog: Catalog) -> tuple[Replay, ...]:
+    """Compute again the cases of a cross-check.
+
+    Each formulation is evaluated as written: inputs in its units, no
+    scale conversion and no validity domain, as an implementation of the
+    printed equation computes it.
+
+    Parameters
+    ----------
+    check : CrossCheck
+        The cross-check, from ``catalog.cross_checks``.
+    catalog : Catalog
+        The catalog holding its formulations.
+
+    Returns
+    -------
+    tuple of Replay
+        One per case, in order.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    results = []
+    for case in check.cases:
+        formulation = catalog.formulations[case.formulation]
+        inputs: dict[str, Any] = {
+            v.identifier: Q_(case.inputs[v.identifier], units[v.unit].pint)
+            for v in formulation.inputs
+        }
+        found = formulation.evaluate(outside="ignore", scale="ignore", **inputs)
+        value = float(found.magnitude)
+        deviation = (
+            abs(value / case.value - 1) if case.value != 0 else abs(value - case.value)
+        )
+        results.append(Replay(case, value, deviation))
+    return tuple(results)
 
 
 def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> str:

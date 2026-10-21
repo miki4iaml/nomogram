@@ -28,6 +28,7 @@ the result is NaN there. See ``docs/rosetta.md`` for the vocabulary.
 
 from __future__ import annotations
 
+import datetime
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -47,9 +48,11 @@ if TYPE_CHECKING:
     from nomogram.display import Rendering
 
 __all__ = [
+    "CheckCase",
     "Citation",
     "Coefficient",
     "ConventionalScale",
+    "CrossCheck",
     "Derivation",
     "DomainBasis",
     "Formulation",
@@ -316,6 +319,70 @@ class Relation:
     )
     given: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     scale: ScaleConversion = "convert"
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class CheckCase:
+    """One value of a formulation, as another implementation computes it.
+
+    Attributes
+    ----------
+    formulation : str
+        Key of the formulation.
+    inputs : mapping of str to float
+        Input values, by identifier, in the units of the formulation's
+        inputs; the formulation is evaluated as written (no scale
+        conversion, no validity domain).
+    value : float
+        The value the other implementation gives, in the unit of the
+        formulation's output.
+    call : str or None
+        How the value was obtained from the other implementation.
+    rtol : float
+        Relative tolerance of the agreement.
+    """
+
+    formulation: str
+    inputs: Mapping[str, float]
+    value: float
+    call: str | None = None
+    rtol: float = 1e-12
+
+
+@dataclass(frozen=True)
+class CrossCheck:
+    """Formulations checked against another implementation, on given points.
+
+    A cross-check records values computed once with software outside
+    nomogram (not a dependency); the tests replay the cases against the
+    catalog, so that a change of a formulation cannot go unnoticed. It is
+    an observation, never a source.
+
+    Attributes
+    ----------
+    key : str
+        Catalog key.
+    implementation : str
+        Name of the other implementation.
+    version : str
+        Its version, release or commit, as run.
+    checked : datetime.date
+        Date of the check.
+    cases : tuple of CheckCase
+        The values compared.
+    url : str or None
+        Where the implementation lives.
+    note : str or None
+        Remark (workarounds, known differences).
+    """
+
+    key: str
+    implementation: str
+    version: str
+    checked: datetime.date
+    cases: tuple[CheckCase, ...]
+    url: str | None = None
     note: str | None = None
 
 

@@ -86,14 +86,20 @@ def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
     assert is_offset_unit(unit.pint) is (unit.offset != 0.0)
 
 
+#: Interval-scale kinds whose zero is a reference surface rather than a
+#: unit: multiplicative units (``offset_units=False`` in the extraction).
+SURFACE_ZERO = frozenset({"Altitude"})
+
+
 @pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))
 def test_applicable_units_follow_the_scale_rule(name: str) -> None:
     kind = CATALOG.quantity_kinds[name]
     assert kind.applicable_units
+    offset = kind.scale_type is ScaleType.INTERVAL and name not in SURFACE_ZERO
     for unit_name in kind.applicable_units:
         unit = CATALOG.units[unit_name]
         assert unit.dimensions == kind.dimensions
-        assert (unit.offset != 0.0) is (kind.scale_type is ScaleType.INTERVAL)
+        assert (unit.offset != 0.0) is offset
     assert set(kind.added_units) <= set(kind.applicable_units)
 
 

@@ -45,9 +45,11 @@ from nomogram.expression import (
     parse_expression,
 )
 from nomogram.model import (
+    CheckCase,
     Citation,
     Coefficient,
     ConventionalScale,
+    CrossCheck,
     Derivation,
     DomainBasis,
     Formulation,
@@ -66,7 +68,14 @@ from nomogram.model import (
     ValidityDomain,
     Variable,
 )
-from nomogram.relations import match_inputs, record, report, signature, verdict
+from nomogram.relations import (
+    match_inputs,
+    record,
+    replay,
+    report,
+    signature,
+    verdict,
+)
 from nomogram.semantics import (
     ExternalMatch,
     MatchRelation,
@@ -95,6 +104,7 @@ _SECTIONS = (
     "scales",
     "formulations",
     "relations",
+    "cross_checks",
 )
 
 
@@ -172,6 +182,8 @@ class Catalog:
         Relations between formulations stated by sources, by key.
     families : mapping of str to Family
         By key.
+    cross_checks : mapping of str to CrossCheck
+        Values of formulations computed by other implementations, by key.
     """
 
     kinds: Mapping[str, QuantityKind]
@@ -185,6 +197,9 @@ class Catalog:
         default_factory=lambda: MappingProxyType({})
     )
     families: Mapping[str, Family] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    cross_checks: Mapping[str, CrossCheck] = dataclasses.field(
         default_factory=lambda: MappingProxyType({})
     )
 
@@ -1173,6 +1188,7 @@ class _Builder:
                 except ExpressionError as exc:
                     msg = f"{where}.given.{identifier}: {exc}"
                     raise CatalogError(msg) from None
+            self.check_units(where, subject, other, given)
         return Relation(
             key=key,
             kind=kind,
@@ -1184,6 +1200,92 @@ class _Builder:
             bounds=bounds,
             given=MappingProxyType({k: str(v) for k, v in given.items()}),
             scale=scale,
+            note=f["note"],
+        )
+
+    @staticmethod
+    def check_units(
+        where: str, subject: Formulation, other: Formulation, given: Mapping[str, Any]
+    ) -> None:
+        """An equivalence is proved on the expressions as written: same units.
+
+        The output, and every input of the object with the subject inputs
+        feeding it (matched, or used by its ``given`` expression), must be
+        in the same unit; conversions in ``given`` are not supported.
+        """
+        units = {v.identifier: v.unit for v in subject.inputs}
+        matched = match_inputs(subject, other)
+        found = []
+        if subject.output.unit != other.output.unit:
+            found.append(f"output in {subject.output.unit} and {other.output.unit}")
+        for variable in other.inputs:
+            if variable.identifier in given:
+                expr = parse_expression(str(given[variable.identifier]), sorted(units))
+                sources = sorted(s.name for s in expr.free_symbols)
+            else:
+                sources = [matched[variable.identifier]]
+            found += [
+                f"{variable.identifier} in {variable.unit} fed by {s} in {units[s]}"
+                for s in sources
+                if units[s] != variable.unit
+            ]
+        if found:
+            msg = (
+                f"{where}: an equivalence is proved on the expressions as "
+                f"written, which needs the same units: {'; '.join(found)}"
+            )
+            raise CatalogError(msg)
+
+    def cross_check(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> CrossCheck:
+        where = f"cross_checks.{key}"
+        f = _fields(
+            where,
+            table,
+            ("implementation", "version", "checked", "cases"),
+            ("url", "note"),
+        )
+        if not isinstance(f["checked"], datetime.date):
+            msg = f"{where}.checked: expected a date (YYYY-MM-DD)"
+            raise CatalogError(msg)
+        if not isinstance(f["cases"], list) or not f["cases"]:
+            msg = f"{where}.cases: expected a non-empty list of cases"
+            raise CatalogError(msg)
+        cases = []
+        for i, item in enumerate(f["cases"]):
+            w = f"{where}.cases[{i}]"
+            c = _fields(w, item, ("formulation", "inputs", "value"), ("call", "rtol"))
+            formulation = self.part(f"{w}.formulation", c["formulation"], formulations)
+            names = {v.identifier for v in formulation.inputs}
+            if not isinstance(c["inputs"], dict) or set(c["inputs"]) != names:
+                msg = (
+                    f"{w}.inputs: expected a value for each input of "
+                    f"{formulation.key}: {', '.join(sorted(names))}"
+                )
+                raise CatalogError(msg)
+            rtol = 1e-12 if c["rtol"] is None else float(c["rtol"])
+            if not rtol > 0:
+                msg = f"{w}.rtol: expected a positive tolerance"
+                raise CatalogError(msg)
+            cases.append(
+                CheckCase(
+                    formulation=formulation.key,
+                    inputs=MappingProxyType(
+                        {k: float(v) for k, v in c["inputs"].items()}
+                    ),
+                    value=float(c["value"]),
+                    call=c["call"],
+                    rtol=rtol,
+                )
+            )
+        return CrossCheck(
+            key=key,
+            implementation=str(f["implementation"]),
+            version=str(f["version"]),
+            checked=f["checked"],
+            cases=tuple(cases),
+            url=f["url"],
             note=f["note"],
         )
 
@@ -1263,6 +1365,12 @@ class _Builder:
             kinds=MappingProxyType(self.kinds),
             formulations=MappingProxyType(formulations),
             relations=MappingProxyType(relations),
+            cross_checks=MappingProxyType(
+                {
+                    key: self.cross_check(key, table, formulations)
+                    for key, table in self.data["cross_checks"].items()
+                }
+            ),
             references=MappingProxyType(self.references),
             constants=MappingProxyType(self.constants),
             notations=MappingProxyType(self.notations),
@@ -1345,6 +1453,9 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
                 add("references", source)
     elif section == "kinds":
         add("kinds", table["specialization_of"])
+    elif section == "cross_checks":
+        for case in table["cases"]:
+            add("formulations", case["formulation"])
     elif section == "relations":
         add("formulations", table["subject"])
         add("formulations", table["object"])
@@ -1673,6 +1784,13 @@ def _verdicts(write: bool) -> str:
         found = verdict(loaded.relations[key], loaded)
         value = "" if found.value is None else f" {found.value:.4g} %"
         lines.append(f"{key}: {found.status}{value}")
+    for key in sorted(loaded.cross_checks):
+        check = loaded.cross_checks[key]
+        agreeing = sum(r.agrees for r in replay(check, loaded))
+        lines.append(
+            f"{key}: {agreeing} of {len(check.cases)} cases agree with "
+            f"{check.implementation} {check.version} (checked {check.checked})"
+        )
     return "\n".join(lines) + "\n"
 
 

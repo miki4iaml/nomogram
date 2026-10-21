@@ -74,7 +74,7 @@ keywords = ["humidity", "psychrometrics"]
 
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
-(`water-vapour`, `moist-air`), and **aggregates** holding no entry, only
+(`water-vapour`, `moist-air`, `radio`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -117,6 +117,7 @@ All sections are optional; a key may be defined in one file only.
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`), `subject`, `object`, `citation` | `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
+| `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
 
 ### Formulations
 
@@ -260,7 +261,11 @@ Kinds and units come from the bundled QUDT subset (see
 `MassConcentrationOfWaterVapour`; units such as `K`, `DEG_C`, `PA`,
 `HectoPA`, `GM-PER-M3`, `PERCENT`, and for radio refractivity
 `RefractiveIndex`, `DimensionlessRatio` (units `UNITLESS`, `PERCENT`,
-`PPM`) and `Height` (`M`, `KiloM`). A kind missing from QUDT can be
+`PPM`), `Height` (above the surface) and `Altitude` (above the geoid),
+both in `M` or `KiloM`. An altitude and a height never feed each other:
+a height above the surface is h = z - z_s (`height_above_surface`), with
+the altitude z_s of the surface given by the user (a terrain model is
+outside nomogram). A kind missing from QUDT can be
 declared in `[kinds]` as a specialization of a QUDT kind; it takes the
 scale type of its parent unless `scale_type` says otherwise (a quantity
 with a conventional origin is on an interval scale even under a
@@ -321,6 +326,43 @@ Verification runs in the tests and on demand, not when the catalog is
 loaded, which only checks the structure. A relation lives in the family
 of its subject, which must require the families of its formulations and
 of its citation.
+
+## Cross-checks against other implementations
+
+A cross-check records values of formulations computed once with another
+implementation (software outside nomogram, never a dependency), with its
+version and the date of the check. It is an observation, never a source:
+it shows that two implementations of the same printed equation agree on
+the points tried, not that the equation is right.
+
+```toml
+[cross_checks.itu_rpy_p453]
+implementation = "ITU-Rpy"
+version = "0.4.0, master commit f739993"
+url = "https://github.com/inigodelportillo/ITU-Rpy"
+checked = 2026-10-21
+note = "Its wet term is called with a Celsius temperature (ITU-Rpy issue 115)."
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_dry"
+inputs = { P_d = 1000.0, T = 293.15 }     # in the units of its inputs
+value = 264.71089885724035                # in the unit of its output
+call = "dry_term_radio_refractivity(1000.0, 293.15)"
+```
+
+- **`inputs`**: a value for every input of the formulation, in its
+  units; the formulation is evaluated as written (no scale conversion, no
+  validity domain), as an implementation of the printed equation does.
+- **`value`**: what the other implementation gives, written with all its
+  digits (`repr`); **`call`** says how it was obtained, workarounds
+  included.
+- **`rtol`**: relative tolerance, 1e-12 by default; larger when the value
+  went through a transformation (a refractivity from a refractive index,
+  `(n - 1) * 1e6`, loses digits).
+- The tests compute every case again (`nomogram.relations.replay`), so a
+  change of a formulation cannot silently depart from what an
+  independent implementation gave; `python -m nomogram.catalog verify`
+  lists the cross-checks with the verdicts.
 
 ## Units of coefficients
 

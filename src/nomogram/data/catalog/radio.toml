@@ -1,0 +1,325 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Radio refractivity of the atmosphere: refractive index, refractivity
+# and its dry and wet terms, reference profile, modified refractivity
+# (ITU-R P.453-14).
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "radio"
+label = "Radio refractivity of the atmosphere"
+format = 2
+requires = ["moist-air"]
+keywords = ["radio propagation", "refractivity", "troposphere"]
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.RadioRefractivity]
+label = "Radio Refractivity"
+specialization_of = "DimensionlessRatio"
+description = "N = (n - 1) x 10^6, the excess of the radio refractive index n over 1, in parts per million; ITU-R P.453 calls its unit the N-unit."
+
+[kinds.RadioRefractivityDryTerm]
+label = "Dry Term of the Radio Refractivity"
+specialization_of = "DimensionlessRatio"
+description = "Part of the radio refractivity due to the dry air (ITU-R P.453, equation 3)."
+
+[kinds.RadioRefractivityWetTerm]
+label = "Wet Term of the Radio Refractivity"
+specialization_of = "DimensionlessRatio"
+description = "Part of the radio refractivity due to the water vapour (ITU-R P.453, equation 4)."
+
+[kinds.ModifiedRadioRefractivity]
+label = "Modified Radio Refractivity"
+specialization_of = "DimensionlessRatio"
+scale_type = "interval"
+description = "M = N + h/a x 10^6, the radio refractivity corrected for the curvature of the Earth (a: its radius); ITU-R P.453 calls its unit the M-unit. Its zero depends on the origin of heights: an interval scale."
+
+[kinds.SurfaceAltitude]
+label = "Surface Altitude"
+specialization_of = "Altitude"
+description = "Altitude of the surface of the Earth, the lower boundary of the atmosphere (CF: surface_altitude)."
+
+# --- Formulations -----------------------------------------------------
+
+# Heights: an altitude z is above the geoid (about the mean sea level), a
+# height h above the surface; h = z - z_s needs the altitude z_s of the
+# surface, which nomogram never computes (it comes from a terrain model).
+
+[formulations.height_above_surface]
+label = "Height above the surface"
+expression = "z - z_s"
+fixed_units = false
+note = "Definition (CF: height is the vertical distance above the surface). The altitude of the surface comes from a terrain model, outside nomogram."
+output = { identifier = "h", kind = "Height", unit = "KiloM", description = "Height above the surface" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Altitude" },
+  { identifier = "z_s", kind = "SurfaceAltitude", unit = "KiloM", description = "Altitude of the surface" },
+]
+
+[formulations.itu_r_p453_refractive_index]
+label = "Radio refractive index from the refractivity (ITU-R P.453)"
+expression = "1 + N * 1e-6"
+fixed_units = true
+output = { identifier = "n", kind = "RefractiveIndex", unit = "UNITLESS", description = "Radio refractive index" }
+inputs = [
+  { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity" },
+]
+
+[[formulations.itu_r_p453_refractive_index.citations]]
+reference = "itu_r_p453_14"
+equation = "1"
+
+[formulations.itu_r_p453_refractivity]
+label = "Radio refractivity (ITU-R P.453)"
+expression = "k_1 * P_d / T + k_2 * e / T + k_3 * e / T ** 2"
+fixed_units = true
+output = { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity" }
+inputs = [
+  { identifier = "P_d", kind = "DryAirPressure", unit = "HectoPA", description = "Dry atmospheric pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Water vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_1 = 77.6, k_2 = 72.0, k_3 = 3.75e5 }
+
+[[formulations.itu_r_p453_refractivity.citations]]
+reference = "itu_r_p453_14"
+equation = "2"
+
+[formulations.itu_r_p453_refractivity_dry]
+label = "Dry term of the radio refractivity (ITU-R P.453)"
+expression = "k_1 * P_d / T"
+fixed_units = true
+output = { identifier = "N_dry", kind = "RadioRefractivityDryTerm", unit = "PPM", description = "Dry term of the radio refractivity" }
+inputs = [
+  { identifier = "P_d", kind = "DryAirPressure", unit = "HectoPA", description = "Dry atmospheric pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_1 = 77.6 }
+
+[[formulations.itu_r_p453_refractivity_dry.citations]]
+reference = "itu_r_p453_14"
+equation = "3"
+
+[formulations.itu_r_p453_refractivity_wet]
+label = "Wet term of the radio refractivity (ITU-R P.453)"
+expression = "k_2 * e / T + k_3 * e / T ** 2"
+fixed_units = true
+note = "P.453 section 2.2 gives the wet term in ppm."
+output = { identifier = "N_wet", kind = "RadioRefractivityWetTerm", unit = "PPM", description = "Wet term of the radio refractivity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Water vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_2 = 72.0, k_3 = 3.75e5 }
+
+[[formulations.itu_r_p453_refractivity_wet.citations]]
+reference = "itu_r_p453_14"
+equation = "4"
+
+[formulations.itu_r_p453_refractivity_total_pressure]
+label = "Radio refractivity from the total pressure (ITU-R P.453)"
+expression = "k_1 * P / T - k_2 * e / T + k_3 * e / T ** 2"
+fixed_units = true
+output = { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Total atmospheric pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Water vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_1 = 77.6, k_2 = 5.6, k_3 = 3.75e5 }
+
+[[formulations.itu_r_p453_refractivity_total_pressure.citations]]
+reference = "itu_r_p453_14"
+equation = "6"
+
+[formulations.itu_r_p453_refractivity_approximate]
+label = "Radio refractivity, approximate form (ITU-R P.453)"
+expression = "k_1 / T * (P + b * e / T)"
+fixed_units = true
+note = "Equation 6 approximated with reduced accuracy. The stated domain is -50 to +40 degC, written here in kelvins."
+output = { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Total atmospheric pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Water vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_1 = 77.6, b = 4810.0 }
+
+[[formulations.itu_r_p453_refractivity_approximate.citations]]
+reference = "itu_r_p453_14"
+equation = "7"
+
+[[formulations.itu_r_p453_refractivity_approximate.citations.domains]]
+bounds = { T = [223.15, 313.15] }
+criterion = "N within 0.02 percent of the value obtained from equation 2"
+
+[formulations.itu_r_p453_reference_profile]
+label = "Reference profile of the radio refractive index (ITU-R P.453)"
+expression = "1 + N_0 * 1e-6 * exp(-z / h_0)"
+fixed_units = true
+note = "Global mean reference profile, for terrestrial paths only; N_0 and h_0 can be determined statistically for other climates. P.453 writes h without saying from where it is measured; N_0 being extrapolated to sea level, it is taken as an altitude."
+output = { identifier = "n", kind = "RefractiveIndex", unit = "UNITLESS", description = "Radio refractive index" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Altitude" },
+]
+coefficients = { N_0 = 315.0, h_0 = 7.35 }
+
+[[formulations.itu_r_p453_reference_profile.citations]]
+reference = "itu_r_p453_14"
+equation = "11"
+notation = { z = "h" }
+units = { h_0 = "KiloM" }
+
+[formulations.itu_r_p453_surface_refractivity]
+label = "Radio refractivity at the surface, reference profile (ITU-R P.453)"
+expression = "N_0 * exp(-z_s / h_0)"
+fixed_units = true
+note = "Global mean reference profile, for terrestrial paths only."
+output = { identifier = "N_s", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity at the surface of the Earth" }
+inputs = [
+  { identifier = "z_s", kind = "SurfaceAltitude", unit = "KiloM", description = "Height of the surface of the Earth above sea level" },
+]
+coefficients = { N_0 = 315.0, h_0 = 7.35 }
+
+[[formulations.itu_r_p453_surface_refractivity.citations]]
+reference = "itu_r_p453_14"
+equation = "12"
+notation = { z_s = "h_s" }
+units = { h_0 = "KiloM" }
+
+[formulations.itu_r_p453_modified_refractivity]
+label = "Modified radio refractivity (ITU-R P.453)"
+expression = "N + c * h"
+fixed_units = true
+note = "157 is about 10^6 / a, with a the radius of the Earth in km. P.453 shows M against the height above ground (figure 12)."
+output = { identifier = "M", kind = "ModifiedRadioRefractivity", unit = "PPM", description = "Modified radio refractivity" }
+inputs = [
+  { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity at the height h" },
+  { identifier = "h", kind = "Height", unit = "KiloM", description = "Height above ground" },
+]
+coefficients = { c = 157.0 }
+
+[[formulations.itu_r_p453_modified_refractivity.citations]]
+reference = "itu_r_p453_14"
+equation = "17"
+
+# --- Relations --------------------------------------------------------
+
+[relations.itu_r_p453_total_pressure_form]
+kind = "equivalent"
+subject = "itu_r_p453_refractivity_total_pressure"
+object = "itu_r_p453_refractivity"
+given = { P_d = "P - e" }
+citation = "itu_r_p453_14"
+note = "Section 1: since P_d = P - e, equation 2 can be rewritten as equation 6."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.itu_rpy_p453]
+implementation = "ITU-Rpy"
+version = "0.4.0, master commit f739993"
+url = "https://github.com/inigodelportillo/ITU-Rpy"
+checked = 2026-10-21
+note = "ITU-Rpy implements P.453-13, its default version; the values agree with the P.453-14 equations of the catalog. Its wet term adds 273.15 to the temperature it converts to kelvins (ITU-Rpy issue 115): it is called with a Celsius temperature. Calls are those of itur.models.itu453."
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_dry"
+inputs = { P_d = 1000.0, T = 293.15 }
+value = 264.71089885724035
+call = "dry_term_radio_refractivity(1000.0, 293.15)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_dry"
+inputs = { P_d = 500.0, T = 250.0 }
+value = 155.2
+call = "dry_term_radio_refractivity(500.0, 250.0)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_dry"
+inputs = { P_d = 1013.25, T = 303.15 }
+value = 259.37060860959923
+call = "dry_term_radio_refractivity(1013.25, 303.15)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_wet"
+inputs = { e = 10.0, T = 293.15 }
+value = 46.092737379558834
+call = "wet_term_radio_refractivity(10.0, 293.15 - 273.15)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_wet"
+inputs = { e = 1.0, T = 250.0 }
+value = 6.288
+call = "wet_term_radio_refractivity(1.0, 250.0 - 273.15)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity_wet"
+inputs = { e = 40.0, T = 303.15 }
+value = 172.7212773220783
+call = "wet_term_radio_refractivity(40.0, 303.15 - 273.15)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity"
+inputs = { P_d = 1000.0, e = 10.0, T = 293.15 }
+value = 310.8036362367006
+call = "(radio_refractive_index(1000.0, 10.0, 293.15) - 1) * 1e6"
+rtol = 1e-9
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity"
+inputs = { P_d = 500.0, e = 1.0, T = 250.0 }
+value = 161.48800000004292
+call = "(radio_refractive_index(500.0, 1.0, 250.0) - 1) * 1e6"
+rtol = 1e-9
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_refractivity"
+inputs = { P_d = 1013.25, e = 40.0, T = 303.15 }
+value = 432.0918859317402
+call = "(radio_refractive_index(1013.25, 40.0, 303.15) - 1) * 1e6"
+rtol = 1e-9
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_es_water"
+inputs = { p = 1013.25, t = 20.0 }
+value = 23.48164577004656
+call = "saturation_vapour_pressure(20.0, 1013.25)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_es_water"
+inputs = { p = 800.0, t = -10.0 }
+value = 2.875137878622023
+call = "saturation_vapour_pressure(-10.0, 800.0)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_es_water"
+inputs = { p = 1013.25, t = 45.0 }
+value = 96.41920277725828
+call = "saturation_vapour_pressure(45.0, 1013.25)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_es_ice"
+inputs = { p = 1013.25, t = -20.0 }
+value = 1.0373628561154469
+call = "saturation_vapour_pressure(-20.0, 1013.25, 'ice')"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_es_ice"
+inputs = { p = 600.0, t = -60.0 }
+value = 0.010859641292684411
+call = "saturation_vapour_pressure(-60.0, 600.0, 'ice')"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_vapour_pressure"
+inputs = { H = 50.0, e_s = 23.48164577004656 }
+value = 11.74082288502328
+call = "water_vapour_pressure(20.0, 1013.25, 50.0), e_s = saturation_vapour_pressure(20.0, 1013.25)"
+
+[[cross_checks.itu_rpy_p453.cases]]
+formulation = "itu_r_p453_vapour_pressure"
+inputs = { H = 80.0, e_s = 2.875137878622023 }
+value = 2.3001103028976186
+call = "water_vapour_pressure(-10.0, 800.0, 80.0), e_s = saturation_vapour_pressure(-10.0, 800.0)"

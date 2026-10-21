@@ -89,6 +89,12 @@ and gives its relative deviation from a reference, in one vectorised
 pass. The plot of the README is exactly that. It shows at a glance which
 formulations agree, where they drift, and where they stop.
 
+When another implementation of a formulation exists, its values are
+recorded once as a **cross-check** (implementation, version, date,
+points), and the tests compute them again: ITU-R P.453 against ITU-Rpy
+agrees to the last digit on every point tried (see the
+[catalog guide](catalog.md#cross-checks-against-other-implementations)).
+
 ## 4. Units and temperature scales are explicit
 
 - **Units** come from QUDT and are checked against pint: each unit's

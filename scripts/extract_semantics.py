@@ -60,6 +60,10 @@ class KindSpec(NamedTuple):
     cf_standard_names: tuple[str, ...] = ()
     #: Units QUDT does not declare for the kind, added by nomogram.
     added_units: tuple[str, ...] = ()
+    #: Whether its units carry an offset (degC); by default, those of an
+    #: interval scale do. An interval scale whose zero is a reference
+    #: surface rather than a unit (altitude) takes multiplicative units.
+    offset_units: bool | None = None
 
 
 #: Quantity kinds kept, by QUDT local name.
@@ -116,6 +120,15 @@ KINDS: dict[str, KindSpec] = {
     "RefractiveIndex": KindSpec("ratio", delta=False),
     "DimensionlessRatio": KindSpec("ratio", delta=False),
     "Height": KindSpec("ratio", delta=False, cf_standard_names=("height",)),
+    # Altitude: height above the geoid (CF), a reference surface fixed by
+    # convention, hence an interval scale; QUDT's description leaves the
+    # reference to the context.
+    "Altitude": KindSpec(
+        "interval",
+        delta=False,
+        cf_standard_names=("altitude",),
+        offset_units=False,
+    ),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -278,18 +291,22 @@ def extract_kinds(
     one it specializes. nomogram then applies its scale rule: offset units
     only for interval-scale kinds, multiplicative units only for the
     others. Without it, QUDT would make ``DEG_C`` applicable to the
-    thermodynamic temperature.
+    thermodynamic temperature. A kind may set ``offset_units`` when its
+    scale's zero comes from a reference surface rather than from the unit
+    (an altitude is on an interval scale, in metres).
     """
     kinds: dict[str, dict[str, Any]] = {}
     for name, spec in KINDS.items():
         subject = QK[name]
         _require(graph, subject)
         lineage = {name} | ancestors(graph, name)
-        interval = spec.scale_type == "interval"
+        offset = spec.offset_units
+        if offset is None:
+            offset = spec.scale_type == "interval"
         applicable = {
             unit
             for unit, data in units.items()
-            if declared[unit] & lineage and (data["offset"] != 0.0) == interval
+            if declared[unit] & lineage and (data["offset"] != 0.0) == offset
         }
         added = set(spec.added_units) - applicable
         kinds[name] = {

@@ -8,6 +8,10 @@
       "canonical_units": "K",
       "pint": "K"
     },
+    "altitude": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
     "dew_point_temperature": {
       "canonical_units": "K",
       "pint": "K"
@@ -52,6 +56,29 @@
       "matches": [],
       "scale_type": "ratio",
       "specialization_of": "Density"
+    },
+    "Altitude": {
+      "added_units": [],
+      "applicable_units": [
+        "KiloM",
+        "M"
+      ],
+      "cf_standard_names": [
+        "altitude"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Altitude",
+      "label": "Altitude",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q190200",
+          "verified": "2026-10-14"
+        }
+      ],
+      "scale_type": "interval",
+      "specialization_of": "Length"
     },
     "CelsiusTemperature": {
       "added_units": [],

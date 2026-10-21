@@ -41,6 +41,7 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | reference | `qudt:Citation`; `qudt:informativeReference`, `qudt:isoNormativeReference` | — | — | — | — | `nomogram.model.Reference`: bibliographic source of a formulation, constant, domain or notation, with a verification status (`verified` or `to-confirm`). The DOI takes precedence over any other identifier. |
 | derivation, inversion | none | — | — | `sympy.solve` | — | `nomogram.inversion.invert`: a formulation of one input, inverted. A closed form found by SymPy (after taking logarithms) becomes a formulation with its own expression and LaTeX; otherwise the inverse is solved numerically. `Derivation` records the source and the method; validity domains are carried through the function, and temperatures return to ITS-90. |
 | comparison, composition | none | — | — | `sympy.Expr.subs` | — | `nomogram.comparison`: `compare` gives the relative deviation of formulations of one kind from a reference; `compose` feeds formulations into another, numerically. A composed catalog entry (`composition`) substitutes the expressions of its parts and is an ordinary formulation, with `Derivation` method `"composition"`. Inputs are matched by quantity kind; the Celsius and thermodynamic temperatures express one state (t = T − 273.15 K) and match the same input, a temperature difference never does. In a composition, a result may feed an input of a more general kind (`specializationOf`): a saturation vapour pressure feeds a vapour pressure input, never the reverse. |
+| cross-check | none | — | — | — | — | `[cross_checks]` in the catalog: values of formulations computed once by another implementation, with its version and the date; replayed by the tests (`nomogram.relations.replay`). An observation that two implementations of a printed equation agree on given points, never a source nor a proof. |
 | trade term | none | — | — | — | — | `nomogram.model.TradeTerm`: a term whose meaning depends on the trade (absolute humidity), recorded as a label pointing to unambiguous kinds, never as a kind. |
 | CF standard name | none | — | — | — | CF standard name, with canonical units | The geoscience name of a variable in a data file (`air_temperature`). Linked to a QUDT kind; one kind may have several CF names. |
 | external match | `qudt:wikidataMatch`, `qudt:siExactMatch`, `qudt:ucumCode`, `qudt:udunitsCode`; SKOS `exactMatch`, `closeMatch`, `broadMatch`, `narrowMatch` | BIPM SI Reference Point | — | — | — | `nomogram.semantics.ExternalMatch`: target, SKOS relation, date of last verification. See "External links". |
@@ -80,6 +81,13 @@ versus dimensionless), so mixing them is not a small numerical error.
 British Standard BS 1339-1:2002 deprecates the term in favour of
 "volumetric humidity". No source was found defining absolute humidity
 per volume of *dry* air.
+
+Symbols collide as well as terms. ITU-R P.453-14 writes h for an
+altitude in its equation 11 (the reference profile, N_0 being
+extrapolated to sea level) and for a height above ground in its equation
+17 (figure 12). nomogram keeps the identifiers apart (z, z_s, h, with
+distinct kinds) and gives each source its own symbols in the notation of
+its citation.
 
 ## QUDT findings
 
@@ -132,6 +140,17 @@ silently.
     specialize no kind: dimensionless kinds share no common parent in
     QUDT. nomogram uses `DimensionlessRatio` as the parent of the
     dimensionless kinds it defines.
+14. The description of `quantitykind:Altitude` says that altitude or
+    height "is defined based on the context in which it is used"; CF is
+    precise (`altitude`: above the geoid; `height`: above the surface;
+    also `surface_altitude`, `height_above_mean_sea_level`,
+    `height_above_reference_ellipsoid`). nomogram follows CF. An altitude
+    is on an interval scale (its zero is a reference surface) yet in
+    metres: the extraction marks it so (`offset_units=False`), the
+    reference surface rather than the unit setting the zero.
+15. QUDT also has `quantitykind:ElevationRelativeToNAP`, an elevation
+    relative to the Dutch datum: the reference surface is part of the
+    meaning of the quantity.
 
 CF table 95 has no standard name for the saturation vapour pressure
 either, and its `relative_humidity` entry has an empty description (it

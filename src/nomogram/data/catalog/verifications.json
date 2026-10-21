@@ -10,6 +10,14 @@
    "status": "reproduced",
    "value": 0.6483320703041695
   },
+  "17726f72adc2b8d991b25efb21dacad62ef71cfc8920e395a1b796ad2b02ab0c": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "itu_r_p453_total_pressure_form",
+   "status": "proven",
+   "value": null
+  },
   "1fd6ac6ee60ceaf372118a5aab6575e109e4e6ed56ea866c7fbe4a18ec29283c": {
    "at": {
     "t": -40.0

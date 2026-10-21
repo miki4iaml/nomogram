@@ -10,6 +10,34 @@ and this project adheres to
 
 ### Added
 
+- Family `radio` (ITU-R P.453-14, read on the PDF): refractive index
+  from the refractivity (eq. 1), radio refractivity (eq. 2), its dry and
+  wet terms (eq. 3, 4), the form with the total pressure (eq. 6) with the
+  equivalence stated by P.453 and proven by SymPy, the approximate form
+  (eq. 7) with its stated domain and criterion, the reference profile
+  and the surface refractivity (eq. 11, 12), the modified refractivity
+  (eq. 17), and the height above the surface h = z - z_s. Kinds
+  `RadioRefractivity`, its dry and wet terms, `ModifiedRadioRefractivity`
+  (interval scale), `SurfaceAltitude`.
+- In `moist-air`: P.453 equations 8 (vapour pressure from the relative
+  humidity in percent and the saturation vapour pressure in moist air)
+  and 10 (from the water vapour density); kinds `DryAirPressure` and
+  `SaturationVapourPressureInMoistAir`, parent of the saturation vapour
+  pressures over water and over ice in moist air.
+- Cross-checks against other implementations (catalog section
+  `[cross_checks]`, `nomogram.model.CrossCheck` and `CheckCase`): values
+  of formulations computed once with outside software, with its version
+  and the date of the check; `nomogram.relations.replay` computes them
+  again (the tests do it for every case), and
+  `python -m nomogram.catalog verify` lists them. First one: ITU-R P.453
+  against ITU-Rpy, 16 cases, all agreeing.
+- An equivalence between formulations is refused when they do not work
+  in the same units, since its proof compares the expressions as written.
+  `docs/relation-verdicts.md` works through the equivalence of P.453
+  equations 2 and 6.
+- QUDT kind `Altitude` (CF `altitude`), on an interval scale with
+  multiplicative units: the extraction script gains `offset_units` for
+  scales whose zero is a reference surface rather than a unit.
 - Composed formulations in the catalog (`composition = { outer, inner,
   bind }`): the inner expressions are substituted into the outer one,
   which gives an ordinary formulation (LaTeX, inversion, units of

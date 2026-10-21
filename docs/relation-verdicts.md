@@ -21,6 +21,37 @@ must simplify to zero.
   among random points. Nothing is guaranteed either way: equivalence of
   expressions with exponentials and logarithms is undecidable in general.
 
+The proof compares the **expressions as written**. It means something
+only if both formulations work in the same units: loading refuses an
+equivalence whose outputs, or whose inputs and the subject inputs feeding
+them (matched, or used by `given`), are in different units. Conversions
+inside `given` are not supported: write both formulations in the same
+units.
+
+### A stated equivalence: ITU-R P.453, equations 2 and 6
+
+P.453-14 writes the radio refractivity from the dry pressure P_d
+(equation 2), then says: "Since P_d = P − e, equation (2) can be
+rewritten as" equation 6, from the total pressure P. The catalog records
+that claim (`itu_r_p453_total_pressure_form`, with
+`given = { P_d = "P - e" }`), and `verify` proves it:
+
+```
+  77.6 (P - e)/T + 72 e/T + 3.75e5 e/T²      (equation 2, P_d = P - e)
+- (77.6 P/T - 5.6 e/T + 3.75e5 e/T²)         (equation 6)
+= (-77.6 + 72 + 5.6) e/T = 0
+```
+
+- **Exact rationals matter.** The coefficients become 388/5, 72 and
+  28/5, whose sum is exactly zero. In binary floating point,
+  `77.6 - 72` is `5.599999999999994`, not `5.6`: a comparison of floats
+  would need a tolerance, and could not tell a proof from a near miss.
+- **Units agree.** Both formulations take pressures in hPa and the
+  temperature in K, so the expressions can be compared as written. The
+  units inferred for the coefficients (`coefficient_units`) agree too:
+  77.6, 72 and 5.6 are all in ppm K/hPa, which is why 77.6 − 72 = 5.6
+  is a relation between quantities and not a numerical coincidence.
+
 ### What SymPy settles, and what it does not
 
 These pairs were run through `verify` (inputs are real numbers, not
