@@ -206,6 +206,11 @@ class ConventionalScale:
         points.
     reference : str or None
         Key of the source of the scale or of its table.
+    symbol : str or None
+        Short name, for example ``"ITS-90"``.
+    subscript : str or None
+        Subscript that marks a quantity on this scale, for example
+        ``"90"`` (the ITS-90 writes t90 and T90).
     """
 
     key: str
@@ -216,6 +221,8 @@ class ConventionalScale:
     points: tuple[float, ...]
     difference: tuple[float, ...]
     reference: str | None
+    symbol: str | None = None
+    subscript: str | None = None
 
     @property
     def is_reference(self) -> bool:

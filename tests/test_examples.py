@@ -62,7 +62,8 @@ def test_display_guide_code_runs() -> None:
     namespace: dict[str, object] = {}
     for block in python_blocks(DISPLAY):
         exec(compile(block, str(DISPLAY), "exec"), namespace)  # noqa: S102
-    assert namespace["label"] == r"$e_{\mathrm{w}}$ [hPa]"
+    assert namespace["label"] == r"$e_{\mathrm{w}}$/hPa"
+    assert namespace["simple"] == "Celsius temperature $t$ [°C]"
     assert "6{,}112" in str(namespace["french"])
 
 

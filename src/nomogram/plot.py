@@ -18,10 +18,10 @@ from typing import Any
 
 import numpy as np
 
-from nomogram.comparison import Comparison
-from nomogram.display import symbol
+from nomogram.comparison import TEMPERATURE_POINTS, Comparison, same_state
+from nomogram.display import axis_label, reference_scale, symbol
 from nomogram.model import Notation
-from nomogram.semantics import semantic_catalog
+from nomogram.units import is_offset_unit
 
 __all__ = ["plot_deviations", "plot_values"]
 
@@ -57,9 +57,41 @@ def _abscissa(comparison: Comparison, kind: str | None) -> tuple[str, Any]:
         msg = f"no input of kind {kind!r} in the comparison"
         raise ValueError(msg)
     quantity = comparison.inputs[kind]
-    kinds = semantic_catalog().quantity_kinds
-    name = kinds[kind].label if kind in kinds else kind
-    return f"{name} [{quantity.units:~P}]", np.asarray(quantity.magnitude, dtype=float)
+    shown = kind
+    if kind in TEMPERATURE_POINTS:
+        # The values say which temperature is plotted: degC, a Celsius
+        # temperature t; K, a thermodynamic temperature T.
+        offset = is_offset_unit(quantity.units)
+        shown = "CelsiusTemperature" if offset else "ThermodynamicTemperature"
+    label = axis_label(
+        _kind_name(shown),
+        _symbol_of(comparison, shown),
+        f"{quantity.units:~P}",
+        scale=reference_scale(shown),
+    )
+    return label, np.asarray(quantity.magnitude, dtype=float)
+
+
+#: Symbols of ISO 80000-5 for the temperatures; other kinds take the
+#: symbol of the reference formulation's input.
+_KIND_SYMBOLS = {"ThermodynamicTemperature": "T", "CelsiusTemperature": "t"}
+
+
+def _kind_name(kind: str) -> str:
+    from nomogram.catalog import catalog
+
+    kinds = catalog().kinds
+    return kinds[kind].label if kind in kinds else kind
+
+
+def _symbol_of(comparison: Comparison, kind: str) -> str | None:
+    if kind in _KIND_SYMBOLS:
+        return _KIND_SYMBOLS[kind]
+    reference = comparison.formulations.get(comparison.reference)
+    for variable in getattr(reference, "inputs", ()):
+        if same_state(variable.kind, kind):
+            return symbol(variable, unit=False)[1:-1]
+    return None
 
 
 #: Line styles taken in turn once the colour cycle (10 colours) is used up.
@@ -113,7 +145,8 @@ def plot_deviations(
         ax.plot(x, 100 * values, label=_label(comparison, key), **_style(index))
     ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
     ax.set_xlabel(x_label)
-    ax.set_ylabel(f"Deviation from {_label(comparison, comparison.reference)} [%]")
+    name = f"Relative deviation from {_label(comparison, comparison.reference)}"
+    ax.set_ylabel(axis_label(name, r"\delta", "%"))
     ax.legend(fontsize="small")
     return ax
 
@@ -162,11 +195,19 @@ def plot_values(
         )
         ax.plot(x, values, label=_label(comparison, key), **style)
     reference = comparison.formulations.get(comparison.reference)
-    unit = comparison.values[comparison.reference].units
+    unit = f"{comparison.values[comparison.reference].units:~P}"
     if reference is not None:
-        ax.set_ylabel(f"{symbol(reference.output, notation, unit=False)} [{unit:~P}]")
+        output = reference.output
+        ax.set_ylabel(
+            axis_label(
+                _kind_name(output.kind),
+                symbol(output, notation, unit=False)[1:-1],
+                unit,
+                scale=reference_scale(output.kind),
+            )
+        )
     else:
-        ax.set_ylabel(f"[{unit:~P}]")
+        ax.set_ylabel(axis_label(None, None, unit))
     ax.set_xlabel(x_label)
     ax.legend(fontsize="small")
     return ax

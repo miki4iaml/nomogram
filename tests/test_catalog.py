@@ -376,3 +376,18 @@ def test_catalog_guide_example_matches_the_catalog() -> None:
     bundled = tomllib.loads(bundled_text)["formulations"]["alduchov_eskridge1996"]
     for key, value in example.items():
         assert bundled[key] == value, key
+
+
+def test_a_scale_short_name_and_subscript() -> None:
+    its90 = CATALOG.scales["its90"]
+    assert (its90.symbol, its90.subscript) == ("ITS-90", "90")
+    assert CATALOG.scales["ipts68"].subscript == "68"
+    assert "scales.its90" in CATALOG.search("ITS-90", section="scales").refs
+    document = """
+[scales.s]
+label = "A scale"
+kinds = ["CelsiusTemperature"]
+subscript = 3
+"""
+    with pytest.raises(CatalogError, match="subscript: expected a non-empty string"):
+        load_catalog([document])

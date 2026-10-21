@@ -618,8 +618,21 @@ class _Builder:
                 where,
                 tables[key],
                 ("label", "kinds"),
-                ("reference_scale", "unit", "differences", "reference"),
+                (
+                    "reference_scale",
+                    "unit",
+                    "differences",
+                    "reference",
+                    "symbol",
+                    "subscript",
+                ),
             )
+            for name in ("symbol", "subscript"):
+                if f[name] is not None and (
+                    not isinstance(f[name], str) or not f[name]
+                ):
+                    msg = f"{where}.{name}: expected a non-empty string"
+                    raise CatalogError(msg)
             kinds = tuple(self.kind(f"{where}.kinds", k).name for k in f["kinds"])
             if not kinds:
                 msg = f"{where}.kinds: at least one quantity kind"
@@ -676,6 +689,8 @@ class _Builder:
                 points=points,
                 difference=difference,
                 reference=self.optional_reference(f"{where}.reference", f["reference"]),
+                symbol=f["symbol"],
+                subscript=f["subscript"],
             )
 
     def check_scale(

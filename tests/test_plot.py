@@ -50,14 +50,18 @@ def test_deviations_one_curve_per_formulation_with_domain_gaps(
     # -50 degC is outside the IAPWS domain: a gap, not a value.
     assert np.isnan(curve[0])
     assert "IAPWS" in ax.get_ylabel()
-    assert ax.get_xlabel() == "Thermodynamic Temperature [°C]"
+    assert ax.get_ylabel().endswith(r"$\delta$/%")
+    # The values are in degC: a Celsius temperature, on ITS-90.
+    assert ax.get_xlabel() == "Celsius Temperature $t_{90}$/°C"
     labels = [t.get_text() for t in ax.get_legend().get_texts()]
     assert "Magnus form, Sonntag (1990) coefficients" in labels
 
 
 def test_values_with_a_notation(comparison: Comparison) -> None:
     ax = plot_values(comparison, notation=CATALOG.notations["wmo"])
-    assert ax.get_ylabel() == r"$e_{\mathrm{w}}$ [Pa]"
+    assert ax.get_ylabel() == (
+        r"Saturation Vapour Pressure over Water $e_{\mathrm{w}}$/Pa"
+    )
     assert len(ax.lines) == len(SATURATION)
     reference = next(line for line in ax.lines if line.get_linestyle() == "--")
     assert reference.get_label() == IAPWS.label
@@ -86,11 +90,12 @@ def test_input_kind_must_be_clear() -> None:
     # Without the formulations, keys serve as labels and no symbol is shown.
     ax = plot_values(two, input_kind="ThermodynamicTemperature")
     assert ax.get_ylabel() == "[Pa]"
+    assert ax.get_xlabel() == "Thermodynamic Temperature $T_{90}$/K"
     assert ax.lines[0].get_label() == "r"
     other = Comparison(
         "r", {"Custom": Q_([1.0, 2.0], "K")}, two.values, two.relative_deviations
     )
-    assert plot_values(other).get_xlabel() == "Custom [K]"
+    assert plot_values(other).get_xlabel() == "Custom / K"
 
 
 def test_missing_extra_gives_an_explicit_message(
@@ -132,3 +137,19 @@ def test_curves_beyond_ten_change_line_style(comparison: Comparison) -> None:
     styles = [line.get_linestyle() for line in ax.lines[:-1]]
     assert styles[:10] == ["-"] * 10
     assert set(styles[10:]) == {"-."}
+
+
+def test_abscissa_symbol_from_the_reference_formulation() -> None:
+    from nomogram.comparison import compare
+
+    vapour = CATALOG.formulations["vapour_pressure_from_relative_humidity"]
+    found = compare(
+        [vapour],
+        vapour,
+        {
+            "RelativeHumidity": Q_(np.array([0.2, 0.5, 0.8]), ""),
+            "SaturationVapourPressureOverWater": Q_(2000.0, "Pa"),
+        },
+    )
+    label = plot_values(found, input_kind="RelativeHumidity").get_xlabel()
+    assert label == r"Relative Humidity $\mathrm{RH}$"
