@@ -129,7 +129,8 @@ class DisplayOptions:
     values: bool = False
     axis_labels: AxisLabels = "si"
 
-    #: SymPy's own rendering: juxtaposition, default symbols.
+    #: SymPy's own rendering: juxtaposition, default symbols; numbers are
+    #: still joined by ×.
     SYMPY: ClassVar[DisplayOptions]
 
     def __post_init__(self) -> None:
@@ -198,14 +199,48 @@ def _resolve(
     return dataclasses.replace(base, **overrides) if overrides else base
 
 
+#: The sign SymPy puts between two numbers for each ``mul_symbol`` (its
+#: ``mul_symbol_latex_numbers`` setting), in a power of ten and in a
+#: product: a centred dot unless the sign is × or a low dot.
+_NUMBER_SIGNS: Mapping[MulSymbol, str] = {
+    None: r" \cdot ",
+    "dot": r" \cdot ",
+    "ldot": r" \,.\, ",
+}
+
+
+def _times_between_numbers(tex: str, mul_symbol: MulSymbol) -> str:
+    r"""LaTeX with × wherever SymPy joined two numbers.
+
+    SymPy joins two numbers, ``1.0 \cdot 10^{-6}`` or ``0.0001 \cdot
+    7.2``, with its own sign, which ``to_latex`` cannot change. The
+    places are found as SymPy finds them: after a digit, possibly
+    closed by braces, and before a digit or a numeric fraction.
+    """
+    sign = _NUMBER_SIGNS.get(mul_symbol)
+    if sign is None:
+        return tex
+    between = re.compile(
+        r"([0-9][} ]*?)" + re.escape(sign) + r"(?=\d|\\frac\{\d+\}\{\d+\})"
+    )
+    return between.sub(r"\1 \\times ", tex)
+
+
 def _tex(expr: Any, symbols: Mapping[str, str], options: DisplayOptions) -> str:
-    return to_latex(
+    """An expression in LaTeX, in the typography of the options.
+
+    A power of ten, and any product of two numbers, take × whatever
+    ``mul_symbol``: the SI Brochure (9th edition, section 5.4.6) allows
+    only × between numbers.
+    """
+    tex = to_latex(
         expr,
         symbols,
         mul_symbol=options.mul_symbol,
         decimal_separator=options.decimal_separator,
         upright=options.upright,
     )
+    return _times_between_numbers(tex, options.mul_symbol)
 
 
 def _identifier(name: str, symbols: Mapping[str, str], options: DisplayOptions) -> str:
@@ -412,21 +447,69 @@ def reference_scale(kind: str) -> ConventionalScale | None:
     return None
 
 
+_COMMAND = re.compile(r"\\(?:[A-Za-z]+|.)")
+
+
+def _group_end(tex: str, start: int) -> int | None:
+    """The index after the brace closing the group opened at ``start``."""
+    depth = 0
+    for index in range(start, len(tex)):
+        depth += {"{": 1, "}": -1}.get(tex[index], 0)
+        if depth == 0:
+            return index + 1
+    return None
+
+
+def _script_end(tex: str, start: int) -> int | None:
+    """The index after the argument of ``_`` or ``^`` starting at ``start``.
+
+    The argument is a group, a command with the group that follows it
+    (``\\mathrm{d}``), or one character.
+    """
+    if start >= len(tex):
+        return None
+    if tex[start] == "{":
+        return _group_end(tex, start)
+    command = _COMMAND.match(tex, start)
+    if command is None:
+        return start + 1
+    end = command.end()
+    if command.group()[1:].isalpha() and tex[end : end + 1] == "{":
+        return _group_end(tex, end)
+    return end
+
+
 def _with_subscript(tex: str, subscript: str) -> str:
     """A symbol marked with a scale: ``t`` gives ``t_{90}``.
 
-    The mark joins an existing subscript group (``T_{d}`` gives
-    ``T_{d,90}``), never a superscript.
+    The mark joins the subscript of the symbol, braced or not (``T_{d}``
+    and ``T_d`` give ``T_{d,90}``), never a subscript within a
+    superscript (``T^{a_{b}}`` gives ``T^{a_{b}}_{90}``).
     """
     mark = subscript if subscript.isdigit() else rf"\mathrm{{{subscript}}}"
-    start = tex.find("_{")
-    if start < 0:
-        return f"{tex}_{{{mark}}}"
-    depth = 0
-    for index in range(start + 1, len(tex)):
-        depth += {"{": 1, "}": -1}.get(tex[index], 0)
-        if depth == 0:
-            return f"{tex[:index]},{mark}{tex[index:]}"
+    index = 0
+    while index < len(tex):
+        char = tex[index]
+        if char in "_^":
+            end = _script_end(tex, index + 1)
+            if end is None:
+                break
+            if char == "_":
+                argument = tex[index + 1 : end]
+                if argument.startswith("{"):
+                    argument = argument[1:-1]
+                return f"{tex[: index + 1]}{{{argument},{mark}}}{tex[end:]}"
+            index = end
+        elif char == "{":
+            end = _group_end(tex, index)
+            if end is None:
+                break
+            index = end
+        elif char == "\\":
+            found = _COMMAND.match(tex, index)
+            index = found.end() if found is not None else index + 1
+        else:
+            index += 1
     return f"{tex}_{{{mark}}}"
 
 

@@ -81,7 +81,11 @@ FIELDS: Mapping[str, str] = {
     "input": "an input variable of a formulation: identifier, symbols, kind, description",
     "variable": "any variable, coefficient or constant of a formulation",
     "symbol": "a symbol of a formulation, as written by a notation (see notation=)",
-    "notation": "the notation of the symbols matched by symbol= (default: all notations)",
+    "notation": (
+        "the notation of the symbols matched by symbol=: a notation key, default "
+        "for the identifiers, or the reference key of a citation's own symbols "
+        "(default: all notations)"
+    ),
     "source": "a cited reference: key and authors",
     "equation": "the equation number of a citation, with source= in the same citation",
     "family": "the family the entry belongs to",
@@ -186,8 +190,26 @@ def words(text: str) -> frozenset[str]:
 
 
 def _symbol_words(tex: str) -> frozenset[str]:
-    form = symbol_form(tex)
-    return words(form) | {form}
+    """Words of a symbol: its normal form, whole and split.
+
+    The parts a space separates count as well (``\\Sigma m_{\\mathrm{B}}``
+    gives ``sigmam_b``, ``sigma`` and ``m_b``): a pattern is split at
+    spaces, so the symbol written as its notation writes it finds itself.
+    """
+    found: set[str] = set()
+    for form in {symbol_form(tex), *(symbol_form(part) for part in tex.split())}:
+        if form:
+            found |= words(form) | {form}
+    return frozenset(found)
+
+
+def _whole(*texts: str | None) -> frozenset[str]:
+    """Texts as single words, folded: symbols such as ``g/kg`` or ``°C``.
+
+    :func:`words` splits a text at such signs, and a term is never split:
+    kept whole, a symbol finds itself.
+    """
+    return frozenset(fold(t) for t in texts if t)
 
 
 @dataclass(frozen=True)
@@ -438,7 +460,8 @@ def _records(catalog: Catalog) -> list[_Record]:
                     _join(
                         key, s.label, s.symbol, s.note, *s.kinds, *s.cf_standard_names
                     )
-                ),
+                )
+                | _whole(s.symbol),
                 {},
                 citations=_sourced(catalog, s.reference),
             )
@@ -486,7 +509,13 @@ def _records(catalog: Catalog) -> list[_Record]:
             unit.pint,
             _matches_text(unit.matches),
         )
-        records.append(_Record(Entry("units", name, unit.label, unit), words(text), {}))
+        records.append(
+            _Record(
+                Entry("units", name, unit.label, unit),
+                words(text) | _whole(unit.symbol),
+                {},
+            )
+        )
     return [
         dataclasses.replace(
             record,
@@ -535,6 +564,18 @@ def _terms(pattern: str, symbol: bool = False) -> list[str]:
     return [symbol_form(t) if symbol else fold(t) for t in pattern.split()]
 
 
+def _notation_matches(key: str, pattern: str) -> bool:
+    """Whether a notation key matches a ``notation=`` pattern.
+
+    A citation's own notation, keyed ``formulation:reference``, also
+    answers to its reference key alone (``dickson2007``).
+    """
+    _, _, reference = key.partition(":")
+    return fnmatchcase(fold(key), pattern) or (
+        bool(reference) and fnmatchcase(fold(reference), pattern)
+    )
+
+
 def _all_match(terms: list[str], found: frozenset[str]) -> bool:
     return all(any(fnmatchcase(word, term) for word in found) for term in terms)
 
@@ -571,7 +612,7 @@ def _keep(
         symbol = _terms(filters.get("symbol", "*"), symbol=True)
         notation = fold(filters.get("notation", "*"))
         if not any(
-            fnmatchcase(fold(key), notation) and _all_match(symbol, found)
+            _notation_matches(key, notation) and _all_match(symbol, found)
             for key, found in record.symbols
         ):
             return False
@@ -646,9 +687,10 @@ class Selection(Sequence[Entry]):
     """Entries found by a search: searchable again, and combinable.
 
     ``a & b`` keeps the entries of ``a`` also in ``b``, ``a | b`` adds
-    those of ``b``, ``a - b`` removes them; the selections must come
-    from the same catalog. :attr:`formulations` gives the formulations,
-    for :func:`nomogram.comparison.compare` or a plot. In a notebook, a
+    those of ``b`` (all in the order of the catalog), ``a - b`` removes
+    them; the selections must come from the same catalog.
+    :attr:`formulations` gives the formulations, for
+    :func:`nomogram.comparison.compare` or a plot. In a notebook, a
     selection displays itself as a table.
 
     Attributes
@@ -716,9 +758,12 @@ class Selection(Sequence[Entry]):
         found = self._other(other)
         if found is None:
             return NotImplemented
-        seen = set(self.refs)
-        added = tuple(e for e in found.entries if e.ref not in seen)
-        return Selection(self.entries + added, self.catalog)
+        merged = {e.ref: e for e in (*self.entries, *found.entries)}
+        order = {ref: i for i, ref in enumerate(self.catalog._search_index.by_ref)}
+        return Selection(
+            tuple(sorted(merged.values(), key=lambda e: order.get(e.ref, len(order)))),
+            self.catalog,
+        )
 
     def __sub__(self, other: object) -> Selection:
         found = self._other(other)

@@ -117,6 +117,64 @@ def test_symbols_in_a_given_notation() -> None:
     assert "notations.wmo" in (CATALOG.search(notation="wmo")).refs
 
 
+def test_every_symbol_finds_itself_as_its_notation_writes_it() -> None:
+    for key, formulation in CATALOG.formulations.items():
+        notations = [c.notation for c in formulation.citations if c.notation]
+        notations += CATALOG.notations.values()
+        identifiers = [
+            formulation.output.identifier,
+            *(v.identifier for v in formulation.inputs),
+            *(c.identifier for c in formulation.coefficients),
+            *(k.identifier for k in formulation.constants),
+        ]
+        for notation in notations:
+            for identifier in identifiers:
+                tex = notation.symbols.get(identifier)
+                if tex is None:
+                    continue
+                ref = f"formulations.{key}"
+                found = CATALOG.search(symbol=tex, notation=notation.key)
+                assert ref in found.refs, (notation.key, tex)
+                assert ref in CATALOG.search(variable=tex).refs, (notation.key, tex)
+
+
+def test_a_symbol_with_a_space_is_found_whole_or_by_its_parts() -> None:
+    # Dickson writes the total molality \Sigma m_{\mathrm{B}}.
+    expected = {
+        "formulations.dickson2007_total_molality",
+        "formulations.dickson2007_osmotic_coefficient",
+        "formulations.vapour_pressure_from_osmotic_coefficient",
+    }
+    for pattern in (r"\Sigma m_{\mathrm{B}}", "Σ m_B", "Σm_B", "m_B"):
+        assert refs(CATALOG.search(symbol=pattern)) == expected, pattern
+    assert refs(CATALOG.search(variable=r"\Sigma m_{\mathrm{B}}")) == expected
+
+
+def test_a_citation_notation_answers_to_its_reference_key() -> None:
+    dickson = CATALOG.search(symbol="Σm_B", notation="dickson2007")
+    assert "formulations.dickson2007_total_molality" in dickson.refs
+    full = "dickson2007_total_molality:dickson2007"
+    assert "formulations.dickson2007_total_molality" in (
+        CATALOG.search(symbol="Σm_B", notation=full).refs
+    )
+    assert not CATALOG.search(symbol="Σm_B", notation="dickson2007_total_molality")
+    assert not CATALOG.search(symbol="Σm_B", notation="wmo")
+
+
+def test_units_and_scales_are_found_by_their_symbols() -> None:
+    from nomogram.semantics import semantic_catalog
+
+    for name, unit in semantic_catalog().units.items():
+        if unit.symbol:
+            assert f"units.{name}" in CATALOG.search(unit.symbol).refs, unit.symbol
+    for key, scale in CATALOG.scales.items():
+        if scale.symbol:
+            assert f"scales.{key}" in CATALOG.search(scale.symbol).refs, scale.symbol
+    assert refs(CATALOG.search("°C")) >= {"units.DEG_C"}
+    assert "units.GM-PER-KiloGM" in CATALOG.search("g/kg").refs
+    assert "units.PERCENT" in CATALOG.search("%").refs
+
+
 def test_source_and_equation_in_the_same_citation() -> None:
     nine = CATALOG.search(source="itu_r_p453*", equation="9")
     assert "formulations.itu_r_p453_es_water" in nine.refs
@@ -187,6 +245,12 @@ def test_selections_combine_and_chain() -> None:
         _ = water | 3
     with pytest.raises(TypeError):
         _ = water - 3
+    # A union keeps the order of the catalog.
+    order = list(CATALOG.search().refs)
+    tail = CATALOG.search(section="formulations")[-3:]
+    union = (tail | buck).refs
+    assert list(union) == sorted(union, key=order.index)
+    assert set(union) == set(tail.refs) | set(buck.refs)
     other = load_catalog([])
     with pytest.raises(ValueError, match="different catalogs"):
         _ = water & Selection((), other)
@@ -239,3 +303,10 @@ coefficients = { a = 2.0 }
     }
     assert "notations.plain" in (loaded.search("plain")).refs
     assert not loaded.uses("formulations.f").search(section="references")
+
+
+def test_a_symbol_part_without_letters_adds_no_word() -> None:
+    from nomogram.search import _symbol_words
+
+    # "{}" has an empty normal form: only "m" and the whole count.
+    assert _symbol_words("m {}") == frozenset({"m"})

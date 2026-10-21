@@ -79,6 +79,21 @@ def test_decimal_comma_and_powers_of_ten() -> None:
     assert r"6.2215701 \times 10^{-7} \cdot T^{2}" in dotted
 
 
+@pytest.mark.parametrize("mul_symbol", ["times", "dot", "ldot", None])
+def test_numbers_are_joined_by_times_whatever_the_sign(mul_symbol: str | None) -> None:
+    # A literal of the expression: 1 + N * 1e-6.
+    refraction = FORMULATIONS["itu_r_p453_refractive_index"]
+    latex = refraction.latex(mul_symbol=mul_symbol)
+    assert r"1.0 \times 10^{-6}" in latex
+    sign = {"times": r" \times ", "dot": r" \cdot ", "ldot": r" \,.\, ", None: " "}
+    assert rf"10^{{-6}}{sign[mul_symbol]}N" in latex
+    # A literal times a coefficient shown as its value: two numbers.
+    ef = FORMULATIONS["itu_r_p453_ef_water"]
+    with_values = ef.latex(mul_symbol=mul_symbol, values=True)
+    assert r"0.0001 \times 7.2" in with_values
+    assert r"5.9 \times 10^{-6}" in with_values
+
+
 def test_options_levels_keyword_over_block_over_defaults() -> None:
     assert get_display_options() == DisplayOptions()
     with display_options(mul_symbol="dot") as inside:
@@ -248,6 +263,17 @@ def test_table_follows_options_and_escapes_vertical_bars() -> None:
     assert "50 to 273,16 K" in commas.to_markdown()
 
 
+def test_the_scale_mark_on_symbols_of_unusual_shape() -> None:
+    its90 = reference_scale("CelsiusTemperature")
+    # A leading group is passed over; a subscript after it takes the mark.
+    assert axis_label("Dew point", "{T}_{d}", "K", scale=its90) == (
+        "Dew point ${T}_{d,90}$/K"
+    )
+    # Malformed symbols (an open group, a lone _) still get it, at the end.
+    assert axis_label("Dew point", "{T", "K", scale=its90) == "Dew point ${T_{90}$/K"
+    assert axis_label("Dew point", "T_", "K", scale=its90).endswith("_{90}$/K")
+
+
 def test_axis_labels_in_the_three_styles() -> None:
     its90 = reference_scale("CelsiusTemperature")
     assert its90 is not None
@@ -291,6 +317,17 @@ def test_axis_label_details() -> None:
         r"$x_{\mathrm{a},\mathrm{P}}^{2}$/K"
     )
     assert axis_label(None, r"x^{2}", "K", scale=scale) == r"$x^{2}_{\mathrm{P}}$/K"
+    assert axis_label(None, r"x^{a_{b}}", "K", scale=scale) == (
+        r"$x^{a_{b}}_{\mathrm{P}}$/K"
+    )
+    # A subscript without braces takes them, rather than a second subscript.
+    assert axis_label(None, "T_d", "K", scale=its90) == "$T_{d,90}$/K"
+    assert axis_label(None, r"\theta_\mathrm{d}^2", "K", scale=its90) == (
+        r"$\theta_{\mathrm{d},90}^2$/K"
+    )
+    assert axis_label(None, r"\theta_\alpha", "K", scale=its90) == (
+        r"$\theta_{\alpha,90}$/K"
+    )
     # An unbalanced symbol is left as written, the mark appended.
     assert axis_label(None, r"x_{a", "K", scale=scale) == r"$x_{a_{\mathrm{P}}$/K"
     # A scale without subscript or short name leaves the label plain.
