@@ -149,6 +149,14 @@ def test_rendering_targets() -> None:
     )
 
 
+def test_the_unit_one_is_not_written() -> None:
+    refraction = FORMULATIONS["itu_r_p453_refractive_index"]
+    assert refraction.output.unit == "UNITLESS"
+    lines = refraction.render().markdown.splitlines()
+    assert "- $n$: Radio refractive index" in lines
+    assert "- $N$: Radio refractivity [ppm]" in lines
+
+
 def test_markdown_explains_each_symbol_with_its_unit() -> None:
     lines = MAGNUS.render().markdown.splitlines()
     assert lines[0] == f"**{MAGNUS.label}**"

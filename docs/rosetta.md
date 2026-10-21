@@ -133,10 +133,16 @@ silently.
     close match. Its description announces IRIs of the form
     `https://www.wikidata.org/wiki/Q…`; the data uses
     `http://www.wikidata.org/entity/Q…`.
-11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph.
-12. The symbol of `unit:PPM` is `PPM`; ITU-R P.453 writes `ppm`, as
-    UCUM does (`[ppm]`). nomogram displays `ppm`, an override declared
-    with its reason in the extraction script (`SYMBOLS`).
+11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph, chosen
+    deliberately ([qudt-public-repo#712](https://github.com/qudt/qudt-public-repo/issues/712),
+    where `1` and `-` were proposed). The SI Brochure gives the unit one
+    the symbol 1, "rarely explicitly written" (9th ed., 2.3.3 and 5.4.7).
+    nomogram follows the SI: `1` in its data, an override declared in the
+    extraction script (`SYMBOLS`), and no symbol in its displays.
+12. The symbol of `unit:PPM` is `PPM`; the SI Brochure (5.4.7) and ITU-R
+    P.453 write `ppm`, as UCUM does (`[ppm]`). nomogram displays `ppm`, an
+    override declared with its reason in the extraction script
+    (`SYMBOLS`).
 13. `quantitykind:RefractiveIndex` and `quantitykind:DimensionlessRatio`
     specialize no kind: dimensionless kinds share no common parent in
     QUDT. nomogram uses `DimensionlessRatio` as the parent of the
