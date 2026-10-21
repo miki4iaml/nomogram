@@ -41,7 +41,10 @@ that constraint recorded as the reason, and conflicts are reported where
 they occur. Linear algebra (:func:`sympy.linsolve` on the exponents of
 the base dimensions) settles whatever propagation leaves, which only
 happens when several constraints must be solved together. The tests
-check that both methods agree.
+check that both methods agree. In a formulation with fixed units, a
+coefficient holds for the units the formulation is written with (hPa,
+not Pa): linear algebra then solves the exponents of those units, and
+leaves the coefficient undetermined when they do not fix its unit.
 """
 
 from __future__ import annotations
@@ -348,32 +351,52 @@ def _dimension(unit: Any) -> dict[str, Fraction]:
     }
 
 
-def _linear(formulation: Formulation) -> dict[str, dict[str, Fraction] | None]:
+def _factors(unit: Any) -> dict[str, Fraction]:
+    """A unit as the powers of the units it is written with.
+
+    hPa/°C gives hectopascal to the power 1 and delta_degree_Celsius to
+    the power -1: hPa and Pa are different factors, unlike dimensions.
+    """
+    items: Any = ureg.Quantity(1, unit).unit_items()
+    return {
+        name: Fraction(exponent).limit_denominator(1000) for name, exponent in items
+    }
+
+
+def _linear(
+    formulation: Formulation, *, in_units: bool = False
+) -> dict[str, dict[str, Fraction] | None]:
     """Dimensions of the coefficients of unknown unit, by linear algebra.
 
     Each unknown gets one exponent per base dimension; every constraint is
     linear in these exponents. A coefficient whose exponents are not all
     fixed maps to ``None``.
+
+    With ``in_units``, the exponents are those of the units the
+    formulation is written with (:func:`_factors`) instead of base
+    dimensions: the unit a coefficient of a numerical value equation
+    holds for. Constraints that units of the same dimension (hPa and Pa)
+    satisfy only together then have no solution, and every coefficient
+    maps to ``None`` instead of raising.
     """
     context, constraints, _ = _setup(formulation)
-    bases = sorted(
-        {name for unit in context.units.values() for name in unit.dimensionality}
-    )
+    basis = _factors if in_units else _dimension
+    bases = sorted({name for unit in context.units.values() for name in basis(unit)})
     if not bases:
         # Every unit is a number (per mille against per mille): so is each
         # coefficient.
         return {name: {} for name in sorted(context.unknown)}
     exponents = {
-        (name, base): sympy.Symbol(f"x_{name}_{base.strip('[]')}")
+        (name, base): sympy.Symbol(f"x_{name}_{index}")
         for name in sorted(context.unknown)
-        for base in bases
+        for index, base in enumerate(bases)
     }
 
     def vector(node: Any) -> dict[str, Any]:
         if node.is_Symbol:
             if node.name in context.unknown:
                 return {b: exponents[node.name, b] for b in bases}
-            dimension = _dimension(context.units[node.name])
+            dimension = basis(context.units[node.name])
             return {b: sympy.Rational(dimension.get(b, 0)) for b in bases}
         if node.is_Number or isinstance(node, sympy.Function):
             return dict.fromkeys(bases, sympy.Integer(0))
@@ -402,6 +425,8 @@ def _linear(formulation: Formulation) -> dict[str, dict[str, Fraction] | None]:
     unknowns = list(exponents.values())
     solutions = sympy.linsolve(equations, unknowns)
     if not solutions:
+        if in_units:
+            return dict.fromkeys(sorted(context.unknown))
         msg = f"{formulation.key}: the units contradict the expression"
         raise DimensionError(msg)
     (solution,) = solutions
@@ -425,6 +450,40 @@ def _from_dimension(dimension: Mapping[str, Fraction]) -> Any:
     return unit
 
 
+def _from_factors(factors: Mapping[str, Fraction]) -> Any:
+    unit: Any = ureg.dimensionless
+    for name, exponent in factors.items():
+        unit = unit * ureg.Unit(name) ** float(exponent)
+    return unit
+
+
+def _solved_together(
+    formulation: Formulation, context: _Context
+) -> dict[str, tuple[Any, str]]:
+    """Units of the coefficients propagation leaves, found by linear algebra.
+
+    A quantity equation gets them in SI base units. A numerical value
+    equation (fixed units) holds its coefficients for the units it is
+    written with, which a unit in SI base units would misstate (a value
+    for hPa is not one for Pa): its units are solved over its own units,
+    and a coefficient they do not determine stays undetermined, so that
+    a declaration is asked for.
+    """
+    dimensions = _linear(formulation)
+    written = _linear(formulation, in_units=True) if formulation.fixed_units else {}
+    found = {}
+    for name, dimension in dimensions.items():
+        if name in context.units or dimension is None:
+            continue
+        if not formulation.fixed_units:
+            found[name] = (_from_dimension(dimension), "several constraints together")
+            continue
+        factors = written.get(name)
+        if factors is not None and _dimension(_from_factors(factors)) == dimension:
+            found[name] = (_from_factors(factors), "several constraints together")
+    return found
+
+
 def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
     """The unit of each coefficient of a formulation, declared or inferred.
 
@@ -439,8 +498,11 @@ def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
     mapping of str to CoefficientUnit
         By coefficient identifier, in declaration order. An inferred unit
         is built from the units of the formulation (B of the Magnus form
-        in degrees Celsius, C in hPa); one found by linear algebra only is
-        written in SI base units.
+        in degrees Celsius, C in hPa). One found by linear algebra only
+        is written in SI base units for a quantity equation; for a
+        formulation with fixed units, it is solved over the units the
+        formulation is written with, and left undetermined (``None``)
+        when they do not fix it.
 
     Raises
     ------
@@ -452,10 +514,9 @@ def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
     _propagate(context, constraints)
     _check(context, constraints)
     if any(name not in context.units for name in context.unknown):
-        for name, dimension in _linear(formulation).items():
-            if name not in context.units and dimension is not None:
-                context.units[name] = _from_dimension(dimension)
-                context.reasons[name] = "several constraints together"
+        for name, (unit, reason) in _solved_together(formulation, context).items():
+            context.units[name] = unit
+            context.reasons[name] = reason
         _check(context, constraints)
     result = {}
     for coefficient in formulation.coefficients:
