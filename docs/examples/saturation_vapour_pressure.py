@@ -39,7 +39,8 @@ def main(output: str) -> None:
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
     ax.figure.set_size_inches(11, 6.5)
     ax.figure.tight_layout()
-    ax.figure.savefig(output, dpi=90)
+    # No metadata in the image (the image metadata hook refuses it).
+    ax.figure.savefig(output, dpi=90, metadata={"Software": None})
 
 
 if __name__ == "__main__":

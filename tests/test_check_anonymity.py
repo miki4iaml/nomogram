@@ -6,6 +6,7 @@
 import importlib.util
 import os
 import sys
+import zlib
 from pathlib import Path
 
 import pytest
@@ -133,6 +134,90 @@ def test_binary_without_pattern_passes(
 ) -> None:
     f = tmp_path / "image.png"
     f.write_bytes(b"\x89PNG\0\0\0\xff\xfe\x00")
+    assert run(capsys, f)[0] == 0
+
+
+def pdf(*objects: bytes) -> bytes:
+    """A minimal PDF holding the given objects."""
+    body = b"".join(
+        b"%d 0 obj\n" % number + obj + b"\nendobj\n"
+        for number, obj in enumerate(objects, start=1)
+    )
+    return b"%PDF-1.7\n" + body + b"%%EOF\n"
+
+
+def flate_stream(header: bytes, content: bytes) -> bytes:
+    packed = zlib.compress(content)
+    return (
+        b"<< "
+        + header
+        + b" /Filter /FlateDecode /Length %d >>\nstream\n" % len(packed)
+        + packed
+        + b"\nendstream"
+    )
+
+
+@pytest.mark.parametrize(
+    "objects",
+    [
+        # XMP metadata, compressed: invisible in the raw bytes.
+        (
+            flate_stream(
+                b"/Type /Metadata /Subtype /XML", b"<dc:creator>Zorglub</dc:creator>"
+            ),
+        ),
+        # The document information, in a compressed object stream.
+        (flate_stream(b"/Type /ObjStm /N 1 /First 4", b"2 0 << /Author (Zorglub) >>"),),
+        # A UTF-16 string of the document information.
+        (b"<< /Author (\xfe\xff\x00Z\x00o\x00r\x00g\x00l\x00u\x00b) >>",),
+        (b"<< /Author <FEFF005A006F00720067006C00750062> >>",),
+    ],
+)
+def test_pdf_metadata_is_checked(
+    tmp_path: Path,
+    patterns_file: Path,
+    capsys: pytest.CaptureFixture[str],
+    objects: tuple[bytes, ...],
+) -> None:
+    f = tmp_path / "reference.pdf"
+    f.write_bytes(pdf(*objects))
+    status, out, _ = run(capsys, f)
+    assert status == 1
+    assert "PDF" in out
+    assert SECRET not in out.lower()
+
+
+def test_pdf_keeps_its_official_authors(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Metadata that no pattern names pass: a reference keeps its authors.
+    f = tmp_path / "reference.pdf"
+    xmp = flate_stream(
+        b"/Type /Metadata /Subtype /XML", b"<dc:creator>Bolton</dc:creator>"
+    )
+    page = flate_stream(b"/Length1 10", b"\x00\x01zorglub\x02")
+    f.write_bytes(pdf(xmp, b"<< /Author (D. Bolton) /Title (Equivalent) >>", page))
+    # The content of a page is not searched: only metadata is.
+    assert run(capsys, f)[0] == 0
+
+
+def test_pdf_metadata_that_cannot_be_decoded_fails(
+    tmp_path: Path, patterns_file: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    f = tmp_path / "reference.pdf"
+    broken = (
+        b"<< /Type /Metadata /Filter /FlateDecode /Length 3 >>\nstream\nabc\nendstream"
+    )
+    other = (
+        b"<< /Type /Metadata /Filter /LZWDecode /Length 3 >>\nstream\nabc\nendstream"
+    )
+    for obj in (broken, other):
+        f.write_bytes(pdf(obj))
+        status, out, _ = run(capsys, f)
+        assert status == 1
+        assert "PDF metadata not decoded" in out
+    plain = b"<< /Type /Metadata /Length 9 >>\nstream\nno person\nendstream"
+    f.write_bytes(pdf(plain))
     assert run(capsys, f)[0] == 0
 
 

@@ -57,7 +57,7 @@ commit-msg, pre-push).
 
 | Stade | Contrôles |
 |---|---|
-| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation |
+| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation, métadonnées des images |
 | commit-msg | anonymisation du message, Conventional Commits, sujet sans accent |
 | pre-push | mypy strict, pytest |
 
@@ -143,8 +143,18 @@ repère, et tout fichier qui la contient est refusé, même en CI : une
 copie de votre liste ne peut pas être commitée par erreur. Gardez cette
 ligne : une copie partielle qui ne la contient pas n'est pas détectée.
 
-**Ce que le hook ne couvre pas.** Les contenus compressés (docx, PDF
-compressé), l'historique déjà poussé, les noms de branches et
+**Images et PDF.** Une image ne porte aucune métadonnée : le hook
+`scripts/check_image_metadata.py` refuse texte, EXIF (avec le lieu de
+prise d'une photographie), XMP, IPTC, commentaires, horodatages et
+profils de couleur, et tout bloc qu'il ne connaît pas, en PNG, JPEG,
+GIF, WebP et SVG ; les autres formats sont refusés comme non vérifiés.
+Le message nomme le bloc, jamais son contenu. Un PDF garde ses
+métadonnées (les auteurs officiels d'une référence) : le hook
+d'anonymisation les fouille, décompressées quand elles sont dans un
+flux compressé.
+
+**Ce que le hook ne couvre pas.** Les contenus compressés (docx, pages
+d'un PDF), l'historique déjà poussé, les noms de branches et
 d'étiquettes, et tout ce qui se saisit directement sur GitHub : titres
 et descriptions de PR, issues, commentaires. Relisez-les avant de
 publier. Le hook peut aussi être sauté en local
