@@ -93,7 +93,9 @@ correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais) ; la
 page [How nomogram earns trust](docs/approach.md) (en anglais) explique ce
 qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
 anglais) montre l'affichage des formules dans un notebook, en Markdown et
-sur un graphique.
+sur un graphique. [Sea water](docs/sea-water.md) (en anglais) présente les
+échelles de salinité et la pression de vapeur de l'eau de mer, et ce que
+son abaissement de 2 % change à la surface de la mer.
 
 ## Contribuer
 

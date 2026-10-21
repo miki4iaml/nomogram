@@ -11,7 +11,8 @@ import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
-from nomogram.model import ScaleConversionError
+from nomogram.inversion import invert
+from nomogram.model import ScaleConversionError, Variable
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -194,3 +195,40 @@ def test_surface_humidity_and_search() -> None:
     assert "formulations.ittc2011_vapour_pressure" in pressures
     assert "formulations.raoult_sharqawy2010" in CATALOG.search("raoult").refs
     assert "families.sea-water" in CATALOG.search("evaporation").refs
+
+
+def test_the_sea_surface_page() -> None:
+    # Figures of docs/sea-water.md. Beljaars (1998, p. 46): an equivalent
+    # decrease of the sea surface temperature of "about .27 K at 0 degC to
+    # about .35 K at 30 degC".
+    buck = F["buck1981_magnus"]
+    inverse = invert(
+        buck,
+        "t",
+        output=Variable("t", "CelsiusTemperature", "DEG_C", "Celsius temperature"),
+        input=Variable("e", "VapourPressure", "HectoPA", "Vapour pressure"),
+    )
+    decrease = {}
+    for value in (0.0, 10.0, 20.0, 30.0):
+        t = Q_(value, "degC")
+        found = t - inverse.evaluate(e=0.98 * buck.evaluate(t=t))
+        decrease[value] = found.to("delta_degC").magnitude
+    assert decrease == pytest.approx(
+        {0.0: 0.278, 10.0: 0.301, 20.0: 0.326, 30.0: 0.351}, abs=5e-4
+    )
+    # Radio refractivity at the surface, ITU-R P.453 eq. 2, 25 degC.
+    refractivity = F["itu_r_p453_refractivity"]
+    t = Q_(298.15, "K")
+    p = Q_(1013.25, "hPa")
+    e_w = F["iapws_sr1_86"].evaluate(T=t).to("hPa")
+    r = F["robinson1954_vapour_pressure_ratio"].evaluate(Cl=CL_SO).magnitude
+
+    def n(e: Any) -> float:
+        return float(refractivity.evaluate(P_d=p - e, e=e, T=t).magnitude)
+
+    pure, sea, air = n(e_w), n(r * e_w), n(0.8 * e_w)
+    assert (e_w.magnitude, (r * e_w).magnitude, 0.8 * e_w.magnitude) == pytest.approx(
+        (31.698, 31.105, 25.359), abs=5e-4
+    )
+    assert (pure, sea, air) == pytest.approx((396.85, 394.35, 370.22), abs=5e-3)
+    assert (sea - air) / (pure - air) == pytest.approx(0.906, abs=5e-4)
