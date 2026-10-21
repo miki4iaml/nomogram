@@ -39,7 +39,10 @@ time).
 - Units: nomogram's own pint registry, created once and never modified;
   pint's global registry is never touched. Celsius temperatures are
   points of an interval scale (`degC`); differences use `delta_degC` or
-  `K` (SI Brochure, 9th edition, section 2.3.1).
+  `K` (SI Brochure, 9th edition, section 2.3.1). Unit symbols are those
+  of the SI Brochure (the unit one is 1, rarely written); a unit outside
+  the SI keeps QUDT's symbol unless the source of a formulation writes it
+  otherwise. Departures from QUDT are declared in the extraction script.
 - Vocabulary: QUDT terms first (quantity kind, quantity value, unit,
   scale type…); any other term is justified by a dependency's or a
   standard's usage. [docs/rosetta.md](docs/rosetta.md) maps the terms

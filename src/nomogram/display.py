@@ -89,7 +89,8 @@ _ORIGINS: Mapping[str, str] = {
     "inferred": "inferred by nomogram",
 }
 
-#: Units shown without a symbol (QUDT's symbol for UNITLESS is a CJK sign).
+#: Units shown without a symbol: the unit one, 1, is rarely written (SI
+#: Brochure, 9th ed., 5.4.7).
 _NO_SYMBOL = frozenset({"UNITLESS"})
 
 

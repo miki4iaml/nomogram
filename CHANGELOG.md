@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- The symbol of the unit one is 1, as in the SI Brochure, rather than
+  QUDT's `一` (a deliberate QUDT choice, qudt/qudt-public-repo#712);
+  displays still leave it unwritten. Unit symbols follow the SI Brochure,
+  departures from QUDT being declared in the extraction script.
+
 ### Added
 
 - Conventional scales converted by an expression of `x` (`conversion`),

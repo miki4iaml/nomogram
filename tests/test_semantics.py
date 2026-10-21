@@ -49,6 +49,13 @@ def test_catalog_is_read_once() -> None:
     assert semantic_catalog() is CATALOG
 
 
+def test_unit_symbols_follow_the_si_brochure() -> None:
+    # SI Brochure, 9th ed., 2.3.3 and 5.4.7; QUDT writes the unit one U+4E00.
+    assert CATALOG.units["UNITLESS"].symbol == "1"
+    assert CATALOG.units["PPM"].symbol == "ppm"
+    assert CATALOG.units["PERCENT"].symbol == "%"
+
+
 def test_reference_case_kinds_are_present() -> None:
     for name in (
         "ThermodynamicTemperature",

@@ -131,8 +131,8 @@ KINDS: dict[str, KindSpec] = {
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
     # kind for either (nomogram defines them in the sea-water family). QUDT
-    # gives MassFraction only % and 1; CF writes salinities in 1e-3 (per
-    # mille) and g/kg, added here.
+    # gives MassFraction FRACTION, PERCENT and UNITLESS; CF writes salinities
+    # in 1e-3 (per mille) and g/kg, added here.
     "MassFraction": KindSpec(
         "ratio",
         delta=False,
@@ -175,9 +175,14 @@ SCALE_CF_NAMES: tuple[str, ...] = (
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
 SYMBOLS: dict[str, str] = {
-    # QUDT writes "PPM"; ITU-R P.453 writes "ppm" (its N_wet in ppm), as
-    # does UCUM ("[ppm]") in lower case.
+    # QUDT writes "PPM"; the SI Brochure (9th ed., 5.4.7) and ITU-R P.453
+    # (its N_wet in ppm) write "ppm", as does UCUM ("[ppm]").
     "PPM": "ppm",
+    # QUDT writes the CJK sign U+4E00, a deliberate choice
+    # (qudt/qudt-public-repo#712, where "1" and "-" were proposed); the SI
+    # Brochure (9th ed., 2.3.3 and 5.4.7) gives the unit one the symbol 1,
+    # rarely written.
+    "UNITLESS": "1",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
