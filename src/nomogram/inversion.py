@@ -45,6 +45,8 @@ from nomogram.model import (
     ValidityDomain,
     ValidityWarning,
     Variable,
+    _check_options,
+    _flag_beyond,
 )
 from nomogram.semantics import semantic_catalog
 from nomogram.units import Q_, convert
@@ -337,7 +339,8 @@ class NumericalInverse:
         Parameters
         ----------
         outside : {"nan", "warn", "raise", "ignore"}
-            Behaviour outside the validity domains of the source, as for
+            Behaviour outside the validity domains of the source, and
+            beyond a scale conversion (NaN whatever the option), as for
             :meth:`~nomogram.model.Formulation.evaluate`.
         basis : {"stated", "physical", "all"}
             Which domains of the source apply.
@@ -360,11 +363,15 @@ class NumericalInverse:
         ------
         TypeError
             If the input is missing or unexpected.
+        ValueError
+            If ``outside``, ``basis`` or ``scale`` is not one of its values.
         OutOfDomainError
-            With ``outside="raise"``, if a result is outside a domain.
+            With ``outside="raise"``, if a result is outside a domain, or
+            a value beyond a scale conversion.
         ScaleConversionError
             With ``scale="convert"``, if a scale cannot be converted.
         """
+        _check_options(outside, basis, scale)
         if set(inputs) != {self.input.identifier}:
             msg = f"{self.key}: expected the input {self.input.identifier}"
             raise TypeError(msg)
@@ -381,7 +388,12 @@ class NumericalInverse:
             # on its own.
             target_scale.check_convertible()
             table = units[str(target_scale.unit)].pint
-            on_scale, _ = target_scale.from_reference(convert(given, table).magnitude)
+            on_scale, failed = target_scale.from_reference(
+                convert(given, table).magnitude
+            )
+            _flag_beyond(
+                self.key, [(self.input.identifier, target_scale, failed)], outside
+            )
             given = Q_(on_scale, table)
         target = np.asarray(
             convert(given, units[self.input.unit].pint).magnitude,
@@ -425,8 +437,11 @@ class NumericalInverse:
         ):
             scale_of_source.check_convertible()
             table = units[str(scale_of_source.unit)].pint
-            on_reference = scale_of_source.to_reference(
-                convert(quantity, table).magnitude
+            on_scale = convert(quantity, table).magnitude
+            on_reference = scale_of_source.to_reference(on_scale)
+            failed = np.isnan(on_reference) & ~np.isnan(on_scale)
+            _flag_beyond(
+                self.key, [(self.output.identifier, scale_of_source, failed)], outside
             )
             quantity = Q_(on_reference, table)
         result = np.asarray(

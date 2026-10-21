@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 import numpy as np
 import sympy
@@ -85,6 +85,62 @@ ScaleConversion = Literal["convert", "ignore"]
 
 #: Relative tolerance at domain bounds, for rounding in unit conversions.
 BOUND_TOLERANCE = 1e-9
+
+
+def _check_options(outside: Any, basis: Any, scale: Any) -> None:
+    """Refuse an evaluation option outside its allowed values (a typo).
+
+    Raises
+    ------
+    ValueError
+        If ``outside``, ``basis`` or ``scale`` is not one of its values.
+    """
+    for name, value, allowed in (
+        ("outside", outside, get_args(Outside)),
+        ("basis", basis, get_args(Basis)),
+        ("scale", scale, get_args(ScaleConversion)),
+    ):
+        if value not in allowed:
+            msg = f"{name}: expected one of {', '.join(allowed)}, not {value!r}"
+            raise ValueError(msg)
+
+
+def _flag_beyond(
+    key: str, beyond: list[tuple[str, ConventionalScale, Any]], outside: Outside
+) -> None:
+    """Report values a scale conversion could not convert, as ``outside`` says.
+
+    Such values are NaN whatever the option, since they have no value on
+    the other scale: ``"raise"`` raises, ``"warn"`` warns, ``"nan"`` and
+    ``"ignore"`` leave the NaN silently.
+
+    Parameters
+    ----------
+    key : str
+        Key of the formulation, for the message.
+    beyond : list of (str, ConventionalScale, numpy.ndarray of bool)
+        Identifier of the variable, scale converted, and where the
+        conversion failed.
+    outside : {"nan", "warn", "raise", "ignore"}
+        As for :meth:`Formulation.evaluate`.
+
+    Raises
+    ------
+    OutOfDomainError
+        With ``outside="raise"``, if a value could not be converted.
+    """
+    found = [
+        f"{int(np.sum(mask))} value(s) of {identifier} beyond the conversion "
+        f"of scale {scale.key}"
+        for identifier, scale, mask in beyond
+        if np.any(mask)
+    ]
+    if not found or outside not in ("raise", "warn"):
+        return
+    message = f"{key}: {'; '.join(found)} (NaN there)"
+    if outside == "raise":
+        raise OutOfDomainError(message)
+    warnings.warn(message, ValidityWarning, stacklevel=3)
 
 
 class ReferenceStatus(Enum):
@@ -961,6 +1017,11 @@ class Formulation:
         numpy.ndarray of bool
             ``True`` where a value lies outside a selected domain.
 
+        Raises
+        ------
+        ValueError
+            If ``basis`` is not one of its values.
+
         Notes
         -----
         Physical domains all apply. Domains stated by sources combine by
@@ -978,6 +1039,7 @@ class Formulation:
         the domains the sources of the parts state. Physical domains of
         the parts always apply.
         """
+        _check_options("nan", basis, "convert")
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
 
@@ -1056,6 +1118,9 @@ class Formulation:
         outside : {"nan", "warn", "raise", "ignore"}
             Behaviour outside the validity domains: NaN there (default),
             compute and warn, raise, or compute silently (comparisons).
+            A value beyond the conversion table or the bounds of a scale
+            conversion has no value on the other scale: it is NaN whatever
+            the option, and ``"warn"`` and ``"raise"`` report it too.
         basis : {"stated", "physical", "all"}
             Which domains apply (default: those stated by the sources).
         scale : {"convert", "ignore"}
@@ -1078,12 +1143,16 @@ class Formulation:
         ------
         TypeError
             If an input is missing or unexpected.
+        ValueError
+            If ``outside``, ``basis`` or ``scale`` is not one of its values.
         OutOfDomainError
-            With ``outside="raise"``, if a value is outside a domain.
+            With ``outside="raise"``, if a value is outside a domain, or
+            beyond a scale conversion.
         ScaleConversionError
             With ``scale="convert"``, if an input or the output is on a
             scale nomogram cannot convert (Absolute Salinity).
         """
+        _check_options(outside, basis, scale)
         expected = {v.identifier for v in self.inputs}
         if set(inputs) != expected:
             missing = ", ".join(sorted(expected - set(inputs))) or "none"
@@ -1099,17 +1168,20 @@ class Formulation:
             for v in self.inputs
         }
         if scale == "convert":
+            beyond = []
             for v in self.inputs:
                 if v.scale is None or v.scale.is_reference:
                     continue
                 v.scale.check_convertible()
                 table = units[str(v.scale.unit)].pint
                 on_reference = convert(inputs[v.identifier], table).magnitude
-                on_scale, _ = v.scale.from_reference(on_reference)
+                on_scale, failed = v.scale.from_reference(on_reference)
+                beyond.append((v.identifier, v.scale, failed))
                 values[v.identifier] = np.asarray(
                     convert(Q_(on_scale, table), units[v.unit].pint).magnitude,
                     dtype=float,
                 )
+            _flag_beyond(self.key, beyond, outside)
         result = self._raw(values)
         mask = self.outside_mask(values, basis)
         if mask.any() and outside != "ignore":
@@ -1134,9 +1206,13 @@ class Formulation:
             output_scale.check_convertible()
             table = units[str(output_scale.unit)].pint
             on_scale = convert(Q_(result, output_unit), table).magnitude
-            on_reference = Q_(output_scale.to_reference(on_scale), table)
+            converted = output_scale.to_reference(on_scale)
+            failed = np.isnan(converted) & ~np.isnan(on_scale)
+            _flag_beyond(
+                self.key, [(self.output.identifier, output_scale, failed)], outside
+            )
             result = np.asarray(
-                convert(on_reference, output_unit).magnitude, dtype=float
+                convert(Q_(converted, table), output_unit).magnitude, dtype=float
             )
         magnitude = result.item() if result.ndim == 0 else result
         return Q_(magnitude, output_unit)
