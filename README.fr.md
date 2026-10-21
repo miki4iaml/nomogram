@@ -62,7 +62,7 @@ table = compare(formulations, reference, {"ThermodynamicTemperature": temperatur
 plot_deviations(table)
 ```
 
-![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.1.0/docs/images/saturation-vapour-pressure.png)
+![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
 
 ## Utilisation
 

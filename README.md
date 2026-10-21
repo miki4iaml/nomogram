@@ -61,7 +61,7 @@ table = compare(formulations, reference, {"ThermodynamicTemperature": temperatur
 plot_deviations(table)
 ```
 
-![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.1.0/docs/images/saturation-vapour-pressure.png)
+![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
 
 ## Usage
 
