@@ -310,6 +310,22 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
             unknown.append(coefficient.identifier)
         else:
             units[coefficient.identifier] = _pint(coefficient.unit)
+    # A composed formulation keeps the units of its intermediate quantities:
+    # each inner part's expression has the unit of the part's output.
+    pieces = []
+    for part in formulation.parts:
+        if part.computes is None:
+            continue
+        inner = part.formulation
+        piece = inner.sympy_expression.xreplace(
+            {
+                sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
+                for old, new in part.rename.items()
+            }
+        )
+        marker = sympy.Symbol(f"{part.computes} ({inner.key})", real=True)
+        units[marker.name] = _pint(inner.output.unit)
+        pieces.append(_Constraint("equal", (marker, piece), f"{marker} = {piece}"))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
         formulation.fixed_units, units, frozenset(unknown), coefficients, {}
@@ -319,6 +335,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     candidates = [
         _Constraint("equal", (output, expr), f"{output} = {expr}"),
         *_constraints(expr),
+        *pieces,
     ]
     constraints = [c for c in candidates if not context.numerical(c)]
     return context, constraints, expr

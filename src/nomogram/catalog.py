@@ -1217,18 +1217,22 @@ class _Builder:
                 )
                 raise CatalogError(msg)
 
-        owner: dict[str, str] = {}
+        owner: dict[str, tuple[str, Coefficient]] = {}
         coefficients = []
         constants: dict[str, PhysicalConstant] = {}
         for piece in (outer, *inner.values()):
             for coefficient in piece.coefficients:
                 if coefficient.identifier in owner:
+                    first, taken = owner[coefficient.identifier]
+                    if taken == coefficient:
+                        # One part reached twice (directly and inside another).
+                        continue
                     msg = (
                         f"{where}: coefficient {coefficient.identifier} in both "
-                        f"{owner[coefficient.identifier]} and {piece.key}"
+                        f"{first} and {piece.key}"
                     )
                     raise CatalogError(msg)
-                owner[coefficient.identifier] = piece.key
+                owner[coefficient.identifier] = (piece.key, coefficient)
                 coefficients.append(coefficient)
             for constant in piece.constants:
                 found = constants.setdefault(constant.identifier, constant)

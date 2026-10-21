@@ -184,7 +184,13 @@ bounds = { t = [-40.0, 50.0] }
   fixed-units when a part is; a quantity equation then keeps its value
   in its output unit through a factor.
 - Coefficients and constants are those of the parts; one identifier for
-  two coefficients, or for two different constants, is refused.
+  two coefficients, or for two different constants, is refused. A part
+  reached twice, directly and inside another part (the total molality of
+  Dickson et al. 2007, in the exponent and in the osmotic coefficient),
+  is one part: its coefficients count once.
+- Units of coefficients are inferred on the composed expression, each
+  inner part keeping the unit of its output: an intermediate quantity
+  fixes the units of the coefficients around it.
 - **Validity domains**: a composed formulation is never more permissive
   than the chain of its parts. At evaluation, the domains of each part
   apply to the values it receives, intermediate values included: a bound

@@ -351,6 +351,11 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ittc2011_vapour_pressure", "T_c"): "stated",
         ("ittc2011_vapour_pressure", "p_c"): "stated",
         ("coare36_salinity_factor", "S_0"): "stated",
+        ("dickson2007_total_molality", "S_1"): "added",
+        ("dickson2007_osmotic_coefficient_of_salinity", "S_1"): "added",
+        ("dickson2007_vapour_pressure", "S_1"): "added",
+        ("dickson2007_vapour_pressure", "T_c"): "stated",
+        ("dickson2007_vapour_pressure", "p_c"): "stated",
     }
 
 

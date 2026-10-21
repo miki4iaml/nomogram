@@ -34,6 +34,13 @@ WITH_COEFFICIENTS = [f for f in CATALOG.formulations.values() if f.coefficients]
 #: Coefficients read as numerical values inside a logarithm: hidden, their
 #: declared unit cannot come back (a pure number is as consistent).
 NUMERICAL_VALUES = {("goff_gratch1946", "e_st"), ("goff_gratch1946_ice", "e_i0")}
+#: Units declared because the expression does not determine them (the 10^3
+#: of 10^3 - 1.005 S fixes the unit of 31.998): hidden, they cannot come back.
+NEEDED = {
+    ("dickson2007_total_molality", "S_1"),
+    ("dickson2007_osmotic_coefficient_of_salinity", "S_1"),
+    ("dickson2007_vapour_pressure", "S_1"),
+}
 
 
 def make(
@@ -109,6 +116,21 @@ def test_units_found_for_known_forms(key: str, expected: dict[str, str]) -> None
     assert {name: unit_text(units[name].unit) for name in expected} == expected
 
 
+def test_a_composition_keeps_the_units_of_its_parts() -> None:
+    # The molality and the osmotic coefficient are intermediate quantities
+    # of Dickson et al. (2007): their units fix 31.998, 0.018 and the
+    # coefficients of the osmotic coefficient, none of them declared.
+    units = CATALOG.formulations["dickson2007_vapour_pressure"].coefficient_units
+    assert {name: unit_text(units[name].unit) for name in ("c", "k", "c_0")} == {
+        "c": "mol/kg",
+        "k": "kg/mol",
+        "c_0": "",
+    }
+    assert units["c"].origin == "inferred"
+    assert units["c"].reason is not None
+    assert "dickson2007_total_molality" in units["c"].reason
+
+
 def test_magnus_reasons_point_to_the_constraint() -> None:
     units = CATALOG.formulations["sonntag1990_magnus"].coefficient_units
     assert units["B"].reason == "B + t"
@@ -121,7 +143,7 @@ def test_magnus_reasons_point_to_the_constraint() -> None:
 def test_hidden_declared_units_come_back(formulation: Formulation) -> None:
     for index, coefficient in enumerate(formulation.coefficients):
         if coefficient.unit is None or (formulation.key, coefficient.identifier) in (
-            NUMERICAL_VALUES
+            NUMERICAL_VALUES | NEEDED
         ):
             continue
         hidden = list(formulation.coefficients)

@@ -10,6 +10,10 @@ and this project adheres to
 
 ### Changed
 
+- Compositions: a part reached twice, directly and inside another part,
+  is one part, its coefficients counted once; the units of coefficients
+  are inferred with each inner part keeping the unit of its output.
+
 - The symbol of the unit one is 1, as in the SI Brochure, rather than
   QUDT's `一` (a deliberate QUDT choice, qudt/qudt-public-repo#712);
   displays still leave it unwritten. Unit symbols follow the SI Brochure,
@@ -24,6 +28,12 @@ and this project adheres to
   names and a note on scales, searchable. A citation may state the scale
   of the output. Compositions check the scales of their pieces; an
   inverse takes its input on the scale of the source's output.
+- In `sea-water`, the vapour pressure of sea water of Dickson et al.
+  (2007): the total molality of dissolved species and the osmotic
+  coefficient of sea water (QUDT kinds `MolalityOfSolute` and
+  `OsmoticCoefficient`, unit mol/kg), composed with IAPWS SR1-86, which
+  gains Dickson et al. as a citation. Cross-check of Weiss and Price
+  (1980) and Dickson et al. (2007) against pySeaFlux 2.2.1.
 - In `sea-water`, the vapour pressure of sea water. Kinds
   `SaturationVapourPressureOverSeaWater`, `RelativeVapourPressureOfSeaWater`
   and `SaturationSpecificHumidityOverSeaWater`, with
