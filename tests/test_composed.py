@@ -13,7 +13,7 @@ import sympy
 from nomogram.catalog import CatalogError, catalog, load_catalog
 from nomogram.comparison import Composition, compose
 from nomogram.inversion import invert
-from nomogram.model import Basis, Formulation, Variable
+from nomogram.model import Basis, Formulation, ScaleBasis, UnitBasis, Variable
 from nomogram.relations import report
 from nomogram.units import Q_
 
@@ -296,6 +296,14 @@ fixed_units = true
 output = { identifier = "f", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
 inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
 coefficients = { a = 1e-3 }
+
+[formulations.factor_same]
+label = "Factor with a coefficient a of the same value as that of pressure"
+expression = "1 + a * t"
+fixed_units = true
+output = { identifier = "f", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 6.0 }
 """
 
 BOTH_PARTS = '{ outer = "outer", inner = { k = "factor", e = "pressure" } }'
@@ -352,6 +360,12 @@ BOTH_PARTS = '{ outer = "outer", inner = { k = "factor", e = "pressure" } }'
             "",
             "coefficient a in both factor_a and pressure",
         ),
+        # Equal values do not make two coefficients one.
+        (
+            '{ outer = "outer", inner = { k = "factor_same", e = "pressure" } }',
+            "",
+            "coefficient a in both factor_same and pressure",
+        ),
         (
             BOTH_PARTS,
             'output = { identifier = "w", kind = "Pressure", unit = "HectoPA", description = "w" }',
@@ -371,6 +385,92 @@ def test_invalid_compositions_are_refused(
     document = COMPOSED.format(composition=composition, extra=extra)
     with pytest.raises(CatalogError, match=message):
         load_catalog([PARTS, PRESSURE_PA, document])
+
+
+STATED_IN_PART = """
+[scales.ref]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.old]
+label = "Old scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "ref"
+unit = "DEG_C"
+differences = [[-100.0, 0.0], [100.0, 0.01]]
+
+[scales.older]
+label = "Older scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "ref"
+unit = "DEG_C"
+differences = [[-100.0, 0.0], [100.0, 0.02]]
+
+[formulations.pressure_old]
+label = "Pressure on the old scale"
+expression = "a * exp(b * t)"
+fixed_units = true
+output = { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 6.5, b = 0.07 }
+citations = [{ reference = "src", scales = { t = "old" }, units = { a = "HectoPA" } }]
+
+[formulations.half_old]
+label = "Half, on the old scale"
+composition = { outer = "outer", inner = { e = "pressure_old" } }
+citations = [{ reference = "src", scales = { t = "{scale}" }, units = { a = "{unit}" } }]
+"""
+
+
+def stated_in_part(scale: str = "old", unit: str = "HectoPA") -> str:
+    return STATED_IN_PART.replace("{scale}", scale).replace("{unit}", unit)
+
+
+def test_a_composition_may_restate_what_the_source_of_a_part_states() -> None:
+    half = load_catalog([PARTS, stated_in_part()]).formulations["half_old"]
+    t = next(v for v in half.inputs if v.identifier == "t")
+    assert t.scale is not None
+    assert (t.scale.key, t.scale_basis) == ("old", ScaleBasis.STATED)
+    a = next(c for c in half.coefficients if c.identifier == "a")
+    assert (a.unit, a.unit_basis) == ("HectoPA", UnitBasis.STATED)
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        (
+            {"scale": "older"},
+            r"states the scale older for t, but pressure_old gives old \(stated\)",
+        ),
+        (
+            {"unit": "PA"},
+            r"states the unit PA for a, but pressure_old gives HectoPA \(stated\)",
+        ),
+    ],
+)
+def test_a_composition_cannot_contradict_a_part(
+    changes: dict[str, str], message: str
+) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([PARTS, stated_in_part(**changes)])
+
+
+def test_a_composition_links_to_the_kinds_and_scales_of_its_variables() -> None:
+    built = load_catalog([PARTS, stated_in_part()])
+    # Its table writes no variable: they come from its parts.
+    assert {
+        "kinds.DimensionlessRatio",
+        "kinds.CelsiusTemperature",
+        "kinds.VapourPressure",
+        "scales.old",
+    } <= set(built.uses("formulations.half_old").refs)
+    assert "formulations.half_old" in built.used_by("kinds.CelsiusTemperature").refs
+    assert "formulations.half_old" in built.used_by("scales.old").refs
+    sea_water = CATALOG.used_by("kinds.SeaWaterSalinity").refs
+    assert {
+        "formulations.ittc2011_vapour_pressure",
+        "formulations.dickson2007_vapour_pressure",
+    } <= set(sea_water)
 
 
 def test_a_cycle_of_compositions_is_refused() -> None:
