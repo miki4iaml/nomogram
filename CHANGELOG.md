@@ -24,6 +24,18 @@ and this project adheres to
   names and a note on scales, searchable. A citation may state the scale
   of the output. Compositions check the scales of their pieces; an
   inverse takes its input on the scale of the source's output.
+- In `sea-water`, the vapour pressure of sea water. Kinds
+  `SaturationVapourPressureOverSeaWater`, `RelativeVapourPressureOfSeaWater`
+  and `SaturationSpecificHumidityOverSeaWater`, with
+  `SaturationSpecificHumidity` in `moist-air`. The relative vapour
+  pressure after Witting (1908, through Sverdrup et al. 1942 and Robinson
+  1954), Sverdrup et al. (1942, on the Knudsen scale), Robinson (1954),
+  Raoult's law (Sharqawy et al. 2010, adopted by the ITTC with Absolute
+  Salinity), Nayar et al. (2016) and COARE 3.6; the vapour pressures of
+  Millero and Leung (1976) and of Weiss and Price (1980); the ITTC vapour
+  pressure, composed with IAPWS SR1-86; the 2 % salinity effect on the
+  surface humidity (IFS, Beljaars 1998, Fairall et al. 1996). The family
+  now requires `moist-air`.
 - Temperature scales of oceanography: IPTS-68 through the linear
   conversion of Saunders (1990), t68 = 1.00024 t90, and IPTS-48 through
   Fofonoff and Bryden (1975).
