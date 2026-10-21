@@ -4,12 +4,20 @@
 """Tests for relations between formulations, and their verification."""
 
 import dataclasses
+from pathlib import Path
 
 import pytest
 
-from nomogram.catalog import CatalogError, catalog, load_catalog
+from nomogram.catalog import CatalogError, catalog, check, load_catalog
 from nomogram.model import Relation, RelationKind
-from nomogram.relations import Verdict, per_axis, verify
+from nomogram.relations import (
+    Verdict,
+    _common_bounds,
+    match_inputs,
+    per_axis,
+    report,
+    verify,
+)
 
 CATALOG = catalog()
 
@@ -353,3 +361,268 @@ def test_refinement_finds_an_interior_maximum_in_three_variables() -> None:
 def test_points_per_axis_follow_the_number_of_inputs() -> None:
     assert [per_axis(d) for d in range(1, 8)] == [9001, 447, 58, 21, 11, 7, 5]
     assert per_axis(1, budget=101) == 101
+
+
+def test_inputs_are_matched_by_identifier_then_by_a_single_kind() -> None:
+    loaded = load_catalog([BASE])
+    eq2, eq6 = loaded.formulations["eq2"], loaded.formulations["eq6"]
+    # e and T by identifier; P_d by its kind, P being the only pressure.
+    assert match_inputs(eq6, eq2) == {"P_d": "P", "e": "e", "T": "T"}
+    second = dataclasses.replace(eq6.inputs[0], identifier="P_0")
+    # Two pressures could feed P_d: it is left without match.
+    assert match_inputs(
+        dataclasses.replace(eq6, inputs=(*eq6.inputs, second)), eq2
+    ) == {"e": "e", "T": "T"}
+    celsius = dataclasses.replace(
+        eq6.inputs[2], identifier="t", kind="CelsiusTemperature", unit="DEG_C"
+    )
+    # A Celsius temperature feeds a thermodynamic one.
+    assert match_inputs(
+        dataclasses.replace(eq6, inputs=(*eq6.inputs[:2], celsius)), eq2
+    ) == {"P_d": "P", "e": "e", "T": "t"}
+
+
+def pressure_formulation(
+    key: str, expression: str, *, input: str = "P", fixed_units: bool = True
+) -> str:
+    """A formulation of a pressure from a pressure, written for a test."""
+    return f"""
+[formulations.{key}]
+label = "{key}"
+expression = "{expression}"
+fixed_units = {str(fixed_units).lower()}
+output = {{ identifier = "q", kind = "Pressure", unit = "PA", description = "out" }}
+inputs = [{{ identifier = "{input}", kind = "Pressure", unit = "HectoPA", description = "pressure" }}]
+"""
+
+
+def equivalence(subject: str, other: str, extra: str = "") -> str:
+    return RELATION.format(subject=subject, object=other, extra=extra)
+
+
+def test_an_input_matched_by_kind_is_replaced_in_an_equivalence() -> None:
+    document = (
+        BASE
+        + pressure_formulation("square", "(P + 1) ** 2")
+        + pressure_formulation("expanded", "Q ** 2 + 2 * Q + 1", input="Q")
+        + equivalence("square", "expanded")
+    )
+    loaded = load_catalog([document])
+    assert verify(loaded.relations["r"], loaded).status == "proven"
+
+
+@pytest.mark.parametrize(
+    ("other", "status"),
+    [
+        # 2 P in hPa is 200 P in Pa: equal results.
+        ("doubled_value", "proven"),
+        # The same text with fixed units gives results 100 times smaller.
+        ("doubled_raw", "refuted"),
+    ],
+)
+def test_an_equivalence_compares_results_in_the_output_unit(
+    other: str, status: str
+) -> None:
+    document = (
+        BASE
+        + pressure_formulation("doubled_quantity", "2 * P", fixed_units=False)
+        + pressure_formulation("doubled_value", "200 * P")
+        + pressure_formulation("doubled_raw", "2 * P")
+        + equivalence("doubled_quantity", other)
+    )
+    loaded = load_catalog([document])
+    assert loaded.formulations["doubled_quantity"].output_factor != 1.0
+    assert verify(loaded.relations["r"], loaded).status == status
+
+
+SCALED = """
+[scales.ref]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.old]
+label = "Old scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "ref"
+unit = "DEG_C"
+differences = [[0.0, 0.0], [400.0, 0.1]]
+"""
+
+
+def celsius_formulation(key: str, expression: str, scale: str | None) -> str:
+    """A formulation of a pressure from a Celsius temperature, for a test."""
+    on = f', scale = "{scale}", scale_basis = "inferred-from-date"' if scale else ""
+    return f"""
+[formulations.{key}]
+label = "{key}"
+expression = "{expression}"
+fixed_units = true
+output = {{ identifier = "q", kind = "Pressure", unit = "PA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in"{on} }}]
+"""
+
+
+@pytest.mark.parametrize(
+    ("subject", "extra", "status", "method"),
+    [
+        ("old_square", "", "unverified", "t on ref fed by t on old"),
+        ("old_square", 'scale = "ignore"', "proven", "scales ignored: t on ref"),
+        # No scale and the reference scale are evaluated alike.
+        ("plain_square", "", "proven", "exact rationals"),
+    ],
+)
+def test_an_equivalence_with_conversion_needs_the_same_scales(
+    subject: str, extra: str, status: str, method: str
+) -> None:
+    document = (
+        BASE
+        + SCALED
+        + celsius_formulation("old_square", "(t + 300) ** 2", "old")
+        + celsius_formulation("plain_square", "t * (t + 600) + 90000", None)
+        + celsius_formulation("ref_square", "t ** 2 + 600 * t + 90000", "ref")
+        + equivalence(subject, "ref_square", extra)
+    )
+    loaded = load_catalog([document])
+    verdict = verify(loaded.relations["r"], loaded)
+    assert verdict.status == status
+    assert method in verdict.method
+    assert (subject == "old_square") == ("scale" in verdict.method)
+
+
+LOGARITHMS = """
+[formulations.log_sum]
+label = "Sum of logarithms of pressures"
+expression = "ln(P - e) + ln(P)"
+fixed_units = true
+output = { identifier = "z", kind = "RelativeHumidity", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "vapour pressure" },
+]
+
+[formulations.log_of_product]
+label = "Logarithm of a product of pressures"
+expression = "ln(P_d * P)"
+fixed_units = true
+output = { identifier = "z", kind = "RelativeHumidity", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "P_d", kind = "Pressure", unit = "HectoPA", description = "dry pressure" },
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "pressure" },
+]
+"""
+
+
+@pytest.mark.parametrize(
+    ("bounds", "method"),
+    [
+        # P - e < 0 on part of the samples: those are left aside.
+        ("", "samples real and finite"),
+        ("bounds = { P = [0.5, 1.0], e = [1.5, 2.0] }", "none of 200 samples"),
+    ],
+)
+def test_samples_where_a_side_is_not_real_are_left_aside(
+    bounds: str, method: str
+) -> None:
+    extra = 'given = { P_d = "P - e" }\n' + bounds
+    document = BASE + LOGARITHMS + equivalence("log_sum", "log_of_product", extra)
+    loaded = load_catalog([document])
+    verdict = verify(loaded.relations["r"], loaded)
+    assert verdict.status == "unproven"
+    assert method in verdict.method
+
+
+ROOTED = """
+[formulations.square]
+label = "square"
+expression = "(P + 1) ** 2"
+fixed_units = true
+output = { identifier = "q", kind = "Pressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "P", kind = "Pressure", unit = "HectoPA", description = "pressure" }]
+
+[formulations.rooted]
+label = "rooted"
+expression = "(P + 1) ** 2 + sqrt(P - 2000)"
+fixed_units = true
+output = { identifier = "q", kind = "Pressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "P", kind = "Pressure", unit = "HectoPA", description = "pressure" }]
+"""
+
+ROOTED_RELATION = """
+[relations.a]
+kind = "approximates"
+subject = "rooted"
+object = "square"
+citation = "src"
+accuracy = 1.0
+"""
+
+
+def test_an_approximation_finite_nowhere_is_unverified() -> None:
+    document = BASE + ROOTED + ROOTED_RELATION + "bounds = { P = [500.0, 1100.0] }\n"
+    loaded = load_catalog([document])
+    verdict = verify(loaded.relations["a"], loaded)
+    assert verdict.status == "unverified"
+    assert verdict.value is None
+    assert "no point" in verdict.method
+
+
+def test_an_approximation_finite_on_part_of_its_domain_says_so() -> None:
+    document = BASE + ROOTED + ROOTED_RELATION + "bounds = { P = [500.0, 2500.0] }\n"
+    loaded = load_catalog([document])
+    verdict = verify(loaded.relations["a"], loaded)
+    assert verdict.status == "held"
+    assert verdict.value is not None
+    assert 0 < verdict.value < 1
+    assert verdict.at["P"] >= 2000
+    assert "deviation finite on 25.01 % of the grid only" in verdict.method
+
+
+def test_a_report_says_which_pairs_it_could_not_compare() -> None:
+    document = (
+        BASE
+        + ROOTED
+        + pressure_formulation("rooted_twice", "(P + 1) ** 2 + 2 * sqrt(P - 2000)")
+        + "[[formulations.rooted.domains]]\nbounds = { P = [500.0, 1100.0] }\n"
+        + "[[formulations.rooted_twice.domains]]\nbounds = { P = [500.0, 2500.0] }\n"
+    )
+    loaded = load_catalog([document])
+    text = report(loaded, ["rooted", "rooted_twice"], budget=1000)
+    assert (
+        "not compared with square: no point of the common domain where both "
+        "give a finite value"
+    ) in text
+    assert "numerically identical" not in text
+    assert "% of the common domain only)" in text
+
+
+def test_a_report_compares_where_both_sources_state_validity() -> None:
+    square = ROOTED.split("[formulations.rooted]")[0]
+    document = (
+        BASE
+        + square
+        + pressure_formulation("cubed", "(P + 1) ** 2 + P ** 3 / 1e9")
+        + "[[formulations.square.domains]]\nbounds = { P = [0.0, 100000.0] }\n"
+        + '[[formulations.square.citations]]\nreference = "src"\n'
+        + "[[formulations.square.citations.domains]]\n"
+        + "bounds = { P = [500.0, 1100.0] }\n"
+        + '[[formulations.cubed.citations]]\nreference = "src"\n'
+        + "[[formulations.cubed.citations.domains]]\nbounds = { P = [0.0, 2000.0] }\n"
+    )
+    loaded = load_catalog([document])
+    square_f, cubed = loaded.formulations["square"], loaded.formulations["cubed"]
+    # The physical domain of square is wider than what its source states.
+    assert _common_bounds(cubed, square_f) == {"P": (500.0, 1100.0)}
+    assert _common_bounds(square_f, cubed) == {"P": (500.0, 1100.0)}
+    assert "from square: " in report(loaded, ["cubed"], budget=1000)
+    assert "at P = 1100" in report(loaded, ["cubed"], budget=1000)
+
+
+def test_a_report_skips_scales_it_cannot_convert() -> None:
+    folder = Path(__file__).parents[1] / "src" / "nomogram" / "data" / "catalog"
+    text = check(folder / "sea-water.toml")
+    assert (
+        "raoult_sharqawy2010 (RelativeVapourPressureOfSeaWater)\n"
+        "  not compared with nayar2016_vapour_pressure_ratio: nomogram holds no "
+        "conversion of absolute_salinity2010 to the reference scale"
+    ) in text
+    assert "observed max deviation from dickson2007_vapour_pressure" in text

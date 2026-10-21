@@ -11,8 +11,9 @@ dimensions, the catalog itself) are described in
 ## Equivalences: proved, or not
 
 An equivalence is proved with SymPy: coefficients become exact rationals,
-the object's inputs are replaced as the relation says, and the difference
-must simplify to zero.
+each side is brought into its output unit, the object's inputs are
+replaced as the relation says (`given`) or by the subject inputs that
+feed them, and the difference must simplify to zero.
 
 - **proven**: the difference simplifies to zero. This is a proof.
 - **refuted**: SymPy does not conclude, and a point is found where the
@@ -20,13 +21,37 @@ must simplify to zero.
 - **unproven**: SymPy does not conclude, and no counterexample is found
   among random points. Nothing is guaranteed either way: equivalence of
   expressions with exponentials and logarithms is undecidable in general.
+  Points where a side is not a real number (the logarithm of a negative
+  value) are left aside; the verdict's `method` says how many samples
+  remained.
+- **unverified**: the claim cannot be checked as it stands, for a
+  reason the verdict's `method` gives (different scales, below).
 
 The proof compares the **expressions as written**. It means something
 only if both formulations work in the same units: loading refuses an
 equivalence whose outputs, or whose inputs and the subject inputs feeding
 them (matched, or used by `given`), are in different units. Conversions
 inside `given` are not supported: write both formulations in the same
-units.
+units. An input of the object matched by its quantity kind (`Q` fed by
+the subject's `P`, the only pressure) takes the subject's symbol. A
+quantity equation gives its result in the units of its inputs, then
+nomogram converts it into the output unit
+(`Formulation.output_factor`); that factor is part of the expression
+compared, so that a quantity equation and a numerical value equation
+giving the same values are proven equivalent.
+
+**Conventional scales.** The proof cannot convert a temperature between
+scales either. With `scale = "convert"` (the default), which evaluates
+each formulation on the scale it was fitted on, an equivalence whose
+outputs, or whose inputs and the subject inputs feeding them, are on
+different scales is **unverified**: the expressions agree as written,
+but their evaluations do not. No scale and the reference scale of the
+kind (ITS-90, Reference Salinity) count as the same, since both are
+evaluated without conversion. To state that the expressions agree as
+written, a relation says `scale = "ignore"`: the verdict can then be
+**proven**, and its `method` names the scales ignored. Loading does not
+refuse such a relation, so that the claim of a source stays recorded
+with its verdict.
 
 ### A stated equivalence: ITU-R P.453, equations 2 and 6
 
@@ -84,12 +109,21 @@ is checked numerically:
 1. a regular grid over the domain, with a budget of 200 000 evaluations,
    that is `per_axis(d)` points per axis for `d` input variables;
 2. a local refinement around the five best points of the grid, by
-   successive zooms, down to 10⁻⁹ of the domain.
+   successive zooms, down to 10⁻⁹ of the domain with one or two inputs
+   (coarser beyond: 2 × 10⁻⁸ with three, 3 × 10⁻⁵ with four; the verdict
+   gives the resolution reached).
 
 The verdict compares the maximum found with the stated one: **reproduced**
 (equal at the precision published), **held** (smaller) or **exceeded**
 (larger). Its `method` gives the points per axis, the final resolution
 and the number of evaluations.
+
+A point where the deviation is not a finite number (a formulation
+undefined there, or a value beyond the bounds of a scale conversion) is
+not compared. When the grid has some, the `method` gives the share of
+the grid compared: the verdict holds for that part of the domain only.
+When it has nothing else, the verdict is **unverified**, without a
+value.
 
 | Input variables | Points per axis | Step of the grid, in fraction of the domain |
 |---|---|---|
