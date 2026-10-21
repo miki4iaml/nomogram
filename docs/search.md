@@ -93,7 +93,8 @@ variables, cited references, notations, constants, scales, the
 formulations a composition, a relation or a cross-check uses, the
 families a family requires); `used_by(entry)` the entries that refer to
 it. The links are those the catalog checks for its families
-(`Catalog.links`).
+(`Catalog.links`), plus the kinds and scales of a composed formulation's
+variables, which it takes from its parts. Results come in catalog order.
 
 ## What grows without changing searches
 
