@@ -91,7 +91,7 @@ year = 1981
 title = "New equations for computing vapor pressure and enhancement factor"
 container = "Journal of Applied Meteorology 20, 1527-1532"
 status = "to-confirm"
-note = "Original not read; formulas as quoted by Alduchov and Eskridge (1996, Table II)."
+note = "Original not read; formulas over water as quoted by Alduchov and Eskridge (1996, Table II), the Magnus form also by Vömel; over ice as quoted by Vömel only."
 
 [references.hyland_wexler1983]
 authors = "Hyland, R. W.; Wexler, A."
@@ -450,7 +450,7 @@ reference = "voemel_vp"
 label = "Goff-Gratch equation over water (Smithsonian Tables form)"
 expression = "10 ** (a1 * (T_s / T - 1) + a2 * log10(T_s / T) + a3 * (10 ** (a4 * (1 - T / T_s)) - 1) + a5 * (10 ** (a6 * (T_s / T - 1)) - 1) + log10(e_st))"
 fixed_units = true
-note = "Referred to the steam point T_s = 373.16 K (as in Vömel and in Alduchov and Eskridge 1996, who call the original paper GG45). Generally considered the reference equation in meteorology (Vömel)."
+note = "Referred to the steam point T_s = 373.16 K, as in Vömel. Generally considered the reference equation in meteorology (Vömel). Alduchov and Eskridge (1996, p. 5, eq. 2) print a steam-point form they call GG45 (Goff and Gratch 1945), with the last exponent written -3.49149(1 - T_s/T), the opposite sign, and report it more than 5 % from GG46 (Table III: 5.109 % at -40 degC); this form stays within 0.08 % of goff1957 between -40 and 50 degC: the disagreement is recorded."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
