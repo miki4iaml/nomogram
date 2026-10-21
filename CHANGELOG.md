@@ -52,6 +52,8 @@ and this project adheres to
   subset), and the formulations of Knudsen and of JPOTS giving salinity
   from chlorinity. QUDT kind `MassFraction`, units per mille, mmHg and
   atm.
+- `Comparison.scale`: how the formulations compared took their inputs;
+  after `scale="ignore"`, plot labels mark no conventional scale.
 - Axis labels in three styles, display option `axis_labels`: `"si"`
   (default), the quotient of the quantity by its unit with the
   conventional scale as a subscript of the symbol, as the SI Brochure
@@ -68,8 +70,11 @@ and this project adheres to
   normal form (`\rho_{\mathrm{v}}`, `ρ_v`, `rhô_v` are `rho_v`); field
   filters `key`, `kind` (with its specializations), `output`, `input`,
   `variable`, `symbol` with `notation`, `source` with `equation`,
-  `family`, `keyword`. Results are `Selection`s, searched again or
-  combined with `&`, `|` and `-`, displayed as tables in notebooks.
+  `family`, `keyword`; a symbol is found as its notation writes it,
+  a unit or a scale by its symbol, the symbols of a citation by its
+  reference (`notation="dickson2007"`). Results are `Selection`s, in
+  catalog order, searched again or combined with `&`, `|` and `-`,
+  displayed as tables in notebooks.
   `Catalog.uses` and `Catalog.used_by` follow the links between entries
   (`Catalog.links`, with the kinds and scales a composed formulation
   takes from its parts), in catalog order. Guide: `docs/search.md`.
@@ -278,7 +283,8 @@ and this project adheres to
   and the two reference pressures of Goff-Gratch, read inside a
   logarithm, as added.
 - Default typography of `Formulation.latex()`: every product shows ×
-  (RH can no longer be read as R × H) and descriptive subscripts are
+  (RH can no longer be read as R × H), a power of ten always with ×
+  whatever the multiplication sign chosen, and descriptive subscripts are
   upright, as in ISO 80000-2 (`e_{\mathrm{s}}` instead of `e_{s}`).
   `DisplayOptions.SYMPY` gives the former rendering.
 
