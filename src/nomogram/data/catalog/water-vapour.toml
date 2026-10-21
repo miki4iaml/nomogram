@@ -51,6 +51,15 @@ url = "https://iapws.org/technical-guidance/release/Supp-sat"
 status = "verified"
 note = "Equation (1), coefficients, range (section 6) and Table 1 read in the official release."
 
+[references.dickson2007]
+authors = "Dickson, A. G.; Sabine, C. L.; Christian, J. R. (eds.)"
+year = 2007
+title = "Guide to Best Practices for Ocean CO2 Measurements"
+container = "PICES Special Publication 3, IOCCP Report 8"
+url = "https://www2.whoi.edu/site/changingocean/wp-content/uploads/sites/84/2019/07/Guide_all_in_one.pdf"
+status = "verified"
+note = "Read: chapter 5, section 3 (pp. 5-6 of 19): eq. 1, the vapour pressure of pure water (Wagner and Pruss 2002), from 273 to 647 K, 3.1698 kPa at 25 degC; eqs. 2-4, sea water, 3.1106 kPa at 25 degC and S = 35."
+
 [references.wagner_pruss1993]
 authors = "Wagner, W.; Pruß, A."
 year = 1993
@@ -258,6 +267,12 @@ criterion = "Vapour-liquid equilibrium from the triple point to the critical poi
 
 [[formulations.iapws_sr1_86.citations]]
 reference = "wagner_pruss1993"
+
+[[formulations.iapws_sr1_86.citations]]
+reference = "dickson2007"
+equation = "1"
+note = "Chapter 5, citing Wagner and Pruss (2002), with T_c = 647.096 K and p_c = 22.064 MPa, 'over the temperature range 273 to 647 K (i.e., from the triple point to the critical point)'."
+notation = { e_s = 'p_{\sigma}' }
 
 [formulations.sonntag1990]
 label = "Sonntag (1990) formulation over water (SO90)"

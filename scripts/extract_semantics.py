@@ -138,6 +138,10 @@ KINDS: dict[str, KindSpec] = {
         delta=False,
         added_units=("PERMILLE", "GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
     ),
+    # Vapour pressure of sea water from its osmotic coefficient and the total
+    # molality of dissolved species (Dickson et al. 2007).
+    "OsmoticCoefficient": KindSpec("ratio", delta=False),
+    "MolalityOfSolute": KindSpec("ratio", delta=False),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -159,6 +163,7 @@ UNITS: dict[str, str] = {
     "PERMILLE": "permille",
     "MilliM_HG": "mmHg",
     "ATM": "atm",
+    "MOL-PER-KiloGM": "mol/kg",
     "M": "m",
     "KiloM": "km",
 }

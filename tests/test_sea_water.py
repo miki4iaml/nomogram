@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
@@ -138,6 +139,23 @@ def test_vapour_pressures_against_teos10() -> None:
     assert millero.to("Pa").magnitude / TEOS10_SEA_25C - 1 == pytest.approx(
         1.6e-4, abs=5e-5
     )
+
+
+def test_dickson_against_the_values_printed() -> None:
+    # Dickson et al. (2007), chapter 5: 3.1698 kPa for pure water (eq. 1)
+    # and 3.1106 kPa for sea water of S = 35 (eqs. 2-4), at 25 degC.
+    t = Q_(298.15, "K")
+    pure = F["iapws_sr1_86"].evaluate(T=t)
+    dickson = F["dickson2007_vapour_pressure"]
+    sea = dickson.evaluate(T=t, S=Q_(35.0, "permille"))
+    assert pure.to("kPa").magnitude == pytest.approx(3.1698, abs=5e-5)
+    assert sea.to("kPa").magnitude == pytest.approx(3.1106, abs=5e-5)
+    # Within 0.001 % of TEOS-10 at the standard ocean.
+    on_teos10 = dickson.evaluate(T=t, S=Q_(35.0, "permille")).to("Pa").magnitude
+    assert on_teos10 / TEOS10_SEA_25C - 1 == pytest.approx(0.0, abs=1e-5)
+    # The osmotic coefficient holds for S = 16-40.
+    assert np.isnan(dickson.evaluate(T=t, S=Q_(10.0, "permille")).magnitude)
+    assert "kinds.OsmoticCoefficient" in CATALOG.search(kind="OsmoticCoefficient").refs
 
 
 def test_scales_of_the_salinity_inputs() -> None:

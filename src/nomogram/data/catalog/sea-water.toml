@@ -491,6 +491,97 @@ reference = "ittc2011"
 equation = "6"
 notation = { e_sw = 'p_{v,sw}', S = 'S_{A}' }
 
+# Dickson et al. (2007): the vapour pressure of sea water from the total
+# molality of dissolved species and the osmotic coefficient, both written
+# once and composed.
+
+[formulations.dickson2007_total_molality]
+label = "Total molality of dissolved species in sea water (Dickson et al. 2007)"
+expression = "c * S / (S_1 - d * S)"
+fixed_units = true
+note = "For sea water of the composition Dickson et al. give (chapter 5, section 6.1: S = 35 for Cl = 19.374). Printed as the sum of m_B/m°, m° = 1 mol/kg."
+output = { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" }
+inputs = [
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Salinity" },
+]
+
+[formulations.dickson2007_total_molality.coefficients]
+c = 31.998
+d = 1.005
+S_1 = { value = 1000.0, unit = "PERMILLE", unit_basis = "added", note = "The 10^3 of 10^3 - 1.005 S, in the unit of S (per mille)" }
+
+[[formulations.dickson2007_total_molality.citations]]
+reference = "dickson2007"
+equation = "3"
+notation = { m = '\Sigma m_{\mathrm{B}}' }
+
+[formulations.dickson2007_osmotic_coefficient]
+label = "Osmotic coefficient of sea water at 25 degC (Millero 1974, in Dickson et al. 2007)"
+expression = "c_0 + c_1 * (m / 2) + c_2 * (m / 2) ** 2 + c_3 * (m / 2) ** 3 + c_4 * (m / 2) ** 4"
+fixed_units = true
+note = "At 25 degC: Dickson et al. state that it changes by about 1 % between 0 and 40 degC, and ignore it."
+output = { identifier = "phi", kind = "OsmoticCoefficient", unit = "UNITLESS", description = "Osmotic coefficient of sea water" }
+inputs = [
+  { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" },
+]
+
+[formulations.dickson2007_osmotic_coefficient.coefficients]
+c_0 = 0.90799
+c_1 = -0.08992
+c_2 = 0.18458
+c_3 = -0.07395
+c_4 = -0.00221
+
+[[formulations.dickson2007_osmotic_coefficient.citations]]
+reference = "dickson2007"
+equation = "4"
+notation = { phi = '\phi', m = '\Sigma m_{\mathrm{B}}' }
+
+[formulations.vapour_pressure_from_osmotic_coefficient]
+label = "Vapour pressure of sea water from its osmotic coefficient"
+expression = "p * exp(-k * phi * m)"
+fixed_units = true
+note = "Dickson et al., eq. 2, written as an approximation; k = 0.018, the molar mass of water in kg/mol rounded, holds with the molality in mol/kg."
+output = { identifier = "e_sw", kind = "SaturationVapourPressureOverSeaWater", unit = "PA", description = "Vapour pressure of sea water" }
+inputs = [
+  { identifier = "p", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Vapour pressure of pure water at the same temperature" },
+  { identifier = "phi", kind = "OsmoticCoefficient", unit = "UNITLESS", description = "Osmotic coefficient of sea water" },
+  { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" },
+]
+coefficients = { k = 0.018 }
+
+[[formulations.vapour_pressure_from_osmotic_coefficient.citations]]
+reference = "dickson2007"
+equation = "2"
+notation = { e_sw = 'p_{\sigma}(\mathrm{s/w})', p = 'p_{\sigma}', phi = '\phi', m = '\Sigma m_{\mathrm{B}}' }
+
+[formulations.dickson2007_osmotic_coefficient_of_salinity]
+label = "Osmotic coefficient of sea water from salinity, 25 degC (Dickson et al. 2007)"
+composition = { outer = "dickson2007_osmotic_coefficient", inner = { m = "dickson2007_total_molality" } }
+
+[[formulations.dickson2007_osmotic_coefficient_of_salinity.citations]]
+reference = "dickson2007"
+equation = "4"
+notation = { phi = '\phi' }
+
+[[formulations.dickson2007_osmotic_coefficient_of_salinity.citations.domains]]
+bounds = { S = [16.0, 40.0] }
+criterion = "Eq. 4 'for I = 0.3 - 0.8 mol kg-H2O-1 (S = 16-40)'."
+
+[formulations.dickson2007_vapour_pressure]
+label = "Vapour pressure of sea water (Dickson et al. 2007)"
+composition = { outer = "vapour_pressure_from_osmotic_coefficient", inner = { p = "iapws_sr1_86", phi = "dickson2007_osmotic_coefficient_of_salinity", m = "dickson2007_total_molality" } }
+note = "The pure water of eq. 1 is IAPWS SR1-86 (Wagner and Pruss); the osmotic coefficient holds at 25 degC."
+
+[[formulations.dickson2007_vapour_pressure.citations]]
+reference = "dickson2007"
+equation = "2"
+notation = { e_sw = 'p_{\sigma}(\mathrm{s/w})' }
+
+[[formulations.dickson2007_vapour_pressure.citations.domains]]
+bounds = { S = [16.0, 40.0] }
+criterion = "Range of the osmotic coefficient, eq. 4: I = 0.3 - 0.8 mol kg-H2O-1 (S = 16-40)."
+
 # The salinity effect on the surface humidity of flux algorithms.
 
 [formulations.sea_surface_saturation_specific_humidity]
@@ -519,3 +610,48 @@ reference = "fairall1996"
 equation = "3"
 notation = { q_sat = 'q_{\mathrm{sat}}(T_{s})' }
 note = "Called the interfacial water vapour mixing ratio, then the saturation specific humidity."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.pyseaflux_vapour_pressure]
+implementation = "pySeaFlux"
+version = "2.2.1"
+url = "https://github.com/lukegre/pySeaFlux"
+checked = 2026-10-21
+note = "Functions weiss1980(salt, temp_K) and dickson2007(salt, temp_K) of pyseaflux.vapour_pressure, both in atm; the Dickson values are converted to pascals (times 101325)."
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "weiss_price1980_vapour_pressure"
+inputs = { T = 298.15, S = 35.0 }
+value = 0.03065529996317971
+call = "weiss1980(35.0, 298.15)"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "weiss_price1980_vapour_pressure"
+inputs = { T = 278.15, S = 20.0 }
+value = 0.008507670254264542
+call = "weiss1980(20.0, 278.15)"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "weiss_price1980_vapour_pressure"
+inputs = { T = 308.15, S = 38.0 }
+value = 0.054345869657075115
+call = "weiss1980(38.0, 308.15)"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "dickson2007_vapour_pressure"
+inputs = { T = 298.15, S = 35.0 }
+value = 3110.562622356644
+call = "dickson2007(35.0, 298.15) * 101325"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "dickson2007_vapour_pressure"
+inputs = { T = 288.15, S = 30.0 }
+value = 1678.557430965282
+call = "dickson2007(30.0, 288.15) * 101325"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "dickson2007_vapour_pressure"
+inputs = { T = 278.15, S = 20.0 }
+value = 863.3910560926186
+call = "dickson2007(20.0, 278.15) * 101325"

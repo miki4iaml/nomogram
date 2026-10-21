@@ -94,7 +94,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q190200",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "interval",
@@ -115,7 +115,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q74758530",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "interval",
@@ -172,7 +172,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q208826",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -195,7 +195,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q76378808",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -223,7 +223,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q899138",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -250,7 +250,41 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q17232415",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "MolalityOfSolute": {
+      "added_units": [],
+      "applicable_units": [
+        "MOL-PER-KiloGM"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A1E0L0I0M-1H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/MolalityOfSolute",
+      "label": "Molality of Solute",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "AmountOfSubstancePerMass"
+    },
+    "OsmoticCoefficient": {
+      "added_units": [],
+      "applicable_units": [
+        "UNITLESS"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/OsmoticCoefficient",
+      "label": "Osmotic Coefficient",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q5776102",
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -276,7 +310,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q39552",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -296,7 +330,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q174102",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -321,7 +355,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q2499617",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -377,7 +411,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q264647",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "scale_type": "ratio",
@@ -410,7 +444,7 @@
       "license": "CC0-1.0",
       "version": "95"
     },
-    "extracted": "2026-10-14",
+    "extracted": "2026-10-21",
     "qudt": {
       "attribution": "QUDT.org, https://qudt.org/",
       "license": "CC-BY-4.0",
@@ -426,7 +460,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q177974",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 101325.0,
@@ -444,7 +478,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q25267",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -462,7 +496,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q42289",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 0.5555555555555556,
@@ -480,7 +514,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21061369",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 0.001,
@@ -498,7 +532,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21604951",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 0.001,
@@ -516,7 +550,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5139563",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 100.0,
@@ -534,7 +568,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3085309",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -552,7 +586,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11579",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -570,7 +604,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q106645216",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -588,7 +622,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q844211",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -606,7 +640,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q828224",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1000.0,
@@ -624,7 +658,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21064807",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1000.0,
@@ -642,7 +676,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11573",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -652,6 +686,24 @@
       "ucum": "m",
       "udunits": "m"
     },
+    "MOL-PER-KiloGM": {
+      "dimension_vector": "A1E0L0I0M-1H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/MOL-PER-KiloGM",
+      "label": "Mole per Kilogram",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q88957663",
+          "verified": "2026-10-21"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "mol/kg",
+      "symbol": "mol/kg",
+      "ucum": "mol.kg-1",
+      "udunits": null
+    },
     "MilliM_HG": {
       "dimension_vector": "A0E0L-1I0M1H0T-2D0",
       "iri": "http://qudt.org/vocab/unit/MilliM_HG",
@@ -660,7 +712,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q6859652",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 133.322387415,
@@ -678,7 +730,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q44395",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,
@@ -696,7 +748,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 0.01,
@@ -714,7 +766,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 0.001,
@@ -732,7 +784,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21006887",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1e-06,
@@ -750,7 +802,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q199",
-          "verified": "2026-10-14"
+          "verified": "2026-10-21"
         }
       ],
       "multiplier": 1.0,

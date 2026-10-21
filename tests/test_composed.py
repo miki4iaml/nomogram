@@ -181,6 +181,58 @@ composition = { outer = "outer_pa", inner = { e = "pressure" } }
     )
 
 
+def test_a_part_reached_twice_is_one_part() -> None:
+    # The ratio feeds the outer formulation directly and through the factor:
+    # its coefficient q is one coefficient, as in Dickson et al. (2007).
+    twice = """
+[formulations.ratio]
+label = "Ratio"
+expression = "q * t"
+fixed_units = true
+output = { identifier = "r", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { q = 0.01 }
+
+[formulations.of_ratio]
+label = "Of the ratio"
+expression = "1 + s * r"
+fixed_units = true
+output = { identifier = "f", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
+inputs = [{ identifier = "r", kind = "DimensionlessRatio", unit = "UNITLESS", description = "in" }]
+coefficients = { s = 0.5 }
+
+[formulations.of_t]
+label = "Of t"
+composition = { outer = "of_ratio", inner = { r = "ratio" } }
+
+[formulations.outer_two]
+label = "Outer of two"
+expression = "f * r * e"
+fixed_units = false
+output = { identifier = "y", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [
+  { identifier = "f", kind = "DimensionlessRatio", unit = "UNITLESS", description = "f" },
+  { identifier = "r", kind = "DimensionlessRatio", unit = "UNITLESS", description = "r" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" },
+]
+
+[formulations.twice]
+label = "Twice"
+composition = { outer = "outer_two", inner = { f = "of_t", r = "ratio", e = "pressure" } }
+"""
+    built = load_catalog([PARTS, twice]).formulations
+    found = built["twice"]
+    assert sorted(c.identifier for c in found.coefficients) == ["a", "b", "q", "s"]
+    t = Q_(10.0, "degC")
+    r = built["ratio"].evaluate(t=t)
+    chain = (
+        built["of_ratio"].evaluate(r=r).magnitude
+        * r.magnitude
+        * built["pressure"].evaluate(t=t).magnitude
+    )
+    assert found.evaluate(t=t).magnitude == pytest.approx(chain)
+
+
 def test_parts_may_share_a_constant() -> None:
     shared = """
 [formulations.outer_g]
