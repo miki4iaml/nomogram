@@ -22,6 +22,10 @@
     "hydrology",
     "psychrometrics"
   ],
+  "references": [
+    "QUDT.org. QUDT — Quantities, Units, Dimensions and Types, release 3.5.2. https://qudt.org. CC BY 4.0.",
+    "CF Conventions. CF Standard Name Table, version 95. https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html. CC0 1.0."
+  ],
   "related_identifiers": [
     {
       "identifier": "https://github.com/miki4iaml/nomogram",

@@ -15,6 +15,16 @@ and this project adheres to
   colour profiles), PNG, JPEG, GIF, WebP and SVG read, other formats
   refused as not checked. The anonymity hook searches the metadata of
   PDF files, decompressed when compressed, which keep their authors.
+- README section "Data sources": the QUDT, CF and UCUM material bundled
+  in the package, with its versions and licenses. `CITATION.cff` and
+  `.zenodo.json` reference QUDT and the CF standard name table.
+- The data notice credits the UCUM codes of the units (Regenstrief
+  Institute, UCUM License 1.1), which QUDT identifies as third-party
+  material.
+
+### Changed
+
+- The data notice credits QUDT in the form its licensing guide suggests.
 
 ## [0.3.0] - 2026-10-21
 

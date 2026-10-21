@@ -13,6 +13,25 @@ date-released: "2026-10-21"
 doi: 10.5281/zenodo.23373134
 license: BSD-3-Clause
 repository-code: "https://github.com/miki4iaml/nomogram"
+# The data bundled in the package (src/nomogram/data/NOTICE.md).
+references:
+  - type: data
+    title: "QUDT — Quantities, Units, Dimensions and Types"
+    authors:
+      - name: "QUDT.org"
+        website: "https://qudt.org"
+    version: "3.5.2"
+    url: "https://qudt.org"
+    repository-code: "https://github.com/qudt/qudt-public-repo"
+    license: CC-BY-4.0
+  - type: data
+    title: "CF Standard Name Table"
+    authors:
+      - name: "CF Conventions"
+        website: "https://cfconventions.org"
+    version: "95"
+    url: "https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html"
+    license: CC0-1.0
 keywords:
   - scientific computing
   - formulas

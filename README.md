@@ -100,6 +100,26 @@ entries, new formulas and code are all welcome: see the
 [ways to contribute](.github/CONTRIBUTING.md#ways-to-contribute) and
 the [catalog guide](docs/catalog.md).
 
+## Data sources
+
+nomogram's units come from QUDT, and so do its quantity kinds, except
+those QUDT lacks, which nomogram defines as specializations of QUDT
+kinds. nomogram links some kinds to CF standard names, which come, with
+their canonical units, from the CF standard name table. The package
+bundles a subset of each source:
+
+- QUDT — Quantities, Units, Dimensions and Types, by QUDT.org
+  (<https://qudt.org>), release 3.5.2, licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
+- the [CF standard name table](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
+  version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/);
+- the UCUM codes of the units, as QUDT gives them: © Regenstrief
+  Institute, Inc., [UCUM License](https://ucum.org/license).
+
+What nomogram selects, changes and adds is listed in
+[NOTICE.md](src/nomogram/data/NOTICE.md).
+
 ## License
 
-[BSD-3-Clause](LICENSE).
+Code: [BSD-3-Clause](LICENSE). Bundled data: see
+[Data sources](#data-sources).
