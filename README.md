@@ -61,7 +61,7 @@ table = compare(formulations, reference, {"ThermodynamicTemperature": temperatur
 plot_deviations(table)
 ```
 
-![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.1.0/docs/images/saturation-vapour-pressure.png)
+![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
 
 ## Usage
 
@@ -77,10 +77,21 @@ ha = compose(catalog().formulations["mass_concentration_ideal_gas"], {"e_s": ref
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
+Formulations are found by words, wildcards and fields, whatever their
+notation ([Finding formulations](docs/search.md)):
+
+```python
+catalog().search(variable="rho*")                    # ρ in every notation
+catalog().search(kind="VapourPressure", source="buck*")
+```
+
 Each formulation keeps its units, validity domain, temperature scale and
 references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
 [How nomogram earns trust](docs/approach.md) explains what is checked and
-how.
+how, and [Displaying formulas](docs/display.md) shows formulas in notebooks,
+Markdown and plots. [Sea water](docs/sea-water.md) shows the salinity
+scales and the vapour pressure of sea water, and what its 2 % lowering
+changes at the sea surface.
 
 ## Contributing
 

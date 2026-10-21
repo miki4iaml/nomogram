@@ -1,0 +1,323 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Moist air: humidity quantities computed from the vapour pressure
+# (mass concentration, mixing ratio, specific humidity), and the
+# saturation vapour pressure in moist air (enhancement factor).
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "moist-air"
+label = "Humidity of moist air"
+format = 2
+requires = ["water-vapour"]
+keywords = ["humidity", "psychrometrics"]
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.EnhancementFactor]
+label = "Enhancement Factor"
+specialization_of = "DimensionlessRatio"
+description = "Ratio of the saturation vapour pressure of water vapour in moist air to that of pure water vapour, at the same temperature."
+
+[kinds.SaturationVapourPressureInMoistAir]
+label = "Saturation Vapour Pressure in Moist Air"
+specialization_of = "VapourPressure"
+description = "Saturation vapour pressure of water vapour in moist air at a given pressure, over water or over ice: that of pure water vapour times the enhancement factor."
+
+[kinds.SaturationVapourPressureOverWaterInMoistAir]
+label = "Saturation Vapour Pressure over Water in Moist Air"
+specialization_of = "SaturationVapourPressureInMoistAir"
+description = "Saturation vapour pressure over a plane surface of pure liquid water, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
+
+[kinds.SaturationVapourPressureOverIceInMoistAir]
+label = "Saturation Vapour Pressure over Ice in Moist Air"
+specialization_of = "SaturationVapourPressureInMoistAir"
+description = "Saturation vapour pressure over a plane surface of ice, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
+
+[kinds.SaturationSpecificHumidity]
+label = "Saturation Specific Humidity"
+specialization_of = "SpecificHumidity"
+description = "Specific humidity of air saturated with respect to a plane surface of pure water (or ice) at a given temperature and pressure."
+
+[kinds.DryAirPressure]
+label = "Partial Pressure of Dry Air"
+specialization_of = "Pressure"
+description = "Partial pressure of the dry air in moist air: the total pressure minus the vapour pressure."
+
+# --- References -------------------------------------------------------
+
+[references.itu_r_p453_14]
+authors = "ITU-R"
+year = 2019
+title = "Recommendation ITU-R P.453-14: The radio refractive index: its formula and refractivity data"
+url = "https://www.itu.int/rec/R-REC-P.453-14-201908-I"
+status = "verified"
+note = "Annex 1, sections 1, 2.1 and 5 (equations 1 to 12 and 17, enhancement factors under equation 9), read on the PDF (2022 electronic edition); in force on 2026-10-17."
+
+[references.ecmwf_ifs_cy49r1]
+authors = "ECMWF"
+year = 2024
+title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
+url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
+status = "verified"
+note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+
+[references.metpy171]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/constants/default.py"
+status = "verified"
+note = "epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol (0.6219569); MetPy 0.12 used 18.01528 and 28.9644 g/mol. Released 2025-08-29."
+
+[references.iapws95]
+authors = "IAPWS"
+year = 2018
+title = "Revised Release on the IAPWS Formulation 1995 for the Thermodynamic Properties of Ordinary Water Substance for General and Scientific Use (R6-95(2018))"
+url = "https://iapws.org/documents/release/IAPWS-95"
+status = "verified"
+
+[references.ams_glossary]
+authors = "American Meteorological Society"
+title = "Glossary of Meteorology: vapor density"
+url = "https://glossary.ametsoc.org/wiki/Absolute_humidity"
+status = "verified"
+
+[references.cengel_boles]
+authors = "Çengel, Y. A.; Boles, M. A."
+title = "Thermodynamics: An Engineering Approach, chapter 14: Gas-vapor mixtures and air-conditioning"
+status = "to-confirm"
+note = "Edition and year not checked; definition read in lecture material based on the book."
+
+# --- Physical constants -----------------------------------------------
+
+[constants.R_v_iapws95]
+identifier = "R_v"
+value = 461.51805
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "iapws95"
+# The Wikidata item is the specific gas constant of any gas: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
+]
+
+[constants.epsilon_ashrae2017]
+identifier = "epsilon"
+value = 0.621945
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d"
+reference = "ashrae2017"
+
+# Other values of the same ratio, read in their sources. The relative
+# spread (about 6e-5) is negligible against the deviations between
+# formulations, but the value used is part of a formulation.
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.6219808
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
+reference = "ecmwf_ifs_cy49r1"
+
+[constants.epsilon_metpy]
+identifier = "epsilon"
+value = 0.6219569
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
+reference = "metpy171"
+
+# --- Ambiguous trade terms --------------------------------------------
+
+[trade_terms.absolute_humidity]
+term = "absolute humidity"
+language = "en"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1048298", relation = "close", verified = 2026-10-14 },
+]
+
+[[trade_terms.absolute_humidity.meanings]]
+community = "meteorology, physics"
+kind = "MassConcentrationOfWaterVapour"
+definition = "Mass of water vapour per volume of moist air."
+sources = ["ams_glossary"]
+
+[[trade_terms.absolute_humidity.meanings]]
+community = "chemical engineering, HVAC"
+kind = "MassRatioOfWaterVapourToDryGas"
+definition = "Mass of water vapour per mass of dry air."
+sources = ["cengel_boles"]
+
+# --- Formulations -----------------------------------------------------
+
+[formulations.mass_concentration_ideal_gas]
+label = "Mass concentration of water vapour, ideal gas law"
+expression = "RH * e_s / (R_v * T)"
+fixed_units = false
+note = "Water vapour treated as an ideal gas; e_s must be taken at the temperature T."
+output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Mass concentration of water vapour (absolute humidity, meteorological sense)" }
+inputs = [
+  { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
+  { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at T" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+constants = ["R_v_iapws95"]
+
+[[formulations.mass_concentration_ideal_gas.citations]]
+reference = "iapws95"
+
+[formulations.vapour_pressure_from_relative_humidity]
+label = "Vapour pressure from relative humidity"
+expression = "RH * e_s"
+fixed_units = false
+note = "Relative humidity taken as e/e_s, its usual approximation in meteorology; definitions through mole fractions or mixing ratios differ slightly (source to read before stating which one a standard uses)."
+output = { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
+  { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]
+
+[formulations.mixing_ratio_from_vapour_pressure]
+label = "Humidity mixing ratio from vapour pressure (ASHRAE 2017)"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 20, through PsychroLib: moist air as an ideal gas mixture."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Air pressure" },
+]
+constants = ["epsilon_ashrae2017"]
+
+[[formulations.mixing_ratio_from_vapour_pressure.citations]]
+reference = "ashrae2017"
+
+[[formulations.mixing_ratio_from_vapour_pressure.citations]]
+reference = "psychrolib"
+
+[formulations.specific_humidity_from_mixing_ratio]
+label = "Specific humidity from mixing ratio"
+expression = "r / (1 + r)"
+fixed_units = false
+note = "From the definitions (mass of water vapour per mass of moist air, per mass of dry air); ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 9b, through PsychroLib."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+]
+
+[[formulations.specific_humidity_from_mixing_ratio.citations]]
+reference = "ashrae2017"
+
+[[formulations.specific_humidity_from_mixing_ratio.citations]]
+reference = "psychrolib"
+
+# Saturation vapour pressure in moist air: the enhancement factor times
+# that of pure water vapour. ITU-R P.453 equation 9 is this product with
+# the Buck (1996) equations (same coefficients a, b, c, d), so it is
+# written as a composition rather than copied.
+
+[formulations.saturation_vapour_pressure_in_moist_air]
+label = "Saturation vapour pressure in moist air"
+expression = "EF * e_s"
+fixed_units = false
+note = "The enhancement factor applied to the saturation vapour pressure of pure water vapour, over water or over ice."
+output = { identifier = "e_sm", kind = "SaturationVapourPressureInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure in moist air" }
+inputs = [
+  { identifier = "EF", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" },
+  { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "Saturation vapour pressure of pure water vapour, over water or over ice" },
+]
+
+[formulations.itu_r_p453_ef_water]
+label = "Enhancement factor over water (ITU-R P.453)"
+expression = "1 + 1e-4 * (E_A + p * (E_B + E_C * t ** 2))"
+fixed_units = true
+note = "P is the total atmospheric pressure; P.453 adds that the dry atmospheric pressure can be used with insignificant loss of prediction accuracy."
+output = { identifier = "EF", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor over water" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total atmospheric pressure" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { E_A = 7.2, E_B = 0.0320, E_C = 5.9e-6 }
+
+[[formulations.itu_r_p453_ef_water.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { EF = 'EF_{\mathrm{water}}', p = "P" }
+
+[formulations.itu_r_p453_ef_ice]
+label = "Enhancement factor over ice (ITU-R P.453)"
+expression = "1 + 1e-4 * (E_A + p * (E_B + E_C * t ** 2))"
+fixed_units = true
+note = "P is the total atmospheric pressure; P.453 adds that the dry atmospheric pressure can be used with insignificant loss of prediction accuracy."
+output = { identifier = "EF", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor over ice" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total atmospheric pressure" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { E_A = 2.2, E_B = 0.0383, E_C = 6.4e-6 }
+
+[[formulations.itu_r_p453_ef_ice.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { EF = 'EF_{\mathrm{ice}}', p = "P" }
+
+[formulations.itu_r_p453_es_water]
+label = "Saturation vapour pressure over water in moist air (ITU-R P.453)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "itu_r_p453_ef_water", e_s = "buck1996" } }
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+
+[[formulations.itu_r_p453_es_water.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { C = "a", A = "b", B = "c", D = "d", e_ws = "e_s", p = "P" }
+
+[[formulations.itu_r_p453_es_water.citations.domains]]
+bounds = { t = [-40.0, 50.0] }
+
+[formulations.itu_r_p453_es_ice]
+label = "Saturation vapour pressure over ice in moist air (ITU-R P.453)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "itu_r_p453_ef_ice", e_s = "buck1996_ice" } }
+output = { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air" }
+
+[[formulations.itu_r_p453_es_ice.citations]]
+reference = "itu_r_p453_14"
+equation = "9"
+notation = { C = "a", A = "b", B = "c", D = "d", e_is = "e_s", p = "P" }
+
+[[formulations.itu_r_p453_es_ice.citations.domains]]
+bounds = { t = [-80.0, 0.0] }
+
+# ITU-R P.453 equations 8 and 10: the vapour pressure from the relative
+# humidity (in percent, with the saturation vapour pressure in moist air)
+# and from the water vapour density.
+
+[formulations.itu_r_p453_vapour_pressure]
+label = "Vapour pressure from relative humidity (ITU-R P.453)"
+expression = "H * e_s / 100"
+fixed_units = true
+note = "P.453 takes e_s from its equation 9, over water or over ice: the saturation vapour pressure in moist air, unlike vapour_pressure_from_relative_humidity."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "H", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity" },
+  { identifier = "e_s", kind = "SaturationVapourPressureInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure in moist air at the same temperature" },
+]
+
+[[formulations.itu_r_p453_vapour_pressure.citations]]
+reference = "itu_r_p453_14"
+equation = "8"
+
+[formulations.itu_r_p453_vapour_pressure_from_density]
+label = "Vapour pressure from water vapour density (ITU-R P.453)"
+expression = "rho * T / C"
+fixed_units = true
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "rho", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Water vapour density" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+coefficients = { C = 216.7 }
+
+[[formulations.itu_r_p453_vapour_pressure_from_density.citations]]
+reference = "itu_r_p453_14"
+equation = "10"

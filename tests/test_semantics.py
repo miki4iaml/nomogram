@@ -42,11 +42,18 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 def test_sources_are_recorded() -> None:
     assert CATALOG.qudt_version == "3.5.2"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 10, 14)
+    assert CATALOG.extracted == datetime.date(2026, 10, 21)
 
 
 def test_catalog_is_read_once() -> None:
     assert semantic_catalog() is CATALOG
+
+
+def test_unit_symbols_follow_the_si_brochure() -> None:
+    # SI Brochure, 9th ed., 2.3.3 and 5.4.7; QUDT writes the unit one U+4E00.
+    assert CATALOG.units["UNITLESS"].symbol == "1"
+    assert CATALOG.units["PPM"].symbol == "ppm"
+    assert CATALOG.units["PERCENT"].symbol == "%"
 
 
 def test_reference_case_kinds_are_present() -> None:
@@ -86,15 +93,37 @@ def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
     assert is_offset_unit(unit.pint) is (unit.offset != 0.0)
 
 
+#: Interval-scale kinds whose zero is a reference surface rather than a
+#: unit: multiplicative units (``offset_units=False`` in the extraction).
+SURFACE_ZERO = frozenset({"Altitude"})
+
+
 @pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))
 def test_applicable_units_follow_the_scale_rule(name: str) -> None:
     kind = CATALOG.quantity_kinds[name]
     assert kind.applicable_units
+    offset = kind.scale_type is ScaleType.INTERVAL and name not in SURFACE_ZERO
     for unit_name in kind.applicable_units:
         unit = CATALOG.units[unit_name]
         assert unit.dimensions == kind.dimensions
-        assert (unit.offset != 0.0) is (kind.scale_type is ScaleType.INTERVAL)
+        assert (unit.offset != 0.0) is offset
     assert set(kind.added_units) <= set(kind.applicable_units)
+
+
+def test_radio_refractivity_kinds_and_units() -> None:
+    kinds, units = CATALOG.quantity_kinds, CATALOG.units
+    assert kinds["RefractiveIndex"].applicable_units == ("UNITLESS",)
+    assert set(kinds["DimensionlessRatio"].applicable_units) == {
+        "PERCENT",
+        "PERMILLE",
+        "PPM",
+        "UNITLESS",
+    }
+    assert set(kinds["Height"].applicable_units) == {"M", "KiloM"}
+    assert kinds["Height"].cf_standard_names == ("height",)
+    # QUDT writes PPM; nomogram displays ppm, as ITU-R P.453 does.
+    assert units["PPM"].symbol == "ppm"
+    assert units["PPM"].multiplier == 1e-6
 
 
 def test_celsius_is_not_a_unit_of_thermodynamic_temperature() -> None:
@@ -129,7 +158,7 @@ def test_wikidata_links_carry_their_relation_and_verification_date() -> None:
         ExternalMatch(
             target="http://www.wikidata.org/entity/Q76378808",
             relation=MatchRelation.CLOSE,
-            verified=datetime.date(2026, 10, 14),
+            verified=datetime.date(2026, 10, 21),
         ),
     )
     assert CATALOG.units["DEG_C"].matches[0].target.endswith("/Q25267")

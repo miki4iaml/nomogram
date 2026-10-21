@@ -60,6 +60,10 @@ class KindSpec(NamedTuple):
     cf_standard_names: tuple[str, ...] = ()
     #: Units QUDT does not declare for the kind, added by nomogram.
     added_units: tuple[str, ...] = ()
+    #: Whether its units carry an offset (degC); by default, those of an
+    #: interval scale do. An interval scale whose zero is a reference
+    #: surface rather than a unit (altitude) takes multiplicative units.
+    offset_units: bool | None = None
 
 
 #: Quantity kinds kept, by QUDT local name.
@@ -110,6 +114,34 @@ KINDS: dict[str, KindSpec] = {
     # Kept although nomogram does not use it as a kind: the term is
     # ambiguous across trades (see docs/rosetta.md).
     "AbsoluteHumidity": KindSpec("ratio", delta=False),
+    # Radio refractivity (ITU-R P.453): the refractive index, the parent of
+    # the dimensionless kinds nomogram defines, and heights above the
+    # surface (CF: "the vertical distance above the surface").
+    "RefractiveIndex": KindSpec("ratio", delta=False),
+    "DimensionlessRatio": KindSpec("ratio", delta=False),
+    "Height": KindSpec("ratio", delta=False, cf_standard_names=("height",)),
+    # Altitude: height above the geoid (CF), a reference surface fixed by
+    # convention, hence an interval scale; QUDT's description leaves the
+    # reference to the context.
+    "Altitude": KindSpec(
+        "interval",
+        delta=False,
+        cf_standard_names=("altitude",),
+        offset_units=False,
+    ),
+    # Salinity and chlorinity of sea water are mass fractions; QUDT has no
+    # kind for either (nomogram defines them in the sea-water family). QUDT
+    # 3.5.2 gives MassFraction FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM;
+    # CF writes salinities in 1e-3 (per mille) and g/kg, added here.
+    "MassFraction": KindSpec(
+        "ratio",
+        delta=False,
+        added_units=("PERMILLE", "GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
+    ),
+    # Vapour pressure of sea water from its osmotic coefficient and the total
+    # molality of dissolved species (Dickson et al. 2007).
+    "OsmoticCoefficient": KindSpec("ratio", delta=False),
+    "MolalityOfSolute": KindSpec("ratio", delta=False),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -127,6 +159,35 @@ UNITS: dict[str, str] = {
     "PERCENT": "percent",
     "UNITLESS": "dimensionless",
     "J-PER-KiloGM-K": "J/(kg*K)",
+    "PPM": "ppm",
+    "PERMILLE": "permille",
+    "MilliM_HG": "mmHg",
+    "ATM": "atm",
+    "MOL-PER-KiloGM": "mol/kg",
+    "M": "m",
+    "KiloM": "km",
+}
+
+#: CF standard names of conventional scales (catalog `[scales]`), kept
+#: in the frozen subset so that the catalog can check them.
+SCALE_CF_NAMES: tuple[str, ...] = (
+    "sea_water_knudsen_salinity",
+    "sea_water_cox_salinity",
+    "sea_water_practical_salinity",
+    "sea_water_reference_salinity",
+    "sea_water_absolute_salinity",
+)
+
+#: Symbols nomogram displays instead of QUDT's, with the reason.
+SYMBOLS: dict[str, str] = {
+    # QUDT writes "PPM"; the SI Brochure (9th ed., 5.4.7) and ITU-R P.453
+    # (its N_wet in ppm) write "ppm", as does UCUM ("[ppm]").
+    "PPM": "ppm",
+    # QUDT writes the CJK sign U+4E00, a deliberate choice
+    # (qudt/qudt-public-repo#712, where "1" and "-" were proposed); the SI
+    # Brochure (9th ed., 2.3.3 and 5.4.7) gives the unit one the symbol 1,
+    # rarely written.
+    "UNITLESS": "1",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
@@ -134,6 +195,7 @@ UNITS: dict[str, str] = {
 WIKIDATA_RELATION = "close"
 
 _UDUNITS_FACTOR = re.compile(r"^([A-Za-z]+)(-?\d+)?$")
+_UDUNITS_NUMBER = re.compile(r"^\d+(\.\d+)?([eE]-?\d+)?$")
 
 
 def udunits_to_pint(expression: str) -> str:
@@ -141,7 +203,7 @@ def udunits_to_pint(expression: str) -> str:
 
     Only the syntax of CF canonical units is handled: factors separated by
     spaces, each a unit symbol with an optional integer exponent
-    (``kg m-3``), or ``1`` for dimensionless.
+    (``kg m-3``) or a number (``1e-3``), or ``1`` for dimensionless.
 
     Parameters
     ----------
@@ -162,6 +224,9 @@ def udunits_to_pint(expression: str) -> str:
         return "dimensionless"
     factors = []
     for factor in expression.split():
+        if _UDUNITS_NUMBER.match(factor):
+            factors.append(factor)  # a scale factor, such as 1e-3 (per mille)
+            continue
         match = _UDUNITS_FACTOR.match(factor)
         if match is None:
             msg = f"unsupported UDUNITS factor: {factor!r}"
@@ -237,7 +302,7 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
         units[name] = {
             "iri": str(subject),
             "label": _english_label(graph, subject),
-            "symbol": _value(graph, subject, QUDT.symbol),
+            "symbol": SYMBOLS.get(name, _value(graph, subject, QUDT.symbol)),
             "dimension_vector": _local(_value(graph, subject, QUDT.hasDimensionVector)),
             "multiplier": float(multiplier) if multiplier is not None else 1.0,
             "offset": float(offset) if offset is not None else 0.0,
@@ -262,18 +327,22 @@ def extract_kinds(
     one it specializes. nomogram then applies its scale rule: offset units
     only for interval-scale kinds, multiplicative units only for the
     others. Without it, QUDT would make ``DEG_C`` applicable to the
-    thermodynamic temperature.
+    thermodynamic temperature. A kind may set ``offset_units`` when its
+    scale's zero comes from a reference surface rather than from the unit
+    (an altitude is on an interval scale, in metres).
     """
     kinds: dict[str, dict[str, Any]] = {}
     for name, spec in KINDS.items():
         subject = QK[name]
         _require(graph, subject)
         lineage = {name} | ancestors(graph, name)
-        interval = spec.scale_type == "interval"
+        offset = spec.offset_units
+        if offset is None:
+            offset = spec.scale_type == "interval"
         applicable = {
             unit
             for unit, data in units.items()
-            if declared[unit] & lineage and (data["offset"] != 0.0) == interval
+            if declared[unit] & lineage and (data["offset"] != 0.0) == offset
         }
         added = set(spec.added_units) - applicable
         kinds[name] = {
@@ -329,6 +398,7 @@ def extract(
     units = extract_units(units_graph, date)
     kinds = extract_kinds(kinds_graph, units, unit_kinds(units_graph), date)
     cf_names = {n for spec in KINDS.values() for n in spec.cf_standard_names}
+    cf_names |= set(SCALE_CF_NAMES)
     cf_version, cf = extract_cf(cf_path, cf_names)
     return {
         "sources": {

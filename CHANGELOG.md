@@ -8,6 +8,296 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-21
+
+### Added
+
+- Conventional scales converted by an expression of `x` (`conversion`),
+  possibly through another scale (`base`), within `bounds`; scales
+  nomogram cannot convert (`convertible = false`, raising
+  `ScaleConversionError` unless values are taken as given); CF standard
+  names and a note on scales, searchable. A citation may state the scale
+  of the output. Compositions check the scales of their pieces; an
+  inverse takes its input on the scale of the source's output. A value
+  beyond the bounds of a conversion follows `outside=` like a value
+  outside a domain (NaN, `OutOfDomainError` with `"raise"`, a warning
+  with `"warn"`); `evaluate` refuses an unknown `scale`, `outside` or
+  `basis`.
+- Guide `docs/sea-water.md`: salinity on conventional scales, the
+  vapour pressures of sea water against TEOS-10, and the 2 % at the sea
+  surface (the equivalent cooling of Beljaars 1998, found again by
+  inversion, and the radio refractivity at the surface).
+- In `sea-water`, the vapour pressure of sea water of Dickson et al.
+  (2007): the total molality of dissolved species and the osmotic
+  coefficient of sea water (QUDT kinds `MolalityOfSolute` and
+  `OsmoticCoefficient`, unit mol/kg), composed with IAPWS SR1-86, which
+  gains Dickson et al. as a citation. Cross-check of Weiss and Price
+  (1980) and Dickson et al. (2007) against pySeaFlux 2.2.1.
+- In `sea-water`, the vapour pressure of sea water. Kinds
+  `SaturationVapourPressureOverSeaWater`, `RelativeVapourPressureOfSeaWater`
+  and `SaturationSpecificHumidityOverSeaWater`, with
+  `SaturationSpecificHumidity` in `moist-air`. The relative vapour
+  pressure after Witting (1908, through Sverdrup et al. 1942 and Robinson
+  1954), Sverdrup et al. (1942, on the Knudsen scale), Robinson (1954),
+  Raoult's law (Sharqawy et al. 2010, adopted by the ITTC with Absolute
+  Salinity), Nayar et al. (2016) and COARE 3.6; the vapour pressures of
+  Millero and Leung (1976) and of Weiss and Price (1980); the ITTC vapour
+  pressure, composed with IAPWS SR1-86; the 2 % salinity effect on the
+  surface humidity (IFS, Beljaars 1998, Fairall et al. 1996). The family
+  now requires `moist-air`.
+- Temperature scales of oceanography: IPTS-68 through the linear
+  conversion of Saunders (1990), t68 = 1.00024 t90, and IPTS-48 through
+  Fofonoff and Bryden (1975).
+- Family `sea-water`: kinds `SeaWaterSalinity` and `Chlorinity`, the
+  salinity scales (Reference Salinity, PSS-78, Cox, Knudsen, Absolute
+  Salinity) with their conversions and CF names (added to the frozen CF
+  subset), and the formulations of Knudsen and of JPOTS giving salinity
+  from chlorinity. QUDT kind `MassFraction`, units per mille, mmHg and
+  atm.
+- `Comparison.scale`: how the formulations compared took their inputs;
+  after `scale="ignore"`, plot labels mark no conventional scale.
+- Axis labels in three styles, display option `axis_labels`: `"si"`
+  (default), the quotient of the quantity by its unit with the
+  conventional scale as a subscript of the symbol, as the SI Brochure
+  writes them (`Celsius temperature t₉₀/°C`); `"explicit"`
+  (`Celsius temperature - t [°C] {ITS-90}`); `"simple"`
+  (`Celsius temperature t [°C]`). `nomogram.display.axis_label` and
+  `reference_scale`; conventional scales gain a short name (`symbol`)
+  and a `subscript`, searchable.
+- Search (`Catalog.search`, `nomogram.search`): one index of every entry
+  of the catalog (formulations, kinds, references, constants, notations,
+  trade terms, scales, relations, cross-checks, families, units); terms
+  are shell-style wildcards matched against words, without case or
+  accents, identifiers split at CamelCase and underscores; symbols in a
+  normal form (`\rho_{\mathrm{v}}`, `ρ_v`, `rhô_v` are `rho_v`); field
+  filters `key`, `kind` (with its specializations), `output`, `input`,
+  `variable`, `symbol` with `notation`, `source` with `equation`,
+  `family`, `keyword`; a symbol is found as its notation writes it,
+  a unit or a scale by its symbol, the symbols of a citation by its
+  reference (`notation="dickson2007"`). Results are `Selection`s, in
+  catalog order, searched again or combined with `&`, `|` and `-`,
+  displayed as tables in notebooks.
+  `Catalog.uses` and `Catalog.used_by` follow the links between entries
+  (`Catalog.links`, with the kinds and scales a composed formulation
+  takes from its parts), in catalog order. Guide: `docs/search.md`.
+- Family `radio` (ITU-R P.453-14, read on the PDF): refractive index
+  from the refractivity (eq. 1), radio refractivity (eq. 2), its dry and
+  wet terms (eq. 3, 4), the form with the total pressure (eq. 6) with the
+  equivalence stated by P.453 and proven by SymPy, the approximate form
+  (eq. 7) with its stated domain and criterion, the reference profile
+  and the surface refractivity (eq. 11, 12), the modified refractivity
+  (eq. 17), and the height above the surface h = z - z_s. Kinds
+  `RadioRefractivity`, its dry and wet terms, `ModifiedRadioRefractivity`
+  (interval scale), `SurfaceAltitude`.
+- In `moist-air`: P.453 equations 8 (vapour pressure from the relative
+  humidity in percent and the saturation vapour pressure in moist air)
+  and 10 (from the water vapour density); kinds `DryAirPressure` and
+  `SaturationVapourPressureInMoistAir`, parent of the saturation vapour
+  pressures over water and over ice in moist air.
+- Cross-checks against other implementations (catalog section
+  `[cross_checks]`, `nomogram.model.CrossCheck` and `CheckCase`): values
+  of formulations computed once with outside software, with its version
+  and the date of the check; `nomogram.relations.replay` computes them
+  again (the tests do it for every case), and
+  `python -m nomogram.catalog verify` lists them. First one: ITU-R P.453
+  against ITU-Rpy, 16 cases, all agreeing.
+- An equivalence between formulations is refused when they do not work
+  in the same units, since its proof compares the expressions as written.
+  `docs/relation-verdicts.md` works through the equivalence of P.453
+  equations 2 and 6.
+- QUDT kind `Altitude` (CF `altitude`), on an interval scale with
+  multiplicative units: the extraction script gains `offset_units` for
+  scales whose zero is a reference surface rather than a unit.
+- Composed formulations in the catalog (`composition = { outer, inner,
+  bind }`): the inner expressions are substituted into the outer one,
+  which gives an ordinary formulation (LaTeX, inversion, units of
+  coefficients, signature) with its own citations. Inputs, coefficients
+  and constants come from the parts and must agree; cycles and
+  duplicates are refused. A composition is never more permissive than
+  the chain of its parts: their domains apply to the values each part
+  receives, intermediate values included, unless a source of the
+  composed formulation states its own domain, which then replaces those
+  stated for the parts (physical domains always apply); `check` points
+  out a stated domain beyond those of the parts. `Formulation.parts`
+  (`Part`) holds the parts; `Derivation` records the method
+  `"composition"` and its `parts`; the legend of a single formula says
+  what it is composed of.
+- ITU-R P.453-14 equation 9 in the `moist-air` family: enhancement
+  factors over water and over ice (`itu_r_p453_ef_water`,
+  `itu_r_p453_ef_ice`), and the saturation vapour pressures in moist air
+  (`itu_r_p453_es_water`, `itu_r_p453_es_ice`) composed from them and
+  the Buck (1996) equations, with the domains P.453 states. Kinds
+  `EnhancementFactor`, `SaturationVapourPressureOverWaterInMoistAir`,
+  `SaturationVapourPressureOverIceInMoistAir`.
+- Semantics for radio refractivity: QUDT kinds `RefractiveIndex`,
+  `DimensionlessRatio` and `Height` (CF `height`), units `PPM`
+  (displayed `ppm`, as ITU-R P.453 writes it), `M` and `KiloM`.
+- A kind declared in a catalog may set `scale_type` (`ratio`,
+  `interval`); it otherwise takes that of its parent.
+- Registry of verdicts (`src/nomogram/data/catalog/verifications.json`,
+  generated): each verdict on a relation is filed under a SHA-256
+  fingerprint of everything it depends on (relation, signatures of its
+  formulations, scales, budget, version of the method `VERIFIER`).
+  `nomogram.relations.verdict` reads it when the fingerprint matches;
+  `record` and `python -m nomogram.catalog verify --record` compute only
+  what is missing and drop stale entries; a test recomputes every
+  verdict and compares it with the registry.
+- `docs/relation-verdicts.md`: examples of what SymPy proves, leaves
+  unproven or refutes, and the registry of verdicts.
+- Signatures of formulations (`nomogram.relations.signature`): equal
+  for two writings of one formulation (inputs renamed canonically,
+  coefficients as exact rationals); the catalog refuses a formulation
+  identical to another, naming it so that a citation is added instead.
+  `form` leaves coefficients aside (the Magnus forms share one).
+- `python -m nomogram.catalog check FILE` (`check`, and
+  `nomogram.relations.report`): for each formulation of a file, those of
+  the same form and the maximum relative deviation observed against every
+  formulation of the same kind on their common domain; numerically
+  identical pairs are pointed out, pairs that cannot be compared (a scale
+  without conversion, no finite point) are named. Observations, never
+  relations.
+- Relations between formulations (`nomogram.model.Relation`, catalog
+  section `[relations]`): what a source states, equivalence (possibly
+  given substitutions between inputs) or approximation (maximum relative
+  deviation over a domain, with where it lies), with its citation and
+  whether formulas are compared with scale conversion or as given.
+  `nomogram.relations.verify` proves equivalences with SymPy (proven,
+  refuted with a counterexample, or unproven), results compared in their
+  output unit, and checks approximations on a grid refined around its
+  best points (reproduced, held or exceeded, the share of the grid where
+  both are finite stated), inputs matched by identifier then by kind; a
+  claim that cannot be checked as it stands is unverified (an
+  equivalence across scales under conversion, an approximation finite
+  nowhere);
+  `Catalog.relations`. `docs/relation-verdicts.md` says what each verdict
+  guarantees: reliable with one to three inputs, an estimate beyond.
+- The maximum relative errors of Alduchov and Eskridge (1996, Table III)
+  for five Magnus forms against GG46 (triple-point form) and SO90, and
+  between GG46 and SO90: ten of twelve reproduced to the third decimal
+  with the formulas compared as given; Sonntag's Magnus coefficients
+  (SA90) give 0.610 % and 0.315 % where the table gives 0.597 % and
+  0.328 %.
+- Catalog families (`nomogram.catalog.Family`): each file declares a
+  `[catalog]` header (name, format, requires, keywords, `matches`);
+  `catalog("water-vapour")` loads one family with those it requires,
+  `catalog()` still loads everything; `Catalog.families`;
+  `Formulation.family` (from the file) and `Formulation.keywords`.
+  Checked when loading: requires known and without cycle, entries
+  referring only to their family and its requires, every required family
+  used. `python -m nomogram.catalog describe FILE` prints the header a
+  file needs. Personal catalogs: `catalog(extra=[path])`, keys prefixed
+  with the family name; `load_catalog` accepts paths.
+- Citations (`nomogram.model.Citation`): a formulation is written once,
+  and each source that gives it is a citation recording what that source
+  states (equation number, notation, units of coefficients, validity
+  domains, accuracy, temperature scales). `Formulation.citations`;
+  `Formulation.references` and `Formulation.domains` are derived from
+  them. A citation's notation is the source's own symbols or a
+  convention of the catalog. `CoefficientUnit.citation` names the source
+  of a stated unit.
+- `nomogram.dimensions.infer_units` (and `Formulation.coefficient_units`):
+  the unit of each coefficient, declared or inferred by dimensional
+  analysis of the expression tree (B of the Magnus form in °C, C in hPa,
+  a2 of Sonntag's formulation in 1/K). Local propagation runs first and
+  records the part of the expression each unit follows from; linear
+  algebra settles the rest. Formulations with fixed units are read as
+  numerical value equations where needed (T/K in ln(T)).
+- The catalog checks at load that every coefficient has a unit, declared
+  or inferred, and that declared units agree with the expression; a
+  conflict names the part of the expression where it appears.
+- Declared units of coefficients say where they come from
+  (`unit_basis`: `"stated"` by the source, or `"added"` when the entry
+  was written, with a note); `CoefficientUnit.origin` is `"stated"`,
+  `"added"` or `"inferred"`, and the legend of a single formulation reads
+  "from the source", "added by nomogram" or "inferred by nomogram". The
+  catalog guide states the rule for contributors.
+- The Markdown legend of a single formulation gives the unit of every
+  coefficient and its origin (from the source, added or inferred by
+  nomogram), and the units the
+  coefficients of a formulation with fixed units hold for; tables and
+  plot labels do not show origins. Renderings and tables have a short
+  `repr`.
+- `nomogram.display`: `render` displays a formulation as LaTeX, as a
+  matplotlib label and as Markdown with the meaning and unit of each
+  symbol; `table` puts several formulations side by side (equation,
+  validity domains, references); `symbol` labels a variable for a plot.
+  Renderings and tables display themselves in Jupyter notebooks
+  (`_repr_markdown_`, and `_repr_latex_` for a formulation), without
+  importing IPython. Guide: `docs/display.md`.
+- Display options (`DisplayOptions`): multiplication sign, decimal
+  separator, upright symbols, coefficients as values; set for one call,
+  as a reusable set, or for a block (`display_options`, a context
+  variable as `numpy.printoptions`).
+- `nomogram.expression.LATEX_COMMANDS`: the LaTeX commands nomogram
+  emits, common to MathJax, KaTeX and matplotlib's mathtext; every
+  formula of the catalog is checked against it, and notation symbols
+  outside it are refused when the catalog is loaded.
+
+### Changed
+
+- Compositions: a part reached twice, directly and inside another part,
+  is one part, its coefficients counted once; the units of coefficients
+  are inferred with each inner part keeping the unit of its output.
+- The symbol of the unit one is 1, as in the SI Brochure, rather than
+  QUDT's `一` (a deliberate QUDT choice, qudt/qudt-public-repo#712);
+  displays still leave it unwritten. Unit symbols follow the SI Brochure,
+  departures from QUDT being declared in the extraction script.
+- Plot axes and `display.symbol` labels follow `axis_labels` (SI form
+  by default, instead of a unit in brackets). A temperature axis names
+  the temperature its values are: in °C a Celsius temperature t, in K or
+  °R a thermodynamic temperature T, in °F a temperature (it said
+  "Thermodynamic Temperature [°C]"). The y axis of `plot_values` gains
+  the name of the output kind, the x axis a symbol (in the notation
+  given); names are in sentence case, units take the catalog's symbols.
+  The deviation axis reads "Relative deviation from ... δ/%".
+- `Derivation.solved_for` is optional (`None` for a composition), and
+  `Derivation` gains `parts`.
+- The bundled catalog is split into families: `core` (conventional
+  scales, notations), `water-vapour` (saturation vapour pressure),
+  `moist-air` (humidity quantities) and the aggregate `humidity`; no
+  value changes.
+- Conventional reference scales (VIM 1.29): `TemperatureScale` becomes
+  `ConventionalScale`, for any quantity kinds, with one reference scale
+  per kind (ITS-90 for temperatures) and a conversion table to it
+  (`from_reference`, `to_reference` replace `from_its90`, `to_its90`).
+  `Variable.scale` replaces `Variable.temperature_scale` and
+  `Catalog.scales` replaces `Catalog.temperature_scales`. Catalog format:
+  `[scales.<key>]` with `kinds`, and for a derived scale
+  `reference_scale`, `unit` and `differences`; inputs take `scale`
+  instead of `temperature_scale`. No value changes.
+- Catalog format: `[[formulations.<key>.citations]]` replaces
+  `references` and `accuracy`; domains, units of coefficients and
+  temperature scales stated by a source move into its citation; the
+  formulation keeps physical domains (without `basis`), units added by
+  nomogram and scales nomogram infers. `Formulation` takes
+  `physical_domains` and `citations` instead of `domains`, `accuracy`
+  and `references`. Domains stated by different sources combine by union
+  by default (inside if one source says so); within a citation they
+  apply together, as do physical domains. The catalog was converted
+  without changing any value; the range of the Goff-Gratch equation,
+  attributed to Gibbins (1990) without citing it, now comes with that
+  citation.
+- Catalog: the declared units of coefficients that the expression
+  determines were removed (Murray, Goff 1957, Marti and Mauersberger,
+  and the reference temperatures of Goff-Gratch), since Vömel, the
+  source read, gives these coefficients as bare numbers; they are now
+  inferred. The units stated by the IAPWS releases are kept as stated,
+  and the two reference pressures of Goff-Gratch, read inside a
+  logarithm, as added.
+- Default typography of `Formulation.latex()`: every product shows ×
+  (RH can no longer be read as R × H), a power of ten always with ×
+  whatever the multiplication sign chosen, and descriptive subscripts are
+  upright, as in ISO 80000-2 (`e_{\mathrm{s}}` instead of `e_{s}`).
+  `DisplayOptions.SYMPY` gives the former rendering.
+
+### Fixed
+
+- Notes of the catalog checked again against their sources: the
+  Goff-Gratch equation over water is not the form Alduchov and Eskridge
+  (1996) print (their GG45, with the opposite sign in the last exponent,
+  which they report more than 5 % from GG46): the disagreement is
+  recorded; Buck's (1981) formulas over ice come from Vömel only.
+
 ## [0.2.0] - 2026-10-14
 
 ### Added
@@ -195,7 +485,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...develop
+[0.3.0]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/miki4iaml/nomogram/releases/tag/v0.1.0

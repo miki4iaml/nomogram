@@ -1,0 +1,133 @@
+{
+ "verdicts": {
+  "4891291da7eaadf0a2d561d6b8612f9112b6ede07fd7985bdab27b8be68ab816": {
+   "at": {
+    "T": 233.15
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_gg46_so90",
+   "status": "reproduced",
+   "value": 0.6483320703041695
+  },
+  "4a1738fa8c24ee3ee40996c830f5a1af1c25b77292049d163e22b96a6bc35293": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu2_so90",
+   "status": "reproduced",
+   "value": 0.1587395510561751
+  },
+  "6897cfefab0059a0ea4aa77f9314df8a7645f57d20f4790243a291a31bb73cce": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu2_gg46",
+   "status": "reproduced",
+   "value": 0.49278741811860094
+  },
+  "728d6254a3b455af6f5a01dd9c9823491049cfb2cab77708e764d5e67c224ac1": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_aekr_so90",
+   "status": "reproduced",
+   "value": 0.33737678039363894
+  },
+  "80e0275f170fb366bde8427e711b35ed7963c86721a9734f2cd50bcafa23cd23": {
+   "at": {
+    "t": 28.050310270192625
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_sa90_so90",
+   "status": "held",
+   "value": 0.31517868418324824
+  },
+  "9320b25f0d45655a98e7da6e70b654fe7d4b0df6219ec151947661af6dea7668": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_te30_so90",
+   "status": "reproduced",
+   "value": 3.1689148839079695
+  },
+  "9c74fb9d158dfce4652baedefe6cfa098de1988d0de231569b1fd41e5dac5da6": {
+   "at": {
+    "T": 233.15
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_so90_gg46",
+   "status": "reproduced",
+   "value": 0.6525628445039677
+  },
+  "a3fa3e148261112e9e25cac2e597f163b8d39d5cd19c5af66f73bad6e18b963a": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_te30_gg46",
+   "status": "reproduced",
+   "value": 2.5370312005098317
+  },
+  "b338c3d17a0e5dd309e684e2c929df954bbe112aaa3c1f38e02d4e7f03fc262a": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu81_so90",
+   "status": "reproduced",
+   "value": 1.411977361987371
+  },
+  "ce14ec8a55a695177e344a3566f77223cb29252e26b2c7b2067e7cc9250158eb": {
+   "at": {
+    "t": -30.188041809799344
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_aekr_gg46",
+   "status": "reproduced",
+   "value": 0.3843123031154638
+  },
+  "d2389530c2bbf5bec6da027fe3433411c9b964a4731a06a5f712e5a59e07922a": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "itu_r_p453_total_pressure_form",
+   "status": "proven",
+   "value": null
+  },
+  "e7e25ce9d873f75bf9accbe860bb45b9abe7c9bad664fdeb9144514d4029e443": {
+   "at": {
+    "t": -35.15303406330479
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_sa90_gg46",
+   "status": "exceeded",
+   "value": 0.6098152408553492
+  },
+  "f3cf5f9a874e8953e77daaf79e28a59bc6ac7e49a18302263e2464b1df59c2ee": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu81_gg46",
+   "status": "reproduced",
+   "value": 0.7686285571200213
+  }
+ },
+ "verifier": 2
+}

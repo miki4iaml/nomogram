@@ -22,21 +22,27 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | dimension | `qudt:QuantityKindDimensionVector` (`hasDimensionVector`) | quantity dimension (VIM 1.7) | `dimensionality` | none | — | Same notion; QUDT adds dimension `D` (dimensionless ratio) to tell ratios apart. |
 | unit registry | `qudt:SystemOfUnits` (partly) | system of units (VIM 1.13) | `pint.UnitRegistry` | — | — | nomogram owns one private registry, `nomogram.units.ureg`, created once and never modified. |
 | offset unit | unit with `qudt:conversionOffset` ≠ 0 (`unit:DEG_C`: multiplier 1, offset 273.15) | none: the SI says the degree Celsius equals the kelvin in magnitude; the *quantity* Celsius temperature is offset (SI Brochure 2.3.1) | non-multiplicative unit (`degC`, `degF`) | — | OM: a scale defined by an offset from another | QUDT and pint put the offset in the unit, the SI puts it in the quantity. nomogram follows pint for computation and the SI for meaning: `is_offset_unit` tells which units express points of an interval scale. |
-| temperature scale | none (no ITS-90 in QUDT 3.5.2) | International Temperature Scale (ITS-90), formerly IPTS-68, IPTS-48, ITS-27 | none | — | — | `nomogram.model.TemperatureScale`: the scale a formulation was fitted on, stated by the source, inferred from the publication date only (weak: ITS-90 itself took years to be applied) or inferred from numerical evidence. Inputs are taken on ITS-90 and converted before evaluation (table of t90 − t68 from the ITS-90 text); a formulation fitted to formulas on several scales gets none. Neither QUDT nor pint models it, though it shifts saturation vapour pressure by up to 0.09 % between 0 and 100 °C. |
+| conventional scale | `qudt:Scale` (class only: no instance in the QUDT 3.5.2 vocabularies used) | conventional reference scale (VIM 1.29), for example the International Temperature Scale (ITS-90), formerly IPTS-68, IPTS-48, ITS-27 | none | — | CF names salinity by scale (`sea_water_practical_salinity`, `sea_water_knudsen_salinity`...) | `nomogram.model.ConventionalScale`: a quantity-value scale defined by formal agreement, for given quantity kinds, with one reference scale per kind (ITS-90 for temperatures, Reference Salinity for salinity) and a conversion to it: a table, or an expression of the value, possibly through another scale (Knudsen salinity, then Cox salinity, then Reference Salinity); a scale may hold no conversion (Absolute Salinity, whose anomaly depends on the location). Not QUDT's `ScaleType` (ratio, interval), which is the level of measurement. The scale a formulation was fitted on is stated by the source, inferred from the publication date only (weak: ITS-90 itself took years to be applied) or inferred from numerical evidence. Inputs are taken on ITS-90 and converted before evaluation (table of t90 − t68 from the ITS-90 text); a formulation fitted to formulas on several scales gets none. Neither QUDT nor pint models it, though it shifts saturation vapour pressure by up to 0.09 % between 0 and 100 °C. |
 | scale type | `qudt:ScaleType`: `RatioScale`, `IntervalScale`, `OrdinalScale`, `NominalScale` | quantity-value scale (VIM 1.27); ordinal scale (VIM 1.28) | none | — | OM `Scale` | `nomogram.units.ScaleType` keeps only ratio and interval, the two the formulas need. The four types come from Stevens (1946). |
 | point / difference | `qudt:isDeltaQuantity` (schema only, see findings) | — | `degC` versus `delta_degC` | — | OM `Point` versus `Measure` | A Celsius temperature is a point; the difference of two points is a difference, expressed in `delta_degC` or `K`. pint refuses to add two points. |
 | identifier | none (`qudt:QuantityKind` IRIs identify kinds, not variables) | — | — | name of a `sympy.Symbol` | — | The semantic name of a variable in a formula (`t`, `RH`, `e_s`), stable across notations. |
 | symbol | `qudt:symbol`, `qudt:latexSymbol`, `qudt:altSymbol` | quantity symbol (ISO 80000-1) | unit symbol only | `sympy.Symbol` is a *variable*, not a glyph | — | Ambiguous across vocabularies. In nomogram's prose, "symbol" means the glyph (QUDT sense); the SymPy object is always called "SymPy symbol". |
 | notation | none (one `latexSymbol` per kind, plus `altSymbol`) | — | — | `symbol_names` of the LaTeX printer | — | A mapping from identifiers to LaTeX symbols, one per author or convention (WMO, ASHRAE...). QUDT has no concept of competing notations: nomogram adds it. |
+| citation | none (`dcterms:source`, `qudt:informativeReference` on kinds and units) | — | — | — | — | `nomogram.model.Citation`: one appearance of a formulation in a source, with what the source states (equation number, notation, units, validity domains, accuracy, conventional scales of the inputs and of the output). A formulation is written once and cited by each source that gives it; domains of different citations combine by union by default. |
+| family | none | — | — | — | — | `nomogram.catalog.Family`: one file of the catalog, with the families it requires. A core without dependency, pure families (one domain), aggregates (requires only). Names are nomogram's own; links to the subject vocabularies of each domain (GCMD Science Keywords, PhySH, IEC 60050) go in `matches`, as for quantity kinds. |
+| relation | none | — | — | — | — | `nomogram.model.Relation`: what a source states between two formulations, equivalence or approximation (maximum relative deviation over a domain), with its citation; verified by `nomogram.relations.verify` (proven, refuted or unproven; reproduced, held or exceeded; unverified when it cannot be checked as it stands). A deviation nomogram computes without a source is an observation, never a relation. |
+| rendering | — | — | — | printer settings (`mul_symbol`, `decimal_separator`, `symbol_names`) | — | `nomogram.display.Rendering`: one formulation displayed in one notation with given `DisplayOptions` (typography). The notation says *which* symbols; the options say *how* they are set (multiplication sign, upright subscripts...). |
 | expression | `qudt:expression`, `qudt:latexDefinition`, `qudt:mathMLdefinition` | quantity equation (VIM 1.22) | — | `sympy.Expr` | — | Written once in restricted Python syntax; LaTeX and MathML are derived, never stored. |
 | formulation | none | — | — | — | — | `nomogram.model.Formulation`: one author's way of computing a quantity kind (Magnus-Tetens, Sonntag 1990...). The alternative formulations of a kind are what nomogram compares; they are grouped by the kind they compute. |
 | fixed units | none | numerical value equation (VIM 1.25), as opposed to a quantity equation (VIM 1.22) | — | — | — | `Formulation.fixed_units`: the coefficients only hold in the declared units. They are never converted; inputs are converted to the declared unit and scale first (a Fahrenheit point becomes a Celsius point), since with offset scales a formula's result depends on the scale it is written in. The VIM terms are not widely used, hence the plainer name. Quantity equations have their dimensional homogeneity checked when the catalog is loaded. |
-| coefficient | none | — | — | — | — | Empirical parameter of one formulation (the A, B, C of the Magnus form). Not a physical constant: it has a source and a validity domain. |
+| coefficient | none | — | — | — | — | Empirical parameter of one formulation (the A, B, C of the Magnus form). Not a physical constant: it has a source and a validity domain. Its unit is declared, or inferred by dimensional analysis (`nomogram.dimensions.infer_units`). |
 | physical constant | `qudt:PhysicalConstant`, `qudt:ConstantValue` | — | pint constants (`R`, `k`...) | `sympy.physics.constants` (not used) | — | Constants with a metrological status (specific gas constant of water vapour). nomogram keeps their source (IAPWS-95, CODATA) because values differ between sources. |
 | validity domain | none | — | — | assumptions (`real=True`, `positive=True`) only | — | `nomogram.model.ValidityDomain`. Objective domains only: *physical* (where the physics holds) or *stated* by the author or the cited publication, each with its criterion (maximum deviation or uncertainty against a reference) and its source. A domain suited to an application is the user's business. Behaviour outside is a parameter of `evaluate` (NaN by default). No vocabulary covers it; nomogram defines it. |
 | reference | `qudt:Citation`; `qudt:informativeReference`, `qudt:isoNormativeReference` | — | — | — | — | `nomogram.model.Reference`: bibliographic source of a formulation, constant, domain or notation, with a verification status (`verified` or `to-confirm`). The DOI takes precedence over any other identifier. |
 | derivation, inversion | none | — | — | `sympy.solve` | — | `nomogram.inversion.invert`: a formulation of one input, inverted. A closed form found by SymPy (after taking logarithms) becomes a formulation with its own expression and LaTeX; otherwise the inverse is solved numerically. `Derivation` records the source and the method; validity domains are carried through the function, and temperatures return to ITS-90. |
-| comparison, composition | none | — | — | — | — | `nomogram.comparison`: `compare` gives the relative deviation of formulations of one kind from a reference; `compose` feeds formulations into another. Inputs are matched by quantity kind; the Celsius and thermodynamic temperatures express one state (t = T − 273.15 K) and match the same input, a temperature difference never does. In a composition, a result may feed an input of a more general kind (`specializationOf`): a saturation vapour pressure feeds a vapour pressure input, never the reverse. |
+| comparison, composition | none | — | — | `sympy.Expr.subs` | — | `nomogram.comparison`: `compare` gives the relative deviation of formulations of one kind from a reference; `compose` feeds formulations into another, numerically. A composed catalog entry (`composition`) substitutes the expressions of its parts and is an ordinary formulation, with `Derivation` method `"composition"`. Inputs are matched by quantity kind; the Celsius and thermodynamic temperatures express one state (t = T − 273.15 K) and match the same input, a temperature difference never does. In a composition, a result may feed an input of a more general kind (`specializationOf`): a saturation vapour pressure feeds a vapour pressure input, never the reverse. |
+| search, selection, link | none | — | — | — | — | `Catalog.search`: shell-style wildcards matched against the words of every entry (names, symbols in every notation, labels, CF names), without case or accents; field filters; a `Selection` searched again or combined (`&`, `|`, `-`). `uses` / `used_by` follow the links between entries (`Catalog.links`). See [search.md](search.md). |
+| cross-check | none | — | — | — | — | `[cross_checks]` in the catalog: values of formulations computed once by another implementation, with its version and the date; replayed by the tests (`nomogram.relations.replay`). An observation that two implementations of a printed equation agree on given points, never a source nor a proof. |
 | trade term | none | — | — | — | — | `nomogram.model.TradeTerm`: a term whose meaning depends on the trade (absolute humidity), recorded as a label pointing to unambiguous kinds, never as a kind. |
 | CF standard name | none | — | — | — | CF standard name, with canonical units | The geoscience name of a variable in a data file (`air_temperature`). Linked to a QUDT kind; one kind may have several CF names. |
 | external match | `qudt:wikidataMatch`, `qudt:siExactMatch`, `qudt:ucumCode`, `qudt:udunitsCode`; SKOS `exactMatch`, `closeMatch`, `broadMatch`, `narrowMatch` | BIPM SI Reference Point | — | — | — | `nomogram.semantics.ExternalMatch`: target, SKOS relation, date of last verification. See "External links". |
@@ -76,6 +82,23 @@ versus dimensionless), so mixing them is not a small numerical error.
 British Standard BS 1339-1:2002 deprecates the term in favour of
 "volumetric humidity". No source was found defining absolute humidity
 per volume of *dry* air.
+
+Symbols collide as well as terms. ITU-R P.453-14 writes h for an
+altitude in its equation 11 (the reference profile, N_0 being
+extrapolated to sea level) and for a height above ground in its equation
+17 (figure 12). nomogram keeps the identifiers apart (z, z_s, h, with
+distinct kinds) and gives each source its own symbols in the notation of
+its citation.
+
+Over sea water, "about 98 %" is said of three close quantities: the
+vapour pressure of sea water relative to pure water at the same
+temperature (`RelativeVapourPressureOfSeaWater`), the activity of water
+in sea water, which equals the relative fugacity of sea air (TEOS-10
+Manual, eq. 3.40.11), and the relative humidity of air in equilibrium
+with sea water. They are not the same quantity. The 0.98 of flux
+algorithms is applied to the saturation specific humidity (IFS, Beljaars
+1998, Fairall et al. 1996) or to the saturation vapour pressure (COARE
+code); since q is not linear in e, the two differ slightly.
 
 ## QUDT findings
 
@@ -120,7 +143,47 @@ silently.
     close match. Its description announces IRIs of the form
     `https://www.wikidata.org/wiki/Q…`; the data uses
     `http://www.wikidata.org/entity/Q…`.
-11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph.
+11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph, chosen
+    deliberately ([qudt-public-repo#712](https://github.com/qudt/qudt-public-repo/issues/712),
+    where `1` and `-` were proposed). The SI Brochure gives the unit one
+    the symbol 1, "rarely explicitly written" (9th ed., 2.3.3 and 5.4.7).
+    nomogram follows the SI: `1` in its data, an override declared in the
+    extraction script (`SYMBOLS`), and no symbol in its displays.
+12. The symbol of `unit:PPM` is `PPM`; the SI Brochure (5.4.7) and ITU-R
+    P.453 write `ppm`, as UCUM does (`[ppm]`). nomogram displays `ppm`, an
+    override declared with its reason in the extraction script
+    (`SYMBOLS`).
+13. `quantitykind:RefractiveIndex` and `quantitykind:DimensionlessRatio`
+    specialize no kind: dimensionless kinds share no common parent in
+    QUDT. nomogram uses `DimensionlessRatio` as the parent of the
+    dimensionless kinds it defines.
+14. The description of `quantitykind:Altitude` says that altitude or
+    height "is defined based on the context in which it is used"; CF is
+    precise (`altitude`: above the geoid; `height`: above the surface;
+    also `surface_altitude`, `height_above_mean_sea_level`,
+    `height_above_reference_ellipsoid`). nomogram follows CF. An altitude
+    is on an interval scale (its zero is a reference surface) yet in
+    metres: the extraction marks it so (`offset_units=False`), the
+    reference surface rather than the unit setting the zero.
+15. QUDT also has `quantitykind:ElevationRelativeToNAP`, an elevation
+    relative to the Dutch datum: the reference surface is part of the
+    meaning of the quantity.
+16. QUDT has no kind for the salinity or the chlorinity of sea water;
+    `quantitykind:MassFraction` has no per mille or g/kg unit (QUDT 3.5.2
+    gives it FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM), although CF writes
+    salinities in 1e-3 and g kg-1 (nomogram adds them). `unit:PSU` has a
+    conversion multiplier of 0, the value QUDT gives units without a
+    multiplicative conversion (decibel, Beaufort...): Practical Salinity
+    is a number defined by a conductivity ratio (Millero 1993, "What is
+    PSU?"), and QUDT's own description calls the unit "formally incorrect
+    and strongly discouraged".
+
+CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
+`sea_water_cox_salinity`, `sea_water_practical_salinity`,
+`sea_water_reference_salinity`, `sea_water_absolute_salinity` and
+`sea_water_preformed_salinity`, with `sea_water_salinity` for the
+unqualified quantity. nomogram keeps one kind, `SeaWaterSalinity`, and
+puts these names on its conventional scales.
 
 CF table 95 has no standard name for the saturation vapour pressure
 either, and its `relative_humidity` entry has an empty description (it

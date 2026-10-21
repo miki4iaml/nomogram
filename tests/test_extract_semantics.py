@@ -42,6 +42,7 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
             ),
         },
     )
+    monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ())
     monkeypatch.setattr(
         extract_semantics,
         "UNITS",
@@ -76,6 +77,16 @@ def test_units_are_extracted_with_qudt_conversions() -> None:
     assert units["DEG_C"]["matches"] == []
 
 
+def test_symbols_declared_by_nomogram_replace_qudt_ones(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(extract_semantics, "SYMBOLS", {"K": "kelvin"})
+    units = run()["units"]
+    assert isinstance(units, dict)
+    assert units["K"]["symbol"] == "kelvin"
+    assert units["PA"]["symbol"] is None  # no symbol in the fixture
+
+
 def test_kinds_inherit_units_and_follow_the_scale_rule() -> None:
     kinds = run()["quantity_kinds"]
     assert isinstance(kinds, dict)
@@ -86,6 +97,22 @@ def test_kinds_inherit_units_and_follow_the_scale_rule() -> None:
     assert kinds["VapourPressure"]["applicable_units"] == ["HectoPA", "PA"]
     assert kinds["VapourPressure"]["added_units"] == ["PA"]
     assert kinds["VapourPressure"]["specialization_of"] == "Pressure"
+
+
+def test_an_interval_scale_may_take_multiplicative_units(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = extract_semantics.KINDS["VapourPressure"]
+    interval = spec._replace(scale_type="interval", added_units=())
+    kinds = dict(extract_semantics.KINDS, VapourPressure=interval)
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["VapourPressure"]["applicable_units"] == []
+    kinds["VapourPressure"] = interval._replace(offset_units=False)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["VapourPressure"]["applicable_units"] == ["HectoPA"]
 
 
 def test_english_label_is_preferred_and_plain_label_accepted() -> None:
@@ -115,6 +142,7 @@ def test_cf_names_and_versions_are_recorded() -> None:
         ("K", "K"),
         ("kg m-3", "kg * m ** -3"),
         ("m2 s-2", "m ** 2 * s ** -2"),
+        ("1e-3", "1e-3"),
     ],
 )
 def test_udunits_to_pint(udunits: str, pint: str) -> None:
@@ -195,3 +223,15 @@ def test_main_reports_errors(
     assert extract_semantics.main(arguments(output)) == 1
     assert not output.exists()
     assert "error: not found in the source" in capsys.readouterr().err
+
+
+def test_cf_names_of_scales_are_extracted(monkeypatch: pytest.MonkeyPatch) -> None:
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = kinds["ThermodynamicTemperature"]._replace(
+        cf_standard_names=()
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ("air_temperature",))
+    names = run()["cf_standard_names"]
+    assert isinstance(names, dict)
+    assert "air_temperature" in names

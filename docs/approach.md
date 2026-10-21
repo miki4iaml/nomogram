@@ -14,8 +14,11 @@ terms, misattributions).
 
 ## 1. Sources are read, not assumed
 
-Every formulation cites its sources, and every reference carries a
-status:
+A formulation is written once; each source that gives it is a
+**citation**, which records what that source states: its equation
+number, its symbols, the units and the validity domain it gives, the
+accuracy it claims, the temperature scale. A detail never floats free of
+its source. Every reference carries a status:
 
 - **`verified`**: the detail was read in the source itself (an equation,
   a coefficient, a validity range, a table);
@@ -59,6 +62,15 @@ published by an independent source:
 - the deviations of the Magnus forms from the reference match those
   reported in the literature: about -0.28 % at 20 °C for Sonntag's
   coefficients, 2 to 3 % too high at 100 °C, outside their range;
+- the maximum relative errors that Alduchov and Eskridge (1996, Table
+  III) give for five Magnus forms against GG46 and SO90 are recorded as
+  relations and verified: ten of twelve are reproduced to the third
+  decimal, at the temperature they give, once the formulas are compared
+  as given (each on its own temperature scale), as the authors did, and
+  GG46 taken in its triple-point form; for Sonntag's Magnus
+  coefficients (SA90) we find 0.610 % against GG46 where the table gives
+  0.597 %, and 0.315 % against SO90 where it gives 0.328 %, with the same
+  coefficients as their Table II: the disagreement is recorded;
 - over ice, the IAPWS sublimation equation (R14-08, 2011) reproduces
   the table of its release (8.94735 × 10⁻⁶ MPa at 230 K) and meets the
   equation over water at the triple point; the formulations quoted by
@@ -77,6 +89,13 @@ and gives its relative deviation from a reference, in one vectorised
 pass. The plot of the README is exactly that. It shows at a glance which
 formulations agree, where they drift, and where they stop.
 
+When another implementation of a formulation exists, its values are
+recorded once as a **cross-check** (implementation, version, date,
+points), and the tests compute them again: ITU-R P.453 against ITU-Rpy
+agrees on every point tried, to the last digit, or within 10⁻¹² when the
+value went through (n − 1) × 10⁶ (see the
+[catalog guide](catalog.md#cross-checks-against-other-implementations)).
+
 ## 4. Units and temperature scales are explicit
 
 - **Units** come from QUDT and are checked against pint: each unit's
@@ -87,6 +106,15 @@ formulations agree, where they drift, and where they stop.
 - **Formulas with fixed units**: the coefficients of an empirical fit
   only hold in its units. They are never converted; the inputs are,
   before evaluation (a Fahrenheit point becomes a Celsius point).
+- **Units of coefficients**: sources often give coefficients as bare
+  numbers. Dimensional analysis of the expression gives them their unit
+  (the B of the Magnus form is a temperature difference in °C, its C a
+  pressure in hPa; the a₂ of Sonntag's formulation is in K⁻¹). Every
+  coefficient of the catalog has one, declared or inferred, and every
+  declared unit is checked against the expression. Two methods find
+  these units, local propagation through the expression tree and linear
+  algebra on the exponents of the dimensions; the tests check that they
+  agree on the whole catalog and on formulas generated at random.
 - **Temperature scales**: a formula fitted on IPTS-68 expects IPTS-68
   temperatures. Between 0 and 100 °C the two scales differ by up to
   0.026 K, which shifts the saturation vapour pressure by up to about
@@ -94,7 +122,11 @@ formulations agree, where they drift, and where they stop.
   formulation records its scale and how that is known: stated by the
   source, inferred from the publication date only (weak: ITS-90 itself
   took years to be applied), or inferred from numbers. Inputs and
-  results are on ITS-90; conversions are done by default.
+  results are on ITS-90; conversions are done by default. Temperature
+  scales were the first conventional reference scales (VIM 1.29) of the
+  catalog; the same mechanism serves salinity (see
+  [sea-water.md](sea-water.md)) and will serve other quantities defined
+  by agreement (heights, time scales...).
 
 The last category came from the data itself: the Hyland and Wexler
 coefficients published in 1983 (the IPTS-68 era), as given today by
@@ -150,11 +182,13 @@ They guarantee that:
 
 - every entry of the catalog loads and is consistent (declared
   identifiers, units applicable to their quantity kinds, references
-  present, dimensional homogeneity of quantity equations);
+  present, dimensional homogeneity of quantity equations, a unit for
+  every coefficient, consistent with the expression);
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
-- examples of the documentation run, and the README code is the code
-  that drew its plot.
+- the Python examples of the README and of the guides run (those of the
+  sea water guide give the values their comments state), and the README
+  code is the code that drew its plot.
 
 They do not guarantee that:
 

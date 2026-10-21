@@ -5,11 +5,13 @@
 
 import dataclasses
 import math
+import warnings
+from typing import Any
 
 import numpy as np
 import pytest
 
-from nomogram.catalog import catalog
+from nomogram.catalog import catalog, load_catalog
 from nomogram.model import DomainBasis, OutOfDomainError, ValidityWarning
 from nomogram.units import Q_
 
@@ -84,8 +86,95 @@ def test_missing_or_unexpected_inputs_are_reported() -> None:
 
 def test_latex_in_a_notation() -> None:
     wmo = CATALOG.notations["wmo"]
-    assert SONNTAG.latex(wmo).startswith(r"e_{\mathrm{w}} = C \exp\left(")
-    assert SONNTAG.latex().startswith("e_{s} = ")
+    assert SONNTAG.latex(wmo).startswith(r"e_{\mathrm{w}} = C \times \exp\left(")
+    assert SONNTAG.latex().startswith(r"e_{\mathrm{s}} = ")
+
+
+@pytest.mark.parametrize(
+    "option",
+    [{"scale": "Convert"}, {"scale": "conversion"}, {"outside": "NaN"}, {"basis": "x"}],
+)
+def test_a_misspelt_option_is_refused(option: dict[str, str]) -> None:
+    # A typo would otherwise skip the scale conversion or the domains.
+    name = next(iter(option))
+    with pytest.raises(ValueError, match=f"{name}: expected one of"):
+        SONNTAG.evaluate(t=Q_(20, "degC"), **option)  # type: ignore[arg-type]
+
+
+def test_outside_mask_refuses_a_misspelt_basis() -> None:
+    with pytest.raises(ValueError, match="basis: expected one of stated"):
+        SONNTAG.outside_mask({"t": 20.0}, "stat")  # type: ignore[arg-type]
+
+
+BOUNDED_SCALES = """
+[references.src]
+authors = "Author, A."
+title = "A title"
+status = "verified"
+
+[scales.ref]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.old]
+label = "Old scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "ref"
+unit = "DEG_C"
+conversion = "x"
+bounds = [-2.0, 30.0]
+
+[formulations.fitted]
+label = "Fitted on the old scale"
+expression = "a * t"
+fixed_units = true
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in", scale = "old", scale_basis = "inferred-from-date" }]
+coefficients = { a = 2.0 }
+citations = [{ reference = "src", domains = [{ bounds = { t = [0.0, 40.0] } }] }]
+
+[formulations.gives]
+label = "Gives a value on the old scale"
+expression = "a * t"
+fixed_units = true
+output = { identifier = "y", kind = "CelsiusTemperature", unit = "DEG_C", description = "out", scale = "old", scale_basis = "inferred-from-date" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 2.0 }
+"""
+BOUNDED = load_catalog([BOUNDED_SCALES]).formulations
+
+
+@pytest.mark.parametrize(
+    ("key", "inputs", "identifier"),
+    [
+        # 35 degC lies inside the stated domain but beyond the conversion.
+        ("fitted", {"t": Q_(np.array([20.0, 35.0]), "degC")}, "t"),
+        # 2 x 20 degC = 40 degC on the old scale has no reference value.
+        ("gives", {"t": Q_(np.array([10.0, 20.0]), "degC")}, "y"),
+    ],
+)
+def test_values_beyond_a_scale_conversion_follow_outside(
+    key: str, inputs: dict[str, Any], identifier: str
+) -> None:
+    formulation = BOUNDED[key]
+    message = f"1 value\\(s\\) of {identifier} beyond the conversion of scale old"
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        default = formulation.evaluate(**inputs).magnitude
+        ignored = formulation.evaluate(outside="ignore", **inputs).magnitude
+    assert np.isnan(default[1])
+    assert not np.isnan(default[0])
+    # A value that cannot be converted has no value: NaN, even with "ignore".
+    assert np.isnan(ignored[1])
+    with pytest.raises(OutOfDomainError, match=message):
+        formulation.evaluate(outside="raise", **inputs)
+    with pytest.warns(ValidityWarning, match=message):
+        warned = formulation.evaluate(outside="warn", **inputs).magnitude
+    assert np.isnan(warned[1])
+    # Without conversion, nothing is beyond a scale.
+    assert not np.isnan(
+        formulation.evaluate(outside="raise", scale="ignore", **inputs).magnitude
+    ).any()
 
 
 def test_formulations_are_immutable() -> None:

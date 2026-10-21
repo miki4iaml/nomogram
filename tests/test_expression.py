@@ -9,11 +9,14 @@ import numpy as np
 import pytest
 
 from nomogram.expression import (
+    LATEX_COMMANDS,
     MAX_SOURCE_LENGTH,
     ExpressionError,
     compile_numeric,
+    latex_commands,
     parse_expression,
     to_latex,
+    upright_symbol,
 )
 
 MAGNUS = "C * exp(A * t / (B + t))"
@@ -172,3 +175,63 @@ def test_latex_power_of_a_decimal_logarithm() -> None:
     x = sympy.Symbol("x", real=True)
     printed = _NotationPrinter()._print_log10(log10(x), exp="2")
     assert printed == r"\log_{10}\left(x\right)^{2}"
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        ("t", "t"),
+        ("e_s", r"e_{\mathrm{s}}"),
+        ("RH", r"\mathrm{RH}"),
+        ("rho_v", r"\rho_{\mathrm{v}}"),
+        ("epsilon", r"\epsilon"),
+        ("a1", "a_{1}"),
+        ("e_i0", r"e_{\mathrm{i0}}"),
+        ("x_alpha", r"x_{\alpha}"),
+        ("T_celsius_zero", r"T_{\mathrm{celsius},\mathrm{zero}}"),
+        ("x__max", r"x^{\mathrm{max}}"),
+    ],
+)
+def test_upright_symbol_follows_iso_80000_2(identifier: str, expected: str) -> None:
+    assert upright_symbol(identifier) == expected
+
+
+def test_to_latex_passes_typography_to_sympy() -> None:
+    expr = parse_expression("2.5 * RH * e_s", ["RH", "e_s"])
+    assert to_latex(expr) == "2.5 RH e_{s}"
+    styled = to_latex(expr, mul_symbol="times", decimal_separator="comma", upright=True)
+    assert styled == r"2{,}5 \times \mathrm{RH} \times e_{\mathrm{s}}"
+    assert to_latex(expr, {"RH": r"\phi"}, upright=True).startswith(r"2.5 \phi")
+
+
+@pytest.mark.parametrize(
+    ("source", "names", "default", "upright"),
+    [
+        (
+            "C * exp(Tbar)",
+            ["C", "Tbar"],
+            r"C \exp\left(\mathrm{Tbar}\right)",
+            r"C \exp\left(\mathrm{Tbar}\right)",
+        ),
+        ("k * ell", ["k", "ell"], r"\mathrm{ell} k", r"\mathrm{ell} k"),
+        ("k * hbar", ["k", "hbar"], r"\mathrm{hbar} k", r"\mathrm{hbar} k"),
+        ("varkappa * x", ["x", "varkappa"], r"\mathrm{varkappa} x", None),
+        ("xdot * t", ["t", "xdot"], r"t \mathrm{xdot}", None),
+    ],
+)
+def test_identifiers_sympy_writes_with_other_commands_stay_in_the_subset(
+    source: str, names: list[str], default: str, upright: str | None
+) -> None:
+    expr = parse_expression(source, names)
+    for found in (to_latex(expr), to_latex(expr, upright=True)):
+        assert latex_commands(found) <= LATEX_COMMANDS, found
+    assert to_latex(expr) == default
+    if upright is not None:
+        assert to_latex(expr, upright=True) == upright
+    # A notation still decides when it names that identifier.
+    assert r"\Theta" in to_latex(expr, {names[1]: r"\Theta"})
+
+
+def test_latex_commands_are_listed() -> None:
+    assert latex_commands(r"a \times \frac{b}{c}\,d") == {r"\times", r"\frac", r"\,"}
+    assert latex_commands("a + b") == set()

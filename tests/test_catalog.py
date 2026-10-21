@@ -8,7 +8,7 @@ import datetime
 import pytest
 
 from nomogram.catalog import CatalogError, catalog, load_catalog
-from nomogram.model import ReferenceStatus
+from nomogram.model import ReferenceStatus, UnitBasis
 from nomogram.semantics import MatchRelation
 
 CATALOG = catalog()
@@ -23,7 +23,7 @@ status = "verified"
 label = "Test formulation"
 expression = "a * t"
 fixed_units = true
-references = ["src"]
+citations = [{ reference = "src" }]
 output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }
 inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
 coefficients = { a = 2.0 }
@@ -121,7 +121,7 @@ def replace(old: str, new: str) -> str:
             replace('expression = "a * t"', 'expression = "t"'),
             "declared but not used: a",
         ),
-        (replace('references = ["src"]', 'references = ["nope"]'), "unknown reference"),
+        (replace('reference = "src"', 'reference = "nope"'), "unknown reference"),
         (replace('unit = "HectoPA"', 'unit = "NOPE"'), "unknown unit"),
         (
             replace('unit = "DEG_C"', 'unit = "K"'),
@@ -153,23 +153,23 @@ def test_entry_defined_twice_is_refused() -> None:
 
 DOMAIN = """
 [[formulations.f.domains]]
-basis = "{basis}"
-bounds = {{ {name} = [{low}, {high}] }}
+{extra}bounds = {{ {name} = [{low}, {high}] }}
 """
 
 
 @pytest.mark.parametrize(
-    ("basis", "name", "low", "high", "message"),
+    ("extra", "name", "low", "high", "message"),
     [
-        ("stated", "x", 0, 1, "'x' is not an input"),
-        ("stated", "t", 1, 0, "empty interval"),
-        ("guessed", "t", 0, 1, "is not one of physical, stated"),
+        ("", "x", 0, 1, "'x' is not an input"),
+        ("", "t", 1, 0, "empty interval"),
+        # A domain stated by a source belongs to its citation.
+        ('basis = "stated"\n', "t", 0, 1, "unknown keys: basis"),
     ],
 )
 def test_invalid_domains_are_refused(
-    basis: str, name: str, low: float, high: float, message: str
+    extra: str, name: str, low: float, high: float, message: str
 ) -> None:
-    domain = DOMAIN.format(basis=basis, name=name, low=low, high=high)
+    domain = DOMAIN.format(extra=extra, name=name, low=low, high=high)
     with pytest.raises(CatalogError, match=message):
         load_catalog([VALID + domain])
 
@@ -223,6 +223,44 @@ def test_bad_matches_are_refused() -> None:
         load_catalog([bad_relation])
 
 
+@pytest.mark.parametrize(
+    ("expression", "coefficients", "message"),
+    [
+        ("a * b * t", "{ a = 2.0, b = 3.0 }", "does not determine the unit of a, b"),
+        (
+            "c * exp(a * t / (b + t))",
+            (
+                '{ a = 1.0, b = { value = 2.0, unit = "HectoPA", unit_basis = "added", '
+                'note = "x" }, c = 3.0 }'
+            ),
+            r"units contradict the expression, in b \+ t",
+        ),
+    ],
+)
+def test_every_coefficient_needs_a_unit_declared_or_inferred(
+    expression: str, coefficients: str, message: str
+) -> None:
+    document = replace('expression = "a * t"', f'expression = "{expression}"').replace(
+        "coefficients = { a = 2.0 }", f"coefficients = {coefficients}"
+    )
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
+NOTATION = """
+[notations.n]
+label = "A notation"
+symbols = {{ e = '{symbol}' }}
+"""
+
+
+def test_notation_symbols_stay_within_the_common_latex_subset() -> None:
+    accepted = load_catalog([VALID + NOTATION.format(symbol=r"E_{\mathrm{w}}")])
+    assert accepted.notations["n"].symbols["e"] == r"E_{\mathrm{w}}"
+    with pytest.raises(CatalogError, match=r"notations.n.symbols.e: .*\\textrm"):
+        load_catalog([VALID + NOTATION.format(symbol=r"E_{\textrm{w}}")])
+
+
 KIND = """
 [kinds.{name}]
 label = "Local kind"
@@ -242,6 +280,16 @@ def test_invalid_kinds_are_refused(name: str, parent: str, message: str) -> None
         load_catalog([KIND.format(name=name, parent=parent)])
 
 
+def test_a_local_kind_may_declare_an_interval_scale() -> None:
+    document = KIND.format(name="Modified", parent="DimensionlessRatio")
+    kind = load_catalog([document + 'scale_type = "interval"\n']).kinds["Modified"]
+    assert kind.scale_type.value == "interval"
+    assert kind.delta is False
+    assert load_catalog([document]).kinds["Modified"].scale_type.value == "ratio"
+    with pytest.raises(CatalogError, match="is not one of"):
+        load_catalog([document + 'scale_type = "ordinal"\n'])
+
+
 def test_table_expected() -> None:
     with pytest.raises(CatalogError, match="expected a table"):
         load_catalog(["[formulations]\nf = 1\n"])
@@ -250,14 +298,65 @@ def test_table_expected() -> None:
 def test_coefficient_with_unit_and_note() -> None:
     document = replace(
         "coefficients = { a = 2.0 }",
-        'coefficients = { a = { value = 2.0, unit = "K", note = "difference" } }',
-    )
+        'coefficients = { a = { value = 2.0, unit = "K", unit_basis = "added", '
+        'note = "difference" } }',
+    ).replace('expression = "a * t"', 'expression = "t * exp(a / t)"')
     coefficient = load_catalog([document]).formulations["f"].coefficients[0]
     assert (coefficient.value, coefficient.unit, coefficient.note) == (
         2.0,
         "K",
         "difference",
     )
+    assert coefficient.unit_basis is UnitBasis.ADDED
+
+
+@pytest.mark.parametrize(
+    ("table", "message"),
+    [
+        ('{ value = 2.0, unit = "K" }', 'needs unit_basis: "added" \\(with a note\\)'),
+        ('{ value = 2.0, unit = "K", unit_basis = "stated" }', "goes in its citation"),
+        (
+            '{ value = 2.0, unit = "K", unit_basis = "added" }',
+            "added unit needs a note",
+        ),
+        ('{ value = 2.0, unit_basis = "stated" }', "unit_basis without a unit"),
+        ('{ value = 2.0, unit = "K", unit_basis = "guessed" }', "is not one of"),
+    ],
+)
+def test_declared_units_say_where_they_come_from(table: str, message: str) -> None:
+    document = replace(
+        "coefficients = { a = 2.0 }", f"coefficients = {{ a = {table} }}"
+    )
+    document = document.replace('expression = "a * t"', 'expression = "t * exp(a / t)"')
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
+def test_catalog_declares_only_units_inference_cannot_give() -> None:
+    origins = {
+        (f.key, name): unit.origin
+        for f in CATALOG.formulations.values()
+        for name, unit in f.coefficient_units.items()
+        if unit.origin != "inferred"
+    }
+    assert origins == {
+        ("iapws_sr1_86", "T_c"): "stated",
+        ("iapws_sr1_86", "p_c"): "stated",
+        ("iapws_r14_08_sublimation", "T_t"): "stated",
+        ("iapws_r14_08_sublimation", "p_t"): "stated",
+        ("goff_gratch1946", "e_st"): "added",
+        ("goff_gratch1946_ice", "e_i0"): "added",
+        ("itu_r_p453_reference_profile", "h_0"): "stated",
+        ("itu_r_p453_surface_refractivity", "h_0"): "stated",
+        ("ittc2011_vapour_pressure", "T_c"): "stated",
+        ("ittc2011_vapour_pressure", "p_c"): "stated",
+        ("coare36_salinity_factor", "S_0"): "stated",
+        ("dickson2007_total_molality", "S_1"): "added",
+        ("dickson2007_osmotic_coefficient_of_salinity", "S_1"): "added",
+        ("dickson2007_vapour_pressure", "S_1"): "added",
+        ("dickson2007_vapour_pressure", "T_c"): "stated",
+        ("dickson2007_vapour_pressure", "p_c"): "stated",
+    }
 
 
 def test_coefficient_table_without_unit() -> None:
@@ -279,9 +378,194 @@ def test_catalog_guide_example_matches_the_catalog() -> None:
     )
     assert block is not None
     example = tomllib.loads(block.group(1))["formulations"]["alduchov_eskridge1996"]
-    bundled_text = (files("nomogram") / "data" / "catalog" / "humidity.toml").read_text(
-        encoding="utf-8"
-    )
+    bundled_text = (
+        files("nomogram") / "data" / "catalog" / "water-vapour.toml"
+    ).read_text(encoding="utf-8")
     bundled = tomllib.loads(bundled_text)["formulations"]["alduchov_eskridge1996"]
     for key, value in example.items():
         assert bundled[key] == value, key
+
+
+def test_a_scale_short_name_and_subscript() -> None:
+    its90 = CATALOG.scales["its90"]
+    assert (its90.symbol, its90.subscript) == ("ITS-90", "90")
+    assert CATALOG.scales["ipts68"].subscript == "68"
+    document = """
+[scales.s]
+label = "A scale"
+kinds = ["CelsiusTemperature"]
+symbol = "XYZ-1"
+subscript = "x"
+"""
+    # The short name is searchable, even when the label does not hold it.
+    assert load_catalog([document]).search("XYZ-1").refs == ("scales.s",)
+    with pytest.raises(CatalogError, match="subscript: expected a non-empty string"):
+        load_catalog([document.replace('subscript = "x"', "subscript = 3")])
+
+
+# --- Numbers, relations and cross-checks ------------------------------------
+
+SECTIONS = """
+[formulations.g]
+label = "Another test formulation"
+expression = "b * t"
+fixed_units = true
+citations = [{{ reference = "src" }}]
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }}]
+coefficients = {{ b = 2.01 }}
+
+[relations.r]
+kind = "approximates"
+subject = "g"
+object = "f"
+citation = "src"
+accuracy = {accuracy}
+at = {{ t = {at} }}
+bounds = {{ t = {bounds} }}
+
+[cross_checks.x]
+implementation = "Other"
+version = "1.0"
+checked = 2026-10-21
+cases = [{{ formulation = "f", inputs = {{ t = {input} }}, value = {value} }}]
+
+[scales.s0]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[scales.s1]
+label = "Older scale"
+kinds = ["CelsiusTemperature"]
+reference_scale = "s0"
+unit = "DEG_C"
+differences = {differences}
+"""
+
+GOOD = {
+    "accuracy": "1.0",
+    "at": "10.0",
+    "bounds": "[0.0, 10.0]",
+    "input": "5.0",
+    "value": "10.0",
+    "differences": "[[0.0, 0.0], [10.0, 0.01]]",
+}
+
+
+def sections(**changes: str) -> str:
+    return VALID + SECTIONS.format(**(GOOD | changes))
+
+
+def test_a_malformed_given_names_the_relation() -> None:
+    document = sections().replace(
+        'citation = "src"\naccuracy', 'citation = "src"\ngiven = [1]\naccuracy', 1
+    )
+    with pytest.raises(CatalogError, match=r"relations\.r\.given: expected a table"):
+        load_catalog([document])
+
+
+@pytest.mark.parametrize(
+    ("written", "message"),
+    [
+        ("bounds = { t = [0.0, 10.0] }", r"relations\.r\.bounds: expected a table"),
+        ("at = { t = 10.0 }", r"relations\.r\.at: expected a table"),
+    ],
+)
+def test_relation_bounds_and_at_are_tables(written: str, message: str) -> None:
+    key = written.split(" = ")[0]
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([sections().replace(written, f"{key} = 3", 1)])
+
+
+def test_relations_cross_checks_and_scale_tables_load() -> None:
+    loaded = load_catalog([sections()])
+    assert loaded.relations["r"].accuracy == 1.0
+    assert dict(loaded.relations["r"].at) == {"t": 10.0}
+    assert loaded.cross_checks["x"].cases[0].value == 10.0
+    assert loaded.scales["s1"].difference == (0.0, 0.01)
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        # A negative or zero accuracy could only ever be exceeded.
+        ({"accuracy": "-2.0"}, r"relations\.r\.accuracy: expected a positive"),
+        ({"accuracy": "0.0"}, r"relations\.r\.accuracy: expected a positive"),
+        ({"accuracy": "nan"}, r"relations\.r\.accuracy: expected a finite number"),
+        ({"at": "50.0"}, r"relations\.r\.at\.t: 50\.0 is outside the bounds"),
+        ({"at": '"high"'}, r"relations\.r\.at\.t: expected a finite number"),
+        ({"bounds": "[0.0, 10.0, 20.0]"}, r"relations\.r\.bounds\.t: expected"),
+        ({"bounds": "[0.0, nan]"}, r"relations\.r\.bounds\.t\[1\]: expected a finite"),
+        ({"bounds": "5.0"}, r"relations\.r\.bounds\.t: expected"),
+        ({"value": '"abc"'}, r"cross_checks\.x\.cases\[0\]\.value: expected a finite"),
+        ({"input": "inf"}, r"cross_checks\.x\.cases\[0\]\.inputs\.t: expected"),
+        (
+            {"differences": '[[0.0, 0.0], ["a", 0.1]]'},
+            r"scales\.s1\.differences\[1\]\[0\]: expected a finite number",
+        ),
+        # NaN would slip past the check that reference values increase.
+        (
+            {"differences": "[[0.0, 0.0], [nan, 0.1], [10.0, 0.2]]"},
+            r"scales\.s1\.differences\[1\]\[0\]: expected a finite number",
+        ),
+        (
+            {"differences": "[[0.0, nan], [10.0, 0.2]]"},
+            r"scales\.s1\.differences\[0\]\[1\]: expected a finite number",
+        ),
+        (
+            {"differences": "[[0.0, 0.0, 1.0]]"},
+            r"scales\.s1\.differences\[0\]: expected \[reference value",
+        ),
+        ({"differences": "[]"}, r"scales\.s1\.differences: expected \[reference"),
+    ],
+)
+def test_malformed_numbers_are_refused_with_their_place(
+    changes: dict[str, str], message: str
+) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([sections(**changes)])
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("a = 2.0", 'a = "2.0"', r"formulations\.f\.coefficients\.a: expected"),
+        ("a = 2.0", "a = nan", r"formulations\.f\.coefficients\.a: expected"),
+        (
+            "a = 2.0",
+            "a = { value = true }",
+            r"formulations\.f\.coefficients\.a\.value: expected a finite number",
+        ),
+    ],
+)
+def test_malformed_coefficients_are_refused_with_their_place(
+    old: str, new: str, message: str
+) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([replace(old, new)])
+
+
+def test_a_domain_bound_must_be_a_finite_number() -> None:
+    domain = DOMAIN.format(extra="", name="t", low=0, high="nan")
+    with pytest.raises(CatalogError, match=r"bounds\.t\[1\]: expected a finite"):
+        load_catalog([VALID + domain])
+
+
+def test_a_constant_must_be_a_finite_number() -> None:
+    constant = QUANTITY.format(unit="GM-PER-M3").replace("value = 2.0", "value = inf")
+    with pytest.raises(CatalogError, match=r"constants\.k\.value: expected a finite"):
+        load_catalog([VALID + constant])
+
+
+# --- Links ---------------------------------------------------------------
+
+
+def test_uses_and_used_by_follow_the_catalog_order() -> None:
+    order = {ref: i for i, ref in enumerate(CATALOG.search().refs)}
+    targets = {t for found in CATALOG.links.values() for t in found}
+    for ref in CATALOG.links:
+        found = CATALOG.uses(ref).refs
+        assert list(found) == sorted(found, key=order.__getitem__), ref
+    for ref in targets:
+        found = CATALOG.used_by(ref).refs
+        assert list(found) == sorted(found, key=order.__getitem__), ref

@@ -62,7 +62,7 @@ table = compare(formulations, reference, {"ThermodynamicTemperature": temperatur
 plot_deviations(table)
 ```
 
-![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.1.0/docs/images/saturation-vapour-pressure.png)
+![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
 
 ## Utilisation
 
@@ -79,11 +79,23 @@ ha = compose(catalog().formulations["mass_concentration_ideal_gas"], {"e_s": ref
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17,29
 ```
 
+Les formulations se retrouvent par mots, jokers et champs, quelle que
+soit leur notation ([Finding formulations](docs/search.md), en anglais) :
+
+```python
+catalog().search(variable="rho*")                    # ρ dans toutes les notations
+catalog().search(kind="VapourPressure", source="buck*")
+```
+
 Chaque formulation garde ses unités, son domaine de validité, son
 échelle de température et ses références. Le vocabulaire est mis en
 correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais) ; la
 page [How nomogram earns trust](docs/approach.md) (en anglais) explique ce
-qui est vérifié, et comment.
+qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
+anglais) montre l'affichage des formules dans un notebook, en Markdown et
+sur un graphique. [Sea water](docs/sea-water.md) (en anglais) présente les
+échelles de salinité et la pression de vapeur de l'eau de mer, et ce que
+son abaissement de 2 % change à la surface de la mer.
 
 ## Contribuer
 

@@ -63,6 +63,25 @@ def test_max_abs_deviation_ignores_nan_and_reports_all_nan() -> None:
     assert math.isnan(outside.max_abs_deviation()["sonntag1990_magnus"])
 
 
+def test_comparison_records_the_scale_mode() -> None:
+    # Weiss and Price fitted T on IPTS-48 and S on PSS-78.
+    weiss = FORMULATIONS["weiss_price1980_vapour_pressure"]
+    inputs = {
+        "ThermodynamicTemperature": Q_(np.array([10.0, 20.0]), "degC"),
+        "SeaWaterSalinity": Q_(35.0, "g/kg"),
+    }
+    converted = compare([weiss], weiss, inputs)
+    ignored = compare([weiss], weiss, inputs, scale="ignore")
+    assert converted.scale == "convert"
+    assert ignored.scale == "ignore"
+    # Taken on its own scales, the formulation gives other numbers.
+    assert not np.allclose(
+        converted.values[weiss.key].magnitude,
+        ignored.values[weiss.key].magnitude,
+        rtol=1e-6,
+    )
+
+
 def test_composition_inputs_and_key() -> None:
     ha = compose(IDEAL_GAS, {"e_s": SONNTAG}, bind={"t": "T"})
     assert ha.key == "mass_concentration_ideal_gas[e_s=sonntag1990_magnus]"

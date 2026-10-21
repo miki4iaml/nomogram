@@ -1,0 +1,656 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Sea water: salinity and chlorinity, their conventional scales (Knudsen,
+# Cox, PSS-78, Reference Salinity, Absolute Salinity); the vapour pressure
+# of sea water and the salinity effect on the surface humidity.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "sea-water"
+label = "Sea water: salinity and chlorinity"
+format = 2
+requires = ["moist-air"]
+keywords = ["oceanography", "salinity", "sea water", "vapour pressure", "salinity correction", "evaporation duct"]
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.SeaWaterSalinity]
+label = "Sea Water Salinity"
+specialization_of = "MassFraction"
+description = "Mass fraction of dissolved material in sea water, estimated on a conventional scale (Knudsen, Cox, PSS-78, Reference or Absolute Salinity; CF: sea_water_salinity and its precise forms)."
+
+[kinds.Chlorinity]
+label = "Chlorinity"
+specialization_of = "MassFraction"
+description = "Chlorinity of sea water, in per mille: Cl = 0.3285234 Ag, Ag being the mass in grams of atomic-weight silver just necessary to precipitate the halogens in 1 kg of sea water (Jacobsen and Knudsen 1940, p. 8), which replaced the definition of Sorensen (1902)."
+
+[kinds.SaturationVapourPressureOverSeaWater]
+label = "Saturation Vapour Pressure over Sea Water"
+specialization_of = "VapourPressure"
+description = "Pressure of water vapour in equilibrium with a plane surface of sea water (TEOS-10 Manual, eq. 3.37.1); always lower than over pure water at the same temperature."
+
+[kinds.RelativeVapourPressureOfSeaWater]
+label = "Relative Vapour Pressure of Sea Water"
+specialization_of = "DimensionlessRatio"
+description = "Vapour pressure of sea water divided by that of pure water at the same temperature. Close to, but not the same quantity as, the activity of water in sea water (the relative fugacity of sea air, TEOS-10 Manual eq. 3.40.11) and the relative humidity of air in equilibrium with sea water."
+
+[kinds.SaturationSpecificHumidityOverSeaWater]
+label = "Saturation Specific Humidity over Sea Water"
+specialization_of = "SaturationSpecificHumidity"
+description = "Specific humidity of air in equilibrium with a plane surface of sea water: the humidity at the sea surface of bulk flux algorithms."
+
+# --- References -------------------------------------------------------
+
+[references.unesco1966_tp4]
+authors = "UNESCO"
+year = 1966
+title = "Second report of the Joint Panel on Oceanographic Tables and Standards, Rome, 8-9 October 1965"
+container = "UNESCO Technical Papers in Marine Science 4"
+url = "https://www.vliz.be/imisdocs/publications/ocrd/270535.pdf"
+status = "verified"
+note = "Recommendation 2: S = 1.80655 Cl rather than the Sorensen equation (S = 0.030 + 1.805 Cl, Forch, Knudsen and Sorensen 1902). The stated differences between the new conductivity-defined salinity and earlier chlorinity estimates (0 at 35, 0.0023 at 32 and 38, about 0.02 at 11 and 0.025 at 6 per mille) concern that new salinity; the two chlorinity formulas differ by 0.0025 at 32 and 0.0026 at 38."
+
+[references.knudsen1901]
+authors = "Knudsen, M. (ed.)"
+year = 1901
+title = "Hydrographical Tables"
+container = "G. E. C. Gad, Copenhagen"
+status = "to-confirm"
+note = "Not read (no copy reachable from Europe); S = 0.030 + 1.805 Cl as given by the TEOS-10 Manual (eq. A.3.4) and many later sources."
+
+[references.gsw_sp_from_sk]
+authors = "TEOS-10 GSW Oceanographic Toolbox"
+title = "Notes on the function gsw_SP_from_SK"
+url = "https://www.teos-10.org/pubs/gsw/pdf/SP_from_SK.pdf"
+status = "verified"
+note = "S_P = (S_K - 0.03)(1.80655/1.805), obtained by combining the Knudsen and Cox relations (TEOS-10 eqs. A.3.4, A.3.5); a derivation, not a measured relation."
+
+[references.lewis_perkin1981]
+authors = "Lewis, E. L.; Perkin, R. G."
+year = 1981
+title = "The Practical Salinity Scale 1978: conversion of existing data"
+container = "Deep-Sea Research 28A, 307-328; reprinted in UNESCO Technical Papers in Marine Science 37"
+url = "https://www.vliz.be/imisdocs/publications/ocrd/270529.pdf"
+status = "verified"
+note = "p. 325: no true conversion from chlorinity to PSS-78 exists; errors of the recommended route unlikely to exceed 0.03; Knudsen salinities agree with PSS-78 within 0.001 for 25 < S < 38."
+
+[references.sverdrup1942]
+authors = "Sverdrup, H. U.; Johnson, M. W.; Fleming, R. H."
+year = 1942
+title = "The Oceans: Their Physics, Chemistry, and General Biology"
+container = "Prentice-Hall, New York"
+url = "https://publishing.cdlib.org/ucpressebooks/view?docId=kt167nb66r"
+status = "verified"
+note = "Read in the UC Press E-Books edition: p. 67 (Witting's relation, e/e_0 = 1 - 0.000969 Cl; 'about 98 per cent' in the normal range of concentration), p. 115 (e_s = e_d (1 - 0.000537 S), S in parts per mille; 'approximately e_s = 0.98 e_d' in the open ocean)."
+
+[references.witting1908]
+authors = "Witting, R."
+year = 1908
+title = "Untersuchungen zur Kenntnis der Wasserbewegungen und der Wasserumsetzung in den Finnland umgebenden Meeren"
+container = "Finnlandische hydrographisch-biologische Untersuchungen 2, Helsingfors"
+status = "to-confirm"
+note = "Not read (no reachable copy); its relation, cited at p. 173, is known through Sverdrup et al. (1942, p. 67) and Robinson (1954, p. 452), who quotes it through Sverdrup. Its definition of chlorinity is that of Sorensen (1902), before Jacobsen and Knudsen (1940)."
+
+[references.robinson1954]
+authors = "Robinson, R. A."
+year = 1954
+title = "The vapour pressure and osmotic equivalence of sea water"
+container = "Journal of the Marine Biological Association of the United Kingdom 33, 449-455"
+doi = "10.1017/S0025315400008468"
+url = "https://web.archive.org/web/20240420074532id_/https://plymsea.ac.uk/id/eprint/1613/1/The_vapour_pressure_and_osmotic_equivalence_of_sea_water.pdf"
+status = "verified"
+note = "Read: p. 452 (fit of the lowering, comparison with Witting at 19.386 per mille Cl: 0.01874 against 0.01879), p. 454 (summary: isopiestic measurements at 25 degC, chlorinity 10 to 22 per mille); p. 450 worked example, p = 23.295 mm for 20.02 per mille Cl with p_0 = 23.756 mm."
+
+[references.sharqawy2010]
+authors = "Sharqawy, M. H.; Lienhard V, J. H.; Zubair, S. M."
+year = 2010
+title = "Thermophysical properties of seawater: a review of existing correlations and data"
+container = "Desalination and Water Treatment 16, 354-380"
+doi = "10.5004/dwt.2010.1079"
+url = "https://web.mit.edu/lienhard/www/papers/journal/Thermophysical_properties_of_seawater-DWT-16-354-2010.pdf"
+status = "verified"
+note = "Read in the MIT copy with its corrections: section 7 (p. 366) and Table 7 (p. 368), eqs. 29 (Raoult's law, offered 'as a first approximation', no validity or accuracy), 30 (Robinson), 32 (Weiss and Price, labels T48 and S_P) and 33 (Millero and Leung, labels t68 and S_P). The salinity S of eq. 29 has no stated scale."
+
+[references.ittc2011]
+authors = "ITTC"
+year = 2011
+title = "Fresh Water and Seawater Properties, Recommended Procedures and Guidelines 7.5-02-01-03, Revision 02"
+container = "International Towing Tank Conference"
+url = "https://www.ittc.info/media/7989/75-02-01-03.pdf"
+status = "verified"
+note = "Read: p. 3 (the vapour pressure 'recommended by Sharqawy et al. (2010) is adopted'), p. 8 (eq. 6, written with Absolute Salinity S_A; fresh water from Harvey et al. 2008, IAPWS-95), p. 13 (worked example, standard seawater at 15 degC: 1.671 +/- 0.011 kPa). Its 0.1 % (k = 2) for the seawater vapour pressure has no counterpart in Sharqawy et al. for eq. 29."
+
+[references.nayar2016]
+authors = "Nayar, K. G.; Sharqawy, M. H.; Banchik, L. D.; Lienhard V, J. H."
+year = 2016
+title = "Thermophysical properties of seawater: A review and new correlations that include pressure dependence"
+container = "Desalination 390, 1-24"
+doi = "10.1016/j.desal.2016.02.024"
+url = "https://dspace.mit.edu/handle/1721.1/106794"
+status = "verified"
+note = "Read in the author's preprint: p. 7 (correlations in Reference Salinity), Table 2 p. 16 (eqs. 5 and 6, range of validity and maximum uncertainty)."
+
+[references.millero_leung1976]
+authors = "Millero, F. J.; Leung, W. H."
+year = 1976
+title = "The thermodynamics of seawater at one atmosphere"
+container = "American Journal of Science 276, 1035-1077"
+doi = "10.2475/ajs.276.9.1035"
+url = "https://ajsonline.org/article/59869.pdf"
+status = "verified"
+note = "Read on the page images: p. 1035 (abstract: 0 to 40 degC, 0 to 40 per mille), p. 1039 (S = 1.80655 Cl, UNESCO 1966), p. 1062 (eq. 108, fit std deviation 0.001 mm Hg), p. 1063 (Table 20, vapour pressure of seawater; p_0 from Ambrose and Lawrenson 1972). Erratum, Am. J. Sci. 278, 1024 (1978), read: it concerns the heat capacity only."
+
+[references.weiss_price1980]
+authors = "Weiss, R. F.; Price, B. A."
+year = 1980
+title = "Nitrous oxide solubility in water and seawater"
+container = "Marine Chemistry 8, 347-359"
+doi = "10.1016/0304-4203(80)90024-9"
+status = "to-confirm"
+note = "Not read (paywalled); its seawater vapour pressure equation is known through Sharqawy et al. (2010, eq. 32)."
+
+[references.coare36]
+authors = "NOAA Physical Sciences Laboratory"
+year = 2026
+title = "COARE 3.6 bulk flux algorithm, Python version (coare36vn_zrf_et.py)"
+url = "https://github.com/NOAA-PSL/COARE-algorithm/blob/bd1cac80d2dae454e699f9ef46204dfd88086a71/Python/COARE3.6/coare36vn_zrf_et.py"
+status = "verified"
+note = "Read at commit bd1cac8 (MIT licence): function qsat26sea, fs = 1 - 0.02*Ss/35, applied to the Buck saturation vapour pressure; Ss is the sea surface salinity in PSU (header). COARE 3.0 used a fixed 0.98."
+
+[references.beljaars1998]
+authors = "Beljaars, A. C. M."
+year = 1998
+title = "Air-sea interaction in the ECMWF model"
+container = "Proceedings of the ECMWF Seminar on Atmosphere-surface interaction, 8-12 September 1997, 33-52"
+url = "https://www.ecmwf.int/sites/default/files/elibrary/1998/8036-air-sea-interaction-ecmwf-model.pdf"
+status = "verified"
+note = "Read on the page image: section 3.3, p. 45, eq. 25, the text later copied into the IFS documentation."
+
+[references.fairall1996]
+authors = "Fairall, C. W.; Bradley, E. F.; Rogers, D. P.; Edson, J. B.; Young, G. S."
+year = 1996
+title = "Bulk parameterization of air-sea fluxes for Tropical Ocean-Global Atmosphere Coupled-Ocean Atmosphere Response Experiment"
+container = "Journal of Geophysical Research 101(C2), 3747-3764"
+doi = "10.1029/95JC03205"
+status = "verified"
+note = "Read on the page image: section 2.1, p. 3748, eq. 3; q_s is called the interfacial water vapour mixing ratio, then the saturation specific humidity."
+
+# --- Conventional scales ----------------------------------------------
+
+[scales.reference_salinity2008]
+label = "Reference-Composition Salinity Scale (Millero et al. 2008)"
+kinds = ["SeaWaterSalinity"]
+symbol = "Reference Salinity"
+subscript = "R"
+cf_standard_names = ["sea_water_reference_salinity"]
+reference = "teos10_manual"
+
+[scales.pss78]
+label = "Practical Salinity Scale 1978 (PSS-78)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+unit = "PERMILLE"
+conversion = "35.16504 / 35 * x"
+bounds = [2.0, 42.0]
+symbol = "PSS-78"
+subscript = "P"
+cf_standard_names = ["sea_water_practical_salinity"]
+reference = "teos10_manual"
+note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42, the limits of PSS-78: below S_P = 2 the conversion is undefined, and a formulation on this scale gives NaN under the default evaluation (scale='ignore' takes the salinity as given). Practical Salinity is a number, written here in per mille so that S_P = 35 is 35."
+
+[scales.cox1967]
+label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+unit = "PERMILLE"
+conversion = "35.16504 / 35 * x"
+symbol = "Cox"
+subscript = "C"
+cf_standard_names = ["sea_water_cox_salinity"]
+reference = "teos10_manual"
+note = "Converted as TEOS-10 (A.4) converts salinities measured before PSS-78, S_R = u_PS S, for which it states no range: chlorinity salinities are defined below S = 2, where PSS-78 is not, so this scale has no bounds. CF writes S_P = S_C. For chlorinity values, Lewis and Perkin (1981) find no true conversion to PSS-78 and recommend a route through R15 (errors unlikely to exceed 0.03)."
+
+[scales.knudsen1901]
+label = "Knudsen salinity (Knudsen 1901, S = 0.030 + 1.805 Cl)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+base = "cox1967"
+unit = "PERMILLE"
+conversion = "(x - 0.03) * 1.80655 / 1.805"
+symbol = "Knudsen"
+subscript = "K"
+cf_standard_names = ["sea_water_knudsen_salinity"]
+reference = "gsw_sp_from_sk"
+note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF), as Feistel (2008, eq. 2.9) does too; then on as Cox salinity, without bounds. Two sources disagree. TEOS-10 A.4 converts pre-1978 salinities as S_R = u_PS S, without the 0.03 offset. Lewis and Perkin (1981, p. 325) find Knudsen salinities within 0.001 of PSS-78 directly for 25 < S < 38, which this conversion departs from by up to about 0.009 at S = 25 (S_K = 25 gives 24.9914): their finding sides with TEOS-10 A.4."
+
+[scales.absolute_salinity2010]
+label = "Absolute Salinity (TEOS-10)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+convertible = false
+symbol = "Absolute Salinity"
+subscript = "A"
+cf_standard_names = ["sea_water_absolute_salinity"]
+reference = "teos10_manual"
+note = "S_A = S_R + delta S_A, the anomaly depending on the location (TEOS-10 look-up table): nomogram holds no conversion; values on this scale are taken as given."
+
+# --- Formulations -----------------------------------------------------
+
+[formulations.knudsen1901_salinity]
+label = "Knudsen salinity from chlorinity (Knudsen 1901)"
+expression = "a + b * Cl"
+fixed_units = true
+note = "On nine samples (Baltic, North Sea, North Atlantic, Red Sea); the offset reflects river-borne salts of the Baltic. JPOTS (1966) calls it the Sorensen equation, from Forch, Knudsen and Sorensen (1902)."
+output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Knudsen salinity" }
+inputs = [
+  { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
+]
+coefficients = { a = 0.030, b = 1.805 }
+
+[[formulations.knudsen1901_salinity.citations]]
+reference = "teos10_manual"
+equation = "A.3.4"
+scales = { S = "knudsen1901" }
+
+[[formulations.knudsen1901_salinity.citations]]
+reference = "knudsen1901"
+
+[formulations.cox_salinity_jpots1966]
+label = "Cox salinity from chlorinity (JPOTS 1966)"
+expression = "b * Cl"
+fixed_units = true
+note = "Recommended by JPOTS (1966) rather than the Sorensen equation, S = 0.030 + 1.805 Cl."
+output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Cox salinity" }
+inputs = [
+  { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
+]
+coefficients = { b = 1.80655 }
+
+[[formulations.cox_salinity_jpots1966.citations]]
+reference = "unesco1966_tp4"
+scales = { S = "cox1967" }
+
+# The vapour pressure of sea water relative to pure water at the same
+# temperature. Sources print it as a ratio, as a relative lowering
+# (Robinson), as the inverse ratio (Sharqawy, ITTC) or as a logarithm
+# (Nayar); each entry writes the ratio, the printed form in its note.
+
+[formulations.witting1908_vapour_pressure_ratio]
+label = "Relative vapour pressure of sea water from chlorinity (Witting 1908)"
+expression = "1 - a * Cl"
+fixed_units = true
+note = "Robinson (1954, p. 452) judges it a good representation of the lowering only near 20 per mille chlorinity."
+output = { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water at the same temperature" }
+inputs = [
+  { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
+]
+coefficients = { a = 0.000969 }
+
+[[formulations.witting1908_vapour_pressure_ratio.citations]]
+reference = "sverdrup1942"
+note = "p. 67, written e/e_0, quoting Witting (1908)."
+notation = { r = 'e/e_{0}' }
+
+[[formulations.witting1908_vapour_pressure_ratio.citations]]
+reference = "robinson1954"
+note = "p. 452, written p/p_0, quoting Witting (1908)."
+notation = { r = 'p/p_{0}' }
+
+[[formulations.witting1908_vapour_pressure_ratio.citations]]
+reference = "witting1908"
+
+[formulations.sverdrup1942_vapour_pressure_ratio]
+label = "Relative vapour pressure of sea water from salinity (Sverdrup et al. 1942)"
+expression = "1 - a * S"
+fixed_units = true
+note = "p. 115, e_s = e_d (1 - 0.000537 S), referring to p. 66: Witting's relation written with salinity. 0.000969/1.805 = 0.000537, the factor of Knudsen's relation S = 0.030 + 1.805 Cl (Sverdrup p. 51), its offset dropped: hence the Knudsen scale, inferred from these numbers."
+output = { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water at the same temperature" }
+inputs = [
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Salinity", scale = "knudsen1901", scale_basis = "inferred-from-numbers" },
+]
+coefficients = { a = 0.000537 }
+
+[[formulations.sverdrup1942_vapour_pressure_ratio.citations]]
+reference = "sverdrup1942"
+notation = { r = 'e_{s}/e_{d}' }
+
+[formulations.robinson1954_vapour_pressure_ratio]
+label = "Relative vapour pressure of sea water from chlorinity (Robinson 1954)"
+expression = "1 - (a * Cl + b * Cl ** 2)"
+fixed_units = true
+note = "Printed as the relative lowering, (p_0 - p)/p_0 = 0.0009206 Cl + 0.00000236 Cl^2, fitted to isopiestic measurements against NaCl solutions at 25 degC on three waters; no measurement at other temperatures."
+output = { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water at 25 degC" }
+inputs = [
+  { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
+]
+coefficients = { a = 0.0009206, b = 0.00000236 }
+
+[[formulations.robinson1954_vapour_pressure_ratio.citations]]
+reference = "robinson1954"
+note = "p. 452."
+
+[[formulations.robinson1954_vapour_pressure_ratio.citations.domains]]
+bounds = { Cl = [10.0, 22.0] }
+criterion = "Isopiestic measurements at 25 degC of sea water of chlorinity between 10 and 22 per mille (summary, p. 454)."
+
+[[formulations.robinson1954_vapour_pressure_ratio.citations]]
+reference = "sharqawy2010"
+equation = "30"
+accuracy = "+/-0.2 % (Sharqawy et al.; Robinson gives no accuracy for this fit)"
+
+[formulations.raoult_sharqawy2010]
+label = "Relative vapour pressure of sea water by Raoult's law (Sharqawy et al. 2010)"
+expression = "1 / (1 + a * S / (S_0 - S))"
+fixed_units = true
+note = "Printed as the inverse ratio, p_w/p_sw = 1 + 0.57357 S/(1000 - S). An ideal-solution estimate: at ocean salinity it lowers the vapour pressure about 9 % more than the measurement-based forms (0.9796 against about 0.9813 at S = 35). Sharqawy et al. write S in g/kg with no stated scale; the ITTC writes Absolute Salinity, a scale nomogram cannot convert: evaluate with scale='ignore'."
+output = { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water at the same temperature" }
+inputs = [
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "GM-PER-KiloGM", description = "Salinity" },
+]
+
+[formulations.raoult_sharqawy2010.coefficients]
+a = 0.57357
+S_0 = { value = 1000.0, note = "One kilogram of sea water, in g/kg" }
+
+[[formulations.raoult_sharqawy2010.citations]]
+reference = "sharqawy2010"
+equation = "29"
+notation = { r = 'p_{v,sw}/p_{v,w}' }
+
+[[formulations.raoult_sharqawy2010.citations]]
+reference = "ittc2011"
+equation = "6"
+scales = { S = "absolute_salinity2010" }
+notation = { r = 'p_{v,sw}/p_{v,fw}', S = 'S_{A}' }
+note = "Adopted from Sharqawy et al. (p. 3), with Absolute Salinity in place of their S."
+
+[formulations.nayar2016_vapour_pressure_ratio]
+label = "Relative vapour pressure of sea water (Nayar et al. 2016)"
+expression = "exp(-(a * S + b * S ** 2))"
+fixed_units = true
+note = "Printed as ln(p_v,sw/p_v,w) = -4.58180e-4 S - 2.04430e-6 S^2, fitted to Grunberg's (1970) natural sea water data, 20 to 180 degC; extrapolated from 0 to 20 degC, where no data exist (maximum uncertainty 0.91 % there, 0.26 % elsewhere)."
+output = { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water at the same temperature" }
+inputs = [
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "GM-PER-KiloGM", description = "Reference Salinity" },
+]
+coefficients = { a = 4.58180e-4, b = 2.04430e-6 }
+
+[[formulations.nayar2016_vapour_pressure_ratio.citations]]
+reference = "nayar2016"
+equation = "5"
+scales = { S = "reference_salinity2008" }
+accuracy = "+/-0.26 % (0 to 180 degC), +/-0.91 % extrapolated (0 to 20 degC)"
+notation = { r = 'p_{v,sw}/p_{v,w}' }
+
+[[formulations.nayar2016_vapour_pressure_ratio.citations.domains]]
+bounds = { S = [0.0, 160.0] }
+criterion = "Range of validity of eq. 5, Table 2: 0 to 160 g/kg (primary data 0 to 180 degC, extrapolation 0 to 20 degC)."
+
+[formulations.coare36_salinity_factor]
+label = "Salinity factor of the surface vapour pressure (COARE 3.6)"
+expression = "1 - a * S / S_0"
+fixed_units = true
+note = "Linear in salinity: 0.98 at 35, the fixed factor of COARE 3.0. The expression gives 1 for fresh water (the Great Lakes example of the code, Ss = 0), but PSS-78 holds for 2 < S_P < 42: below S_P = 2 the default evaluation gives NaN, and scale='ignore' takes the salinity as given."
+output = { identifier = "f_s", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Salinity factor of the saturation vapour pressure" }
+inputs = [
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Sea surface salinity" },
+]
+coefficients = { a = 0.02, S_0 = 35.0 }
+
+[[formulations.coare36_salinity_factor.citations]]
+reference = "coare36"
+scales = { S = "pss78" }
+units = { S_0 = "PERMILLE" }
+notation = { f_s = "fs", S = "Ss" }
+note = "Function qsat26sea; salinity in PSU."
+
+# Vapour pressures of sea water.
+
+[formulations.millero_leung1976_vapour_pressure]
+label = "Vapour pressure of sea water (Millero and Leung 1976)"
+expression = "p_0 + (a_0 + a_1 * t + a_2 * t ** 2 + a_3 * t ** 3) * S + (b_0 + b_1 * t + b_2 * t ** 2 + b_3 * t ** 3) * S ** 1.5"
+fixed_units = true
+note = "Fitted to vapour pressures derived from osmotic coefficients (Table 20), the pure-water values p_0 coming from Ambrose and Lawrenson (1972); std deviation 0.001 mm Hg. Eq. 108 reproduces Table 20 within 0.0015 mm Hg up to 10 degC, then departs from it as the temperature rises: 0.003 mm Hg at 20 degC, up to 0.029 mm Hg (0.05 %) at 40 degC. Sharqawy et al. (eq. 33) print the same coefficients; the erratum of the paper (Am. J. Sci. 278, 1024, 1978) corrects only the heat capacity (eq. 52, Table 2)."
+output = { identifier = "p", kind = "SaturationVapourPressureOverSeaWater", unit = "MilliM_HG", description = "Vapour pressure of sea water" }
+inputs = [
+  { identifier = "p_0", kind = "SaturationVapourPressureOverWater", unit = "MilliM_HG", description = "Vapour pressure of pure water" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "ipts68", scale_basis = "inferred-from-date" },
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Salinity" },
+]
+coefficients = { a_0 = -2.3311e-3, a_1 = -1.4799e-4, a_2 = -7.520e-6, a_3 = -5.5185e-8, b_0 = -1.1320e-5, b_1 = -8.7086e-6, b_2 = 7.4936e-7, b_3 = -2.6327e-8 }
+
+[[formulations.millero_leung1976_vapour_pressure.citations]]
+reference = "millero_leung1976"
+equation = "108"
+scales = { S = "cox1967" }
+notation = { p_0 = 'p_{0}' }
+
+[[formulations.millero_leung1976_vapour_pressure.citations.domains]]
+bounds = { t = [0.0, 40.0], S = [0.0, 40.0] }
+criterion = "Range of the thermodynamic data examined (abstract, p. 1035) and of Table 20."
+
+[[formulations.millero_leung1976_vapour_pressure.citations]]
+reference = "sharqawy2010"
+equation = "33"
+accuracy = "+/-0.02 %"
+note = "Sharqawy et al. label the temperature t68 and the salinity S_P; Millero and Leung define S = 1.80655 Cl (p. 1039)."
+
+[formulations.weiss_price1980_vapour_pressure]
+label = "Vapour pressure of sea water (Weiss and Price 1980)"
+expression = "p_0 * exp(a - b * T_0 / T - c * ln(T / T_0) - d * S)"
+fixed_units = true
+note = "Printed as ln(p_v,sw) = 24.4543 - 67.4509 (100/T48) - 4.8489 ln(T48/100) - 5.44e-4 S_P, p_v,sw in atm. Based on Robinson's 25 degC data (Sharqawy et al., p. 367). The stated domain outruns the scale conversions: IPTS-48 is converted over -2 to 30 degC (Fofonoff and Bryden 1975) and PSS-78 holds for 2 < S_P < 42, so above t48 = 30 degC (t90 about 29.98 degC) and below S_P = 2 the conversion is undefined and the default evaluation gives NaN; scale='ignore' evaluates the formula as written (about 0.09 % lower near 30 degC than with the conversion, the ITS-90 value being taken as t48, about 16 mK below it)."
+output = { identifier = "p", kind = "SaturationVapourPressureOverSeaWater", unit = "ATM", description = "Vapour pressure of sea water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Practical Salinity" },
+]
+
+[formulations.weiss_price1980_vapour_pressure.coefficients]
+a = 24.4543
+b = 67.4509
+c = 4.8489
+d = 5.44e-4
+T_0 = { value = 100.0, note = "The 100 of 100/T and T/100, T in kelvins" }
+p_0 = { value = 1.0, note = "The pressure is in atmospheres: ln(p/1 atm)" }
+
+[[formulations.weiss_price1980_vapour_pressure.citations]]
+reference = "sharqawy2010"
+equation = "32"
+scales = { T = "ipts48", S = "pss78" }
+accuracy = "+/-0.015 %"
+
+[[formulations.weiss_price1980_vapour_pressure.citations.domains]]
+bounds = { T = [273.0, 313.0], S = [0.0, 40.0] }
+criterion = "Validity given by Sharqawy et al., Table 7: 273 < T48 < 313 K, 0 < S_P < 40."
+
+[[formulations.weiss_price1980_vapour_pressure.citations]]
+reference = "weiss_price1980"
+
+[formulations.sea_water_vapour_pressure]
+label = "Vapour pressure of sea water from that of pure water"
+expression = "r * e_w"
+fixed_units = false
+note = "Definition of the relative vapour pressure: the vapour pressure of pure water at the same temperature times the ratio."
+output = { identifier = "e_sw", kind = "SaturationVapourPressureOverSeaWater", unit = "PA", description = "Vapour pressure of sea water" }
+inputs = [
+  { identifier = "r", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Vapour pressure of sea water relative to pure water" },
+  { identifier = "e_w", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Vapour pressure of pure water at the same temperature" },
+]
+
+[formulations.ittc2011_vapour_pressure]
+label = "Vapour pressure of sea water (ITTC 2011)"
+composition = { outer = "sea_water_vapour_pressure", inner = { r = "raoult_sharqawy2010", e_w = "iapws_sr1_86" } }
+note = "The ITTC takes fresh water from IAPWS-95 (Harvey et al. 2008); IAPWS SR1-86 gives the saturation pressure of that formulation within its uncertainty. With Absolute Salinity, evaluate with scale='ignore'."
+
+[[formulations.ittc2011_vapour_pressure.citations]]
+reference = "ittc2011"
+equation = "6"
+notation = { e_sw = 'p_{v,sw}', S = 'S_{A}' }
+
+# Dickson et al. (2007): the vapour pressure of sea water from the total
+# molality of dissolved species and the osmotic coefficient, both written
+# once and composed.
+
+[formulations.dickson2007_total_molality]
+label = "Total molality of dissolved species in sea water (Dickson et al. 2007)"
+expression = "c * S / (S_1 - d * S)"
+fixed_units = true
+note = "For sea water of the composition Dickson et al. give (chapter 5, section 6.1, Table 2: S = 35 for Cl = 19.374). Printed as the sum of m_B/m°, m° = 1 mol/kg. The guide names no salinity scale. S = 35 for Cl = 19.374 is S = 1.80655 Cl, the relation used in the definition of Practical Salinity and exact for Standard Seawater (TEOS-10 A.4): PSS-78 is inferred from these numbers. Cox salinity fits them too, and converts to Reference Salinity alike."
+output = { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" }
+inputs = [
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Practical Salinity", scale = "pss78", scale_basis = "inferred-from-numbers" },
+]
+
+[formulations.dickson2007_total_molality.coefficients]
+c = 31.998
+d = 1.005
+S_1 = { value = 1000.0, unit = "PERMILLE", unit_basis = "added", note = "The 10^3 of 10^3 - 1.005 S, in the unit of S (per mille)" }
+
+[[formulations.dickson2007_total_molality.citations]]
+reference = "dickson2007"
+equation = "3"
+notation = { m = '\Sigma m_{\mathrm{B}}' }
+
+[formulations.dickson2007_osmotic_coefficient]
+label = "Osmotic coefficient of sea water at 25 degC (Millero 1974, in Dickson et al. 2007)"
+expression = "c_0 + c_1 * (m / 2) + c_2 * (m / 2) ** 2 + c_3 * (m / 2) ** 3 + c_4 * (m / 2) ** 4"
+fixed_units = true
+note = "At 25 degC: Dickson et al. state that it changes by about 1 % between 0 and 40 degC, and ignore it."
+output = { identifier = "phi", kind = "OsmoticCoefficient", unit = "UNITLESS", description = "Osmotic coefficient of sea water" }
+inputs = [
+  { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" },
+]
+
+[formulations.dickson2007_osmotic_coefficient.coefficients]
+c_0 = 0.90799
+c_1 = -0.08992
+c_2 = 0.18458
+c_3 = -0.07395
+c_4 = -0.00221
+
+[[formulations.dickson2007_osmotic_coefficient.citations]]
+reference = "dickson2007"
+equation = "4"
+notation = { phi = '\phi', m = '\Sigma m_{\mathrm{B}}' }
+
+[formulations.vapour_pressure_from_osmotic_coefficient]
+label = "Vapour pressure of sea water from its osmotic coefficient"
+expression = "p * exp(-k * phi * m)"
+fixed_units = true
+note = "Dickson et al., eq. 2, written as an approximation; k = 0.018, the molar mass of water in kg/mol rounded, holds with the molality in mol/kg."
+output = { identifier = "e_sw", kind = "SaturationVapourPressureOverSeaWater", unit = "PA", description = "Vapour pressure of sea water" }
+inputs = [
+  { identifier = "p", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Vapour pressure of pure water at the same temperature" },
+  { identifier = "phi", kind = "OsmoticCoefficient", unit = "UNITLESS", description = "Osmotic coefficient of sea water" },
+  { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" },
+]
+coefficients = { k = 0.018 }
+
+[[formulations.vapour_pressure_from_osmotic_coefficient.citations]]
+reference = "dickson2007"
+equation = "2"
+notation = { e_sw = 'p_{\sigma}(\mathrm{s/w})', p = 'p_{\sigma}', phi = '\phi', m = '\Sigma m_{\mathrm{B}}' }
+
+[formulations.dickson2007_osmotic_coefficient_of_salinity]
+label = "Osmotic coefficient of sea water from salinity, 25 degC (Dickson et al. 2007)"
+composition = { outer = "dickson2007_osmotic_coefficient", inner = { m = "dickson2007_total_molality" } }
+
+[[formulations.dickson2007_osmotic_coefficient_of_salinity.citations]]
+reference = "dickson2007"
+equation = "4"
+notation = { phi = '\phi' }
+
+[[formulations.dickson2007_osmotic_coefficient_of_salinity.citations.domains]]
+bounds = { S = [16.0, 40.0] }
+criterion = "Eq. 4 'for I = 0.3 - 0.8 mol kg-H2O-1 (S = 16-40)'."
+
+[formulations.dickson2007_vapour_pressure]
+label = "Vapour pressure of sea water (Dickson et al. 2007)"
+composition = { outer = "vapour_pressure_from_osmotic_coefficient", inner = { p = "iapws_sr1_86", phi = "dickson2007_osmotic_coefficient_of_salinity", m = "dickson2007_total_molality" } }
+note = "The pure water of eq. 1 is IAPWS SR1-86 (Wagner and Pruss); the osmotic coefficient holds at 25 degC."
+
+[[formulations.dickson2007_vapour_pressure.citations]]
+reference = "dickson2007"
+equation = "2"
+notation = { e_sw = 'p_{\sigma}(\mathrm{s/w})' }
+
+[[formulations.dickson2007_vapour_pressure.citations.domains]]
+bounds = { S = [16.0, 40.0], T = [273.0, 647.0] }
+criterion = "Range of the osmotic coefficient, eq. 4: I = 0.3 - 0.8 mol kg-H2O-1 (S = 16-40); pure water of eq. 1 'over the temperature range 273 to 647 K'."
+
+# The salinity effect on the surface humidity of flux algorithms.
+
+[formulations.sea_surface_saturation_specific_humidity]
+label = "Saturation specific humidity at the sea surface, salinity effect (2 %)"
+expression = "a * q_sat"
+fixed_units = false
+note = "The sources call 0.98 a reasonable approximation for a salinity of 34 parts per thousand, citing Sverdrup et al. (1942), whose pages read give no such salinity: 'normal range of concentration' (p. 67), 'open ocean' (p. 115). The factor is applied to the specific humidity here, to the vapour pressure in the COARE code."
+output = { identifier = "q_s", kind = "SaturationSpecificHumidityOverSeaWater", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity at the sea surface" }
+inputs = [
+  { identifier = "q_sat", kind = "SaturationSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity over pure water at the surface temperature" },
+]
+coefficients = { a = 0.98 }
+
+[[formulations.sea_surface_saturation_specific_humidity.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "8.197"
+notation = { q_sat = 'q_{\mathrm{sat}}(T_{\mathrm{sk}})' }
+
+[[formulations.sea_surface_saturation_specific_humidity.citations]]
+reference = "beljaars1998"
+equation = "25"
+notation = { q_sat = 'q_{\mathrm{sat}}(T_{s})' }
+
+[[formulations.sea_surface_saturation_specific_humidity.citations]]
+reference = "fairall1996"
+equation = "3"
+notation = { q_sat = 'q_{\mathrm{sat}}(T_{s})' }
+note = "Called the interfacial water vapour mixing ratio, then the saturation specific humidity."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.pyseaflux_vapour_pressure]
+implementation = "pySeaFlux"
+version = "2.2.1"
+url = "https://github.com/lukegre/pySeaFlux"
+checked = 2026-10-21
+note = "Functions weiss1980(salt, temp_K) and dickson2007(salt, temp_K) of pyseaflux.vapour_pressure, both in atm; the Dickson values are converted to pascals (times 101325)."
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "weiss_price1980_vapour_pressure"
+inputs = { T = 298.15, S = 35.0 }
+value = 0.03065529996317971
+call = "weiss1980(35.0, 298.15)"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "weiss_price1980_vapour_pressure"
+inputs = { T = 278.15, S = 20.0 }
+value = 0.008507670254264542
+call = "weiss1980(20.0, 278.15)"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "weiss_price1980_vapour_pressure"
+inputs = { T = 308.15, S = 38.0 }
+value = 0.054345869657075115
+call = "weiss1980(38.0, 308.15)"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "dickson2007_vapour_pressure"
+inputs = { T = 298.15, S = 35.0 }
+value = 3110.562622356644
+call = "dickson2007(35.0, 298.15) * 101325"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "dickson2007_vapour_pressure"
+inputs = { T = 288.15, S = 30.0 }
+value = 1678.557430965282
+call = "dickson2007(30.0, 288.15) * 101325"
+
+[[cross_checks.pyseaflux_vapour_pressure.cases]]
+formulation = "dickson2007_vapour_pressure"
+inputs = { T = 278.15, S = 20.0 }
+value = 863.3910560926186
+call = "dickson2007(20.0, 278.15) * 101325"

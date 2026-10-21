@@ -18,13 +18,16 @@ origin. When there is none, or when the unknown appears more than
 result is a :class:`NumericalInverse`, solved by vectorised bisection
 over a search interval.
 
-Temperatures stay on ITS-90 at both ends: an inverse of a formulation
-fitted on another scale converts its result back.
+Values stay on the reference scales of their kinds at both ends (ITS-90
+for temperatures, Reference Salinity for salinities): the inverse takes
+its input on the scale of the source's output, and converts its result
+back from the scale of the source's input.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from types import MappingProxyType
 from typing import Any, Literal
 
 import numpy as np
@@ -38,9 +41,12 @@ from nomogram.model import (
     OutOfDomainError,
     Outside,
     ScaleConversion,
+    UnitBasis,
     ValidityDomain,
     ValidityWarning,
     Variable,
+    _check_options,
+    _flag_beyond,
 )
 from nomogram.semantics import semantic_catalog
 from nomogram.units import Q_, convert
@@ -184,7 +190,13 @@ def _symbolic(
     coefficients = list(formulation.coefficients)
     if shift:
         coefficients.append(
-            Coefficient(_OFFSET, -shift, "K", "t = T - T0 (SI Brochure, section 2.3.1)")
+            Coefficient(
+                _OFFSET,
+                -shift,
+                "K",
+                "t = T - T0 (SI Brochure, section 2.3.1)",
+                UnitBasis.ADDED,
+            )
         )
     names = (
         [input.identifier]
@@ -219,11 +231,28 @@ def _symbolic(
                 constants=formulation.constants,
                 expression=source,
                 fixed_units=formulation.fixed_units,
-                domains=_carried_domains(
-                    formulation, solve_for, input.identifier, forward
+                physical_domains=_carried_domains(
+                    formulation.physical_domains,
+                    formulation.key,
+                    solve_for,
+                    input.identifier,
+                    forward,
                 ),
-                accuracy=formulation.accuracy,
-                references=formulation.references,
+                citations=tuple(
+                    replace(
+                        citation,
+                        domains=_carried_domains(
+                            citation.domains,
+                            formulation.key,
+                            solve_for,
+                            input.identifier,
+                            forward,
+                        ),
+                        # The output carries the scale of the solved variable.
+                        scales=MappingProxyType({}),
+                    )
+                    for citation in formulation.citations
+                ),
                 note=f"Derived by symbolic inversion of {formulation.key}.",
                 matches=(),
                 derivation=Derivation(formulation.key, "symbolic inversion", solve_for),
@@ -232,16 +261,22 @@ def _symbolic(
 
 
 def _carried_domains(
-    formulation: Formulation, solve_for: str, identifier: str, forward: Any
+    domains: tuple[ValidityDomain, ...],
+    source: str,
+    solve_for: str,
+    identifier: str,
+    forward: Any,
 ) -> tuple[ValidityDomain, ...]:
     """The domains on the input, carried through the function onto its output."""
     carried = []
-    for domain in formulation.domains:
+    for domain in domains:
         if solve_for not in domain.bounds:
             continue
         low, high = domain.bounds[solve_for]
         ends = sorted(float(v) for v in forward(np.array([low, high])))
-        criterion = f"Carried by inversion from {formulation.key}: {domain.criterion or 'no criterion'}"
+        criterion = (
+            f"Carried by inversion from {source}: {domain.criterion or 'no criterion'}"
+        )
         carried.append(
             ValidityDomain(
                 domain.basis,
@@ -299,16 +334,69 @@ class NumericalInverse:
         scale: ScaleConversion = "convert",
         **inputs: Any,
     ) -> Any:
-        """Solve for the output, by vectorised bisection."""
+        """Solve for the output, by vectorised bisection.
+
+        Parameters
+        ----------
+        outside : {"nan", "warn", "raise", "ignore"}
+            Behaviour outside the validity domains of the source, and
+            beyond a scale conversion (NaN whatever the option), as for
+            :meth:`~nomogram.model.Formulation.evaluate`.
+        basis : {"stated", "physical", "all"}
+            Which domains of the source apply.
+        scale : {"convert", "ignore"}
+            With ``"convert"`` (default), the input is taken on the
+            reference scale of its kind and converted to the scale of the
+            source's output, and the result converted from the scale of
+            the source's input to the reference scale; ``"ignore"`` uses
+            values as they are.
+        **inputs : pint.Quantity
+            The one input, by identifier.
+
+        Returns
+        -------
+        pint.Quantity
+            The result, in the output unit; NaN where the input is beyond
+            the image of the search interval.
+
+        Raises
+        ------
+        TypeError
+            If the input is missing or unexpected.
+        ValueError
+            If ``outside``, ``basis`` or ``scale`` is not one of its values.
+        OutOfDomainError
+            With ``outside="raise"``, if a result is outside a domain, or
+            a value beyond a scale conversion.
+        ScaleConversionError
+            With ``scale="convert"``, if a scale cannot be converted.
+        """
+        _check_options(outside, basis, scale)
         if set(inputs) != {self.input.identifier}:
             msg = f"{self.key}: expected the input {self.input.identifier}"
             raise TypeError(msg)
         units = semantic_catalog().units
         source_input = self.source.inputs[0]
+        given = inputs[self.input.identifier]
+        target_scale = self.input.scale
+        if (
+            scale == "convert"
+            and target_scale is not None
+            and not target_scale.is_reference
+        ):
+            # The target is given on the reference scale: the source computes
+            # on its own.
+            target_scale.check_convertible()
+            table = units[str(target_scale.unit)].pint
+            on_scale, failed = target_scale.from_reference(
+                convert(given, table).magnitude
+            )
+            _flag_beyond(
+                self.key, [(self.input.identifier, target_scale, failed)], outside
+            )
+            given = Q_(on_scale, table)
         target = np.asarray(
-            convert(
-                inputs[self.input.identifier], units[self.input.unit].pint
-            ).magnitude,
+            convert(given, units[self.input.unit].pint).magnitude,
             dtype=float,
         )
         forward = _forward(self.source)
@@ -341,10 +429,21 @@ class NumericalInverse:
             else:
                 solved = np.where(mask, np.nan, solved)
         quantity = Q_(solved, units[source_input.unit].pint)
-        scale_of_source = source_input.temperature_scale
-        if scale == "convert" and scale_of_source is not None and scale_of_source.t90:
-            celsius = scale_of_source.to_its90(convert(quantity, "degC").magnitude)
-            quantity = Q_(celsius, "degC")
+        scale_of_source = source_input.scale
+        if (
+            scale == "convert"
+            and scale_of_source is not None
+            and not scale_of_source.is_reference
+        ):
+            scale_of_source.check_convertible()
+            table = units[str(scale_of_source.unit)].pint
+            on_scale = convert(quantity, table).magnitude
+            on_reference = scale_of_source.to_reference(on_scale)
+            failed = np.isnan(on_reference) & ~np.isnan(on_scale)
+            _flag_beyond(
+                self.key, [(self.output.identifier, scale_of_source, failed)], outside
+            )
+            quantity = Q_(on_reference, table)
         result = np.asarray(
             convert(quantity, units[self.output.unit].pint).magnitude, dtype=float
         )
@@ -400,8 +499,14 @@ def invert(
     source_input = formulation.inputs[0]
     output = replace(
         output,
-        temperature_scale=source_input.temperature_scale,
+        scale=source_input.scale,
         scale_basis=source_input.scale_basis,
+    )
+    # The new input is on the scale of the source's output, if any.
+    input = replace(
+        input,
+        scale=formulation.output.scale,
+        scale_basis=formulation.output.scale_basis,
     )
     key = key or f"{formulation.key}_inverse"
     label = label or f"Inverse of: {formulation.label}"

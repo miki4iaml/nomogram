@@ -1,0 +1,986 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""Verification of the relations between formulations stated by sources.
+
+A relation of the catalog is a claim made by a source; :func:`verify`
+checks it and returns a :class:`Verdict`:
+
+- an **equivalence** is proved with SymPy: coefficients become exact
+  rationals, each result is brought into its output unit, the object's
+  inputs are replaced as the relation says (``given``) or by the subject
+  inputs that feed them, and the difference must simplify to zero. If
+  it does not, a numerical counterexample refutes the claim; without
+  one, the equivalence is left unproven (equivalence of transcendental
+  expressions is undecidable in general). Between formulations on
+  different conventional scales, evaluated with conversion, it is
+  unverified: the expressions cannot tell;
+- an **approximation** is checked on a dense grid of the domain the
+  source states: the maximum relative deviation found is compared with
+  the stated one. The verdict says whether it is reproduced (to the
+  precision published), held (smaller) or exceeded (larger); it is a
+  check on points, never a proof. Points where the deviation is not
+  finite are not compared, and the verdict says so; it is unverified
+  when no point is left.
+
+Deviations nomogram computes without a source are observations, given by
+:func:`nomogram.comparison.compare`; they never become relations.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import itertools
+import json
+import math
+import os
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from fractions import Fraction
+from functools import lru_cache
+from importlib.resources import files
+from pathlib import Path
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Literal
+
+import numpy as np
+import sympy
+
+from nomogram.comparison import same_state
+from nomogram.expression import parse_expression
+from nomogram.model import (
+    CheckCase,
+    CrossCheck,
+    Formulation,
+    Relation,
+    RelationKind,
+    Variable,
+)
+from nomogram.units import Q_
+
+if TYPE_CHECKING:
+    from nomogram.catalog import Catalog
+
+__all__ = [
+    "BUDGET",
+    "VERIFIER",
+    "Replay",
+    "Verdict",
+    "fingerprint",
+    "form",
+    "load_registry",
+    "match_inputs",
+    "per_axis",
+    "record",
+    "replay",
+    "report",
+    "signature",
+    "verdict",
+    "verify",
+]
+
+#: Relative difference below which two values are taken as equal, when
+#: looking for a counterexample to an equivalence.
+EQUALITY_TOLERANCE = 1e-9
+
+#: Random samples looking for a counterexample to an equivalence.
+SAMPLES = 200
+
+Status = Literal[
+    "proven", "refuted", "unproven", "reproduced", "held", "exceeded", "unverified"
+]
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """The outcome of verifying a relation.
+
+    Attributes
+    ----------
+    status : str
+        ``"proven"``, ``"refuted"`` or ``"unproven"`` for an equivalence;
+        ``"reproduced"``, ``"held"`` or ``"exceeded"`` for an
+        approximation; ``"unverified"`` when the claim cannot be checked
+        as it stands (an equivalence between formulations on different
+        conventional scales, evaluated with conversion; an approximation
+        whose deviation is finite nowhere on its domain), the method
+        saying why.
+    method : str
+        How it was verified.
+    value : float or None
+        For an approximation, the maximum relative deviation found, in
+        percent; ``None`` when it is unverified.
+    at : mapping of str to float
+        Where that maximum lies, or where a counterexample was found, by
+        input identifier of the subject.
+    detail : str or None
+        The simplified difference of an equivalence that is not proven.
+    """
+
+    status: Status
+    method: str
+    value: float | None = None
+    at: Mapping[str, float] = MappingProxyType({})
+    detail: str | None = None
+
+
+def _decimals(value: float) -> int:
+    text = repr(value)
+    return len(text.split(".")[1]) if "." in text and "e" not in text else 0
+
+
+#: Evaluations of the first grid of an approximation, all in one
+#: vectorised pass.
+BUDGET = 200_000
+
+#: Points per axis at most: a step of 0.01 degC over -40..50 degC.
+MAX_PER_AXIS = 9001
+
+#: Best points of the grid around which the maximum is refined.
+CANDIDATES = 5
+
+#: Zoom steps of the refinement at most, points of each step, and the
+#: fraction of the domain at which it stops.
+ZOOMS = 8
+ZOOM_POINTS = 2_000
+RESOLUTION = 1e-9
+
+
+def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
+    """The expression with canonical input names, as SymPy writes it.
+
+    Inputs are renamed by quantity kind and unit; when several share both,
+    every order is tried and the smallest text kept, so that the result
+    does not depend on the identifiers chosen by the source.
+    """
+    expr = formulation.sympy_expression
+    if keep_coefficients:
+        pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+        pairs += [(k.identifier, k.value) for k in formulation.constants]
+        expr = expr.xreplace(
+            {sympy.Symbol(n, real=True): sympy.Rational(repr(v)) for n, v in pairs}
+        )
+    else:
+        names = [c.identifier for c in formulation.coefficients]
+        names += [k.identifier for k in formulation.constants]
+        expr = expr.xreplace(
+            {sympy.Symbol(n, real=True): sympy.Symbol("c") for n in names}
+        )
+    groups: dict[tuple[str, str], list[str]] = {}
+    for variable in formulation.inputs:
+        groups.setdefault((variable.kind, variable.unit), []).append(
+            variable.identifier
+        )
+    ordered = sorted(groups)
+    texts: list[str] = []
+    for orders in itertools.product(
+        *(itertools.permutations(groups[k]) for k in ordered)
+    ):
+        renaming = {}
+        for index, name in enumerate(n for order in orders for n in order):
+            renaming[sympy.Symbol(name, real=True)] = sympy.Symbol(f"x{index}")
+        texts.append(str(sympy.srepr(expr.xreplace(renaming))))
+    head = [
+        formulation.output.kind,
+        formulation.output.unit,
+        str(formulation.fixed_units),
+    ]
+    head += [f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in ordered]
+    return "|".join(head) + "|" + min(texts)
+
+
+def signature(formulation: Formulation) -> str:
+    """A fingerprint of a formulation: equal for two writings of the same one.
+
+    Same quantity kinds and units, same expression once inputs are named
+    canonically and coefficients written as exact rationals (6.112 and
+    6.1120 are the same number); SymPy's own simplifications apply (a
+    coefficient C gives ``exp(ln(C) + x) = C * exp(x)``). Two forms equal
+    only after further algebra (``A * t / (B + t)`` and
+    ``A - A * B / (B + t)``) have different signatures.
+    """
+    text = _canonical(formulation, keep_coefficients=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def form(formulation: Formulation) -> str:
+    """A fingerprint of the form alone: coefficients and constants left aside.
+
+    Equal for the Magnus forms of Sonntag, Bolton or Alduchov and Eskridge,
+    which differ only by their coefficients.
+    """
+    text = _canonical(formulation, keep_coefficients=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def match_inputs(subject: Formulation, other: Formulation) -> dict[str, str]:
+    """Which input of the subject feeds each input of the object.
+
+    By identifier first, then by quantity kind when a single input of the
+    subject has a matching kind (a Celsius temperature feeds a
+    thermodynamic one). An input left without match is absent from the
+    result.
+    """
+    names = {v.identifier: v for v in subject.inputs}
+    matched = {}
+    for variable in other.inputs:
+        if variable.identifier in names:
+            matched[variable.identifier] = variable.identifier
+            continue
+        candidates = [
+            v.identifier for v in subject.inputs if same_state(v.kind, variable.kind)
+        ]
+        if len(candidates) == 1:
+            matched[variable.identifier] = candidates[0]
+    return matched
+
+
+def per_axis(dimensions: int, budget: int = BUDGET) -> int:
+    """Points per axis of the first grid, for a number of input variables."""
+    return int(min(MAX_PER_AXIS, max(5, int(budget ** (1 / dimensions) + 1e-9))))
+
+
+def _approximation(
+    relation: Relation, subject: Formulation, other: Formulation, budget: int
+) -> tuple[Verdict, float]:
+    """The verdict on an approximation, and the share of the grid compared.
+
+    Points where the deviation is not finite (a formulation undefined
+    there, or beyond the bounds of a scale conversion) are not compared;
+    the method says so when there are some.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    names = [v.identifier for v in subject.inputs]
+    low = np.array([relation.bounds[n][0] for n in names])
+    high = np.array([relation.bounds[n][1] for n in names])
+
+    feeds = match_inputs(subject, other)
+
+    def deviation(points: Any) -> Any:
+        """Relative deviation in percent at points (one row per point)."""
+        arguments: dict[str, Any] = {
+            v.identifier: Q_(points[:, i], units[v.unit].pint)
+            for i, v in enumerate(subject.inputs)
+        }
+        mine = subject.evaluate(outside="ignore", scale=relation.scale, **arguments)
+        theirs = other.evaluate(
+            outside="ignore",
+            scale=relation.scale,
+            **{name: arguments[source] for name, source in feeds.items()},
+        )
+        with np.errstate(invalid="ignore", divide="ignore"):
+            ratio = np.asarray(mine.magnitude) / np.asarray(
+                theirs.to(mine.units).magnitude
+            )
+        return np.abs(ratio - 1) * 100
+
+    def ranked(values: Any) -> Any:
+        """Deviations to rank: a point not compared ranks last."""
+        return np.where(np.isfinite(values), values, -np.inf)
+
+    def grid(lower: Any, upper: Any, count: int) -> Any:
+        axes = [np.linspace(a, b, count) for a, b in zip(lower, upper, strict=True)]
+        mesh = np.meshgrid(*axes, indexing="ij")
+        return np.stack([m.ravel() for m in mesh], axis=1)
+
+    count = per_axis(len(names), budget)
+    first = grid(low, high, count)
+    values = deviation(first)
+    evaluations = len(first)
+    compared = np.isfinite(values)
+    share = float(np.mean(compared))
+    if not compared.any():
+        method = (
+            f"no point of a grid of {count} points per axis ({len(names)} "
+            "input(s)) where both formulations give a finite value; "
+            f"scale {relation.scale}"
+        )
+        return Verdict("unverified", method), share
+    order = np.argsort(ranked(values))[::-1][:CANDIDATES]
+    best_points = first[order[compared[order]]]
+    step = (high - low) / (count - 1)
+    zoom = max(3, int(ZOOM_POINTS ** (1 / len(names)) + 1e-9))
+    found, where = -np.inf, best_points[0]
+    for centre in best_points:
+        half = step.copy()
+        span = np.where(high > low, high - low, 1.0)
+        for _ in range(ZOOMS):
+            if np.max(half / span) <= RESOLUTION:
+                break
+            local = grid(
+                np.maximum(low, centre - half), np.minimum(high, centre + half), zoom
+            )
+            local_values = ranked(deviation(local))
+            evaluations += len(local)
+            best = int(np.argmax(local_values))
+            if np.isfinite(local_values[best]):
+                centre = local[best]
+            half = half * 2 / (zoom - 1)
+        value = float(deviation(centre[None, :])[0])
+        if value > found:
+            found, where = value, centre
+    at = MappingProxyType({n: float(x) for n, x in zip(names, where, strict=True)})
+    claimed = float(relation.accuracy or 0.0)
+    tolerance = 0.5 * 10.0 ** -_decimals(claimed)
+    if abs(found - claimed) <= tolerance:
+        status: Status = "reproduced"
+    elif found < claimed:
+        status = "held"
+    else:
+        status = "exceeded"
+    resolution = float(np.max(half / span))
+    method = (
+        f"maximum relative deviation: grid of {count} points per axis "
+        f"({len(names)} input(s)), refined around the {CANDIDATES} best points "
+        f"down to {resolution:.1e} of the domain; {evaluations} evaluations; "
+        f"scale {relation.scale}"
+    )
+    if share < 1:
+        method += (
+            f"; deviation finite on {100 * share:.4g} % of the grid only, "
+            "the other points not compared"
+        )
+    return Verdict(status, method, found, at), share
+
+
+def _exact(value: float) -> Any:
+    """A float as the simplest rational within its rounding (0.001, not 0.0010...02).
+
+    A factor between units computed in floating point is a ratio of small
+    integers or powers of ten; the first rational close enough is it.
+    """
+    exact = Fraction(repr(value))
+    for digits in range(1, 19):
+        found = exact.limit_denominator(10**digits)
+        if abs(found - exact) <= 1e-13 * abs(exact):
+            return sympy.Rational(found.numerator, found.denominator)
+    return sympy.Rational(exact.numerator, exact.denominator)
+
+
+def _rational(formulation: Formulation) -> Any:
+    """The result in the output unit, with exact coefficients and constants.
+
+    A quantity equation gives its result in the units of its inputs, which
+    :attr:`~nomogram.model.Formulation.output_factor` brings into the
+    output unit (1 for fixed units): the factor is part of the result.
+    """
+    expr = parse_expression(formulation.expression, formulation.names)
+    pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+    pairs += [(k.identifier, k.value) for k in formulation.constants]
+    values = {
+        sympy.Symbol(name, real=True): sympy.Rational(repr(value))
+        for name, value in pairs
+    }
+    return _exact(formulation.output_factor) * expr.xreplace(values)
+
+
+def _scale_name(variable: Variable) -> str:
+    return "no scale" if variable.scale is None else variable.scale.key
+
+
+def _scale_differences(
+    relation: Relation, subject: Formulation, other: Formulation
+) -> list[str]:
+    """Where the object and the subject feeding it are on different scales.
+
+    The reference scale of a kind and no scale are evaluated alike
+    (without conversion), so they count as the same.
+    """
+
+    def key(variable: Variable) -> str | None:
+        scale = variable.scale
+        return None if scale is None or scale.is_reference else scale.key
+
+    names = {v.identifier: v for v in subject.inputs}
+    matched = match_inputs(subject, other)
+    found = []
+    if key(subject.output) != key(other.output):
+        found.append(
+            f"output on {_scale_name(subject.output)} and {_scale_name(other.output)}"
+        )
+    for variable in other.inputs:
+        if variable.identifier in relation.given:
+            expr = parse_expression(relation.given[variable.identifier], sorted(names))
+            sources = sorted(s.name for s in expr.free_symbols)
+        else:
+            sources = (
+                [matched[variable.identifier]] if variable.identifier in matched else []
+            )
+        found += [
+            f"{variable.identifier} on {_scale_name(variable)} fed by {s} on "
+            f"{_scale_name(names[s])}"
+            for s in sources
+            if key(names[s]) != key(variable)
+        ]
+    return found
+
+
+def _real(expr: Any, sample: Mapping[Any, float]) -> float | None:
+    """The value of an expression at a sample, ``None`` unless real and finite."""
+    try:
+        value = complex(expr.xreplace(sample))
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(value.real) and math.isfinite(value.imag)):
+        return None
+    if abs(value.imag) > EQUALITY_TOLERANCE * max(abs(value.real), 1.0):
+        return None
+    return value.real
+
+
+def _equivalence(
+    relation: Relation, subject: Formulation, other: Formulation, points: int
+) -> Verdict:
+    method = "symbolic difference simplified with SymPy, exact rationals"
+    differences = _scale_differences(relation, subject, other)
+    if differences and relation.scale == "convert":
+        return Verdict(
+            "unverified",
+            "an equivalence is proved on the expressions as written, which "
+            "evaluated with conversion of conventional scales needs the same "
+            f'scales: {"; ".join(differences)}; state scale = "ignore" to '
+            "compare the expressions as written",
+        )
+    if differences:
+        method += f"; scales ignored: {'; '.join(differences)}"
+    names = [v.identifier for v in subject.inputs]
+    left = _rational(subject)
+    right = _rational(other)
+    replacements = {
+        sympy.Symbol(identifier, real=True): parse_expression(source, names)
+        for identifier, source in relation.given.items()
+    }
+    # An input of the object fed by a subject input of another identifier
+    # (Q fed by P, the only pressure of the subject) takes its symbol.
+    for identifier, source in match_inputs(subject, other).items():
+        if identifier != source and identifier not in relation.given:
+            replacements[sympy.Symbol(identifier, real=True)] = sympy.Symbol(
+                source, real=True
+            )
+    difference = sympy.nsimplify(left - right.xreplace(replacements), rational=True)
+    simplified = sympy.simplify(difference)
+    if simplified == 0:
+        return Verdict("proven", method)
+    # Look for a counterexample on positive values, or on the stated domain,
+    # where both sides are real: outside, the formulations mean nothing.
+    symbols = sorted(simplified.free_symbols | left.free_symbols, key=lambda s: s.name)
+    random = np.random.default_rng(0)
+    valid = 0
+    for _ in range(points):
+        sample = {
+            s: (
+                random.uniform(*relation.bounds[s.name])
+                if s.name in relation.bounds
+                else random.uniform(0.5, 2.0)
+            )
+            for s in symbols
+        }
+        value = _real(left, sample)
+        gap = _real(simplified, sample)
+        if value is None or gap is None:
+            continue
+        valid += 1
+        if abs(gap) > EQUALITY_TOLERANCE * (abs(value) or 1.0):
+            at = MappingProxyType({s.name: float(v) for s, v in sample.items()})
+            return Verdict(
+                "refuted",
+                method + "; numerical counterexample",
+                None,
+                at,
+                str(simplified),
+            )
+    if valid == points:
+        method += "; no counterexample found"
+    elif valid == 0:
+        method += f"; no counterexample: none of {points} samples is real and finite"
+    else:
+        method += (
+            f"; no counterexample found among the {valid} of {points} samples "
+            "real and finite"
+        )
+    return Verdict("unproven", method, detail=str(simplified))
+
+
+def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Verdict:
+    """Verify a relation stated by a source.
+
+    Parameters
+    ----------
+    relation : Relation
+        The relation, from ``catalog.relations``.
+    catalog : Catalog
+        The catalog holding its two formulations.
+    budget : int, optional
+        Evaluations of the first grid of an approximation (see
+        :func:`per_axis`; ``docs/relation-verdicts.md`` says how far
+        the result can be trusted with the number of inputs).
+
+    Returns
+    -------
+    Verdict
+        The status, the method and what was found.
+    """
+    subject = catalog.formulations[relation.subject]
+    other = catalog.formulations[relation.object]
+    if relation.kind is RelationKind.APPROXIMATES:
+        return _approximation(relation, subject, other, budget)[0]
+    return _equivalence(relation, subject, other, SAMPLES)
+
+
+def _valid_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
+    """Per input, where a formulation is stated valid, within its physical domains.
+
+    The extent of the domains its sources state (:func:`_stated_extent`),
+    narrowed by every physical domain, which always applies; infinite on
+    a side nothing bounds.
+    """
+    extent = dict(_stated_extent(formulation))
+    for domain in formulation.physical_domains:
+        for name, (low, high) in domain.bounds.items():
+            old_low, old_high = extent.get(name, (-math.inf, math.inf))
+            extent[name] = (max(old_low, low), min(old_high, high))
+    return extent
+
+
+def _common_bounds(
+    subject: Formulation, other: Formulation
+) -> dict[str, tuple[float, float]] | None:
+    """A domain where both formulations are valid, on the subject's inputs.
+
+    Both are stated valid there (a domain stated by one side serves when
+    the other states none), within the physical domains of both; ``None``
+    when that domain is empty, or unbounded on a side.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    feeds = {source: name for name, source in match_inputs(subject, other).items()}
+    own_extent = _valid_extent(subject)
+    other_extent = _valid_extent(other)
+    bounds = {}
+    for variable in subject.inputs:
+        low, high = own_extent.get(variable.identifier, (-math.inf, math.inf))
+        name = feeds.get(variable.identifier)
+        if name is not None and name in other_extent:
+            unit = next(v.unit for v in other.inputs if v.identifier == name)
+            converted = Q_(np.array(other_extent[name]), units[unit].pint).to(
+                units[variable.unit].pint
+            )
+            low = max(low, float(converted.magnitude[0]))
+            high = min(high, float(converted.magnitude[1]))
+        if not (math.isfinite(low) and math.isfinite(high) and low < high):
+            return None
+        bounds[variable.identifier] = (low, high)
+    return bounds
+
+
+def _stated_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
+    """Per input, the extent of the domains a formulation's sources state.
+
+    Domains of one citation apply together, citations combine by union: the
+    extent is the smallest interval holding that union, infinite on a side
+    a citation leaves open.
+    """
+    boxes = []
+    for citation in formulation.citations:
+        if not citation.domains:
+            continue
+        box: dict[str, tuple[float, float]] = {}
+        for domain in citation.domains:
+            for name, (low, high) in domain.bounds.items():
+                old_low, old_high = box.get(name, (-math.inf, math.inf))
+                box[name] = (max(old_low, low), min(old_high, high))
+        boxes.append(box)
+    names = {name for box in boxes for name in box}
+    whole = (-math.inf, math.inf)
+    return {
+        name: (
+            min(box.get(name, whole)[0] for box in boxes),
+            max(box.get(name, whole)[1] for box in boxes),
+        )
+        for name in sorted(names)
+    }
+
+
+def _beyond_parts(formulation: Formulation) -> list[str]:
+    """Where the sources of a composed formulation state more than those of its parts.
+
+    A domain stated for the composed formulation replaces those stated for
+    its parts (see :meth:`~nomogram.model.Formulation.outside_mask`): a
+    disagreement is pointed out, never smoothed.
+    """
+    own = _stated_extent(formulation)
+    if not own:
+        return []
+    inputs = {v.identifier for v in formulation.inputs}
+    lines = []
+    for part in formulation.parts:
+        key = part.formulation.key
+        for name, (low, high) in _stated_extent(part.formulation).items():
+            identifier = part.rename.get(name, name)
+            if identifier not in inputs:
+                lines.append(
+                    f"  domain stated for {key} on {name}, a computed value, "
+                    "replaced by the composed formulation's"
+                )
+                continue
+            ours = own.get(identifier, (-math.inf, math.inf))
+            if ours[0] < low or ours[1] > high:
+                lines.append(
+                    f"  stated domain beyond that of {key} on {identifier}: "
+                    f"[{ours[0]:g}, {ours[1]:g}] against [{low:g}, {high:g}]"
+                )
+    return lines
+
+
+@dataclass(frozen=True)
+class Replay:
+    """A case of a cross-check, computed again by nomogram.
+
+    Attributes
+    ----------
+    case : CheckCase
+        The case, with the value of the other implementation.
+    value : float
+        The value nomogram computes, in the unit of the formulation's
+        output.
+    deviation : float
+        Relative deviation from the recorded value (absolute when it is 0).
+    """
+
+    case: CheckCase
+    value: float
+    deviation: float
+
+    @property
+    def agrees(self) -> bool:
+        """Whether the deviation is within the case's tolerance."""
+        return self.deviation <= self.case.rtol
+
+
+def replay(check: CrossCheck, catalog: Catalog) -> tuple[Replay, ...]:
+    """Compute again the cases of a cross-check.
+
+    Each formulation is evaluated as written: inputs in its units, no
+    scale conversion and no validity domain, as an implementation of the
+    printed equation computes it.
+
+    Parameters
+    ----------
+    check : CrossCheck
+        The cross-check, from ``catalog.cross_checks``.
+    catalog : Catalog
+        The catalog holding its formulations.
+
+    Returns
+    -------
+    tuple of Replay
+        One per case, in order.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    results = []
+    for case in check.cases:
+        formulation = catalog.formulations[case.formulation]
+        inputs: dict[str, Any] = {
+            v.identifier: Q_(case.inputs[v.identifier], units[v.unit].pint)
+            for v in formulation.inputs
+        }
+        found = formulation.evaluate(outside="ignore", scale="ignore", **inputs)
+        value = float(found.magnitude)
+        deviation = (
+            abs(value / case.value - 1) if case.value != 0 else abs(value - case.value)
+        )
+        results.append(Replay(case, value, deviation))
+    return tuple(results)
+
+
+def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> str:
+    """Observations on formulations, against the others of the same kind.
+
+    For each formulation: those of the same form, and the maximum relative
+    deviation observed against each other
+    formulation of the same output kind on the domain where both are
+    stated valid. These are observations, never claims: only a relation
+    with a citation states an approximation or an equivalence.
+
+    A pair is not compared, and a line says why, when a variable is on a
+    scale nomogram cannot convert (Absolute Salinity) or when no point of
+    the common domain gives a finite value; when only some points do, the
+    line gives the share compared.
+
+    Parameters
+    ----------
+    catalog : Catalog
+        The catalog holding the formulations.
+    keys : iterable of str
+        The formulations to report on.
+    budget : int, optional
+        Evaluations of the first grid of each comparison.
+
+    Returns
+    -------
+    str
+        The report, as plain text.
+    """
+    lines = []
+    for key in keys:
+        formulation = catalog.formulations[key]
+        lines.append(f"{key} ({formulation.output.kind})")
+        lines += _beyond_parts(formulation)
+        shape = form(formulation)
+        others = [
+            f
+            for f in catalog.formulations.values()
+            if f.key != key and f.output.kind == formulation.output.kind
+        ]
+        # Identical formulations never reach a report: loading refuses them.
+        alike = [f.key for f in others if form(f) == shape]
+        if alike:
+            lines.append(f"  same form, other coefficients: {', '.join(alike)}")
+        for other in others:
+            bounds = _common_bounds(formulation, other)
+            if bounds is None or len(match_inputs(formulation, other)) != len(
+                other.inputs
+            ):
+                continue
+            blocked = _unconvertible(formulation) + _unconvertible(other)
+            if blocked:
+                lines.append(
+                    f"  not compared with {other.key}: nomogram holds no "
+                    f"conversion of {', '.join(sorted(set(blocked)))} to the "
+                    "reference scale"
+                )
+                continue
+            probe = Relation(
+                key="observation",
+                kind=RelationKind.APPROXIMATES,
+                subject=key,
+                object=other.key,
+                citation="",
+                accuracy=0.0,
+                bounds=MappingProxyType(bounds),
+            )
+            verdict, share = _approximation(probe, formulation, other, budget)
+            if verdict.value is None:
+                lines.append(
+                    f"  not compared with {other.key}: no point of the common "
+                    "domain where both give a finite value"
+                )
+                continue
+            place = ", ".join(f"{n} = {v:.6g}" for n, v in verdict.at.items())
+            partial = (
+                f" (finite on {100 * share:.4g} % of the common domain only)"
+                if share < 1
+                else ""
+            )
+            note = (
+                "  (numerically identical: an equivalence to state?)"
+                if verdict.value < 1e-9
+                else ""
+            )
+            lines.append(
+                f"  observed max deviation from {other.key}: "
+                f"{verdict.value:.4g} % at {place}{partial}{note}"
+            )
+    return "\n".join(lines) + "\n"
+
+
+def _unconvertible(formulation: Formulation) -> list[str]:
+    """Scales of a formulation's variables that nomogram cannot convert."""
+    return [
+        v.scale.key
+        for v in (formulation.output, *formulation.inputs)
+        if v.scale is not None and not v.scale.is_reference and not v.scale.convertible
+    ]
+
+
+#: Version of the verification method. Increase it when a change of the
+#: method may change a verdict: every recorded verdict is then redone.
+VERIFIER = 2
+
+#: The registry of the bundled catalog, generated, never edited by hand.
+REGISTRY = "verifications.json"
+
+
+def _conversion_chain(scale: Any) -> list[Any]:
+    """A conversion by expression and the scales it goes through.
+
+    Empty for a table converting straight to the reference scale, so that
+    existing fingerprints stay valid.
+    """
+    found: list[Any] = []
+    while scale is not None and scale.conversion is not None:
+        found.append(
+            [scale.key, scale.conversion, list(scale.bounds or ()), scale.unit]
+        )
+        scale = scale.base
+    if found and scale is not None and scale.points:
+        found.append(
+            [scale.key, list(scale.points), list(scale.difference), scale.unit]
+        )
+    return found
+
+
+def fingerprint(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> str:
+    """A fingerprint (SHA-256) of everything a verdict depends on.
+
+    The relation as written, the signatures of its two formulations, the
+    conventional scales of their variables, the budget of the check and
+    the version of the method: if any changes, the fingerprint changes and
+    a recorded verdict no longer applies.
+    """
+    subject = catalog.formulations[relation.subject]
+    other = catalog.formulations[relation.object]
+    scales = sorted(
+        (
+            f.key,
+            v.identifier,
+            v.scale.key,
+            list(v.scale.points),
+            list(v.scale.difference),
+            *_conversion_chain(v.scale),
+        )
+        for f in (subject, other)
+        for v in (f.output, *f.inputs)
+        if v.scale is not None
+    )
+    content = {
+        "verifier": VERIFIER,
+        "budget": budget,
+        "kind": relation.kind.value,
+        "accuracy": relation.accuracy,
+        "at": sorted(relation.at.items()),
+        "bounds": sorted((k, list(v)) for k, v in relation.bounds.items()),
+        "given": sorted(relation.given.items()),
+        "scale": relation.scale,
+        "subject": signature(subject),
+        "object": signature(other),
+        "scales": scales,
+    }
+    text = json.dumps(content, sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _to_json(key: str, found: Verdict) -> dict[str, Any]:
+    return {
+        "relation": key,
+        "status": found.status,
+        "method": found.method,
+        "value": found.value,
+        "at": dict(found.at),
+        "detail": found.detail,
+    }
+
+
+def _from_json(item: Mapping[str, Any]) -> Verdict:
+    return Verdict(
+        status=item["status"],
+        method=item["method"],
+        value=item["value"],
+        at=MappingProxyType(dict(item["at"])),
+        detail=item["detail"],
+    )
+
+
+def _registry_path() -> Path:
+    return Path(str(files("nomogram") / "data" / "catalog" / REGISTRY))
+
+
+@lru_cache(maxsize=8)
+def _read_registry(path: str) -> Mapping[str, Verdict]:
+    if not Path(path).exists():
+        return MappingProxyType({})
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return MappingProxyType({k: _from_json(v) for k, v in data["verdicts"].items()})
+
+
+def load_registry(path: str | os.PathLike[str] | None = None) -> Mapping[str, Verdict]:
+    """Recorded verdicts, by fingerprint: the bundled registry by default."""
+    return _read_registry(
+        os.fspath(path) if path is not None else str(_registry_path())
+    )
+
+
+def verdict(
+    relation: Relation,
+    catalog: Catalog,
+    *,
+    registry: str | os.PathLike[str] | None = None,
+    budget: int = BUDGET,
+) -> Verdict:
+    """The verdict on a relation: recorded when it still applies, computed otherwise.
+
+    Parameters
+    ----------
+    relation, catalog, budget
+        As for :func:`verify`.
+    registry : path-like, optional
+        A registry written by :func:`record`; the bundled one by default.
+
+    Returns
+    -------
+    Verdict
+        Read from the registry when its fingerprint matches, so that
+        nothing is recomputed; computed by :func:`verify` otherwise.
+    """
+    recorded = load_registry(registry).get(
+        fingerprint(relation, catalog, budget=budget)
+    )
+    return (
+        recorded if recorded is not None else verify(relation, catalog, budget=budget)
+    )
+
+
+def record(
+    catalog: Catalog,
+    path: str | os.PathLike[str] | None = None,
+    *,
+    budget: int = BUDGET,
+) -> tuple[int, int]:
+    """Write the registry of the verdicts on every relation of a catalog.
+
+    Verdicts whose fingerprint is already recorded are reused; the others
+    are computed; entries matching no relation any more are dropped. The
+    continuous integration recomputes every verdict and compares it with
+    the bundled registry: it has the last word.
+
+    Parameters
+    ----------
+    catalog : Catalog
+        The catalog whose relations are verified.
+    path : path-like, optional
+        The registry file; the bundled one by default.
+    budget : int, optional
+        As for :func:`verify`.
+
+    Returns
+    -------
+    (int, int)
+        Verdicts computed, verdicts reused.
+    """
+    target = Path(os.fspath(path)) if path is not None else _registry_path()
+    existing = _read_registry(str(target))
+    verdicts = {}
+    computed = reused = 0
+    for key in sorted(catalog.relations):
+        relation = catalog.relations[key]
+        print_key = fingerprint(relation, catalog, budget=budget)
+        found = existing.get(print_key)
+        if found is None:
+            found = verify(relation, catalog, budget=budget)
+            computed += 1
+        else:
+            reused += 1
+        verdicts[print_key] = _to_json(key, found)
+    content = {"verifier": VERIFIER, "verdicts": dict(sorted(verdicts.items()))}
+    target.write_text(
+        json.dumps(content, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    _read_registry.cache_clear()
+    return computed, reused

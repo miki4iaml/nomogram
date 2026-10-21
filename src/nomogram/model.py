@@ -28,33 +28,48 @@ the result is NaN there. See ``docs/rosetta.md`` for the vocabulary.
 
 from __future__ import annotations
 
+import datetime
 import warnings
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
-from typing import Any, Literal
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 import numpy as np
+import sympy
 
-from nomogram.expression import compile_numeric, parse_expression, to_latex
+from nomogram.expression import compile_numeric, parse_expression
 from nomogram.semantics import ExternalMatch, semantic_catalog
 from nomogram.units import Q_, convert
 
+if TYPE_CHECKING:
+    from nomogram.dimensions import CoefficientUnit
+    from nomogram.display import Rendering
+
 __all__ = [
+    "CheckCase",
+    "Citation",
     "Coefficient",
+    "ConventionalScale",
+    "CrossCheck",
     "Derivation",
     "DomainBasis",
     "Formulation",
     "Notation",
     "OutOfDomainError",
+    "Part",
     "PhysicalConstant",
     "Reference",
     "ReferenceStatus",
+    "Relation",
+    "RelationKind",
     "ScaleBasis",
-    "TemperatureScale",
+    "ScaleConversionError",
     "TradeMeaning",
     "TradeTerm",
+    "UnitBasis",
     "ValidityDomain",
     "ValidityWarning",
     "Variable",
@@ -70,6 +85,62 @@ ScaleConversion = Literal["convert", "ignore"]
 
 #: Relative tolerance at domain bounds, for rounding in unit conversions.
 BOUND_TOLERANCE = 1e-9
+
+
+def _check_options(outside: Any, basis: Any, scale: Any) -> None:
+    """Refuse an evaluation option outside its allowed values (a typo).
+
+    Raises
+    ------
+    ValueError
+        If ``outside``, ``basis`` or ``scale`` is not one of its values.
+    """
+    for name, value, allowed in (
+        ("outside", outside, get_args(Outside)),
+        ("basis", basis, get_args(Basis)),
+        ("scale", scale, get_args(ScaleConversion)),
+    ):
+        if value not in allowed:
+            msg = f"{name}: expected one of {', '.join(allowed)}, not {value!r}"
+            raise ValueError(msg)
+
+
+def _flag_beyond(
+    key: str, beyond: list[tuple[str, ConventionalScale, Any]], outside: Outside
+) -> None:
+    """Report values a scale conversion could not convert, as ``outside`` says.
+
+    Such values are NaN whatever the option, since they have no value on
+    the other scale: ``"raise"`` raises, ``"warn"`` warns, ``"nan"`` and
+    ``"ignore"`` leave the NaN silently.
+
+    Parameters
+    ----------
+    key : str
+        Key of the formulation, for the message.
+    beyond : list of (str, ConventionalScale, numpy.ndarray of bool)
+        Identifier of the variable, scale converted, and where the
+        conversion failed.
+    outside : {"nan", "warn", "raise", "ignore"}
+        As for :meth:`Formulation.evaluate`.
+
+    Raises
+    ------
+    OutOfDomainError
+        With ``outside="raise"``, if a value could not be converted.
+    """
+    found = [
+        f"{int(np.sum(mask))} value(s) of {identifier} beyond the conversion "
+        f"of scale {scale.key}"
+        for identifier, scale, mask in beyond
+        if np.any(mask)
+    ]
+    if not found or outside not in ("raise", "warn"):
+        return
+    message = f"{key}: {'; '.join(found)} (NaN there)"
+    if outside == "raise":
+        raise OutOfDomainError(message)
+    warnings.warn(message, ValidityWarning, stacklevel=3)
 
 
 class ReferenceStatus(Enum):
@@ -136,8 +207,20 @@ class Reference:
     matches: tuple[ExternalMatch, ...]
 
 
+class UnitBasis(Enum):
+    """Where the declared unit of a coefficient comes from."""
+
+    #: Stated by the source.
+    STATED = "stated"
+    #: Added when the entry was written; the note says why. Only for a
+    #: unit the expression does not determine (see
+    #: :mod:`nomogram.dimensions`): a unit that can be inferred is not
+    #: declared.
+    ADDED = "added"
+
+
 class ScaleBasis(Enum):
-    """How the temperature scale of a formulation is known."""
+    """How the conventional scale of a variable is known."""
 
     #: Stated by the source.
     STATED = "stated"
@@ -150,12 +233,17 @@ class ScaleBasis(Enum):
 
 
 @dataclass(frozen=True)
-class TemperatureScale:
-    """An international temperature scale, and how it differs from ITS-90.
+class ConventionalScale:
+    """A conventional reference scale: a quantity-value scale defined by formal agreement.
 
-    Formulations were fitted to temperatures on the scale in force at the
-    time (IPTS-68, ITS-48...). Inputs are taken on ITS-90, today's scale,
-    and converted to the scale of the formulation before evaluation.
+    The term is that of the VIM (JCGM 200:2012, 1.29). The international
+    temperature scales are examples: formulations were fitted to
+    temperatures on the scale in force at the time (IPTS-68, ITS-48...),
+    and salinity scales followed one another the same way (Knudsen, PSS-78,
+    Reference Salinity). Each quantity kind has one reference scale
+    (ITS-90 for temperatures, Reference Salinity for salinities); inputs
+    are taken on it and converted to the scale of the formulation before
+    evaluation, and results converted back.
 
     Attributes
     ----------
@@ -163,77 +251,355 @@ class TemperatureScale:
         Catalog key, for example ``"ipts68"``.
     label : str
         Name of the scale.
-    t90 : tuple of float
-        Celsius temperatures on ITS-90 where the difference is tabulated;
-        empty for ITS-90 itself.
+    kinds : tuple of str
+        Quantity kinds the scale applies to.
+    reference_scale : str or None
+        Key of the reference scale of these kinds; ``None`` for the
+        reference scale itself.
+    unit : str or None
+        QUDT name of the unit of the conversion (table or expression);
+        ``None`` for a reference scale, and possibly for a scale without
+        conversion.
+    points : tuple of float
+        Values on the reference scale where the difference is tabulated;
+        empty without a table.
     difference : tuple of float
-        ``t90 - t_scale`` at those temperatures, in kelvin.
+        Value on the reference scale minus value on this scale, at those
+        points.
     reference : str or None
-        Key of the source of the table.
+        Key of the source of the scale or of its table.
+    symbol : str or None
+        Short name, for example ``"ITS-90"``.
+    subscript : str or None
+        Subscript that marks a quantity on this scale, for example
+        ``"90"`` (the ITS-90 writes t90 and T90).
+    base : ConventionalScale or None
+        For a conversion by expression, the scale it leads to; ``None``
+        when it leads to the reference scale. Chains end on the reference
+        scale (Knudsen salinity to Cox salinity, then to Reference
+        Salinity).
+    conversion : str or None
+        The value on ``base`` (or on the reference scale) as an expression
+        of ``x``, the value on this scale, both in ``unit``, for example
+        ``"35.16504 / 35 * x"``; ``None`` for a table or no conversion.
+    bounds : (float, float) or None
+        Values on this scale where the conversion holds; NaN beyond.
+    convertible : bool
+        ``False`` when the conversion needs data nomogram does not hold
+        (Absolute Salinity needs the anomaly of its location): values on
+        such a scale are taken as given, ``scale="ignore"``.
+    cf_standard_names : tuple of str
+        CF standard names of quantities on this scale
+        (``sea_water_practical_salinity``).
+    note : str or None
+        Remark: disagreements between sources on the conversion, its
+        domain...
     """
 
     key: str
     label: str
-    t90: tuple[float, ...]
+    kinds: tuple[str, ...]
+    reference_scale: str | None
+    unit: str | None
+    points: tuple[float, ...]
     difference: tuple[float, ...]
     reference: str | None
+    symbol: str | None = None
+    subscript: str | None = None
+    base: ConventionalScale | None = None
+    conversion: str | None = None
+    bounds: tuple[float, float] | None = None
+    convertible: bool = True
+    cf_standard_names: tuple[str, ...] = ()
+    note: str | None = None
 
-    def from_its90(self, celsius: Any) -> tuple[Any, Any]:
-        """Celsius temperatures on this scale, from ITS-90 ones.
+    @property
+    def is_reference(self) -> bool:
+        """Whether this is the reference scale of its kinds."""
+        return self.reference_scale is None
+
+    def check_convertible(self) -> None:
+        """Raise :class:`ScaleConversionError` if nomogram cannot convert.
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale whose conversion needs data nomogram does not hold.
+        """
+        if not self.convertible:
+            msg = (
+                f"{self.key}: nomogram holds no conversion to the reference "
+                f"scale {self.reference_scale}; give values on this scale and "
+                'evaluate with scale="ignore"'
+            )
+            raise ScaleConversionError(msg)
+
+    @cached_property
+    def _expression(self) -> Any:
+        assert self.conversion is not None
+        return parse_expression(self.conversion, ["x"])
+
+    @cached_property
+    def _forward_function(self) -> Callable[..., Any]:
+        return compile_numeric(self._expression, ("x",))
+
+    @cached_property
+    def _inverse_function(self) -> Callable[..., Any] | None:
+        """The inverse when SymPy finds a single one; ``None`` otherwise."""
+        expr = self._expression
+        x = next(iter(expr.free_symbols), sympy.Symbol("x", real=True))
+        y = sympy.Symbol("y", real=True)
+        try:
+            found = sympy.solve(sympy.Eq(y, expr), x)
+        except (NotImplementedError, ValueError, TypeError):
+            return None
+        return compile_numeric(found[0], ("y",)) if len(found) == 1 else None
+
+    def _outside(self, values: Any) -> Any:
+        if self.bounds is None:
+            return np.zeros(np.shape(values), dtype=bool)
+        low, high = self.bounds
+        margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+        with np.errstate(invalid="ignore"):
+            return (values < low - margin) | (values > high + margin)
+
+    def _forward(self, values: Any) -> Any:
+        with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+            result = np.asarray(self._forward_function(values), dtype=float)
+        return np.broadcast_to(result, np.shape(values)).astype(float)
+
+    def from_reference(self, values: Any) -> tuple[Any, Any]:
+        """Values on this scale, from values on the reference scale.
 
         Parameters
         ----------
-        celsius : array_like
-            Celsius temperatures on ITS-90.
+        values : array_like
+            Values on the reference scale, in the unit of the table.
 
         Returns
         -------
         (numpy.ndarray, numpy.ndarray of bool)
-            The temperatures on this scale (linear interpolation of the
-            table), and where they fall outside the table (NaN there).
+            The values on this scale (linear interpolation of the table, or
+            the inverse of the conversion through the chain of scales), and
+            where they fall outside the table or the bounds (NaN there).
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale nomogram cannot convert.
         """
-        values = np.asarray(celsius, dtype=float)
-        if not self.t90:
+        values = np.asarray(values, dtype=float)
+        if self.is_reference:
             return values, np.zeros(values.shape, dtype=bool)
-        outside = (values < self.t90[0]) | (values > self.t90[-1])
-        shift = np.interp(values, self.t90, self.difference)
-        return np.where(outside, np.nan, values - shift), outside
+        self.check_convertible()
+        if self.conversion is None:
+            outside = (values < self.points[0]) | (values > self.points[-1])
+            shift = np.interp(values, self.points, self.difference)
+            return np.where(outside, np.nan, values - shift), outside
+        on_base, outside = (
+            (values, np.zeros(values.shape, dtype=bool))
+            if self.base is None
+            else self.base.from_reference(values)
+        )
+        inverse = self._inverse_function
+        if inverse is not None:
+            with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+                found = np.asarray(inverse(on_base), dtype=float)
+            found = np.broadcast_to(found, on_base.shape).astype(float)
+        else:
+            # Conversions are close to the identity: fixed-point iteration,
+            # kept only where it converged.
+            found = on_base.copy()
+            with np.errstate(invalid="ignore", over="ignore"):
+                for _ in range(50):
+                    found = found - (self._forward(found) - on_base)
+                residual = np.abs(self._forward(found) - on_base)
+                converged = residual <= 1e-9 * np.maximum(1.0, np.abs(on_base))
+            outside = outside | ~converged
+        outside = outside | np.isnan(found) | self._outside(found)
+        return np.where(outside, np.nan, found), outside
 
-    def to_its90(self, celsius: Any) -> Any:
-        """ITS-90 Celsius temperatures, from temperatures on this scale.
+    def to_reference(self, values: Any) -> Any:
+        """Values on the reference scale, from values on this scale.
 
-        Inverts :meth:`from_its90` by fixed-point iteration (the
-        differences are millikelvins and vary slowly); NaN beyond the
-        table.
+        A table is inverted by fixed-point iteration (the differences are
+        small and vary slowly); a conversion by expression is applied, then
+        that of its base. NaN beyond the table or the bounds.
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale nomogram cannot convert.
         """
-        values = np.asarray(celsius, dtype=float)
-        if not self.t90:
+        values = np.asarray(values, dtype=float)
+        if self.is_reference:
             return values
-        t90 = values
-        for _ in range(4):
-            t90 = values + np.interp(t90, self.t90, self.difference)
-        outside = (t90 < self.t90[0]) | (t90 > self.t90[-1])
-        return np.where(outside, np.nan, t90)
+        self.check_convertible()
+        if self.conversion is None:
+            on_reference = values
+            for _ in range(4):
+                on_reference = values + np.interp(
+                    on_reference, self.points, self.difference
+                )
+            outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
+            return np.where(outside, np.nan, on_reference)
+        on_base = np.where(self._outside(values), np.nan, self._forward(values))
+        return on_base if self.base is None else self.base.to_reference(on_base)
+
+
+class ScaleConversionError(ValueError):
+    """A value cannot be converted between conventional scales."""
+
+
+class RelationKind(Enum):
+    """What a relation between two formulations states."""
+
+    #: The subject equals the object, possibly given substitutions.
+    EQUIVALENT = "equivalent"
+    #: The subject approximates the object within a stated deviation.
+    APPROXIMATES = "approximates"
+
+
+@dataclass(frozen=True)
+class Relation:
+    """A relation between two formulations, as a source states it.
+
+    A relation is a claim, cited: nomogram verifies it
+    (:func:`nomogram.relations.verify`) but never invents one. Deviations
+    nomogram computes are observations (:func:`nomogram.comparison.compare`).
+
+    Attributes
+    ----------
+    key : str
+        Catalog key.
+    kind : RelationKind
+        Equivalence or approximation.
+    subject, object : str
+        Keys of the two formulations.
+    citation : str
+        Key of the source that states the relation.
+    accuracy : float or None
+        For an approximation, the maximum relative deviation the source
+        states, in percent.
+    at : mapping of str to float
+        Where the source places that maximum, by input identifier of the
+        subject.
+    bounds : mapping of str to (float, float)
+        Domain over which the source states it, by input identifier of the
+        subject, in the input's unit.
+    given : mapping of str to str
+        For an equivalence, inputs of the object expressed with those of
+        the subject (``{"P_d": "P - e"}``).
+    scale : {"convert", "ignore"}
+        How the formulations are evaluated for the claim: with conversion
+        of conventional scales, or as given, each on its own scale.
+    note : str or None
+        Remark.
+    """
+
+    key: str
+    kind: RelationKind
+    subject: str
+    object: str
+    citation: str
+    accuracy: float | None = None
+    at: Mapping[str, float] = field(default_factory=lambda: MappingProxyType({}))
+    bounds: Mapping[str, tuple[float, float]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    given: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    scale: ScaleConversion = "convert"
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class CheckCase:
+    """One value of a formulation, as another implementation computes it.
+
+    Attributes
+    ----------
+    formulation : str
+        Key of the formulation.
+    inputs : mapping of str to float
+        Input values, by identifier, in the units of the formulation's
+        inputs; the formulation is evaluated as written (no scale
+        conversion, no validity domain).
+    value : float
+        The value the other implementation gives, in the unit of the
+        formulation's output.
+    call : str or None
+        How the value was obtained from the other implementation.
+    rtol : float
+        Relative tolerance of the agreement.
+    """
+
+    formulation: str
+    inputs: Mapping[str, float]
+    value: float
+    call: str | None = None
+    rtol: float = 1e-12
+
+
+@dataclass(frozen=True)
+class CrossCheck:
+    """Formulations checked against another implementation, on given points.
+
+    A cross-check records values computed once with software outside
+    nomogram (not a dependency); the tests replay the cases against the
+    catalog, so that a change of a formulation cannot go unnoticed. It is
+    an observation, never a source.
+
+    Attributes
+    ----------
+    key : str
+        Catalog key.
+    implementation : str
+        Name of the other implementation.
+    version : str
+        Its version, release or commit, as run.
+    checked : datetime.date
+        Date of the check.
+    cases : tuple of CheckCase
+        The values compared.
+    url : str or None
+        Where the implementation lives.
+    note : str or None
+        Remark (workarounds, known differences).
+    """
+
+    key: str
+    implementation: str
+    version: str
+    checked: datetime.date
+    cases: tuple[CheckCase, ...]
+    url: str | None = None
+    note: str | None = None
 
 
 @dataclass(frozen=True)
 class Derivation:
-    """How a formulation was derived from another one.
+    """How a formulation was derived from others.
 
     Attributes
     ----------
     source : str
-        Key of the formulation it derives from.
+        Key of the formulation it derives from; for a composition, the
+        formulation evaluated last.
     method : str
-        ``"symbolic inversion"`` (closed form found by SymPy) or
-        ``"numerical inversion"``.
-    solved_for : str
-        Identifier of the source's input that became the output.
+        ``"symbolic inversion"`` (closed form found by SymPy),
+        ``"numerical inversion"`` or ``"composition"``.
+    solved_for : str or None
+        For an inversion, identifier of the source's input that became the
+        output.
+    parts : mapping of str to str
+        For a composition, the formulation computing each input of the
+        source it replaces: input identifier to formulation key.
     """
 
     source: str
     method: str
-    solved_for: str
+    solved_for: str | None = None
+    parts: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)
@@ -253,9 +619,11 @@ class Variable:
         QUDT name of the unit the formulation works in.
     description : str
         What the variable is, in a few words.
-    temperature_scale : TemperatureScale or None
-        For a temperature, the scale the formulation was fitted on;
-        ``None`` when unknown or not applicable.
+    scale : ConventionalScale or None
+        The conventional scale of the value: for an input, the one the
+        formulation was fitted on (a temperature scale, a salinity
+        scale); for an output, the one it gives values on. ``None`` when
+        unknown or not applicable.
     scale_basis : ScaleBasis or None
         How that scale is known.
     """
@@ -264,7 +632,7 @@ class Variable:
     kind: str
     unit: str
     description: str
-    temperature_scale: TemperatureScale | None = None
+    scale: ConventionalScale | None = None
     scale_basis: ScaleBasis | None = None
 
 
@@ -279,16 +647,22 @@ class Coefficient:
     value : float
         Value, as published.
     unit : str or None
-        QUDT name of its unit, for documentation; in a fixed-units
-        formulation coefficients are numbers tied to the declared units.
+        QUDT name of its declared unit; ``None`` when the unit is left to
+        inference (:func:`nomogram.dimensions.infer_units`). In a
+        fixed-units formulation coefficients are numbers tied to the units
+        of the variables, never converted.
     note : str or None
         Remark.
+    unit_basis : UnitBasis or None
+        Where the declared unit comes from; ``None`` without a declared
+        unit.
     """
 
     identifier: str
     value: float
     unit: str | None
     note: str | None
+    unit_basis: UnitBasis | None = None
 
 
 @dataclass(frozen=True)
@@ -370,6 +744,50 @@ class Notation:
 
 
 @dataclass(frozen=True)
+class Citation:
+    """One appearance of a formulation in a source, and what the source states.
+
+    A formulation is written once; each source that gives it is a
+    citation, with the symbols it uses and what it states about the
+    formulation. Validity domains of different citations combine by union
+    by default: a value is inside if one source says so.
+
+    Attributes
+    ----------
+    reference : str
+        Key of the source.
+    equation : str or None
+        Equation number in the source, as printed.
+    notation : Notation or None
+        The symbols the source uses, coefficients included.
+    domains : tuple of ValidityDomain
+        Validity domains the source states (basis ``stated``); they apply
+        together.
+    units : mapping of str to str
+        Units the source states for coefficients, by identifier (QUDT
+        names).
+    scales : mapping of str to ConventionalScale
+        Conventional reference scales the source states for the inputs
+        and the output, by identifier.
+    accuracy : str or None
+        Accuracy the source claims, as stated.
+    note : str or None
+        Remark on this citation.
+    """
+
+    reference: str
+    equation: str | None = None
+    notation: Notation | None = None
+    domains: tuple[ValidityDomain, ...] = ()
+    units: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    scales: Mapping[str, ConventionalScale] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    accuracy: str | None = None
+    note: str | None = None
+
+
+@dataclass(frozen=True)
 class TradeMeaning:
     """One meaning of an ambiguous trade term.
 
@@ -417,6 +835,27 @@ class TradeTerm:
 
 
 @dataclass(frozen=True)
+class Part:
+    """A formulation within a composed one, and how its inputs are fed.
+
+    Attributes
+    ----------
+    formulation : Formulation
+        The part.
+    computes : str or None
+        Identifier of the outer formulation's input it computes; ``None``
+        for the outer formulation itself.
+    rename : mapping of str to str
+        Its inputs taken under another identifier in the composed
+        formulation (``bind``), by its own identifier.
+    """
+
+    formulation: Formulation
+    computes: str | None
+    rename: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+
+
+@dataclass(frozen=True)
 class Formulation:
     """One author's way of computing a quantity kind.
 
@@ -438,12 +877,11 @@ class Formulation:
         The expression, in restricted Python syntax.
     fixed_units : bool
         Whether the formulation only holds in its declared units.
-    domains : tuple of ValidityDomain
-        Objective validity domains.
-    accuracy : str or None
-        Accuracy claimed by the source, as stated.
-    references : tuple of str
-        Keys of the references.
+    physical_domains : tuple of ValidityDomain
+        Physical validity domains (basis ``physical``); the domains stated
+        by sources belong to their citations.
+    citations : tuple of Citation
+        The sources that give the formulation, and what each states.
     note : str or None
         Remark.
     matches : tuple of ExternalMatch
@@ -451,6 +889,16 @@ class Formulation:
     derivation : Derivation or None
         For a formulation derived from another one (see
         :mod:`nomogram.inversion`), how it was derived.
+    family : str or None
+        Name of the catalog family it belongs to, set when the catalog is
+        loaded (the file it comes from).
+    keywords : tuple of str
+        Keywords for discovery and search; several per formulation,
+        unlike the family.
+    parts : tuple of Part
+        For a composed formulation, its parts: the inner formulations,
+        then the outer one. Their validity domains apply to the values
+        each part receives (see :meth:`outside_mask`).
     """
 
     key: str
@@ -461,12 +909,26 @@ class Formulation:
     constants: tuple[PhysicalConstant, ...]
     expression: str
     fixed_units: bool
-    domains: tuple[ValidityDomain, ...]
-    accuracy: str | None
-    references: tuple[str, ...]
+    physical_domains: tuple[ValidityDomain, ...]
+    citations: tuple[Citation, ...]
     note: str | None
     matches: tuple[ExternalMatch, ...]
     derivation: Derivation | None = None
+    family: str | None = None
+    keywords: tuple[str, ...] = ()
+    parts: tuple[Part, ...] = ()
+
+    @property
+    def references(self) -> tuple[str, ...]:
+        """Keys of the cited sources, in order, without repetition."""
+        return tuple(dict.fromkeys(c.reference for c in self.citations))
+
+    @property
+    def domains(self) -> tuple[ValidityDomain, ...]:
+        """All validity domains: physical ones, then those of each citation."""
+        return self.physical_domains + tuple(
+            d for c in self.citations for d in c.domains
+        )
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -511,14 +973,34 @@ class Formulation:
         result = Q_(self._function(*values))
         return float(Q_(1.0, result.units).to(units[self.output.unit].pint).magnitude)
 
-    def latex(self, notation: Notation | None = None) -> str:
-        """The formulation as a LaTeX equation, in a given notation."""
-        import sympy
+    def latex(self, notation: Notation | None = None, **options: Any) -> str:
+        """The formulation as a LaTeX equation, in a given notation.
 
-        symbols = dict(notation.symbols) if notation else {}
-        output = sympy.Symbol(self.output.identifier, real=True)
-        left = to_latex(output, symbols)
-        return f"{left} = {to_latex(self.sympy_expression, symbols)}"
+        The typography follows the display options in force
+        (:mod:`nomogram.display`), which ``options`` may override, for
+        example ``mul_symbol="dot"``.
+        """
+        return self.render(notation, **options).latex
+
+    def render(self, notation: Notation | None = None, **options: Any) -> Rendering:
+        """The formulation displayed: see :func:`nomogram.display.render`."""
+        from nomogram.display import render
+
+        return render(self, notation, **options)
+
+    def _repr_latex_(self) -> str:
+        """The equation, for notebooks."""
+        return f"$${self.latex()}$$"
+
+    @cached_property
+    def coefficient_units(self) -> Mapping[str, CoefficientUnit]:
+        """The unit of each coefficient, declared or inferred.
+
+        See :func:`nomogram.dimensions.infer_units`.
+        """
+        from nomogram.dimensions import infer_units
+
+        return infer_units(self)
 
     def outside_mask(self, values: Mapping[str, Any], basis: Basis = "stated") -> Any:
         """Where input values fall outside the selected validity domains.
@@ -535,23 +1017,88 @@ class Formulation:
         numpy.ndarray of bool
             ``True`` where a value lies outside a selected domain.
 
+        Raises
+        ------
+        ValueError
+            If ``basis`` is not one of its values.
+
         Notes
         -----
+        Physical domains all apply. Domains stated by sources combine by
+        union between citations (inside if one source says so), and apply
+        together within a citation.
+
         Bounds are closed and tolerate a relative rounding of
         :data:`BOUND_TOLERANCE`, so that a value converted between units
         (0.01 degC is 273.15999999... K) is not rejected at a bound.
+
+        A composed formulation is never more permissive than the chain of
+        its parts: the domains of each part apply to the values it
+        receives, intermediate values included, unless a source of the
+        composed formulation states its own domain, which then replaces
+        the domains the sources of the parts state. Physical domains of
+        the parts always apply.
         """
+        _check_options("nan", basis, "convert")
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
+
+        def outside_all(domains: tuple[ValidityDomain, ...]) -> Any:
+            result = np.zeros(shape, dtype=bool)
+            for domain in domains:
+                for identifier, (low, high) in domain.bounds.items():
+                    value = arrays[identifier]
+                    margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+                    result = result | (value < low - margin) | (value > high + margin)
+            return result
+
         outside = np.zeros(shape, dtype=bool)
-        for domain in self.domains:
-            if basis != "all" and domain.basis.value != basis:
-                continue
-            for identifier, (low, high) in domain.bounds.items():
-                value = arrays[identifier]
-                margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
-                outside |= (value < low - margin) | (value > high + margin)
+        if basis in ("physical", "all"):
+            outside |= outside_all(self.physical_domains)
+        if basis in ("stated", "all"):
+            # Union between citations: inside if one source says so.
+            stating = [c.domains for c in self.citations if c.domains]
+            if stating:
+                inside = np.zeros(shape, dtype=bool)
+                for domains in stating:
+                    inside |= ~outside_all(domains)
+                outside |= ~inside
+        if self.parts:
+            part_basis: Basis | None = basis
+            if basis != "physical" and any(c.domains for c in self.citations):
+                part_basis = "physical" if basis == "all" else None
+            if part_basis is not None:
+                outside = outside | self._parts_outside(arrays, part_basis)
         return outside
+
+    def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:
+        """Where a part receives a value outside its domains."""
+        computed: dict[str, Any] = {}
+        outside: Any = False
+        for part in self.parts:
+            formulation = part.formulation
+            if part.computes is None:
+                arguments = {
+                    v.identifier: computed.get(v.identifier, values.get(v.identifier))
+                    for v in formulation.inputs
+                }
+            else:
+                arguments = {
+                    v.identifier: values[part.rename.get(v.identifier, v.identifier)]
+                    for v in formulation.inputs
+                }
+                computed[part.computes] = formulation._raw(arguments)
+            outside = outside | formulation.outside_mask(arguments, basis)
+        return outside
+
+    def _raw(self, values: Mapping[str, Any]) -> Any:
+        """The result in the output unit, inputs in their units and scales."""
+        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
+        arguments += [c.value for c in self.coefficients]
+        arguments += [k.value for k in self.constants]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            result = np.asarray(self._function(*arguments), dtype=float)
+        return result * self.output_factor
 
     def evaluate(
         self,
@@ -571,13 +1118,19 @@ class Formulation:
         outside : {"nan", "warn", "raise", "ignore"}
             Behaviour outside the validity domains: NaN there (default),
             compute and warn, raise, or compute silently (comparisons).
+            A value beyond the conversion table or the bounds of a scale
+            conversion has no value on the other scale: it is NaN whatever
+            the option, and ``"warn"`` and ``"raise"`` report it too.
         basis : {"stated", "physical", "all"}
             Which domains apply (default: those stated by the sources).
         scale : {"convert", "ignore"}
-            Temperatures are taken on ITS-90. With ``"convert"`` (default)
-            they are converted to the temperature scale the formulation
-            was fitted on, when it is known (NaN beyond the conversion
-            table); ``"ignore"`` uses them as they are.
+            Inputs are taken on the reference scale of their kind (ITS-90
+            for temperatures, Reference Salinity for salinities). With
+            ``"convert"`` (default) they are converted to the conventional
+            scale the formulation was fitted on, when it is known (NaN
+            beyond the conversion table or the bounds of the conversion),
+            and the result converted to the reference scale of its kind;
+            ``"ignore"`` uses them as they are.
         **inputs : pint.Quantity
             One quantity per input variable, by identifier.
 
@@ -590,9 +1143,16 @@ class Formulation:
         ------
         TypeError
             If an input is missing or unexpected.
+        ValueError
+            If ``outside``, ``basis`` or ``scale`` is not one of its values.
         OutOfDomainError
-            With ``outside="raise"``, if a value is outside a domain.
+            With ``outside="raise"``, if a value is outside a domain, or
+            beyond a scale conversion.
+        ScaleConversionError
+            With ``scale="convert"``, if an input or the output is on a
+            scale nomogram cannot convert (Absolute Salinity).
         """
+        _check_options(outside, basis, scale)
         expected = {v.identifier for v in self.inputs}
         if set(inputs) != expected:
             missing = ", ".join(sorted(expected - set(inputs))) or "none"
@@ -608,21 +1168,21 @@ class Formulation:
             for v in self.inputs
         }
         if scale == "convert":
+            beyond = []
             for v in self.inputs:
-                if v.temperature_scale is None or not v.temperature_scale.t90:
+                if v.scale is None or v.scale.is_reference:
                     continue
-                celsius = convert(inputs[v.identifier], "degC").magnitude
-                on_scale, _ = v.temperature_scale.from_its90(celsius)
+                v.scale.check_convertible()
+                table = units[str(v.scale.unit)].pint
+                on_reference = convert(inputs[v.identifier], table).magnitude
+                on_scale, failed = v.scale.from_reference(on_reference)
+                beyond.append((v.identifier, v.scale, failed))
                 values[v.identifier] = np.asarray(
-                    convert(Q_(on_scale, "degC"), units[v.unit].pint).magnitude,
+                    convert(Q_(on_scale, table), units[v.unit].pint).magnitude,
                     dtype=float,
                 )
-        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
-        arguments += [c.value for c in self.coefficients]
-        arguments += [k.value for k in self.constants]
-        with np.errstate(invalid="ignore", divide="ignore"):
-            result = np.asarray(self._function(*arguments), dtype=float)
-        result = result * self.output_factor
+            _flag_beyond(self.key, beyond, outside)
+        result = self._raw(values)
         mask = self.outside_mask(values, basis)
         if mask.any() and outside != "ignore":
             message = (
@@ -635,12 +1195,24 @@ class Formulation:
             else:
                 result = np.where(mask, np.nan, result)
         output_unit = units[self.output.unit].pint
-        output_scale = self.output.temperature_scale
-        if scale == "convert" and output_scale is not None and output_scale.t90:
-            # A temperature computed on the formulation's scale goes back to
-            # ITS-90, the scale of inputs and results.
-            celsius = convert(Q_(result, output_unit), "degC").magnitude
-            its90 = Q_(output_scale.to_its90(celsius), "degC")
-            result = np.asarray(convert(its90, output_unit).magnitude, dtype=float)
+        output_scale = self.output.scale
+        if (
+            scale == "convert"
+            and output_scale is not None
+            and not output_scale.is_reference
+        ):
+            # A value computed on the formulation's scale goes back to the
+            # reference scale, that of inputs and results.
+            output_scale.check_convertible()
+            table = units[str(output_scale.unit)].pint
+            on_scale = convert(Q_(result, output_unit), table).magnitude
+            converted = output_scale.to_reference(on_scale)
+            failed = np.isnan(converted) & ~np.isnan(on_scale)
+            _flag_beyond(
+                self.key, [(self.output.identifier, output_scale, failed)], outside
+            )
+            result = np.asarray(
+                convert(Q_(converted, table), output_unit).magnitude, dtype=float
+            )
         magnitude = result.item() if result.ndim == 0 else result
         return Q_(magnitude, output_unit)
