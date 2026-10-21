@@ -115,7 +115,7 @@ All sections are optional; a key may be defined in one file only.
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
-| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference` |
+| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs), `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`) |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`), `subject`, `object`, `citation` | `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
 

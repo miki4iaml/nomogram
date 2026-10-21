@@ -382,12 +382,14 @@ def test_a_scale_short_name_and_subscript() -> None:
     its90 = CATALOG.scales["its90"]
     assert (its90.symbol, its90.subscript) == ("ITS-90", "90")
     assert CATALOG.scales["ipts68"].subscript == "68"
-    assert "scales.its90" in CATALOG.search("ITS-90", section="scales").refs
     document = """
 [scales.s]
 label = "A scale"
 kinds = ["CelsiusTemperature"]
-subscript = 3
+symbol = "XYZ-1"
+subscript = "x"
 """
+    # The short name is searchable, even when the label does not hold it.
+    assert load_catalog([document]).search("XYZ-1").refs == ("scales.s",)
     with pytest.raises(CatalogError, match="subscript: expected a non-empty string"):
-        load_catalog([document])
+        load_catalog([document.replace('subscript = "x"', "subscript = 3")])

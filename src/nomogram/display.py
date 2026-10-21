@@ -11,7 +11,10 @@ Everything derives from one LaTeX string, produced by
   unit of each symbol;
 - :func:`symbol` gives the label of one variable, for an axis or a
   legend;
-- :func:`table` gives a Markdown table of several formulations.
+- :func:`table` gives a Markdown table of several formulations;
+- :func:`axis_label` gives the label of a plot axis, in the style of the
+  ``axis_labels`` option, with :func:`reference_scale` and
+  :func:`sentence_case` as helpers.
 
 In a Jupyter notebook, a :class:`Rendering` or a :class:`FormulaTable`
 left at the end of a cell displays itself, through ``_repr_markdown_``;
@@ -66,6 +69,7 @@ __all__ = [
     "get_display_options",
     "reference_scale",
     "render",
+    "sentence_case",
     "symbol",
     "table",
 ]
@@ -393,6 +397,9 @@ def render(
 def reference_scale(kind: str) -> ConventionalScale | None:
     """The reference scale of a quantity kind in the bundled catalog.
 
+    Plots and :func:`symbol` read the bundled catalog: the scales of a
+    personal catalog do not reach their labels.
+
     Values of the kind are given and returned on it (ITS-90 for the
     temperatures); ``None`` for a kind without conventional scale.
     """
@@ -405,12 +412,43 @@ def reference_scale(kind: str) -> ConventionalScale | None:
 
 
 def _with_subscript(tex: str, subscript: str) -> str:
-    """A symbol marked with a scale: ``t`` gives ``t_{90}``."""
+    """A symbol marked with a scale: ``t`` gives ``t_{90}``.
+
+    The mark joins an existing subscript group (``T_{d}`` gives
+    ``T_{d,90}``), never a superscript.
+    """
     mark = subscript if subscript.isdigit() else rf"\mathrm{{{subscript}}}"
-    match = re.fullmatch(r"(.*)_\{(.*)\}", tex)
-    if match:
-        return f"{match.group(1)}_{{{match.group(2)},{mark}}}"
+    start = tex.find("_{")
+    if start < 0:
+        return f"{tex}_{{{mark}}}"
+    depth = 0
+    for index in range(start + 1, len(tex)):
+        depth += {"{": 1, "}": -1}.get(tex[index], 0)
+        if depth == 0:
+            return f"{tex[:index]},{mark}{tex[index:]}"
     return f"{tex}_{{{mark}}}"
+
+
+#: Words kept capitalised when a label is put in sentence case.
+_PROPER_NOUNS = frozenset({"Celsius", "Fahrenheit", "Kelvin", "Rankine"})
+
+
+def sentence_case(label: str) -> str:
+    """A label in sentence case, as the SI and ISO 80000 write names.
+
+    ``"Celsius Temperature"`` gives ``"Celsius temperature"``; acronyms and
+    proper nouns keep their capitals, the first word too.
+    """
+    words = label.split(" ")
+    return " ".join(
+        [words[0]]
+        + [
+            w.lower()
+            if w[:1].isupper() and w[1:].islower() and w not in _PROPER_NOUNS
+            else w
+            for w in words[1:]
+        ]
+    )
 
 
 def axis_label(
@@ -446,6 +484,14 @@ def axis_label(
         is never qualified, the information goes on the symbol);
         ``"explicit"``: ``Celsius temperature - $t$ [°C] {ITS-90}``;
         ``"simple"``: ``Celsius temperature $t$ [°C]``.
+
+    Notes
+    -----
+    A compound unit goes in parentheses in the quotient (``(g/m³)``,
+    ``(Pa⋅s)``); a number has no unit (``[1]`` in the explicit style);
+    the scale subscript joins an existing subscript; without a name, the
+    slash stands apart (``Height / km``); with neither name nor symbol,
+    the unit stands alone (``[Pa]`` in the explicit and simple styles).
     """
     chosen = _resolve(options, overrides)
     style = chosen.axis_labels
@@ -461,11 +507,11 @@ def axis_label(
     head = " ".join(p for p in (name, shown) if p)
     if not unit:
         return head
-    if not head:
-        return f"[{unit}]"
     if style == "simple":
-        return f"{head} [{unit}]"
-    quotient = f"({unit})" if re.search(r"[/·* ]", unit) else unit
+        return f"{head} [{unit}]" if head else f"[{unit}]"
+    if not head:
+        return unit
+    quotient = f"({unit})" if re.search(r"[/·⋅×* ]", unit) else unit
     return f"{head}/{quotient}" if shown else f"{head} / {quotient}"
 
 

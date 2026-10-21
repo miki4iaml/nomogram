@@ -181,8 +181,11 @@ and this project adheres to
 
 - Plot axes and `display.symbol` labels follow `axis_labels` (SI form
   by default, instead of a unit in brackets). A temperature axis names
-  the temperature its values are: in °C a Celsius temperature t, in K a
-  thermodynamic temperature T (it said "Thermodynamic Temperature [°C]").
+  the temperature its values are: in °C a Celsius temperature t, in K or
+  °R a thermodynamic temperature T, in °F a temperature (it said
+  "Thermodynamic Temperature [°C]"). The y axis of `plot_values` gains
+  the name of the output kind, the x axis a symbol (in the notation
+  given); names are in sentence case, units take the catalog's symbols.
   The deviation axis reads "Relative deviation from ... δ/%".
 - `Derivation.solved_for` is optional (`None` for a composition), and
   `Derivation` gains `parts`.

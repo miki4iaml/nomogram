@@ -44,7 +44,9 @@ wmo = c.notations["wmo"]
 label = symbol(magnus.output, wmo)  # "$e_{\mathrm{w}}$/hPa"
 ```
 
-`nomogram.plot.plot_values` uses it for its y axis.
+`nomogram.plot.plot_values` labels its y axis with the name of the
+output kind, this symbol (in the notation given) and the unit, in the
+style below.
 
 ### Axis labels
 
@@ -70,9 +72,12 @@ Axis labels follow the option `axis_labels`, set like the others
   reader's burden.
 
 The scale shown is the reference scale of the quantity kind, on which
-nomogram takes inputs and returns results. A temperature axis follows the
-values plotted: in °C it is a Celsius temperature t, in K a thermodynamic
-temperature T.
+nomogram takes inputs and returns results (read from the bundled
+catalog). A temperature axis follows the values plotted: in °C a Celsius
+temperature t, in K or °R a thermodynamic temperature T, in °F simply a
+temperature. Names are in sentence case, as the SI and ISO 80000 write
+them ("Celsius temperature"); units take the catalog's symbols (a
+temperature difference in °C, never Δ°C).
 
 ```python
 from nomogram.display import axis_label, display_options, reference_scale

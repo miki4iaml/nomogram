@@ -19,9 +19,10 @@ from typing import Any
 import numpy as np
 
 from nomogram.comparison import TEMPERATURE_POINTS, Comparison, same_state
-from nomogram.display import axis_label, reference_scale, symbol
+from nomogram.dimensions import unit_text
+from nomogram.display import axis_label, reference_scale, sentence_case, symbol
 from nomogram.model import Notation
-from nomogram.units import is_offset_unit
+from nomogram.units import is_offset_unit, ureg
 
 __all__ = ["plot_deviations", "plot_values"]
 
@@ -42,7 +43,9 @@ def _axes(ax: Any) -> Any:
     return created
 
 
-def _abscissa(comparison: Comparison, kind: str | None) -> tuple[str, Any]:
+def _abscissa(
+    comparison: Comparison, kind: str | None, notation: Notation | None = None
+) -> tuple[str, Any]:
     """The input plotted along x: its label and its values."""
     if kind is None:
         varying = [k for k, q in comparison.inputs.items() if np.ndim(q.magnitude) == 1]
@@ -57,17 +60,22 @@ def _abscissa(comparison: Comparison, kind: str | None) -> tuple[str, Any]:
         msg = f"no input of kind {kind!r} in the comparison"
         raise ValueError(msg)
     quantity = comparison.inputs[kind]
-    shown = kind
+    name, shown = None, kind
     if kind in TEMPERATURE_POINTS:
-        # The values say which temperature is plotted: degC, a Celsius
-        # temperature t; K, a thermodynamic temperature T.
-        offset = is_offset_unit(quantity.units)
-        shown = "CelsiusTemperature" if offset else "ThermodynamicTemperature"
+        # The values say which temperature is plotted: in degC a Celsius
+        # temperature t, in an absolute unit (K, degR) a thermodynamic
+        # temperature T; another offset unit (degF) is neither.
+        if quantity.units == ureg.degC:
+            shown = "CelsiusTemperature"
+        elif not is_offset_unit(quantity.units):
+            shown = "ThermodynamicTemperature"
+        else:
+            name, shown = "Temperature", ""
     label = axis_label(
-        _kind_name(shown),
-        _symbol_of(comparison, shown),
-        f"{quantity.units:~P}",
-        scale=reference_scale(shown),
+        name or _kind_name(shown),
+        _symbol_of(comparison, shown, notation),
+        unit_text(quantity.units),
+        scale=reference_scale(kind if not shown else shown),
     )
     return label, np.asarray(quantity.magnitude, dtype=float)
 
@@ -81,16 +89,18 @@ def _kind_name(kind: str) -> str:
     from nomogram.catalog import catalog
 
     kinds = catalog().kinds
-    return kinds[kind].label if kind in kinds else kind
+    return sentence_case(kinds[kind].label) if kind in kinds else kind
 
 
-def _symbol_of(comparison: Comparison, kind: str) -> str | None:
+def _symbol_of(
+    comparison: Comparison, kind: str, notation: Notation | None
+) -> str | None:
     if kind in _KIND_SYMBOLS:
         return _KIND_SYMBOLS[kind]
     reference = comparison.formulations.get(comparison.reference)
     for variable in getattr(reference, "inputs", ()):
         if same_state(variable.kind, kind):
-            return symbol(variable, unit=False)[1:-1]
+            return symbol(variable, notation, unit=False)[1:-1]
     return None
 
 
@@ -184,7 +194,7 @@ def plot_values(
     ValueError
         If the input to plot along x cannot be determined.
     """
-    x_label, x = _abscissa(comparison, input_kind)
+    x_label, x = _abscissa(comparison, input_kind, notation)
     ax = _axes(ax)
     for index, (key, quantity) in enumerate(comparison.values.items()):
         values = np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), x.shape)
@@ -195,7 +205,7 @@ def plot_values(
         )
         ax.plot(x, values, label=_label(comparison, key), **style)
     reference = comparison.formulations.get(comparison.reference)
-    unit = f"{comparison.values[comparison.reference].units:~P}"
+    unit = unit_text(comparison.values[comparison.reference].units)
     if reference is not None:
         output = reference.output
         ax.set_ylabel(
