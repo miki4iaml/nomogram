@@ -129,6 +129,15 @@ KINDS: dict[str, KindSpec] = {
         cf_standard_names=("altitude",),
         offset_units=False,
     ),
+    # Salinity and chlorinity of sea water are mass fractions; QUDT has no
+    # kind for either (nomogram defines them in the sea-water family). QUDT
+    # gives MassFraction only % and 1; CF writes salinities in 1e-3 (per
+    # mille) and g/kg, added here.
+    "MassFraction": KindSpec(
+        "ratio",
+        delta=False,
+        added_units=("PERMILLE", "GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
+    ),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -147,9 +156,22 @@ UNITS: dict[str, str] = {
     "UNITLESS": "dimensionless",
     "J-PER-KiloGM-K": "J/(kg*K)",
     "PPM": "ppm",
+    "PERMILLE": "permille",
+    "MilliM_HG": "mmHg",
+    "ATM": "atm",
     "M": "m",
     "KiloM": "km",
 }
+
+#: CF standard names of conventional scales (catalog `[scales]`), kept
+#: in the frozen subset so that the catalog can check them.
+SCALE_CF_NAMES: tuple[str, ...] = (
+    "sea_water_knudsen_salinity",
+    "sea_water_cox_salinity",
+    "sea_water_practical_salinity",
+    "sea_water_reference_salinity",
+    "sea_water_absolute_salinity",
+)
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
 SYMBOLS: dict[str, str] = {
@@ -163,6 +185,7 @@ SYMBOLS: dict[str, str] = {
 WIKIDATA_RELATION = "close"
 
 _UDUNITS_FACTOR = re.compile(r"^([A-Za-z]+)(-?\d+)?$")
+_UDUNITS_NUMBER = re.compile(r"^\d+(\.\d+)?([eE]-?\d+)?$")
 
 
 def udunits_to_pint(expression: str) -> str:
@@ -170,7 +193,7 @@ def udunits_to_pint(expression: str) -> str:
 
     Only the syntax of CF canonical units is handled: factors separated by
     spaces, each a unit symbol with an optional integer exponent
-    (``kg m-3``), or ``1`` for dimensionless.
+    (``kg m-3``) or a number (``1e-3``), or ``1`` for dimensionless.
 
     Parameters
     ----------
@@ -191,6 +214,9 @@ def udunits_to_pint(expression: str) -> str:
         return "dimensionless"
     factors = []
     for factor in expression.split():
+        if _UDUNITS_NUMBER.match(factor):
+            factors.append(factor)  # a scale factor, such as 1e-3 (per mille)
+            continue
         match = _UDUNITS_FACTOR.match(factor)
         if match is None:
             msg = f"unsupported UDUNITS factor: {factor!r}"
@@ -362,6 +388,7 @@ def extract(
     units = extract_units(units_graph, date)
     kinds = extract_kinds(kinds_graph, units, unit_kinds(units_graph), date)
     cf_names = {n for spec in KINDS.values() for n in spec.cf_standard_names}
+    cf_names |= set(SCALE_CF_NAMES)
     cf_version, cf = extract_cf(cf_path, cf_names)
     return {
         "sources": {

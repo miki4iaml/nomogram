@@ -42,6 +42,7 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
             ),
         },
     )
+    monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ())
     monkeypatch.setattr(
         extract_semantics,
         "UNITS",
@@ -141,6 +142,7 @@ def test_cf_names_and_versions_are_recorded() -> None:
         ("K", "K"),
         ("kg m-3", "kg * m ** -3"),
         ("m2 s-2", "m ** 2 * s ** -2"),
+        ("1e-3", "1e-3"),
     ],
 )
 def test_udunits_to_pint(udunits: str, pint: str) -> None:
@@ -221,3 +223,15 @@ def test_main_reports_errors(
     assert extract_semantics.main(arguments(output)) == 1
     assert not output.exists()
     assert "error: not found in the source" in capsys.readouterr().err
+
+
+def test_cf_names_of_scales_are_extracted(monkeypatch: pytest.MonkeyPatch) -> None:
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = kinds["ThermodynamicTemperature"]._replace(
+        cf_standard_names=()
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ("air_temperature",))
+    names = run()["cf_standard_names"]
+    assert isinstance(names, dict)
+    assert "air_temperature" in names

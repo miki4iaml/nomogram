@@ -618,6 +618,25 @@ VERIFIER = 1
 REGISTRY = "verifications.json"
 
 
+def _conversion_chain(scale: Any) -> list[Any]:
+    """A conversion by expression and the scales it goes through.
+
+    Empty for a table converting straight to the reference scale, so that
+    existing fingerprints stay valid.
+    """
+    found: list[Any] = []
+    while scale is not None and scale.conversion is not None:
+        found.append(
+            [scale.key, scale.conversion, list(scale.bounds or ()), scale.unit]
+        )
+        scale = scale.base
+    if found and scale is not None and scale.points:
+        found.append(
+            [scale.key, list(scale.points), list(scale.difference), scale.unit]
+        )
+    return found
+
+
 def fingerprint(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> str:
     """A fingerprint (SHA-256) of everything a verdict depends on.
 
@@ -635,6 +654,7 @@ def fingerprint(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -
             v.scale.key,
             list(v.scale.points),
             list(v.scale.difference),
+            *_conversion_chain(v.scale),
         )
         for f in (subject, other)
         for v in (f.output, *f.inputs)

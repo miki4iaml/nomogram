@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- Conventional scales converted by an expression of `x` (`conversion`),
+  possibly through another scale (`base`), within `bounds`; scales
+  nomogram cannot convert (`convertible = false`, raising
+  `ScaleConversionError` unless values are taken as given); CF standard
+  names and a note on scales, searchable. A citation may state the scale
+  of the output. Compositions check the scales of their pieces; an
+  inverse takes its input on the scale of the source's output.
+- Temperature scales of oceanography: IPTS-68 through the linear
+  conversion of Saunders (1990), t68 = 1.00024 t90, and IPTS-48 through
+  Fofonoff and Bryden (1975).
+- Family `sea-water`: kinds `SeaWaterSalinity` and `Chlorinity`, the
+  salinity scales (Reference Salinity, PSS-78, Cox, Knudsen, Absolute
+  Salinity) with their conversions and CF names (added to the frozen CF
+  subset), and the formulations of Knudsen and of JPOTS giving salinity
+  from chlorinity. QUDT kind `MassFraction`, units per mille, mmHg and
+  atm.
 - Axis labels in three styles, display option `axis_labels`: `"si"`
   (default), the quotient of the quantity by its unit with the
   conventional scale as a subscript of the symbol, as the SI Brochure

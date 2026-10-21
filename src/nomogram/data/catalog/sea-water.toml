@@ -1,0 +1,157 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Sea water: salinity and chlorinity, their conventional scales (Knudsen,
+# Cox, PSS-78, Reference Salinity, Absolute Salinity).
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "sea-water"
+label = "Sea water: salinity and chlorinity"
+format = 2
+requires = ["core"]
+keywords = ["oceanography", "salinity", "sea water"]
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.SeaWaterSalinity]
+label = "Sea Water Salinity"
+specialization_of = "MassFraction"
+description = "Mass fraction of dissolved material in sea water, estimated on a conventional scale (Knudsen, Cox, PSS-78, Reference or Absolute Salinity; CF: sea_water_salinity and its precise forms)."
+
+[kinds.Chlorinity]
+label = "Chlorinity"
+specialization_of = "MassFraction"
+description = "Chlorinity of sea water, in per mille: Cl = 0.3285234 Ag, Ag being the mass in grams of atomic-weight silver just necessary to precipitate the halogens in 1 kg of sea water (Jacobsen and Knudsen 1940, p. 8), which replaced the definition of Sorensen (1902)."
+
+# --- References -------------------------------------------------------
+
+[references.unesco1966_tp4]
+authors = "UNESCO"
+year = 1966
+title = "Second report of the Joint Panel on Oceanographic Tables and Standards, Rome, 8-9 October 1965"
+container = "UNESCO Technical Papers in Marine Science 4"
+url = "https://www.vliz.be/imisdocs/publications/ocrd/270535.pdf"
+status = "verified"
+note = "Recommendation 2: S = 1.80655 Cl rather than the Sorensen equation (S = 0.030 + 1.805 Cl, Forch, Knudsen and Sorensen 1902). The stated differences between the new conductivity-defined salinity and earlier chlorinity estimates (0 at 35, 0.0023 at 32 and 38, about 0.02 at 11 and 0.025 at 6 per mille) concern that new salinity; the two chlorinity formulas differ by 0.0025 at 32 and 0.0026 at 38."
+
+[references.knudsen1901]
+authors = "Knudsen, M. (ed.)"
+year = 1901
+title = "Hydrographical Tables"
+container = "G. E. C. Gad, Copenhagen"
+status = "to-confirm"
+note = "Not read (no copy reachable from Europe); S = 0.030 + 1.805 Cl as given by the TEOS-10 Manual (eq. A.3.4) and many later sources."
+
+[references.gsw_sp_from_sk]
+authors = "TEOS-10 GSW Oceanographic Toolbox"
+title = "Notes on the function gsw_SP_from_SK"
+url = "https://www.teos-10.org/pubs/gsw/pdf/SP_from_SK.pdf"
+status = "verified"
+note = "S_P = (S_K - 0.03)(1.80655/1.805), obtained by combining the Knudsen and Cox relations (TEOS-10 eqs. A.3.4, A.3.5); a derivation, not a measured relation."
+
+[references.lewis_perkin1981]
+authors = "Lewis, E. L.; Perkin, R. G."
+year = 1981
+title = "The Practical Salinity Scale 1978: conversion of existing data"
+container = "Deep-Sea Research 28A, 307-328; reprinted in UNESCO Technical Papers in Marine Science 37"
+url = "https://www.vliz.be/imisdocs/publications/ocrd/270529.pdf"
+status = "verified"
+note = "p. 325: no true conversion from chlorinity to PSS-78 exists; errors of the recommended route unlikely to exceed 0.03; Knudsen salinities agree with PSS-78 within 0.001 for 25 < S < 38."
+
+# --- Conventional scales ----------------------------------------------
+
+[scales.reference_salinity2008]
+label = "Reference-Composition Salinity Scale (Millero et al. 2008)"
+kinds = ["SeaWaterSalinity"]
+symbol = "Reference Salinity"
+subscript = "R"
+cf_standard_names = ["sea_water_reference_salinity"]
+reference = "teos10_manual"
+
+[scales.pss78]
+label = "Practical Salinity Scale 1978 (PSS-78)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+unit = "PERMILLE"
+conversion = "35.16504 / 35 * x"
+bounds = [2.0, 42.0]
+symbol = "PSS-78"
+subscript = "P"
+cf_standard_names = ["sea_water_practical_salinity"]
+reference = "teos10_manual"
+note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42; Practical Salinity is a number, written here in per mille so that S_P = 35 is 35."
+
+[scales.cox1967]
+label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+base = "pss78"
+unit = "PERMILLE"
+conversion = "x"
+symbol = "Cox"
+subscript = "C"
+cf_standard_names = ["sea_water_cox_salinity"]
+reference = "teos10_manual"
+note = "Taken as Practical Salinity: TEOS-10 (A.4) converts pre-1978 salinities as S_R = u_PS S, and CF writes S_P = S_C. For chlorinity values, Lewis and Perkin (1981) find no true conversion to PSS-78 and recommend a route through R15 (errors unlikely to exceed 0.03)."
+
+[scales.knudsen1901]
+label = "Knudsen salinity (Knudsen 1901, S = 0.030 + 1.805 Cl)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+base = "pss78"
+unit = "PERMILLE"
+conversion = "(x - 0.03) * 1.80655 / 1.805"
+symbol = "Knudsen"
+subscript = "K"
+cf_standard_names = ["sea_water_knudsen_salinity"]
+reference = "gsw_sp_from_sk"
+note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF), as Feistel (2008, eq. 2.9) does too. TEOS-10 A.4 disagrees: it converts pre-1978 salinities as S_R = u_PS S, without the 0.03 offset. Lewis and Perkin (1981) find Knudsen salinities within 0.001 of PSS-78 for 25 < S < 38."
+
+[scales.absolute_salinity2010]
+label = "Absolute Salinity (TEOS-10)"
+kinds = ["SeaWaterSalinity"]
+reference_scale = "reference_salinity2008"
+convertible = false
+symbol = "Absolute Salinity"
+subscript = "A"
+cf_standard_names = ["sea_water_absolute_salinity"]
+reference = "teos10_manual"
+note = "S_A = S_R + delta S_A, the anomaly depending on the location (TEOS-10 look-up table): nomogram holds no conversion; values on this scale are taken as given."
+
+# --- Formulations -----------------------------------------------------
+
+[formulations.knudsen1901_salinity]
+label = "Knudsen salinity from chlorinity (Knudsen 1901)"
+expression = "a + b * Cl"
+fixed_units = true
+note = "On nine samples (Baltic, North Sea, North Atlantic, Red Sea); the offset reflects river-borne salts of the Baltic. JPOTS (1966) calls it the Sorensen equation, from Forch, Knudsen and Sorensen (1902)."
+output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Knudsen salinity" }
+inputs = [
+  { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
+]
+coefficients = { a = 0.030, b = 1.805 }
+
+[[formulations.knudsen1901_salinity.citations]]
+reference = "teos10_manual"
+equation = "A.3.4"
+scales = { S = "knudsen1901" }
+
+[[formulations.knudsen1901_salinity.citations]]
+reference = "knudsen1901"
+
+[formulations.cox_salinity_jpots1966]
+label = "Cox salinity from chlorinity (JPOTS 1966)"
+expression = "b * Cl"
+fixed_units = true
+note = "Recommended by JPOTS (1966) rather than the Sorensen equation, S = 0.030 + 1.805 Cl."
+output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Cox salinity" }
+inputs = [
+  { identifier = "Cl", kind = "Chlorinity", unit = "PERMILLE", description = "Chlorinity" },
+]
+coefficients = { b = 1.80655 }
+
+[[formulations.cox_salinity_jpots1966.citations]]
+reference = "unesco1966_tp4"
+scales = { S = "cox1967" }

@@ -108,6 +108,7 @@ def test_radio_refractivity_kinds_and_units() -> None:
     assert kinds["RefractiveIndex"].applicable_units == ("UNITLESS",)
     assert set(kinds["DimensionlessRatio"].applicable_units) == {
         "PERCENT",
+        "PERMILLE",
         "PPM",
         "UNITLESS",
     }

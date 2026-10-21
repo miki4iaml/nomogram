@@ -23,6 +23,7 @@ import argparse
 import ast
 import dataclasses
 import datetime
+import math
 import os
 import sys
 import tomllib
@@ -370,7 +371,7 @@ def _stated_units(
 def _stated_scales(
     where: str, inputs: tuple[Variable, ...], citations: tuple[Citation, ...]
 ) -> tuple[Variable, ...]:
-    """Inputs with the temperature scales their citations state."""
+    """Variables with the conventional scales their citations state."""
     result = []
     for variable in inputs:
         stated = {
@@ -609,89 +610,197 @@ class _Builder:
 
     def build_scales(self) -> None:
         tables = self.data["scales"]
-        # Reference scales first: derived scales refer to them.
-        order = sorted(tables, key=lambda k: "reference_scale" in tables[k])
         reference_of: dict[str, str] = {}
-        for key in order:
-            where = f"scales.{key}"
-            f = _fields(
-                where,
-                tables[key],
-                ("label", "kinds"),
-                (
-                    "reference_scale",
-                    "unit",
-                    "differences",
-                    "reference",
-                    "symbol",
-                    "subscript",
-                ),
-            )
-            for name in ("symbol", "subscript"):
-                if f[name] is not None and (
-                    not isinstance(f[name], str) or not f[name]
-                ):
-                    msg = f"{where}.{name}: expected a non-empty string"
-                    raise CatalogError(msg)
-            kinds = tuple(self.kind(f"{where}.kinds", k).name for k in f["kinds"])
-            if not kinds:
-                msg = f"{where}.kinds: at least one quantity kind"
+        pending = dict(tables)
+        # Reference scales first, then each scale after the one it converts to.
+        for key, table in pending.items():
+            if not isinstance(table, dict):
+                msg = f"scales.{key}: expected a table"
                 raise CatalogError(msg)
-            parent = f["reference_scale"]
-            points: tuple[float, ...] = ()
-            difference: tuple[float, ...] = ()
-            unit = None
-            if parent is None:
-                if f["differences"] is not None or f["unit"] is not None:
-                    msg = f"{where}: a reference scale has no conversion table"
+            for name in ("reference_scale", "base"):
+                if name in table and not isinstance(table[name], str):
+                    msg = f"scales.{key}.{name}: expected a scale key"
                     raise CatalogError(msg)
-                for kind in kinds:
-                    if kind in reference_of:
-                        msg = (
-                            f"{where}: {kind} already has a reference scale, "
-                            f"{reference_of[kind]}"
-                        )
-                        raise CatalogError(msg)
-                    reference_of[kind] = key
-            else:
-                base = self.scales.get(parent)
-                if base is None or not base.is_reference:
+        while pending:
+            ready = [
+                key
+                for key, table in pending.items()
+                if "reference_scale" not in table
+                or table.get("base") in self.scales
+                or table.get("base") not in tables
+            ]
+            if not ready:
+                msg = f"scales: conversions form a cycle: {', '.join(sorted(pending))}"
+                raise CatalogError(msg)
+            ready.sort(key=lambda k: "reference_scale" in pending[k])
+            for key in ready:
+                self.scales[key] = self.scale(key, pending.pop(key), reference_of)
+
+    def scale(
+        self, key: str, table: Any, reference_of: dict[str, str]
+    ) -> ConventionalScale:
+        where = f"scales.{key}"
+        f = _fields(
+            where,
+            table,
+            ("label", "kinds"),
+            (
+                "reference_scale",
+                "unit",
+                "differences",
+                "reference",
+                "symbol",
+                "subscript",
+                "conversion",
+                "base",
+                "bounds",
+                "convertible",
+                "cf_standard_names",
+                "note",
+            ),
+        )
+        for name in ("symbol", "subscript", "conversion"):
+            if f[name] is not None and (not isinstance(f[name], str) or not f[name]):
+                msg = f"{where}.{name}: expected a non-empty string"
+                raise CatalogError(msg)
+        kinds = tuple(self.kind(f"{where}.kinds", k).name for k in f["kinds"])
+        if not kinds:
+            msg = f"{where}.kinds: at least one quantity kind"
+            raise CatalogError(msg)
+        parent = f["reference_scale"]
+        if f["convertible"] is not None and not isinstance(f["convertible"], bool):
+            msg = f"{where}.convertible: expected true or false"
+            raise CatalogError(msg)
+        convertible = f["convertible"] is None or f["convertible"]
+        cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
+        unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
+        if unknown:
+            msg = (
+                f"{where}.cf_standard_names: not in the frozen CF subset: "
+                f"{', '.join(unknown)} (scripts/extract_semantics.py, SCALE_CF_NAMES)"
+            )
+            raise CatalogError(msg)
+        conversion_fields = ("unit", "differences", "conversion", "base", "bounds")
+        common = {
+            "key": key,
+            "label": f["label"],
+            "kinds": kinds,
+            "reference_scale": parent,
+            "reference": self.optional_reference(f"{where}.reference", f["reference"]),
+            "symbol": f["symbol"],
+            "subscript": f["subscript"],
+            "cf_standard_names": cf_names,
+            "note": f["note"],
+        }
+        if parent is None:
+            given = [n for n in (*conversion_fields, "convertible") if f[n] is not None]
+            if given:
+                msg = f"{where}: a reference scale has no conversion table ({', '.join(given)})"
+                raise CatalogError(msg)
+            for kind in kinds:
+                if kind in reference_of:
                     msg = (
-                        f"{where}.reference_scale: {parent!r} is not a reference scale"
+                        f"{where}: {kind} already has a reference scale, "
+                        f"{reference_of[kind]}"
                     )
                     raise CatalogError(msg)
-                outside = sorted(set(kinds) - set(base.kinds))
-                if outside:
-                    msg = f"{where}.kinds: {', '.join(outside)} not covered by {parent}"
-                    raise CatalogError(msg)
-                if f["unit"] is None or not f["differences"]:
-                    msg = f"{where}: a derived scale needs a unit and differences"
-                    raise CatalogError(msg)
-                unit = self.unit(f"{where}.unit", f["unit"])
-                pairs = [tuple(float(x) for x in row) for row in f["differences"]]
-                if any(len(row) != 2 for row in pairs):
-                    msg = (
-                        f"{where}.differences: expected [reference value, "
-                        "reference value - value] pairs"
-                    )
-                    raise CatalogError(msg)
-                points = tuple(row[0] for row in pairs)
-                if any(b <= a for a, b in pairwise(points)):
-                    msg = f"{where}.differences: reference values must increase"
-                    raise CatalogError(msg)
-                difference = tuple(row[1] for row in pairs)
-            self.scales[key] = ConventionalScale(
-                key=key,
-                label=f["label"],
-                kinds=kinds,
-                reference_scale=parent,
+                reference_of[kind] = key
+            return ConventionalScale(unit=None, points=(), difference=(), **common)
+        top = self.scales.get(parent)
+        if top is None or not top.is_reference:
+            msg = f"{where}.reference_scale: {parent!r} is not a reference scale"
+            raise CatalogError(msg)
+        outside = sorted(set(kinds) - set(top.kinds))
+        if outside:
+            msg = f"{where}.kinds: {', '.join(outside)} not covered by {parent}"
+            raise CatalogError(msg)
+        if not convertible:
+            given = [n for n in conversion_fields if f[n] is not None and n != "unit"]
+            if given:
+                msg = f"{where}: a scale without conversion has no {', '.join(given)}"
+                raise CatalogError(msg)
+            unit = None if f["unit"] is None else self.unit(f"{where}.unit", f["unit"])
+            return ConventionalScale(
+                unit=unit, points=(), difference=(), convertible=False, **common
+            )
+        if f["unit"] is None or (f["differences"] is None) == (f["conversion"] is None):
+            msg = (
+                f"{where}: a derived scale needs a unit and differences, or a unit "
+                "and a conversion"
+            )
+            raise CatalogError(msg)
+        unit = self.unit(f"{where}.unit", f["unit"])
+        if f["differences"] is not None:
+            if f["base"] is not None or f["bounds"] is not None:
+                msg = f"{where}: a table converts to the reference scale, without base or bounds"
+                raise CatalogError(msg)
+            pairs = [tuple(float(x) for x in row) for row in f["differences"]]
+            if not pairs or any(len(row) != 2 for row in pairs):
+                msg = (
+                    f"{where}.differences: expected [reference value, "
+                    "reference value - value] pairs"
+                )
+                raise CatalogError(msg)
+            points = tuple(row[0] for row in pairs)
+            if any(b <= a for a, b in pairwise(points)):
+                msg = f"{where}.differences: reference values must increase"
+                raise CatalogError(msg)
+            return ConventionalScale(
                 unit=unit,
                 points=points,
-                difference=difference,
-                reference=self.optional_reference(f"{where}.reference", f["reference"]),
-                symbol=f["symbol"],
-                subscript=f["subscript"],
+                difference=tuple(row[1] for row in pairs),
+                **common,
             )
+        try:
+            parse_expression(f["conversion"], ["x"])
+        except ExpressionError as exc:
+            msg = f"{where}.conversion: {exc}"
+            raise CatalogError(msg) from None
+        base = None
+        if f["base"] is not None and f["base"] != parent:
+            base = self.scales.get(f["base"])
+            if (
+                base is None
+                or base.is_reference
+                or not base.convertible
+                or not set(kinds) <= set(base.kinds)
+            ):
+                msg = (
+                    f"{where}.base: {f['base']!r} is not a convertible scale of "
+                    "the same kinds"
+                )
+                raise CatalogError(msg)
+            if base.reference_scale != parent or base.unit != unit:
+                msg = (
+                    f"{where}.base: {f['base']} must lead to {parent} in the same "
+                    f"unit, {unit}"
+                )
+                raise CatalogError(msg)
+        bounds = None
+        if f["bounds"] is not None:
+            values = f["bounds"]
+            if (
+                not isinstance(values, list)
+                or len(values) != 2
+                or not all(isinstance(v, int | float) for v in values)
+                or not all(math.isfinite(v) for v in values)
+            ):
+                msg = f"{where}.bounds: expected [low, high], two finite numbers"
+                raise CatalogError(msg)
+            low, high = (float(v) for v in values)
+            if not low < high:
+                msg = f"{where}.bounds: empty interval"
+                raise CatalogError(msg)
+            bounds = (low, high)
+        return ConventionalScale(
+            unit=unit,
+            points=(),
+            difference=(),
+            base=base,
+            conversion=f["conversion"],
+            bounds=bounds,
+            **common,
+        )
 
     def check_scale(
         self, where: str, variable: Variable, key: Any
@@ -840,10 +949,11 @@ class _Builder:
         inputs: tuple[Variable, ...],
         names: set[str],
         coefficients: set[str],
+        outputs: tuple[Variable, ...] = (),
     ) -> tuple[Citation, ...]:
         result = []
         seen = set()
-        by_identifier = {v.identifier: v for v in inputs}
+        by_identifier = {v.identifier: v for v in (*inputs, *outputs)}
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
             f = _fields(
@@ -876,7 +986,7 @@ class _Builder:
             for identifier, scale in (f["scales"] or {}).items():
                 variable = by_identifier.get(identifier)
                 if variable is None:
-                    msg = f"{w}.scales: {identifier!r} is not an input"
+                    msg = f"{w}.scales: {identifier!r} is not a variable"
                     raise CatalogError(msg)
                 scales[identifier] = self.check_scale(
                     f"{w}.scales.{identifier}", variable, scale
@@ -962,11 +1072,12 @@ class _Builder:
             inputs,
             names,
             {c.identifier for c in coefficients},
+            (output,),
         )
         formulation = Formulation(
             key=key,
             label=f["label"],
-            output=output,
+            output=_stated_scales(f"{where}.citations", (output,), citations)[0],
             inputs=_stated_scales(f"{where}.citations", inputs, citations),
             coefficients=_stated_units(f"{where}.citations", coefficients, citations),
             constants=tuple(constants),
@@ -1046,6 +1157,13 @@ class _Builder:
                 msg = (
                     f"{w}: {part.key} gives {part.output.unit}, "
                     f"but {identifier} is in {target.unit}"
+                )
+                raise CatalogError(msg)
+            if part.output.scale != target.scale:
+                msg = (
+                    f"{w}: {part.key} gives a value on scale "
+                    f"{getattr(part.output.scale, 'key', None)}, but {identifier} "
+                    f"is on {getattr(target.scale, 'key', None)}"
                 )
                 raise CatalogError(msg)
             inner[identifier] = part
@@ -1136,6 +1254,17 @@ class _Builder:
                     f"{outer.output.unit}"
                 )
                 raise CatalogError(msg)
+            if output.scale is not None and output.scale != outer.output.scale:
+                msg = (
+                    f"{where}.output: the scale is that of {outer.key}'s output, "
+                    f"{getattr(outer.output.scale, 'key', None)}"
+                )
+                raise CatalogError(msg)
+            output = dataclasses.replace(
+                output,
+                scale=outer.output.scale,
+                scale_basis=outer.output.scale_basis,
+            )
 
         # Physical domains travel with the inputs they bound.
         domains = [d for d in outer.physical_domains if not set(d.bounds) & set(inner)]
@@ -1155,12 +1284,18 @@ class _Builder:
         names = {output.identifier} | set(inputs) | set(owner) | set(constants)
         variables = tuple(inputs.values())
         citations = self.citations(
-            f"{where}.citations", f["citations"], key, variables, names, set(owner)
+            f"{where}.citations",
+            f["citations"],
+            key,
+            variables,
+            names,
+            set(owner),
+            (output,),
         )
         formulation = Formulation(
             key=key,
             label=f["label"],
-            output=output,
+            output=_stated_scales(f"{where}.citations", (output,), citations)[0],
             inputs=_stated_scales(f"{where}.citations", variables, citations),
             coefficients=_stated_units(
                 f"{where}.citations", tuple(coefficients), citations
@@ -1572,6 +1707,7 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
         for kind in table["kinds"]:
             add("kinds", kind)
         add("scales", table.get("reference_scale"))
+        add("scales", table.get("base"))
         add("references", table.get("reference"))
     return found
 

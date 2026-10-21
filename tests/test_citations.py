@@ -120,7 +120,7 @@ def test_a_citation_can_use_a_convention_of_the_catalog() -> None:
         ((("one", "equation = 2"), ("one", "equation = 2")), "cited twice"),
         ((("one", 'units = { x = "K" }'),), "'x' is not a coefficient"),
         ((("one", 'units = { C = "NOPE" }'),), "unknown unit"),
-        ((("one", 'scales = { x = "s1" }'),), "'x' is not an input"),
+        ((("one", 'scales = { x = "s1" }'),), "'x' is not a variable"),
         ((("one", 'scales = { t = "nope" }'),), "unknown scale 'nope'"),
         ((("one", 'notation = "nope"'),), "unknown notation 'nope'"),
         ((("one", 'notation = { x = "X" }'),), "not identifiers of the formulation: x"),

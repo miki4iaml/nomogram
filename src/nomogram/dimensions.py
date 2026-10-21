@@ -342,6 +342,10 @@ def _linear(formulation: Formulation) -> dict[str, dict[str, Fraction] | None]:
     bases = sorted(
         {name for unit in context.units.values() for name in unit.dimensionality}
     )
+    if not bases:
+        # Every unit is a number (per mille against per mille): so is each
+        # coefficient.
+        return {name: {} for name in sorted(context.unknown)}
     exponents = {
         (name, base): sympy.Symbol(f"x_{name}_{base.strip('[]')}")
         for name in sorted(context.unknown)

@@ -24,6 +24,33 @@ doi = "10.1088/0026-1394/27/1/002"
 status = "to-confirm"
 note = "Text and Table 6 (differences between ITS-90 and IPTS-68) read in a copy of the text, not in the journal; DOI not checked."
 
+[references.saunders1990]
+authors = "Saunders, P. M."
+year = 1990
+title = "The International Temperature Scale of 1990, ITS-90"
+container = "WOCE Newsletter 10, p. 10, WOCE International Project Office"
+url = "https://web.archive.org/web/20170228105749/https://www.nodc.noaa.gov/woce/wdiu/wocedocs/newsltr/news10/news10.pdf"
+status = "verified"
+note = "Read in an archived copy: t68 = 1.00024 t90 as the first executable statement of the UNESCO algorithms; t90 = 0.99976 t68 adequate over -10 to 40 degC, range of interest -2 to 35 degC; no accuracy stated."
+
+[references.teos10_manual]
+authors = "IOC, SCOR and IAPSO"
+year = 2010
+title = "The international thermodynamic equation of seawater - 2010: Calculation and use of thermodynamic properties"
+container = "Intergovernmental Oceanographic Commission, Manuals and Guides No. 56, UNESCO"
+url = "https://www.teos-10.org/pubs/TEOS-10_Manual.pdf"
+status = "verified"
+note = "Read: eq. 2.1.1 and A.1.2 (Saunders conversion, -2 to 40 degC), 2.4.1 and A.3.3 (Reference Salinity, 2 < S_P < 42), A.3.4 (Knudsen), A.4 (historical data)."
+
+[references.fofonoff_bryden1975]
+authors = "Fofonoff, N. P.; Bryden, H."
+year = 1975
+title = "Specific gravity and density of seawater at atmospheric pressure"
+container = "Journal of Marine Research 33 (Supplement), 69-82"
+url = "https://elischolar.library.yale.edu/journal_of_marine_research/1336"
+status = "verified"
+note = "p. 71: T68 = T - 4.4e-6 T (100 - T), built from the difference between T48 and T68 over -2 to 30 degC; no correction for earlier scale changes. Read on the page image of an archived copy."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -59,6 +86,31 @@ symbol = "ITS-90"
 subscript = "90"
 kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference = "preston_thomas1990"
+
+[scales.ipts68_saunders1990]
+label = "IPTS-68 through the linear conversion of Saunders (1990)"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference_scale = "its90"
+unit = "DEG_C"
+conversion = "x / 1.00024"
+bounds = [-2.0, 40.0]
+symbol = "IPTS-68"
+subscript = "68"
+reference = "saunders1990"
+note = "t68 = 1.00024 t90, the conversion oceanographic algorithms (PSS-78, EOS-80) take; TEOS-10 (eq. A.1.2) recommends it for -2 to 40 degC, within 1 mK of the official conversion. Saunders tabulates -10 to 40 degC and names -2 to 35 degC; Sea-Bird gives -2 to 35 degC."
+
+[scales.ipts48]
+label = "International Practical Temperature Scale of 1948 (IPTS-48), oceanographic conversion"
+kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference_scale = "its90"
+base = "ipts68"
+unit = "DEG_C"
+conversion = "x - 4.4e-6 * x * (100 - x)"
+bounds = [-2.0, 30.0]
+symbol = "IPTS-48"
+subscript = "48"
+reference = "fofonoff_bryden1975"
+note = "t68 from t48, then IPTS-68 to ITS-90. Bennett (1976, quoted by Perkin and Lewis 1980) and Douglas (1969) give other formulas, within 0.5 mK. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908): ICES calls their conversion uncertain, the TEOS-10 Manual (A.1) points to published conversions of obsolete scales; nomogram holds none."
 
 [scales.ipts68]
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"
