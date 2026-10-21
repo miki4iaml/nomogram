@@ -35,11 +35,13 @@ WITH_COEFFICIENTS = [f for f in CATALOG.formulations.values() if f.coefficients]
 #: declared unit cannot come back (a pure number is as consistent).
 NUMERICAL_VALUES = {("goff_gratch1946", "e_st"), ("goff_gratch1946_ice", "e_i0")}
 #: Units declared because the expression does not determine them (the 10^3
-#: of 10^3 - 1.005 S fixes the unit of 31.998): hidden, they cannot come back.
+#: of 10^3 - 1.005 S fixes the unit of 31.998; in 1 - a S / S_0, S_0 is 35
+#: per mille, not the pure number 35): hidden, they cannot come back.
 NEEDED = {
     ("dickson2007_total_molality", "S_1"),
     ("dickson2007_osmotic_coefficient_of_salinity", "S_1"),
     ("dickson2007_vapour_pressure", "S_1"),
+    ("coare36_salinity_factor", "S_0"),
 }
 
 
@@ -131,6 +133,20 @@ def test_a_composition_keeps_the_units_of_its_parts() -> None:
     assert "dickson2007_total_molality" in units["c"].reason
 
 
+def test_units_satisfied_only_together_leave_the_coefficients_open() -> None:
+    # hPa and Pa are distinct factors in a numerical value equation: no
+    # unit makes A B P and A B p alike, so none is written.
+    found = infer_units(
+        make(
+            "A * B * P + A * B * p",
+            {"A": None, "B": None},
+            output=("e", "HectoPA"),
+            inputs=(("P", "HectoPA"), ("p", "PA")),
+        )
+    )
+    assert (found["A"].unit, found["B"].unit) == (None, None)
+
+
 def test_magnus_reasons_point_to_the_constraint() -> None:
     units = CATALOG.formulations["sonntag1990_magnus"].coefficient_units
     assert units["B"].reason == "B + t"
@@ -197,6 +213,37 @@ def test_simultaneous_constraints_are_left_to_linear_algebra() -> None:
         "[temperature]": Fraction(-1, 2),
     }
     assert _dimension(units["B"].unit) == {"[temperature]": Fraction(1, 2)}
+
+
+def test_linear_algebra_keeps_the_units_a_numerical_value_equation_uses() -> None:
+    # The value of A holds for hPa and degrees Celsius, not for Pa and K.
+    fixed = infer_units(make("A * B + A * t / B", {"A": None, "B": None}))
+    assert fixed["A"].unit == ureg.Unit("hPa") / ureg.Unit("delta_degC") ** 0.5
+    assert fixed["B"].unit == ureg.Unit("delta_degC") ** 0.5
+    # A quantity equation is free of units: SI base units serve.
+    quantity = infer_units(
+        make("A * B + A * t / B", {"A": None, "B": None}, fixed_units=False)
+    )
+    assert quantity["A"].unit == ureg.Unit("kg / m / s ** 2 / K ** 0.5")
+
+
+def test_a_unit_the_written_units_do_not_fix_stays_undetermined() -> None:
+    def formulation(fixed: bool) -> Formulation:
+        return make(
+            "1 - a * S / S_0",
+            {"a": None, "S_0": None},
+            output=("f", "UNITLESS"),
+            inputs=(("S", "PERMILLE"),),
+            fixed_units=fixed,
+        )
+
+    # Dimensionally both are pure numbers, but S_0 may be 35 per mille or
+    # 0.035: with fixed units, a declaration is needed.
+    assert {u.unit for u in infer_units(formulation(True)).values()} == {None}
+    assert {u.origin for u in infer_units(formulation(True)).values()} == {None}
+    assert all(
+        u.unit == ureg.dimensionless for u in infer_units(formulation(False)).values()
+    )
 
 
 def test_roots_and_fractional_powers() -> None:

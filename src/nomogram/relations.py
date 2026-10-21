@@ -7,16 +7,21 @@ A relation of the catalog is a claim made by a source; :func:`verify`
 checks it and returns a :class:`Verdict`:
 
 - an **equivalence** is proved with SymPy: coefficients become exact
-  rationals, the object's inputs are replaced as the relation says
-  (``given``), and the difference must simplify to zero. If it does not,
-  a numerical counterexample refutes the claim; without one, the
-  equivalence is left unproven (equivalence of transcendental
-  expressions is undecidable in general);
+  rationals, each result is brought into its output unit, the object's
+  inputs are replaced as the relation says (``given``) or by the subject
+  inputs that feed them, and the difference must simplify to zero. If
+  it does not, a numerical counterexample refutes the claim; without
+  one, the equivalence is left unproven (equivalence of transcendental
+  expressions is undecidable in general). Between formulations on
+  different conventional scales, evaluated with conversion, it is
+  unverified: the expressions cannot tell;
 - an **approximation** is checked on a dense grid of the domain the
   source states: the maximum relative deviation found is compared with
   the stated one. The verdict says whether it is reproduced (to the
   precision published), held (smaller) or exceeded (larger); it is a
-  check on points, never a proof.
+  check on points, never a proof. Points where the deviation is not
+  finite are not compared, and the verdict says so; it is unverified
+  when no point is left.
 
 Deviations nomogram computes without a source are observations, given by
 :func:`nomogram.comparison.compare`; they never become relations.
@@ -31,6 +36,7 @@ import math
 import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from fractions import Fraction
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
@@ -42,7 +48,14 @@ import sympy
 
 from nomogram.comparison import same_state
 from nomogram.expression import parse_expression
-from nomogram.model import CheckCase, CrossCheck, Formulation, Relation, RelationKind
+from nomogram.model import (
+    CheckCase,
+    CrossCheck,
+    Formulation,
+    Relation,
+    RelationKind,
+    Variable,
+)
 from nomogram.units import Q_
 
 if TYPE_CHECKING:
@@ -73,7 +86,9 @@ EQUALITY_TOLERANCE = 1e-9
 #: Random samples looking for a counterexample to an equivalence.
 SAMPLES = 200
 
-Status = Literal["proven", "refuted", "unproven", "reproduced", "held", "exceeded"]
+Status = Literal[
+    "proven", "refuted", "unproven", "reproduced", "held", "exceeded", "unverified"
+]
 
 
 @dataclass(frozen=True)
@@ -85,12 +100,16 @@ class Verdict:
     status : str
         ``"proven"``, ``"refuted"`` or ``"unproven"`` for an equivalence;
         ``"reproduced"``, ``"held"`` or ``"exceeded"`` for an
-        approximation.
+        approximation; ``"unverified"`` when the claim cannot be checked
+        as it stands (an equivalence between formulations on different
+        conventional scales, evaluated with conversion; an approximation
+        whose deviation is finite nowhere on its domain), the method
+        saying why.
     method : str
         How it was verified.
     value : float or None
         For an approximation, the maximum relative deviation found, in
-        percent.
+        percent; ``None`` when it is unverified.
     at : mapping of str to float
         Where that maximum lies, or where a counterexample was found, by
         input identifier of the subject.
@@ -223,7 +242,13 @@ def per_axis(dimensions: int, budget: int = BUDGET) -> int:
 
 def _approximation(
     relation: Relation, subject: Formulation, other: Formulation, budget: int
-) -> Verdict:
+) -> tuple[Verdict, float]:
+    """The verdict on an approximation, and the share of the grid compared.
+
+    Points where the deviation is not finite (a formulation undefined
+    there, or beyond the bounds of a scale conversion) are not compared;
+    the method says so when there are some.
+    """
     from nomogram.semantics import semantic_catalog
 
     units = semantic_catalog().units
@@ -249,7 +274,10 @@ def _approximation(
             ratio = np.asarray(mine.magnitude) / np.asarray(
                 theirs.to(mine.units).magnitude
             )
-        values = np.abs(ratio - 1) * 100
+        return np.abs(ratio - 1) * 100
+
+    def ranked(values: Any) -> Any:
+        """Deviations to rank: a point not compared ranks last."""
         return np.where(np.isfinite(values), values, -np.inf)
 
     def grid(lower: Any, upper: Any, count: int) -> Any:
@@ -261,7 +289,17 @@ def _approximation(
     first = grid(low, high, count)
     values = deviation(first)
     evaluations = len(first)
-    best_points = first[np.argsort(values)[::-1][:CANDIDATES]]
+    compared = np.isfinite(values)
+    share = float(np.mean(compared))
+    if not compared.any():
+        method = (
+            f"no point of a grid of {count} points per axis ({len(names)} "
+            "input(s)) where both formulations give a finite value; "
+            f"scale {relation.scale}"
+        )
+        return Verdict("unverified", method), share
+    order = np.argsort(ranked(values))[::-1][:CANDIDATES]
+    best_points = first[order[compared[order]]]
     step = (high - low) / (count - 1)
     zoom = max(3, int(ZOOM_POINTS ** (1 / len(names)) + 1e-9))
     found, where = -np.inf, best_points[0]
@@ -274,9 +312,11 @@ def _approximation(
             local = grid(
                 np.maximum(low, centre - half), np.minimum(high, centre + half), zoom
             )
-            local_values = deviation(local)
+            local_values = ranked(deviation(local))
             evaluations += len(local)
-            centre = local[int(np.argmax(local_values))]
+            best = int(np.argmax(local_values))
+            if np.isfinite(local_values[best]):
+                centre = local[best]
             half = half * 2 / (zoom - 1)
         value = float(deviation(centre[None, :])[0])
         if value > found:
@@ -297,11 +337,35 @@ def _approximation(
         f"down to {resolution:.1e} of the domain; {evaluations} evaluations; "
         f"scale {relation.scale}"
     )
-    return Verdict(status, method, found, at)
+    if share < 1:
+        method += (
+            f"; deviation finite on {100 * share:.4g} % of the grid only, "
+            "the other points not compared"
+        )
+    return Verdict(status, method, found, at), share
+
+
+def _exact(value: float) -> Any:
+    """A float as the simplest rational within its rounding (0.001, not 0.0010...02).
+
+    A factor between units computed in floating point is a ratio of small
+    integers or powers of ten; the first rational close enough is it.
+    """
+    exact = Fraction(repr(value))
+    for digits in range(1, 19):
+        found = exact.limit_denominator(10**digits)
+        if abs(found - exact) <= 1e-13 * abs(exact):
+            return sympy.Rational(found.numerator, found.denominator)
+    return sympy.Rational(exact.numerator, exact.denominator)
 
 
 def _rational(formulation: Formulation) -> Any:
-    """The expression with exact coefficients and constants."""
+    """The result in the output unit, with exact coefficients and constants.
+
+    A quantity equation gives its result in the units of its inputs, which
+    :attr:`~nomogram.model.Formulation.output_factor` brings into the
+    output unit (1 for fixed units): the factor is part of the result.
+    """
     expr = parse_expression(formulation.expression, formulation.names)
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
@@ -309,12 +373,78 @@ def _rational(formulation: Formulation) -> Any:
         sympy.Symbol(name, real=True): sympy.Rational(repr(value))
         for name, value in pairs
     }
-    return expr.xreplace(values)
+    return _exact(formulation.output_factor) * expr.xreplace(values)
+
+
+def _scale_name(variable: Variable) -> str:
+    return "no scale" if variable.scale is None else variable.scale.key
+
+
+def _scale_differences(
+    relation: Relation, subject: Formulation, other: Formulation
+) -> list[str]:
+    """Where the object and the subject feeding it are on different scales.
+
+    The reference scale of a kind and no scale are evaluated alike
+    (without conversion), so they count as the same.
+    """
+
+    def key(variable: Variable) -> str | None:
+        scale = variable.scale
+        return None if scale is None or scale.is_reference else scale.key
+
+    names = {v.identifier: v for v in subject.inputs}
+    matched = match_inputs(subject, other)
+    found = []
+    if key(subject.output) != key(other.output):
+        found.append(
+            f"output on {_scale_name(subject.output)} and {_scale_name(other.output)}"
+        )
+    for variable in other.inputs:
+        if variable.identifier in relation.given:
+            expr = parse_expression(relation.given[variable.identifier], sorted(names))
+            sources = sorted(s.name for s in expr.free_symbols)
+        else:
+            sources = (
+                [matched[variable.identifier]] if variable.identifier in matched else []
+            )
+        found += [
+            f"{variable.identifier} on {_scale_name(variable)} fed by {s} on "
+            f"{_scale_name(names[s])}"
+            for s in sources
+            if key(names[s]) != key(variable)
+        ]
+    return found
+
+
+def _real(expr: Any, sample: Mapping[Any, float]) -> float | None:
+    """The value of an expression at a sample, ``None`` unless real and finite."""
+    try:
+        value = complex(expr.xreplace(sample))
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(value.real) and math.isfinite(value.imag)):
+        return None
+    if abs(value.imag) > EQUALITY_TOLERANCE * max(abs(value.real), 1.0):
+        return None
+    return value.real
 
 
 def _equivalence(
     relation: Relation, subject: Formulation, other: Formulation, points: int
 ) -> Verdict:
+    method = "symbolic difference simplified with SymPy, exact rationals"
+    differences = _scale_differences(relation, subject, other)
+    if differences and relation.scale == "convert":
+        return Verdict(
+            "unverified",
+            "an equivalence is proved on the expressions as written, which "
+            "evaluated with conversion of conventional scales needs the same "
+            f'scales: {"; ".join(differences)}; state scale = "ignore" to '
+            "compare the expressions as written",
+        )
+    if differences:
+        method += f"; scales ignored: {'; '.join(differences)}"
     names = [v.identifier for v in subject.inputs]
     left = _rational(subject)
     right = _rational(other)
@@ -322,14 +452,22 @@ def _equivalence(
         sympy.Symbol(identifier, real=True): parse_expression(source, names)
         for identifier, source in relation.given.items()
     }
+    # An input of the object fed by a subject input of another identifier
+    # (Q fed by P, the only pressure of the subject) takes its symbol.
+    for identifier, source in match_inputs(subject, other).items():
+        if identifier != source and identifier not in relation.given:
+            replacements[sympy.Symbol(identifier, real=True)] = sympy.Symbol(
+                source, real=True
+            )
     difference = sympy.nsimplify(left - right.xreplace(replacements), rational=True)
     simplified = sympy.simplify(difference)
-    method = "symbolic difference simplified with SymPy, exact rationals"
     if simplified == 0:
         return Verdict("proven", method)
-    # Look for a counterexample on positive values, or on the stated domain.
+    # Look for a counterexample on positive values, or on the stated domain,
+    # where both sides are real: outside, the formulations mean nothing.
     symbols = sorted(simplified.free_symbols | left.free_symbols, key=lambda s: s.name)
     random = np.random.default_rng(0)
+    valid = 0
     for _ in range(points):
         sample = {
             s: (
@@ -339,9 +477,12 @@ def _equivalence(
             )
             for s in symbols
         }
-        scale = abs(float(left.xreplace(sample))) or 1.0
-        gap = abs(float(simplified.xreplace(sample)))
-        if gap > EQUALITY_TOLERANCE * scale:
+        value = _real(left, sample)
+        gap = _real(simplified, sample)
+        if value is None or gap is None:
+            continue
+        valid += 1
+        if abs(gap) > EQUALITY_TOLERANCE * (abs(value) or 1.0):
             at = MappingProxyType({s.name: float(v) for s, v in sample.items()})
             return Verdict(
                 "refuted",
@@ -350,9 +491,16 @@ def _equivalence(
                 at,
                 str(simplified),
             )
-    return Verdict(
-        "unproven", method + "; no counterexample found", detail=str(simplified)
-    )
+    if valid == points:
+        method += "; no counterexample found"
+    elif valid == 0:
+        method += f"; no counterexample: none of {points} samples is real and finite"
+    else:
+        method += (
+            f"; no counterexample found among the {valid} of {points} samples "
+            "real and finite"
+        )
+    return Verdict("unproven", method, detail=str(simplified))
 
 
 def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Verdict:
@@ -377,46 +525,52 @@ def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Ver
     subject = catalog.formulations[relation.subject]
     other = catalog.formulations[relation.object]
     if relation.kind is RelationKind.APPROXIMATES:
-        return _approximation(relation, subject, other, budget)
+        return _approximation(relation, subject, other, budget)[0]
     return _equivalence(relation, subject, other, SAMPLES)
+
+
+def _valid_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
+    """Per input, where a formulation is stated valid, within its physical domains.
+
+    The extent of the domains its sources state (:func:`_stated_extent`),
+    narrowed by every physical domain, which always applies; infinite on
+    a side nothing bounds.
+    """
+    extent = dict(_stated_extent(formulation))
+    for domain in formulation.physical_domains:
+        for name, (low, high) in domain.bounds.items():
+            old_low, old_high = extent.get(name, (-math.inf, math.inf))
+            extent[name] = (max(old_low, low), min(old_high, high))
+    return extent
 
 
 def _common_bounds(
     subject: Formulation, other: Formulation
 ) -> dict[str, tuple[float, float]] | None:
-    """A domain where both formulations are stated valid, on the subject's inputs."""
+    """A domain where both formulations are valid, on the subject's inputs.
+
+    Both are stated valid there (a domain stated by one side serves when
+    the other states none), within the physical domains of both; ``None``
+    when that domain is empty, or unbounded on a side.
+    """
     from nomogram.semantics import semantic_catalog
 
     units = semantic_catalog().units
     feeds = {source: name for name, source in match_inputs(subject, other).items()}
+    own_extent = _valid_extent(subject)
+    other_extent = _valid_extent(other)
     bounds = {}
     for variable in subject.inputs:
-        own = next(
-            (
-                d.bounds[variable.identifier]
-                for d in subject.domains
-                if variable.identifier in d.bounds
-            ),
-            None,
-        )
-        theirs = None
+        low, high = own_extent.get(variable.identifier, (-math.inf, math.inf))
         name = feeds.get(variable.identifier)
-        if name is not None:
+        if name is not None and name in other_extent:
             unit = next(v.unit for v in other.inputs if v.identifier == name)
-            found = next(
-                (d.bounds[name] for d in other.domains if name in d.bounds), None
+            converted = Q_(np.array(other_extent[name]), units[unit].pint).to(
+                units[variable.unit].pint
             )
-            if found is not None:
-                converted = Q_(np.array(found), units[unit].pint).to(
-                    units[variable.unit].pint
-                )
-                theirs = (float(converted.magnitude[0]), float(converted.magnitude[1]))
-        candidates = [b for b in (own, theirs) if b is not None]
-        if not candidates:
-            return None
-        low = max(b[0] for b in candidates)
-        high = min(b[1] for b in candidates)
-        if not low < high:
+            low = max(low, float(converted.magnitude[0]))
+            high = min(high, float(converted.magnitude[1]))
+        if not (math.isfinite(low) and math.isfinite(high) and low < high):
             return None
         bounds[variable.identifier] = (low, high)
     return bounds
@@ -553,6 +707,11 @@ def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> st
     stated valid. These are observations, never claims: only a relation
     with a citation states an approximation or an equivalence.
 
+    A pair is not compared, and a line says why, when a variable is on a
+    scale nomogram cannot convert (Absolute Salinity) or when no point of
+    the common domain gives a finite value; when only some points do, the
+    line gives the share compared.
+
     Parameters
     ----------
     catalog : Catalog
@@ -588,6 +747,14 @@ def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> st
                 other.inputs
             ):
                 continue
+            blocked = _unconvertible(formulation) + _unconvertible(other)
+            if blocked:
+                lines.append(
+                    f"  not compared with {other.key}: nomogram holds no "
+                    f"conversion of {', '.join(sorted(set(blocked)))} to the "
+                    "reference scale"
+                )
+                continue
             probe = Relation(
                 key="observation",
                 kind=RelationKind.APPROXIMATES,
@@ -597,22 +764,43 @@ def report(catalog: Catalog, keys: Iterable[str], *, budget: int = 20_000) -> st
                 accuracy=0.0,
                 bounds=MappingProxyType(bounds),
             )
-            verdict = verify(probe, catalog, budget=budget)
+            verdict, share = _approximation(probe, formulation, other, budget)
+            if verdict.value is None:
+                lines.append(
+                    f"  not compared with {other.key}: no point of the common "
+                    "domain where both give a finite value"
+                )
+                continue
             place = ", ".join(f"{n} = {v:.6g}" for n, v in verdict.at.items())
+            partial = (
+                f" (finite on {100 * share:.4g} % of the common domain only)"
+                if share < 1
+                else ""
+            )
             note = (
                 "  (numerically identical: an equivalence to state?)"
-                if (verdict.value or 0.0) < 1e-9
+                if verdict.value < 1e-9
                 else ""
             )
             lines.append(
-                f"  observed max deviation from {other.key}: {verdict.value:.4g} % at {place}{note}"
+                f"  observed max deviation from {other.key}: "
+                f"{verdict.value:.4g} % at {place}{partial}{note}"
             )
     return "\n".join(lines) + "\n"
 
 
+def _unconvertible(formulation: Formulation) -> list[str]:
+    """Scales of a formulation's variables that nomogram cannot convert."""
+    return [
+        v.scale.key
+        for v in (formulation.output, *formulation.inputs)
+        if v.scale is not None and not v.scale.is_reference and not v.scale.convertible
+    ]
+
+
 #: Version of the verification method. Increase it when a change of the
 #: method may change a verdict: every recorded verdict is then redone.
-VERIFIER = 1
+VERIFIER = 2
 
 #: The registry of the bundled catalog, generated, never edited by hand.
 REGISTRY = "verifications.json"

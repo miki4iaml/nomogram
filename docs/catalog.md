@@ -378,9 +378,14 @@ note = "Table III, r_g."
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or
   *unproven*.
+- A claim that cannot be checked as it stands is *unverified*, with the
+  reason: an equivalence between formulations on different scales under
+  `scale = "convert"`, an approximation evaluable at no point of its
+  bounds.
 - **`scale`**: `"convert"` (default) evaluates with conversion of
-  temperature scales; `"ignore"` compares the formulas as given, as many
-  sources did.
+  conventional scales; `"ignore"` compares the formulas as given, as many
+  sources did. An equivalence is proved on the expressions as written, so
+  under `"convert"` it needs both formulations on the same scale.
 
 Verification runs in the tests and on demand, not when the catalog is
 loaded, which only checks the structure. A relation lives in the family
