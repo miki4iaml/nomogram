@@ -131,8 +131,8 @@ KINDS: dict[str, KindSpec] = {
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
     # kind for either (nomogram defines them in the sea-water family). QUDT
-    # gives MassFraction FRACTION, PERCENT and UNITLESS; CF writes salinities
-    # in 1e-3 (per mille) and g/kg, added here.
+    # 3.5.2 gives MassFraction FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM;
+    # CF writes salinities in 1e-3 (per mille) and g/kg, added here.
     "MassFraction": KindSpec(
         "ratio",
         delta=False,

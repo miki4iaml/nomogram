@@ -441,7 +441,7 @@ note = "Sharqawy et al. label the temperature t68 and the salinity S_P; Millero 
 label = "Vapour pressure of sea water (Weiss and Price 1980)"
 expression = "p_0 * exp(a - b * T_0 / T - c * ln(T / T_0) - d * S)"
 fixed_units = true
-note = "Printed as ln(p_v,sw) = 24.4543 - 67.4509 (100/T48) - 4.8489 ln(T48/100) - 5.44e-4 S_P, p_v,sw in atm. Based on Robinson's 25 degC data (Sharqawy et al., p. 367). The stated domain outruns the scale conversions: IPTS-48 is converted over -2 to 30 degC (Fofonoff and Bryden 1975) and PSS-78 holds for 2 < S_P < 42, so above t48 = 30 degC (t90 about 29.98 degC) and below S_P = 2 the conversion is undefined and the default evaluation gives NaN; scale='ignore' evaluates the formula as written (about 0.1 % higher near 30 degC than with the conversion, IPTS-48 being about 16 mK above ITS-90)."
+note = "Printed as ln(p_v,sw) = 24.4543 - 67.4509 (100/T48) - 4.8489 ln(T48/100) - 5.44e-4 S_P, p_v,sw in atm. Based on Robinson's 25 degC data (Sharqawy et al., p. 367). The stated domain outruns the scale conversions: IPTS-48 is converted over -2 to 30 degC (Fofonoff and Bryden 1975) and PSS-78 holds for 2 < S_P < 42, so above t48 = 30 degC (t90 about 29.98 degC) and below S_P = 2 the conversion is undefined and the default evaluation gives NaN; scale='ignore' evaluates the formula as written (about 0.09 % lower near 30 degC than with the conversion, the ITS-90 value being taken as t48, about 16 mK below it)."
 output = { identifier = "p", kind = "SaturationVapourPressureOverSeaWater", unit = "ATM", description = "Vapour pressure of sea water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },

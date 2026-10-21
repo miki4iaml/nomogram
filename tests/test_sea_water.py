@@ -216,6 +216,11 @@ def test_where_the_scale_conversions_end() -> None:
     as_written = weiss.evaluate(T=t, S=Q_(35.0, "permille"), scale="ignore")
     assert not np.isnan(as_written.magnitude).any()
     assert "scale='ignore'" in (weiss.note or "")
+    # Taken as given, an ITS-90 temperature is read as a lower t48: the note
+    # says about 0.09 % lower near 30 degC.
+    ratio = as_written.magnitude[0] / found[0] - 1
+    assert ratio == pytest.approx(-9.2e-4, abs=5e-5)
+    assert "0.09 % lower" in (weiss.note or "")
     assert "30 degC" in (CATALOG.scales["ipts48"].note or "")
 
 
