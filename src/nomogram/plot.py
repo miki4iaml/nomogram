@@ -10,6 +10,10 @@ works without it; a missing extra gives an explicit message
 Values outside a formulation's validity domain are NaN (see
 :meth:`nomogram.model.Formulation.evaluate`), so they show as gaps in the
 curves: the domains are visible on the plot.
+
+Axis labels mark the reference scale of a kind (ITS-90 for temperatures)
+only when the comparison converted the values to it (``scale="convert"``,
+the default of :func:`nomogram.comparison.compare`).
 """
 
 from __future__ import annotations
@@ -21,7 +25,7 @@ import numpy as np
 from nomogram.comparison import TEMPERATURE_POINTS, Comparison, same_state
 from nomogram.dimensions import unit_text
 from nomogram.display import axis_label, reference_scale, sentence_case, symbol
-from nomogram.model import Notation
+from nomogram.model import ConventionalScale, Notation
 from nomogram.units import is_offset_unit, ureg
 
 __all__ = ["plot_deviations", "plot_values"]
@@ -75,9 +79,19 @@ def _abscissa(
         name or _kind_name(shown),
         _symbol_of(comparison, shown, notation),
         unit_text(quantity.units),
-        scale=reference_scale(kind if not shown else shown),
+        scale=_scale(comparison, kind if not shown else shown),
     )
     return label, np.asarray(quantity.magnitude, dtype=float)
+
+
+def _scale(comparison: Comparison, kind: str) -> ConventionalScale | None:
+    """The scale marking an axis: the reference scale of the kind, if any.
+
+    Only a comparison made with ``scale="convert"`` has its values on the
+    reference scales; with ``"ignore"``, each formulation took them on its
+    own scale, and the axes claim none.
+    """
+    return reference_scale(kind) if comparison.scale == "convert" else None
 
 
 #: Symbols of ISO 80000-5 for the temperatures; other kinds take the
@@ -213,7 +227,7 @@ def plot_values(
                 _kind_name(output.kind),
                 symbol(output, notation, unit=False)[1:-1],
                 unit,
-                scale=reference_scale(output.kind),
+                scale=_scale(comparison, output.kind),
             )
         )
     else:

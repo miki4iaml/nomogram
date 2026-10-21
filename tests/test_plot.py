@@ -17,7 +17,12 @@ from matplotlib.mathtext import MathTextParser
 
 from nomogram.catalog import catalog
 from nomogram.comparison import Comparison, compare
-from nomogram.display import DisplayOptions
+from nomogram.display import (
+    DisplayOptions,
+    axis_label,
+    display_options,
+    reference_scale,
+)
 from nomogram.expression import LATEX_COMMANDS
 from nomogram.plot import plot_deviations, plot_values
 from nomogram.units import Q_
@@ -132,6 +137,14 @@ def test_every_supported_latex_command_renders_in_mathtext(command: str) -> None
     MathTextParser("path").parse(f"$x {samples.get(command, command + '{a}')}$")
 
 
+@pytest.mark.parametrize(
+    "tex", ["T_d", r"\theta_\mathrm{d}", r"T^{a_{b}}", r"T_{\mathrm{d}}^{2}"]
+)
+def test_scale_marks_render_in_mathtext(tex: str) -> None:
+    label = axis_label(None, tex, "K", scale=reference_scale("CelsiusTemperature"))
+    MathTextParser("path").parse(label)
+
+
 def test_curves_beyond_ten_change_line_style(comparison: Comparison) -> None:
     ax = plot_deviations(comparison)
     styles = [line.get_linestyle() for line in ax.lines[:-1]]
@@ -170,8 +183,6 @@ def test_abscissa_symbol_from_the_reference_formulation() -> None:
 
 
 def test_axes_follow_the_display_options(comparison: Comparison) -> None:
-    from nomogram.display import display_options
-
     with display_options(axis_labels="explicit"):
         ax = plot_values(comparison)
     assert ax.get_xlabel() == "Celsius temperature - $t$ [°C] {ITS-90}"
@@ -194,6 +205,27 @@ def test_temperature_axis_follows_the_unit(
 ) -> None:
     found = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": Q_(values, unit)})
     assert plot_values(found).get_xlabel() == expected
+
+
+def test_without_scale_conversion_the_axes_claim_no_scale() -> None:
+    # Weiss and Price took the values as given, on IPTS-48 and PSS-78:
+    # neither T_90 nor S_R may label them.
+    weiss = FORMULATIONS["weiss_price1980_vapour_pressure"]
+    inputs = {
+        "ThermodynamicTemperature": Q_(np.array([10.0, 20.0]), "degC"),
+        "SeaWaterSalinity": Q_(np.array([30.0, 35.0]), "g/kg"),
+    }
+    ignored = compare([weiss], weiss, inputs, scale="ignore")
+    ax = plot_values(ignored, input_kind="ThermodynamicTemperature")
+    assert ax.get_xlabel() == "Celsius temperature $t$/°C"
+    salinity = plot_values(ignored, input_kind="SeaWaterSalinity").get_xlabel()
+    assert salinity.endswith("$S$/(g/kg)")
+    with display_options(axis_labels="explicit"):
+        ax = plot_values(ignored, input_kind="SeaWaterSalinity")
+    assert ax.get_xlabel().endswith("$S$ [g/kg]")
+    converted = compare([weiss], weiss, inputs)
+    ax = plot_values(converted, input_kind="SeaWaterSalinity")
+    assert ax.get_xlabel().endswith(r"$S_{\mathrm{R}}$/(g/kg)")
 
 
 def test_units_are_written_as_the_si_brochure_does() -> None:

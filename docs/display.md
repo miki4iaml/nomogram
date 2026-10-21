@@ -73,7 +73,10 @@ Axis labels follow the option `axis_labels`, set like the others
 
 The scale shown is the reference scale of the quantity kind, on which
 nomogram takes inputs and returns results (read from the bundled
-catalog). A temperature axis follows the values plotted: in °C a Celsius
+catalog). A comparison made with `scale="ignore"` shows none: each
+formulation took the values as given, on the scale it was fitted on.
+The mark joins a subscript of the symbol, braced or not (`T_d` gives
+T_d,90). A temperature axis follows the values plotted: in °C a Celsius
 temperature t, in K or °R a thermodynamic temperature T, in °F simply a
 temperature. Names are in sentence case, as the SI and ISO 80000 write
 them ("Celsius temperature"); units take the catalog's symbols (a
@@ -107,8 +110,8 @@ By default:
   conventions. The SI Brochure (9th edition, section 5.4.6) accepts ab,
   a b, a · b and a × b between quantity symbols, but only × between
   numbers, and × or parentheses between values of quantities: × suits
-  every case. A power of ten is always written with ×, whatever the
-  option chosen;
+  every case. A power of ten, like any product of two numbers, is
+  always written with ×, whatever the option chosen;
 - descriptive subscripts and abbreviations are upright, as ISO 80000-2
   recommends (e_s is written with an upright s, RH upright); numeric
   indices and Greek letters keep their usual rendering, and a notation
@@ -132,7 +135,8 @@ with display_options(decimal_separator="comma", values=True):
     french = render(magnus).latex  # 3. for a block
 ```
 
-`DisplayOptions.SYMPY` gives SymPy's own rendering. The block form
+`DisplayOptions.SYMPY` gives SymPy's own rendering, numbers still
+joined by ×. The block form
 works as `numpy.printoptions` does: it holds its options in a context
 variable, so it applies to the current thread or task only and is
 undone when the block ends. There is no global setting.

@@ -116,6 +116,12 @@ class Comparison:
         outside its validity domain (with the default ``outside="nan"``).
     formulations : mapping of str to Formulation or Composition
         The formulations compared, by key (labels, output variable).
+    scale : {"convert", "ignore"}
+        The ``scale`` of each evaluation. With ``"convert"`` (default),
+        inputs and values are on the reference scale of their kind
+        (ITS-90, Reference Salinity); with ``"ignore"``, each formulation
+        took the inputs as they are, on whatever scale it was fitted on,
+        and its values are on that scale.
     """
 
     reference: str
@@ -123,6 +129,7 @@ class Comparison:
     values: Mapping[str, Any]
     relative_deviations: Mapping[str, Any]
     formulations: Mapping[str, Evaluable] = field(default_factory=dict, repr=False)
+    scale: ScaleConversion = "convert"
 
     def max_abs_deviation(self) -> dict[str, float]:
         """Largest absolute relative deviation of each formulation (NaN ignored)."""
@@ -163,7 +170,8 @@ def compare(
     Returns
     -------
     Comparison
-        Values and relative deviations, by formulation key.
+        Values and relative deviations, by formulation key, with the scale
+        mode used.
 
     Raises
     ------
@@ -191,7 +199,9 @@ def compare(
             for key, value in values.items()
         }
     compared = {f.key: f for f in candidates}
-    return Comparison(reference.key, dict(inputs), values, deviations, compared)
+    return Comparison(
+        reference.key, dict(inputs), values, deviations, compared, scale=scale
+    )
 
 
 @dataclass(frozen=True)
