@@ -79,6 +79,14 @@ ha = compose(catalog().formulations["mass_concentration_ideal_gas"], {"e_s": ref
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17,29
 ```
 
+Les formulations se retrouvent par mots, jokers et champs, quelle que
+soit leur notation ([Finding formulations](docs/search.md), en anglais) :
+
+```python
+catalog().search(variable="rho*")                    # ρ dans toutes les notations
+catalog().search(kind="VapourPressure", source="buck*")
+```
+
 Chaque formulation garde ses unités, son domaine de validité, son
 échelle de température et ses références. Le vocabulaire est mis en
 correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais) ; la

@@ -28,12 +28,12 @@ import sys
 import tomllib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from importlib.resources import files
 from itertools import pairwise
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pint
 
@@ -83,6 +83,9 @@ from nomogram.semantics import (
     semantic_catalog,
 )
 from nomogram.units import ScaleType
+
+if TYPE_CHECKING:
+    from nomogram.search import Entry, Selection
 
 __all__ = [
     "FORMAT",
@@ -184,6 +187,11 @@ class Catalog:
         By key.
     cross_checks : mapping of str to CrossCheck
         Values of formulations computed by other implementations, by key.
+    links : mapping of str to tuple of str
+        For each entry (``section.key``), the entries it refers to: kinds
+        of its variables, cited references, notations, constants, scales,
+        the formulations a composition, a relation or a cross-check uses,
+        the families a family requires.
     """
 
     kinds: Mapping[str, QuantityKind]
@@ -202,10 +210,95 @@ class Catalog:
     cross_checks: Mapping[str, CrossCheck] = dataclasses.field(
         default_factory=lambda: MappingProxyType({})
     )
+    links: Mapping[str, tuple[str, ...]] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def formulations_of(self, kind: str) -> tuple[Formulation, ...]:
         """The alternative formulations computing a quantity kind."""
         return tuple(f for f in self.formulations.values() if f.output.kind == kind)
+
+    @cached_property
+    def _search_index(self) -> Any:
+        from nomogram.search import index
+
+        return index(self)
+
+    def search(
+        self,
+        *terms: str,
+        section: str | None = None,
+        specializations: bool = True,
+        **fields: str,
+    ) -> Selection:
+        """Find entries of the catalog by words, wildcards and fields.
+
+        Parameters
+        ----------
+        *terms : str
+            Shell-style patterns (``*``, ``?``, ``[...]``), each matched
+            against the words of an entry, without case or accents; all
+            must match. ``"buck*"``, ``"absolute humidity"``.
+        section : str, optional
+            Only entries of this section (a pattern too):
+            ``"formulations"``, ``"kinds"``, ``"references"``...
+        specializations : bool
+            With ``kind=``, also the kinds that specialize the matched ones
+            (default).
+        **fields : str
+            Field filters, patterns as well (:data:`nomogram.search.FIELDS`):
+            ``kind``, ``output``, ``input``, ``variable``, ``symbol`` with
+            ``notation``, ``source`` with ``equation``, ``family``,
+            ``keyword``, ``key``.
+
+        Returns
+        -------
+        Selection
+            The entries found, in catalog order; search it again, or
+            combine it with ``&``, ``|`` and ``-``.
+
+        Raises
+        ------
+        TypeError
+            For an unknown field.
+
+        Examples
+        --------
+        >>> c = catalog()
+        >>> c.search("buck*", section="formulations").refs[:2]
+        ('formulations.buck1981_magnus', 'formulations.buck1981')
+        >>> c.search(variable="rho*").refs
+        ('formulations.mass_concentration_ideal_gas', 'formulations.itu_r_p453_vapour_pressure_from_density')
+        """
+        from nomogram.search import search
+
+        return search(
+            self,
+            terms,
+            section=section,
+            specializations=specializations,
+            filters=fields,
+        )
+
+    def uses(self, entry: str | Entry) -> Selection:
+        """The entries an entry refers to (see :attr:`links`).
+
+        ``catalog().uses("formulations.itu_r_p453_es_water")`` gives its
+        parts, its kinds and its reference.
+        """
+        from nomogram.search import uses
+
+        return uses(self, entry)
+
+    def used_by(self, entry: str | Entry) -> Selection:
+        """The entries that refer to an entry.
+
+        ``catalog().used_by("references.itu_r_p453_14")`` gives everything
+        citing ITU-R P.453.
+        """
+        from nomogram.search import used_by
+
+        return used_by(self, entry)
 
 
 def _fields(
@@ -1623,7 +1716,36 @@ def load_catalog(sources: Iterable[Source]) -> Catalog:
         )
         for name, h in headers.items()
     }
-    return dataclasses.replace(built, families=MappingProxyType(families))
+    return dataclasses.replace(
+        built,
+        families=MappingProxyType(families),
+        links=_links(data, owners, headers, built),
+    )
+
+
+def _links(
+    data: Mapping[str, Mapping[str, Any]],
+    owners: Mapping[tuple[str, str], str | None],
+    headers: Mapping[str, dict[str, Any]],
+    built: Catalog,
+) -> Mapping[str, tuple[str, ...]]:
+    """For each entry, the existing entries it refers to (``section.key``)."""
+    links: dict[str, tuple[str, ...]] = {}
+    for section, key in owners:
+        targets = sorted(_references(section, data[section][key]))
+        found = tuple(
+            f"{s}.{k}"
+            for s, k in targets
+            if (s, k) in owners or (s == "kinds" and k in built.kinds)
+        )
+        if found:
+            links[f"{section}.{key}"] = found
+    for name, header in headers.items():
+        if header["requires"]:
+            links[f"families.{name}"] = tuple(
+                f"families.{r}" for r in header["requires"]
+            )
+    return MappingProxyType(links)
 
 
 def _bundled() -> dict[str, tuple[str, tuple[str, ...]]]:

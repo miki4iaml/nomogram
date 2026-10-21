@@ -143,6 +143,10 @@ No safety rule is bypassed, including during project bootstrap.
 ## Working rules
 
 - Propose a plan before any change touching more than two files.
+- Every new concept, field or section states how the search API reaches
+  it: a search field, names added to the index, links between entries
+  (`_references` in `nomogram.catalog`). `docs/search.md` stays up to
+  date.
 - No new dependency without explicit approval.
 - No public function without a test.
 - Every user-visible change adds an entry under `[Unreleased]` in
