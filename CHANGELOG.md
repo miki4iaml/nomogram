@@ -28,6 +28,10 @@ and this project adheres to
   names and a note on scales, searchable. A citation may state the scale
   of the output. Compositions check the scales of their pieces; an
   inverse takes its input on the scale of the source's output.
+- Guide `docs/sea-water.md`: salinity on conventional scales, the
+  vapour pressures of sea water against TEOS-10, and the 2 % at the sea
+  surface (the equivalent cooling of Beljaars 1998, found again by
+  inversion, and the radio refractivity at the surface).
 - In `sea-water`, the vapour pressure of sea water of Dickson et al.
   (2007): the total molality of dissolved species and the osmotic
   coefficient of sea water (QUDT kinds `MolalityOfSolute` and
