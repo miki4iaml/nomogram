@@ -7,6 +7,7 @@ import dataclasses
 from pathlib import Path
 
 import pytest
+import sympy
 
 from nomogram.catalog import CatalogError, catalog, check, load_catalog
 from nomogram.model import Relation, RelationKind
@@ -626,3 +627,60 @@ def test_a_report_skips_scales_it_cannot_convert() -> None:
         "conversion of absolute_salinity2010 to the reference scale"
     ) in text
     assert "observed max deviation from dickson2007_vapour_pressure" in text
+
+
+def test_an_isolated_finite_point_stays_the_best_found() -> None:
+    # Finite only at P = 4500, a point of the grid (9001 integers): the
+    # refinement around it finds no finite value and keeps it.
+    isolated = pressure_formulation(
+        "isolated", "(P + 1) ** 2 + sqrt(P - 4500) + sqrt(4500 - P)"
+    )
+    document = (
+        BASE
+        + ROOTED.split("[formulations.rooted]")[0]
+        + isolated
+        + ROOTED_RELATION.replace('subject = "rooted"', 'subject = "isolated"')
+        + "bounds = { P = [0.0, 9000.0] }\n"
+    )
+    loaded = load_catalog([document])
+    verdict = verify(loaded.relations["a"], loaded)
+    assert verdict.status == "held"
+    assert verdict.at["P"] == 4500.0
+    assert "of the grid only" in verdict.method
+
+
+def test_an_equivalence_with_outputs_on_different_scales_is_unverified() -> None:
+    def on(key: str, expression: str, scale: str) -> str:
+        return f"""
+[formulations.{key}]
+label = "{key}"
+expression = "{expression}"
+fixed_units = true
+output = {{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "out", scale = "{scale}", scale_basis = "inferred-from-date" }}
+inputs = [{{ identifier = "P", kind = "Pressure", unit = "HectoPA", description = "pressure" }}]
+"""
+
+    document = (
+        BASE
+        + SCALED
+        + on("old_out", "2 * P", "old")
+        + on("ref_out", "(P + 1) ** 2 - P ** 2 - 1", "ref")
+        + equivalence("old_out", "ref_out")
+    )
+    loaded = load_catalog([document])
+    verdict = verify(loaded.relations["r"], loaded)
+    assert verdict.status == "unverified"
+    assert "output on old and ref" in verdict.method
+
+
+def test_exact_rationals_and_real_values() -> None:
+    from nomogram.relations import _exact, _real
+
+    assert _exact(0.001) == sympy.Rational(1, 1000)
+    # Beyond the denominators tried, the float's own decimal fraction.
+    assert _exact(1e-30) == sympy.Rational(1, 10**30)
+    x, y = sympy.symbols("x y", real=True)
+    assert _real(2 * x, {x: 1.5}) == 3.0
+    assert _real(x + y, {x: 1.0}) is None  # not a number
+    assert _real(sympy.exp(x), {x: 1000.0}) is None  # not finite
+    assert _real(sympy.sqrt(x), {x: -4.0}) is None  # not real

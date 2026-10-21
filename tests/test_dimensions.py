@@ -133,6 +133,20 @@ def test_a_composition_keeps_the_units_of_its_parts() -> None:
     assert "dickson2007_total_molality" in units["c"].reason
 
 
+def test_units_satisfied_only_together_leave_the_coefficients_open() -> None:
+    # hPa and Pa are distinct factors in a numerical value equation: no
+    # unit makes A B P and A B p alike, so none is written.
+    found = infer_units(
+        make(
+            "A * B * P + A * B * p",
+            {"A": None, "B": None},
+            output=("e", "HectoPA"),
+            inputs=(("P", "HectoPA"), ("p", "PA")),
+        )
+    )
+    assert (found["A"].unit, found["B"].unit) == (None, None)
+
+
 def test_magnus_reasons_point_to_the_constraint() -> None:
     units = CATALOG.formulations["sonntag1990_magnus"].coefficient_units
     assert units["B"].reason == "B + t"
