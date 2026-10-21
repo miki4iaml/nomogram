@@ -33,7 +33,11 @@ c.uses("formulations.itu_r_p453_es_water")          # its parts, kinds, source
   `rho_v` and `rhô_v` are all `rho_v`. Greek letters go by their names
   (English, or French without accents: *rhô*, *khi*); LaTeX font
   commands and braces are dropped; `\varphi` also answers to *phi*.
-  `ro` is not a name of ρ: write `rho`, `rhô`, `ρ` or `rh*`.
+  `ro` is not a name of ρ: write `rho`, `rhô`, `ρ` or `rh*`. A symbol
+  with a space is found whole or by its parts: Dickson's
+  `\Sigma m_{\mathrm{B}}` answers to `Σ m_B`, `Σm_B` and `m_B`.
+- **Unit and scale symbols** are also kept whole, signs included: `°C`,
+  `g/kg` or `%` finds its unit.
 - There is no approximate matching: a misspelt word finds nothing, which
   a wildcard can usually fix (`hum*d*`).
 
@@ -51,7 +55,8 @@ each matching a word.
 | `output` | the output variable of a formulation: identifier, symbols in every notation, kind (name, label, CF names), description |
 | `input` | an input variable, likewise |
 | `variable` | any variable, coefficient or constant of a formulation |
-| `symbol` | a symbol, as written by a notation; `notation=` restricts the notations (default: all, including the identifiers themselves under `default`) |
+| `symbol` | a symbol, as written by a notation; `notation=` restricts the notations (default: all) |
+| `notation` | the notation of the symbols (of those `symbol=` matches, if given): a notation of the catalog by its key (`wmo`, `ashrae`), `default` for the identifiers themselves, or the symbols a source uses in a citation, by the source's reference key (`dickson2007`); the full key of such a notation is `<formulation>:<reference>` |
 | `source` | a cited reference (key and authors); `equation=` asks for its equation number in the same citation |
 | `family` | the family of the entry |
 | `keyword` | a keyword of a formulation or a family |
@@ -62,7 +67,8 @@ each matching a word.
 
 ## Selections
 
-A search returns a `Selection`, in catalog order:
+A search returns a `Selection`, in catalog order, which `&`, `|` and
+`-` keep:
 
 - search it again: `c.search(family="water-vapour").search("buck*")`;
 - combine selections: `a & b` (in both), `a | b` (in either), `a - b`
