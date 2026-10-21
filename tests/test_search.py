@@ -303,3 +303,10 @@ coefficients = { a = 2.0 }
     }
     assert "notations.plain" in (loaded.search("plain")).refs
     assert not loaded.uses("formulations.f").search(section="references")
+
+
+def test_a_symbol_part_without_letters_adds_no_word() -> None:
+    from nomogram.search import _symbol_words
+
+    # "{}" has an empty normal form: only "m" and the whole count.
+    assert _symbol_words("m {}") == frozenset({"m"})

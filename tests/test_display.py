@@ -263,6 +263,17 @@ def test_table_follows_options_and_escapes_vertical_bars() -> None:
     assert "50 to 273,16 K" in commas.to_markdown()
 
 
+def test_the_scale_mark_on_symbols_of_unusual_shape() -> None:
+    its90 = reference_scale("CelsiusTemperature")
+    # A leading group is passed over; a subscript after it takes the mark.
+    assert axis_label("Dew point", "{T}_{d}", "K", scale=its90) == (
+        "Dew point ${T}_{d,90}$/K"
+    )
+    # Malformed symbols (an open group, a lone _) still get it, at the end.
+    assert axis_label("Dew point", "{T", "K", scale=its90) == "Dew point ${T_{90}$/K"
+    assert axis_label("Dew point", "T_", "K", scale=its90).endswith("_{90}$/K")
+
+
 def test_axis_labels_in_the_three_styles() -> None:
     its90 = reference_scale("CelsiusTemperature")
     assert its90 is not None
