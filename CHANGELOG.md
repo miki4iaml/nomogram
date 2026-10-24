@@ -75,6 +75,18 @@ and this project adheres to
 
 ### Changed
 
+- Practical Salinity is a number, as CF (canonical unit 1) and TEOS-10
+  write it: the scale `pss78` and the salinity inputs of COARE 3.6, Weiss
+  and Price (1980) and Dickson et al. (2007) are unitless instead of per
+  mille (S_P = 35). With the default evaluation nothing changes: the
+  Reference Salinity given, in g/kg, per mille or as a fraction, is
+  converted. Knudsen and Cox salinities, mass ratios, stay in per mille.
+  A value taken as given (`scale="ignore"`) is written as its scale writes
+  it, or `ScaleConversionError` is raised: S_P without a unit (in per
+  mille or g/kg it would be read a thousand times smaller), a Knudsen or
+  Cox salinity with its unit (a bare number would be read as a fraction).
+  A comparison taken as given that mixes both kinds of scale therefore
+  fails instead of misreading one.
 - The data notice credits QUDT in the form its licensing guide suggests.
 
 ### Fixed

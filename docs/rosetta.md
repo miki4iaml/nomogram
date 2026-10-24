@@ -182,7 +182,9 @@ silently.
     multiplicative conversion (decibel, Beaufort...): Practical Salinity
     is a number defined by a conductivity ratio (Millero 1993, "What is
     PSU?"), and QUDT's own description calls the unit "formally incorrect
-    and strongly discouraged".
+    and strongly discouraged". nomogram writes Practical Salinity without
+    a unit, as CF (canonical unit 1) and TEOS-10 do, and the Knudsen and
+    Cox salinities, mass ratios, in per mille.
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

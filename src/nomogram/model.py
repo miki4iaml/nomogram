@@ -144,6 +144,43 @@ def _flag_beyond(
     warnings.warn(message, ValidityWarning, stacklevel=3)
 
 
+def _check_given(key: str, variable: Variable, value: Any) -> None:
+    """Refuse a value taken as given that is not written as its scale writes it.
+
+    A scale of numbers (Practical Salinity, S_P = 35) takes a bare number:
+    in per mille or in g/kg the value would be read a thousand times
+    smaller. A scale of dimensionless quantities (Knudsen salinity, in per
+    mille) takes a quantity with its unit: a bare number would be read as a
+    fraction, a thousand times larger. Either way without error, hence the
+    refusal.
+
+    Raises
+    ------
+    ScaleConversionError
+        If the value is not written as its scale writes it.
+    """
+    scale = variable.scale
+    if scale is None or scale.unit is None:
+        return
+    # pint's own ``unitless`` holds for per mille: only a bare number has
+    # no unit items.
+    items = getattr(value, "unit_items", None)
+    bare = items is None or not dict(items())
+    where = f"{key}: {variable.identifier} is taken as given on {scale.label}"
+    if scale.unit == "UNITLESS":
+        if bare:
+            return
+        msg = (
+            f"{where}, whose values are numbers: give it without a unit, not in "
+            f"{format(value.units, '~P')}"
+        )
+        raise ScaleConversionError(msg)
+    unit = semantic_catalog().units[scale.unit]
+    if bare and Q_(1, unit.pint).dimensionless:
+        msg = f"{where}, in {unit.symbol}: give it with its unit, not as a bare number"
+        raise ScaleConversionError(msg)
+
+
 class ReferenceStatus(Enum):
     """Whether a reference has been checked against its source."""
 
@@ -1275,7 +1312,10 @@ class Formulation:
             beyond a scale conversion.
         ScaleConversionError
             With ``scale="convert"``, if an input or the output is on a
-            scale nomogram cannot convert (Absolute Salinity).
+            scale nomogram cannot convert (Absolute Salinity); with
+            ``scale="ignore"``, if an input is not written as its scale
+            writes it: with a unit on a scale of numbers (Practical
+            Salinity), bare on a scale in per mille (Knudsen salinity).
         """
         _check_options(outside, basis, scale)
         expected = {v.identifier for v in self.inputs}
@@ -1284,6 +1324,9 @@ class Formulation:
             extra = ", ".join(sorted(set(inputs) - expected)) or "none"
             msg = f"{self.key}: missing inputs: {missing}; unexpected: {extra}"
             raise TypeError(msg)
+        if scale == "ignore":
+            for v in self.inputs:
+                _check_given(self.key, v, inputs[v.identifier])
         units = semantic_catalog().units
         values = {
             v.identifier: np.asarray(

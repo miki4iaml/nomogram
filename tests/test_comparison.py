@@ -66,12 +66,12 @@ def test_max_abs_deviation_ignores_nan_and_reports_all_nan() -> None:
 def test_comparison_records_the_scale_mode() -> None:
     # Weiss and Price fitted T on IPTS-48 and S on PSS-78.
     weiss = FORMULATIONS["weiss_price1980_vapour_pressure"]
-    inputs = {
-        "ThermodynamicTemperature": Q_(np.array([10.0, 20.0]), "degC"),
-        "SeaWaterSalinity": Q_(35.0, "g/kg"),
-    }
-    converted = compare([weiss], weiss, inputs)
-    ignored = compare([weiss], weiss, inputs, scale="ignore")
+    t = Q_(np.array([10.0, 20.0]), "degC")
+    # Reference Salinity in g/kg; taken as given, Practical Salinity, a number.
+    reference = {"ThermodynamicTemperature": t, "SeaWaterSalinity": Q_(35.0, "g/kg")}
+    as_given = {"ThermodynamicTemperature": t, "SeaWaterSalinity": Q_(35.0)}
+    converted = compare([weiss], weiss, reference)
+    ignored = compare([weiss], weiss, as_given, scale="ignore")
     assert converted.scale == "convert"
     assert ignored.scale == "ignore"
     # Taken on its own scales, the formulation gives other numbers.

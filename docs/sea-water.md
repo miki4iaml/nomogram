@@ -24,6 +24,22 @@ c.scales["knudsen1901"].from_reference(35.16504)   # (34.99997..., False): S_K, 
 c.formulations["sverdrup1942_vapour_pressure_ratio"].evaluate(S=s_r)   # 0.981205, on the Knudsen scale
 ```
 
+Practical Salinity is a number, as CF (canonical unit 1) and TEOS-10
+write it: S_P = 35, not 35 per mille, and QUDT's `unit:PSU` is not used.
+Knudsen and Cox salinities, mass ratios, stay in per mille. A value taken
+as given (`scale="ignore"`) is written as its scale writes it: S_P without
+a unit (in per mille or in g/kg it would be read a thousand times
+smaller), a Knudsen or Cox salinity with its unit (a bare number would be
+read as a fraction); otherwise it is refused. One value cannot be S_P = 35
+and S_K = 35 per mille at once: compare such formulations from the
+Reference Salinity, the default.
+
+```python
+coare = c.formulations["coare36_salinity_factor"]
+coare.evaluate(S=s_r)                          # 0.98, from the Reference Salinity
+coare.evaluate(S=Q_(35), scale="ignore")       # 0.98, S_P = 35 taken as given
+```
+
 Absolute Salinity depends on the location (its anomaly comes from a
 look-up table nomogram does not hold): a formulation stated on it, such as
 the ITTC vapour pressure, is evaluated with `scale="ignore"`, values as

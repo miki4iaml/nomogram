@@ -112,7 +112,7 @@ def test_sea_water_guide_code_gives_the_values_it_states() -> None:
                 float(stated), abs=10.0**-digits
             ), lines[statement.lineno - 1]
             checked.append(stated)
-    assert checked == ["34.99997", "0.981205", "3110.56", "0.351"]
+    assert checked == ["34.99997", "0.981205", "0.98", "0.98", "3110.56", "0.351"]
 
 
 def test_catalog_guide_personal_catalog_code_runs(

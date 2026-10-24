@@ -45,6 +45,7 @@ from nomogram.model import (
     ValidityDomain,
     ValidityWarning,
     Variable,
+    _check_given,
     _check_options,
     _flag_beyond,
 )
@@ -369,7 +370,10 @@ class NumericalInverse:
             With ``outside="raise"``, if a result is outside a domain, or
             a value beyond a scale conversion.
         ScaleConversionError
-            With ``scale="convert"``, if a scale cannot be converted.
+            With ``scale="convert"``, if a scale cannot be converted; with
+            ``scale="ignore"``, if the input is not written as its scale
+            writes it: with a unit on a scale of numbers (Practical
+            Salinity), bare on a scale in per mille (Knudsen salinity).
         """
         _check_options(outside, basis, scale)
         if set(inputs) != {self.input.identifier}:
@@ -378,6 +382,8 @@ class NumericalInverse:
         units = semantic_catalog().units
         source_input = self.source.inputs[0]
         given = inputs[self.input.identifier]
+        if scale == "ignore":
+            _check_given(self.key, self.input, given)
         target_scale = self.input.scale
         if (
             scale == "convert"

@@ -5,18 +5,21 @@
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 
 import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
-from nomogram.inversion import invert
+from nomogram.comparison import compare
+from nomogram.inversion import NumericalInverse, invert
 from nomogram.model import ScaleConversionError, Variable
 from nomogram.units import Q_
 
 CATALOG = catalog()
 F = CATALOG.formulations
+SCALES = CATALOG.scales
 #: TEOS-10 Manual, section 3.37 (p. 59): vapour pressures at 25 degC of pure
 #: water and of the standard ocean, S_SO = 35.16504 g/kg.
 TEOS10_PURE_25C = 3169.93
@@ -150,7 +153,7 @@ def test_dickson_against_the_values_printed() -> None:
     t = Q_(298.15, "K")
     pure = F["iapws_sr1_86"].evaluate(T=t)
     dickson = F["dickson2007_vapour_pressure"]
-    sea = dickson.evaluate(T=t, S=Q_(35.0, "permille"), scale="ignore")
+    sea = dickson.evaluate(T=t, S=Q_(35.0), scale="ignore")
     assert pure.to("kPa").magnitude == pytest.approx(3.1698, abs=5e-5)
     assert sea.to("kPa").magnitude == pytest.approx(3.1106, abs=5e-5)
     # Within 0.001 % of TEOS-10 at the standard ocean.
@@ -204,7 +207,7 @@ def test_where_the_scale_conversions_end() -> None:
     # with the salinity taken as given, which its note says.
     coare = F["coare36_salinity_factor"]
     assert np.isnan(coare.evaluate(S=zero).magnitude)
-    assert coare.evaluate(S=zero, scale="ignore").magnitude == 1.0
+    assert coare.evaluate(S=Q_(0.0), scale="ignore").magnitude == 1.0
     assert "scale='ignore'" in (coare.note or "")
     # IPTS-48 is converted over -2 to 30 degC: Weiss and Price, stated up
     # to 313 K, gives NaN beyond, and its note and the scale's say so.
@@ -213,7 +216,7 @@ def test_where_the_scale_conversions_end() -> None:
     found = weiss.evaluate(T=t, S=S_SO).magnitude
     assert not np.isnan(found[0])
     assert np.isnan(found[1:]).all()
-    as_written = weiss.evaluate(T=t, S=Q_(35.0, "permille"), scale="ignore")
+    as_written = weiss.evaluate(T=t, S=Q_(35.0), scale="ignore")
     assert not np.isnan(as_written.magnitude).any()
     assert "scale='ignore'" in (weiss.note or "")
     # Taken as given, an ITS-90 temperature is read as a lower t48: the note
@@ -290,3 +293,50 @@ def test_the_sea_surface_page() -> None:
     )
     assert (pure, sea, air) == pytest.approx((396.85, 394.35, 370.22), abs=5e-3)
     assert (sea - air) / (pure - air) == pytest.approx(0.906, abs=5e-4)
+
+
+def test_practical_salinity_is_a_number() -> None:
+    # COARE 3.6 at the standard ocean: 0.98 from its Reference Salinity, or
+    # from S_P = 35 taken as given.
+    coare = F["coare36_salinity_factor"]
+    assert coare.evaluate(S=S_SO).magnitude == pytest.approx(0.98)
+    assert coare.evaluate(S=Q_(35.0), scale="ignore").magnitude == pytest.approx(0.98)
+    # In per mille or in g/kg, S_P = 35 would be read as 0.035.
+    for unit in ("permille", "g/kg"):
+        with pytest.raises(ScaleConversionError, match="whose values are numbers"):
+            coare.evaluate(S=Q_(35.0, unit), scale="ignore")
+    # Knudsen salinity is a mass ratio: per mille and g/kg are its units.
+    sverdrup = F["sverdrup1942_vapour_pressure_ratio"]
+    in_per_mille = sverdrup.evaluate(S=Q_(35.0, "permille"), scale="ignore")
+    in_g_per_kg = sverdrup.evaluate(S=Q_(35.0, "g/kg"), scale="ignore")
+    assert in_per_mille.magnitude == pytest.approx(in_g_per_kg.magnitude)
+    # A bare number would be read as a fraction: 35, not 35 per mille.
+    with pytest.raises(ScaleConversionError, match="give it with its unit"):
+        sverdrup.evaluate(S=Q_(35.0), scale="ignore")
+    # One value cannot be S_P = 35 and S_K = 35 per mille at once: taken as
+    # given, a comparison of both scales fails instead of misreading one.
+    inputs = {"SeaWaterSalinity": Q_(35.0)}
+    with pytest.raises(ScaleConversionError, match="give it with its unit"):
+        compare([coare, sverdrup], coare, inputs, scale="ignore")
+    assert compare([coare, sverdrup], coare, {"SeaWaterSalinity": S_SO}).values
+
+
+def test_an_inverse_takes_practical_salinity_as_a_number() -> None:
+    # No source output is on PSS-78 yet: an inverse of Knudsen's formula,
+    # its input put on PSS-78, stands for one.
+    inverse = invert(
+        F["knudsen1901_salinity"],
+        "Cl",
+        output=Variable("Cl", "Chlorinity", "PERMILLE", "Chlorinity"),
+        input=Variable("S", "SeaWaterSalinity", "PERMILLE", "Salinity"),
+        method="numerical",
+        search=(1.0, 25.0),
+    )
+    assert isinstance(inverse, NumericalInverse)
+    number = dataclasses.replace(inverse.input, unit="UNITLESS", scale=SCALES["pss78"])
+    on_pss78 = dataclasses.replace(inverse, input=number)
+    with pytest.raises(ScaleConversionError, match="whose values are numbers"):
+        on_pss78.evaluate(S=Q_(35.0, "permille"), scale="ignore")
+    # On the Knudsen scale, the salinity comes with its unit.
+    with pytest.raises(ScaleConversionError, match="give it with its unit"):
+        inverse.evaluate(S=Q_(35.0), scale="ignore")
