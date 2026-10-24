@@ -21,6 +21,38 @@ a conversion or rendering engine reachable only through the Internet
 (no CDN-hosted MathJax, no online converter, no remote ontology at run
 time).
 
+## Design goals
+
+Five goals guide development. Each is a rule that holds for every
+entry, enforced by the invariants below, the loader and the tests, and
+some come with indicators of how far the catalogue covers them, printed
+by `python -m nomogram.catalog stats`. They are stated as goals, not as
+comparisons with other tools.
+
+1. **Alternatives side by side.** Every formulation computes a quantity
+   kind, so the alternatives for one quantity are found together
+   (`Catalog.formulations_of`, `search(kind=...)`). Indicator: quantity
+   kinds computed by several formulations.
+2. **Validity, scale and sources stated, never invented.** Validity
+   domains, conventional scales and reference statuses follow the
+   catalog invariant below. Indicators: formulations with a validity
+   domain, inputs on a conventional scale with their scale recorded,
+   references checked against the source.
+3. **Open, machine-readable data.** The catalogue is TOML under
+   BSD-3-Clause, in a documented and versioned format
+   ([docs/catalog.md](docs/catalog.md)); the vocabularies it bundles keep
+   their own licences ([data notice](src/nomogram/data/NOTICE.md)).
+4. **One source for every output.** The expression is the only source of
+   a formula's mathematics (invariant below); every extension of the
+   model, such as piecewise definitions or new functions, goes through
+   it.
+5. **Linked to shared vocabularies.** Every quantity kind is a QUDT kind
+   or specializes one, which the loader checks; CF standard names and
+   Wikidata items are linked where an equivalent exists, with their SKOS
+   relation and date of verification. Indicators: quantity kinds with a
+   CF standard name or a Wikidata link, formulations and references with
+   a Wikidata link.
+
 ## Architecture and invariants
 
 - Core dependencies: `sympy` (formula expressions, LaTeX, symbolic
@@ -62,8 +94,8 @@ time).
   domains are objective only (physical, or stated by the source with its
   criterion); coefficients of fixed-units formulations are never
   converted. Temperature inputs record the scale the formulation was
-  fitted on (stated, inferred from the date only, or inferred from
-  numbers); inputs are taken on ITS-90 and
+  fitted on when it is known (stated, inferred from the date only, or
+  inferred from numbers); inputs are taken on ITS-90 and
   converted to it before evaluation.
 - Reference data is immutable: frozen structures (`frozen=True`), no
   mutation after construction.

@@ -27,6 +27,7 @@ import math
 import os
 import sys
 import tomllib
+from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
@@ -97,6 +98,7 @@ __all__ = [
     "check",
     "describe",
     "load_catalog",
+    "stats",
 ]
 
 _SECTIONS = (
@@ -2225,6 +2227,131 @@ def check(source: Source) -> str:
     return report(loaded, list(document.get("formulations", {})))
 
 
+_WIKIDATA = "http://www.wikidata.org/entity/"
+
+
+def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
+    """(goal, indicator, count, total) for each indicator of the design goals.
+
+    Kinds "used" are those of the formulations' outputs and inputs; an
+    input is "on a conventional scale" when its kind, or a kind it
+    specializes, is one a scale of the catalog applies to.
+    """
+    formulations = list(loaded.formulations.values())
+    computed = Counter(f.output.kind for f in formulations)
+    used = {f.output.kind for f in formulations}
+    used |= {v.kind for f in formulations for v in f.inputs}
+
+    def lineage(name: str) -> list[QuantityKind]:
+        # A QUDT kind may specialize one outside the bundled subset.
+        found = [loaded.kinds[name]]
+        while found[-1].specialization_of in loaded.kinds:
+            found.append(loaded.kinds[str(found[-1].specialization_of)])
+        return found
+
+    scaled = {k for s in loaded.scales.values() for k in s.kinds}
+    on_scale = [
+        v
+        for f in formulations
+        for v in f.inputs
+        if any(k.name in scaled for k in lineage(v.kind))
+    ]
+    references = list(loaded.references.values())
+
+    def linked(matches: Iterable[ExternalMatch]) -> bool:
+        return any(m.target.startswith(_WIKIDATA) for m in matches)
+
+    alternatives = "1. Alternatives side by side"
+    stated = "2. Validity, scale and sources stated, never invented"
+    shared = "5. Linked to shared vocabularies"
+    return [
+        (
+            alternatives,
+            "quantity kinds computed by several formulations",
+            sum(n > 1 for n in computed.values()),
+            len(computed),
+        ),
+        (
+            stated,
+            "formulations with a validity domain",
+            sum(
+                bool(f.domains) or any(p.formulation.domains for p in f.parts)
+                for f in formulations
+            ),
+            len(formulations),
+        ),
+        (
+            stated,
+            "inputs on a conventional scale with their scale recorded",
+            sum(v.scale is not None for v in on_scale),
+            len(on_scale),
+        ),
+        (
+            stated,
+            "references checked against the source",
+            sum(r.status is ReferenceStatus.VERIFIED for r in references),
+            len(references),
+        ),
+        (
+            shared,
+            "quantity kinds used that are QUDT kinds or specialize one",
+            sum(any(q.origin == "qudt" for q in lineage(k)) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "quantity kinds used with a CF standard name",
+            sum(bool(loaded.kinds[k].cf_standard_names) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "quantity kinds used with a Wikidata link",
+            sum(linked(loaded.kinds[k].matches) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "formulations with a Wikidata link",
+            sum(linked(f.matches) for f in formulations),
+            len(formulations),
+        ),
+        (
+            shared,
+            "references with a Wikidata link",
+            sum(linked(r.matches) for r in references),
+            len(references),
+        ),
+    ]
+
+
+def stats(loaded: Catalog | None = None) -> str:
+    """The indicators of the design goals, as plain text.
+
+    The design goals (AGENTS.md) are rules, enforced by the loader and
+    the tests, and indicators of how far the catalog covers them: each
+    indicator counts what the catalog covers out of what it could cover.
+
+    Parameters
+    ----------
+    loaded : Catalog, optional
+        The catalog to measure; the bundled one by default.
+
+    Returns
+    -------
+    str
+        One line per indicator, under the goal it measures.
+    """
+    lines = ["Indicators of the design goals (AGENTS.md)"]
+    goal = None
+    for name, indicator, count, total in _indicators(loaded or catalog()):
+        if name != goal:
+            lines.append(name)
+            goal = name
+        lines.append(f"  {indicator}: {count} of {total}")
+    return "\n".join(lines) + "\n"
+
+
 def _verdicts(write: bool) -> str:
     """The verdicts on the relations of the bundled catalog, one per line."""
     loaded = catalog()
@@ -2247,7 +2374,7 @@ def _verdicts(write: bool) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Command line: ``python -m nomogram.catalog describe|check FILE``, ``verify``."""
+    """Command line: ``python -m nomogram.catalog describe|check FILE``, ``verify``, ``stats``."""
     parser = argparse.ArgumentParser(prog="python -m nomogram.catalog")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, text in (
@@ -2263,10 +2390,16 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="compute what is missing and write the registry",
     )
+    commands.add_parser(
+        "stats", help="indicators of the design goals for the bundled catalog"
+    )
     arguments = parser.parse_args(argv)
     try:
         if arguments.command == "verify":
             sys.stdout.write(_verdicts(arguments.record))
+            return 0
+        if arguments.command == "stats":
+            sys.stdout.write(stats())
             return 0
         action = describe if arguments.command == "describe" else check
         sys.stdout.write(action(arguments.file))
