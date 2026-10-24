@@ -185,6 +185,74 @@ def test_units_and_scales_are_found_by_their_symbols() -> None:
     assert "units.PERCENT" in CATALOG.search("%").refs
 
 
+def test_dois_and_urls_are_kept_whole() -> None:
+    for key, reference in CATALOG.references.items():
+        for address in (reference.doi, reference.url):
+            if address:
+                found = CATALOG.search(address).refs
+                assert f"references.{key}" in found, address
+    for key, check in CATALOG.cross_checks.items():
+        if check.url:
+            assert f"cross_checks.{key}" in CATALOG.search(check.url).refs, check.url
+    doi = "10.1016/0304-4203(80)90024-9"
+    assert "references.weiss_price1980" in CATALOG.search(doi).refs
+    assert "references.weiss_price1980" in CATALOG.search(f"https://doi.org/{doi}").refs
+    assert "references.robinson1954" in CATALOG.search("*archive.org*").refs
+
+
+def test_an_address_with_wildcard_signs_finds_itself() -> None:
+    url = "https://example.org/page?id[0]=x"
+    document = f'[references.r]\nauthors = "A"\ntitle = "T"\nurl = "{url}"\nstatus = "verified"\n'
+    assert load_catalog([document]).search(url).refs == ("references.r",)
+
+
+def test_unit_finds_what_works_in_a_unit() -> None:
+    hpa = refs(CATALOG.search(unit="hPa"))
+    assert hpa == refs(CATALOG.search(unit="HectoPA"))
+    assert hpa == refs(CATALOG.search(unit="hectopascal"))
+    assert {"units.HectoPA", "formulations.buck1996"} <= hpa
+    assert "formulations.buck1996" in CATALOG.search(unit="°C").refs  # an input
+    assert "constants.R_v_iapws95" in CATALOG.search(unit="J/(kg·K)").refs
+    assert "scales.pss78" in CATALOG.search(unit="‰").refs
+    assert refs(CATALOG.search(unit="*Pa", section="units")) == {
+        "units.HectoPA",
+        "units.KiloPA",
+        "units.PA",
+    }
+    assert not CATALOG.search(unit="furlong")
+
+
+def test_a_unit_is_matched_whole() -> None:
+    # Split into words, K would match J-PER-KiloGM-K, the unit of R_v.
+    kelvin = CATALOG.search(unit="K")
+    assert "constants.R_v_iapws95" not in kelvin.refs
+    for entry in kelvin:
+        assert entry.ref == "units.K" or "units.K" in CATALOG.uses(entry).refs
+
+
+def test_every_form_of_a_unit_finds_that_unit_alone() -> None:
+    from nomogram.semantics import semantic_catalog
+
+    # A form is taken literally before wildcards: UCUM's [ppm], pint's J/(kg*K).
+    for name, unit in semantic_catalog().units.items():
+        for form in (name, unit.symbol, unit.ucum, unit.label, unit.pint):
+            if form:
+                found = refs(CATALOG.search(unit=form, section="units"))
+                assert found == {f"units.{name}"}, form
+
+
+def test_a_unit_written_exactly_comes_before_case_and_wildcards() -> None:
+    from nomogram.search import _units
+
+    # SI symbols differ by case alone: mPa is not MPa.
+    forms = {"MilliPA": frozenset({"mPa"}), "MegaPA": frozenset({"MPa"})}
+    assert _units(forms, "mPa") == {"MilliPA"}
+    assert _units(forms, "MPa") == {"MegaPA"}
+    assert _units(forms, "mpa") == {"MilliPA", "MegaPA"}
+    assert _units(forms, "*pa") == {"MilliPA", "MegaPA"}
+    assert _units(forms, "kPa") == frozenset()
+
+
 def test_source_and_equation_in_the_same_citation() -> None:
     nine = CATALOG.search(source="itu_r_p453*", equation="9")
     assert "formulations.itu_r_p453_es_water" in nine.refs
@@ -237,6 +305,30 @@ def test_uses_and_used_by() -> None:
         CATALOG.uses("formulations.nope")
     with pytest.raises(KeyError, match="no entry"):
         CATALOG.used_by("nope")
+
+
+def test_formulations_link_to_the_units_they_work_in() -> None:
+    # Declared coefficient units only (added or stated): never the inference.
+    for key, f in CATALOG.formulations.items():
+        expected = {
+            f.output.unit,
+            *(v.unit for v in f.inputs),
+            *(c.unit for c in f.coefficients if c.unit is not None),
+            *(k.unit for k in f.constants),
+        }
+        linked = {
+            e.key for e in CATALOG.uses(f"formulations.{key}") if e.section == "units"
+        }
+        assert linked == expected, key
+
+
+def test_constants_and_scales_link_to_their_unit() -> None:
+    for key, constant in CATALOG.constants.items():
+        assert f"units.{constant.unit}" in CATALOG.uses(f"constants.{key}").refs
+    assert "constants.R_v_iapws95" in CATALOG.used_by("units.J-PER-KiloGM-K").refs
+    assert {"scales.ipts68", "scales.ipts48"} <= refs(CATALOG.used_by("units.DEG_C"))
+    assert "scales.pss78" in CATALOG.used_by("units.PERMILLE").refs
+    assert not CATALOG.uses("scales.its90").search(section="units")
 
 
 # --- Selections ----------------------------------------------------------

@@ -43,6 +43,7 @@ from typing import TYPE_CHECKING, Any, overload
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
     from nomogram.model import Formulation, Variable
+    from nomogram.semantics import UnitDefinition
 
 __all__ = [
     "FIELDS",
@@ -76,6 +77,11 @@ FIELDS: Mapping[str, str] = {
     "kind": (
         "the output kind of a formulation, or a quantity kind itself; with "
         "specializations=True (default), kinds specializing it as well"
+    ),
+    "unit": (
+        "a unit an entry works in (variables, constants and declared coefficients "
+        "of a formulation; a constant, a scale), or a unit itself: QUDT name, "
+        "symbol, UCUM code, label or pint expression, compared whole"
     ),
     "output": "the output variable of a formulation: identifier, symbols, kind, description",
     "input": "an input variable of a formulation: identifier, symbols, kind, description",
@@ -203,11 +209,17 @@ def _symbol_words(tex: str) -> frozenset[str]:
     return frozenset(found)
 
 
+def _unit_forms(name: str, unit: UnitDefinition) -> tuple[str, ...]:
+    """The forms a unit is named by: QUDT name, symbol, UCUM code, label, pint."""
+    forms = (name, unit.symbol, unit.ucum, unit.label, unit.pint)
+    return tuple(form for form in forms if form)
+
+
 def _whole(*texts: str | None) -> frozenset[str]:
-    """Texts as single words, folded: symbols such as ``g/kg`` or ``°C``.
+    """Texts as single words, folded: symbols such as ``g/kg`` or ``°C``, DOIs, URLs.
 
     :func:`words` splits a text at such signs, and a term is never split:
-    kept whole, a symbol finds itself.
+    kept whole, a symbol or an address finds itself.
     """
     return frozenset(fold(t) for t in texts if t)
 
@@ -248,6 +260,7 @@ class _Record:
     kinds: tuple[str, ...] = ()
     citations: tuple[tuple[str, frozenset[str], str | None], ...] = ()
     symbols: tuple[tuple[str, frozenset[str]], ...] = ()
+    units: tuple[str, ...] = ()
 
 
 def _join(*parts: object) -> str:
@@ -270,6 +283,7 @@ class _Index:
     by_ref: Mapping[str, _Record]
     used_by: Mapping[str, tuple[str, ...]]
     descendants: Mapping[str, frozenset[str]]
+    unit_forms: Mapping[str, frozenset[str]]
 
 
 def _symbols_of(
@@ -400,7 +414,8 @@ def _records(catalog: Catalog) -> list[_Record]:
         records.append(
             _Record(
                 Entry("references", key, _join(r.authors, r.year, r.title), r),
-                words(_join(text, _matches_text(r.matches))),
+                words(_join(text, _matches_text(r.matches)))
+                | _whole(r.doi, r.url, f"https://doi.org/{r.doi}" if r.doi else None),
                 {},
                 citations=_sourced(catalog, key),
             )
@@ -481,7 +496,7 @@ def _records(catalog: Catalog) -> list[_Record]:
         records.append(
             _Record(
                 Entry("cross_checks", key, label, check),
-                words(_join(key, label, check.note)),
+                words(_join(key, label, check.note)) | _whole(check.url),
                 {},
             )
         )
@@ -501,19 +516,13 @@ def _records(catalog: Catalog) -> list[_Record]:
             )
         )
     for name, unit in semantic_catalog().units.items():
-        text = _join(
-            name,
-            unit.label,
-            unit.symbol,
-            unit.ucum,
-            unit.pint,
-            _matches_text(unit.matches),
-        )
+        text = _join(*_unit_forms(name, unit), _matches_text(unit.matches))
         records.append(
             _Record(
                 Entry("units", name, unit.label, unit),
                 words(text) | _whole(unit.symbol),
                 {},
+                units=(name,),
             )
         )
     return [
@@ -528,6 +537,12 @@ def _records(catalog: Catalog) -> list[_Record]:
                     else {}
                 ),
             },
+            units=record.units
+            + tuple(
+                target.removeprefix("units.")
+                for target in catalog.links.get(record.entry.ref, ())
+                if target.startswith("units.")
+            ),
         )
         for record in records
     ]
@@ -535,6 +550,8 @@ def _records(catalog: Catalog) -> list[_Record]:
 
 def index(catalog: Catalog) -> _Index:
     """Build the search index of a catalog (see :meth:`Catalog.search`)."""
+    from nomogram.semantics import semantic_catalog
+
     records = tuple(_records(catalog))
     by_ref = {r.entry.ref: r for r in records}
     used_by: dict[str, list[str]] = {}
@@ -552,6 +569,10 @@ def index(catalog: Catalog) -> _Index:
         by_ref=by_ref,
         used_by={k: tuple(v) for k, v in used_by.items()},
         descendants={k: frozenset(v) for k, v in descendants.items()},
+        unit_forms={
+            name: frozenset(_unit_forms(name, unit))
+            for name, unit in semantic_catalog().units.items()
+        },
     )
 
 
@@ -577,7 +598,36 @@ def _notation_matches(key: str, pattern: str) -> bool:
 
 
 def _all_match(terms: list[str], found: frozenset[str]) -> bool:
-    return all(any(fnmatchcase(word, term) for word in found) for term in terms)
+    # A word equal to a term matches it, wildcard signs included: an
+    # address holding [0] finds itself.
+    return all(
+        term in found or any(fnmatchcase(word, term) for word in found)
+        for term in terms
+    )
+
+
+def _units(forms: Mapping[str, frozenset[str]], pattern: str) -> frozenset[str]:
+    """The units a ``unit=`` pattern names, by QUDT name.
+
+    The pattern is compared whole with the forms of each unit: split into
+    words, ``K`` would match ``J-PER-KiloGM-K``. A form written exactly as
+    the pattern comes first, case included (``mPa`` is not ``MPa``), then
+    a form equal to it without case or accents, then wildcards: UCUM's
+    ``[ppm]`` or pint's ``J/(kg*K)`` are not read as wildcards.
+    """
+    wanted = pattern.strip()
+    folded = fold(wanted)
+    for matches in (
+        lambda form: form == wanted,
+        lambda form: fold(form) == folded,
+        lambda form: fnmatchcase(fold(form), folded),
+    ):
+        found = frozenset(
+            name for name, written in forms.items() if any(map(matches, written))
+        )
+        if found:
+            return found
+    return frozenset()
 
 
 def _keep(
@@ -586,6 +636,7 @@ def _keep(
     section: str | None,
     filters: Mapping[str, str],
     kinds: frozenset[str] | None,
+    units: frozenset[str] | None,
 ) -> bool:
     if section is not None and not fnmatchcase(record.entry.section, section):
         return False
@@ -593,8 +644,10 @@ def _keep(
         return False
     if kinds is not None and not set(record.kinds) & kinds:
         return False
+    if units is not None and not set(record.units) & units:
+        return False
     for name, pattern in filters.items():
-        if name in ("kind", "source", "equation", "symbol", "notation"):
+        if name in ("kind", "unit", "source", "equation", "symbol", "notation"):
             continue
         values = record.fields.get(name)
         wanted = _terms(pattern, symbol=name in _SYMBOLIC)
@@ -646,11 +699,12 @@ def search(
         if specializations:
             matched = {d for name in matched for d in built.descendants[name]}
         kinds = frozenset(matched)
+    units = _units(built.unit_forms, filters["unit"]) if "unit" in filters else None
     folded = [t for term in terms for t in _terms(term)]
     chosen = tuple(
         r.entry
         for r in built.records
-        if _keep(r, folded, fold(section) if section else None, filters, kinds)
+        if _keep(r, folded, fold(section) if section else None, filters, kinds, units)
     )
     return Selection(chosen, catalog)
 

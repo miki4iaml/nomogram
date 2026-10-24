@@ -13,6 +13,7 @@ c.search("p453*", "water", section="formulations")
 c.search(variable="rho*")                           # ρ in every notation
 c.search(symbol="φ", notation="ashrae")             # φ as ASHRAE writes it
 c.search(kind="VapourPressure")                     # saturation pressures included
+c.search(unit="hPa")                                # what works in hectopascals
 c.search(source="itu_r_p453*", equation="9")
 c.used_by("references.itu_r_p453_14")               # everything citing P.453
 c.uses("formulations.itu_r_p453_es_water")          # its parts, kinds, source
@@ -22,7 +23,8 @@ c.uses("formulations.itu_r_p453_es_water")          # its parts, kinds, source
 
 - A **term** is a shell-style wildcard pattern: `*` (any characters),
   `?` (one character), `[...]` (a set). It is matched against the
-  **words** of an entry; every term must match a word.
+  **words** of an entry; every term must match a word. A word written
+  exactly as the term matches it too, wildcard signs included.
 - Words are compared **without case or accents**: `Équation` is
   `equation`.
 - Identifiers are **split and kept whole**: `SaturationVapourPressureOverWater`
@@ -37,7 +39,10 @@ c.uses("formulations.itu_r_p453_es_water")          # its parts, kinds, source
   with a space is found whole or by its parts: Dickson's
   `\Sigma m_{\mathrm{B}}` answers to `Σ m_B`, `Σm_B` and `m_B`.
 - **Unit and scale symbols** are also kept whole, signs included: `°C`,
-  `g/kg` or `%` finds its unit.
+  `g/kg` or `%` finds its unit. So are the **DOI and URL** of a reference
+  and the URL of a cross-check: `10.1016/0304-4203(80)90024-9` finds its
+  reference, bare or as its `https://doi.org/` address, and a wildcard
+  finds the addresses of one site (`*archive.org*`).
 - There is no approximate matching: a misspelt word finds nothing, which
   a wildcard can usually fix (`hum*d*`).
 
@@ -52,6 +57,7 @@ each matching a word.
 |---|---|
 | `key` | the key of the entry |
 | `kind` | the output kind of a formulation, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well |
+| `unit` | a unit an entry works in, as its links give it (see below), or a unit itself; by its QUDT name, symbol, UCUM code, label or pint expression: `hPa`, `HectoPA`, `hectopascal` are one unit. The pattern is compared whole with each form, so `K` does not match `J-PER-KiloGM-K`. A form written exactly as the pattern comes first, case included (`mPa` is not `MPa`), and is taken literally (UCUM's `[ppm]`); then a form equal without case or accents; then wildcards |
 | `output` | the output variable of a formulation: identifier, symbols in every notation, kind (name, label, CF names), description |
 | `input` | an input variable, likewise |
 | `variable` | any variable, coefficient or constant of a formulation |
@@ -89,12 +95,20 @@ c.search(output="SaturationVapourPressure*") - c.search(source="buck*")
 ## Links
 
 `uses(entry)` gives the entries an entry refers to (kinds of its
-variables, cited references, notations, constants, scales, the
+variables, cited references, notations, constants, scales, units, the
 formulations a composition, a relation or a cross-check uses, the
 families a family requires); `used_by(entry)` the entries that refer to
 it. The links are those the catalog checks for its families
-(`Catalog.links`), plus the kinds and scales of a composed formulation's
-variables, which it takes from its parts. Results come in catalog order.
+(`Catalog.links`), plus the units and the kinds and scales of a composed
+formulation's variables, which it takes from its parts. Results come in
+catalog order.
+
+A formulation links to the units of its variables and constants, and to
+the units of its coefficients when they are declared (added when the
+entry was written, or stated by a source), never to units inferred from
+the expression. A constant links to its unit, a scale to the unit of its
+conversion: `used_by("units.DEG_C")` gives the formulations working in
+degrees Celsius and the temperature scales converted in them.
 
 ## What grows without changing searches
 

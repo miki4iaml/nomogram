@@ -192,8 +192,9 @@ class Catalog:
         For each entry (``section.key``), the entries it refers to: kinds
         of its variables (those a composition takes from its parts
         included), cited references, notations, constants, scales,
-        the formulations a composition, a relation or a cross-check uses,
-        the families a family requires.
+        units (of its variables, constants and declared coefficients; of
+        a constant, of a scale), the formulations a composition, a
+        relation or a cross-check uses, the families a family requires.
     """
 
     kinds: Mapping[str, QuantityKind]
@@ -249,9 +250,9 @@ class Catalog:
             (default).
         **fields : str
             Field filters, patterns as well (:data:`nomogram.search.FIELDS`):
-            ``kind``, ``output``, ``input``, ``variable``, ``symbol`` with
-            ``notation``, ``source`` with ``equation``, ``family``,
-            ``keyword``, ``key``.
+            ``kind``, ``unit``, ``output``, ``input``, ``variable``,
+            ``symbol`` with ``notation``, ``source`` with ``equation``,
+            ``family``, ``keyword``, ``key``.
 
         Returns
         -------
@@ -2031,9 +2032,13 @@ def _links(
 ) -> Mapping[str, tuple[str, ...]]:
     """For each entry, the existing entries it refers to (``section.key``).
 
-    A formulation also refers to the kinds and scales of its variables as
-    built: a composition writes none, it takes them from its parts. The
-    family check reads the written tables only (:func:`_references`).
+    A formulation also refers to the kinds, scales and units of its
+    variables and to its constants as built: a composition writes none, it
+    takes them from its parts. It refers to the units of its constants and
+    to the declared units of its coefficients (added or stated, never
+    inferred); a constant or a scale to its unit. Units were checked
+    against the semantic catalog when built. The family check reads the
+    written tables only (:func:`_references`): units belong to no family.
     """
     links: dict[str, tuple[str, ...]] = {}
     for section, key in owners:
@@ -2042,13 +2047,26 @@ def _links(
             formulation = built.formulations[key]
             for variable in (formulation.output, *formulation.inputs):
                 references.add(("kinds", variable.kind))
+                references.add(("units", variable.unit))
                 if variable.scale is not None:
                     references.add(("scales", variable.scale.key))
+            for coefficient in formulation.coefficients:
+                if coefficient.unit is not None:
+                    references.add(("units", coefficient.unit))
+            for constant in formulation.constants:
+                references.add(("constants", constant.key))
+                references.add(("units", constant.unit))
+        elif section == "constants":
+            references.add(("units", built.constants[key].unit))
+        elif section == "scales":
+            scale_unit = built.scales[key].unit
+            if scale_unit is not None:
+                references.add(("units", scale_unit))
         targets = sorted(references)
         found = tuple(
             f"{s}.{k}"
             for s, k in targets
-            if (s, k) in owners or (s == "kinds" and k in built.kinds)
+            if (s, k) in owners or (s == "kinds" and k in built.kinds) or s == "units"
         )
         if found:
             links[f"{section}.{key}"] = found
