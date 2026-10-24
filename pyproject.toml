@@ -102,6 +102,12 @@ fail_under = 80
 show_missing = true
 exclude_also = ['if __name__ == "__main__":']
 
+[tool.ruff.format]
+# ruff also formats the code blocks of Markdown files when run without
+# arguments; the documents keep their own layout (aligned comments), and
+# tests/test_examples.py reads the values their code comments state.
+exclude = ["*.md"]
+
 [tool.ruff.lint]
 # On top of ruff's default selection, which Dependabot bumps surface in CI.
 extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20"]
