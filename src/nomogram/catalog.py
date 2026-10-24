@@ -45,6 +45,7 @@ import sympy
 from nomogram.dimensions import DimensionError
 from nomogram.expression import (
     LATEX_COMMANDS,
+    PIECEWISE,
     ExpressionError,
     _pieces,
     compile_numeric,
@@ -52,6 +53,7 @@ from nomogram.expression import (
     parse_expression,
 )
 from nomogram.model import (
+    Branch,
     CheckCase,
     Citation,
     Coefficient,
@@ -581,9 +583,11 @@ _DERIVED = (
 
 def _defined_in(formulation: Formulation, identifier: str) -> str:
     """Key of the formulation that defines a coefficient, through compositions."""
-    for part in formulation.parts:
-        if any(c.identifier == identifier for c in part.formulation.coefficients):
-            return _defined_in(part.formulation, identifier)
+    used = [p.formulation for p in formulation.parts]
+    used += [b.formulation for b in formulation.branches]
+    for inner in used:
+        if any(c.identifier == identifier for c in inner.coefficients):
+            return _defined_in(inner, identifier)
     return formulation.key
 
 
@@ -1716,13 +1720,161 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def branched(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation defined by pieces, each a formulation of the catalog."""
+        where = f"formulations.{key}"
+        derived = sorted(set(table) & set(_DERIVED))
+        if derived:
+            msg = (
+                f"{where}: a formulation by branches takes {', '.join(derived)} "
+                "from its branches"
+            )
+            raise CatalogError(msg)
+        f = _fields(
+            where,
+            table,
+            ("label", "branches", "output"),
+            ("citations", "note", "matches", "keywords"),
+        )
+        if not isinstance(f["branches"], list) or len(f["branches"]) < 2:
+            msg = (
+                f"{where}.branches: expected a list of at least two "
+                "{ formulation, where } tables"
+            )
+            raise CatalogError(msg)
+        output = self.variable(f"{where}.output", f["output"])
+        branches: list[tuple[Formulation, str]] = []
+        for index, item in enumerate(f["branches"]):
+            w = f"{where}.branches[{index}]"
+            b = _fields(w, item, ("formulation", "where"), ())
+            part = self.part(f"{w}.formulation", b["formulation"], formulations)
+            if not self.feeds(part.output.kind, output.kind):
+                msg = (
+                    f"{w}: {part.key} computes {part.output.kind}, which is not "
+                    f"{output.kind} or a specialization of it"
+                )
+                raise CatalogError(msg)
+            if part.output.unit != output.unit:
+                msg = f"{w}: {part.key} gives {part.output.unit}, not {output.unit}"
+                raise CatalogError(msg)
+            branches.append((part, b["where"]))
+        first = branches[0][0]
+        for part, _ in branches[1:]:
+            if part.output.scale != first.output.scale:
+                msg = f"{where}.branches: the branches give values on different scales"
+                raise CatalogError(msg)
+            if part.fixed_units != first.fixed_units:
+                msg = (
+                    f"{where}.branches: the branches mix numerical value and "
+                    "quantity equations"
+                )
+                raise CatalogError(msg)
+        output = dataclasses.replace(
+            output, scale=first.output.scale, scale_basis=first.output.scale_basis
+        )
+
+        # Inputs: one identifier is one input, alike in every branch.
+        inputs: dict[str, Variable] = {}
+        came_from: dict[str, str] = {}
+        for part, _ in branches:
+            for variable in part.inputs:
+                came_from.setdefault(variable.identifier, part.key)
+                known = inputs.setdefault(variable.identifier, variable)
+                if (known.kind, known.unit, known.scale) != (
+                    variable.kind,
+                    variable.unit,
+                    variable.scale,
+                ):
+                    msg = (
+                        f"{where}: input {variable.identifier} of {part.key} "
+                        "differs in kind, unit or scale from the input of the "
+                        "same name in another branch"
+                    )
+                    raise CatalogError(msg)
+
+        # Formulation that defines each coefficient: one formulation may serve
+        # two branches, two formulations may not share a name.
+        owner: dict[str, str] = {}
+        coefficients: list[Coefficient] = []
+        constants: dict[str, PhysicalConstant] = {}
+        for part, _ in branches:
+            for coefficient in part.coefficients:
+                origin = _defined_in(part, coefficient.identifier)
+                if owner.get(coefficient.identifier, origin) != origin:
+                    msg = (
+                        f"{where}: coefficient {coefficient.identifier} in both "
+                        f"{owner[coefficient.identifier]} and {origin}"
+                    )
+                    raise CatalogError(msg)
+                if coefficient.identifier not in owner:
+                    owner[coefficient.identifier] = origin
+                    coefficients.append(coefficient)
+            for constant in part.constants:
+                found = constants.setdefault(constant.identifier, constant)
+                if found.key != constant.key:
+                    msg = (
+                        f"{where}: constant {constant.identifier} is {found.key} "
+                        f"in one branch and {constant.key} in {part.key}"
+                    )
+                    raise CatalogError(msg)
+
+        known_names = [*inputs, *owner, *constants]
+        for index, (_, condition) in enumerate(branches):
+            try:
+                parse_expression(f"{PIECEWISE}((0, {condition}))", known_names)
+            except (ExpressionError, TypeError) as exc:
+                msg = f"{where}.branches[{index}].where: {exc}"
+                raise CatalogError(msg) from None
+        pieces = ", ".join(f"({p.expression}, {c})" for p, c in branches)
+        names = {output.identifier} | set(known_names)
+        variables = tuple(inputs.values())
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            variables,
+            names,
+            set(owner),
+            (output,),
+        )
+        stated = f"{where}.citations"
+        formulation = Formulation(
+            key=key,
+            label=f["label"],
+            output=_stated_scales(
+                stated, (output,), citations, {output.identifier: first.key}
+            )[0],
+            inputs=_stated_scales(stated, variables, citations, came_from),
+            coefficients=_stated_units(stated, tuple(coefficients), citations, owner),
+            constants=tuple(constants.values()),
+            expression=f"{PIECEWISE}({pieces})",
+            fixed_units=first.fixed_units,
+            physical_domains=(),
+            citations=citations,
+            note=f["note"],
+            matches=_matches(where, f["matches"]),
+            derivation=Derivation(
+                first.key,
+                "branches",
+                parts=MappingProxyType({c: p.key for p, c in branches}),
+            ),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            branches=tuple(Branch(p, c) for p, c in branches),
+        )
+        self.check(where, formulation)
+        return formulation
+
     @staticmethod
     def composition_order(tables: Mapping[str, Any]) -> list[str]:
-        """Composed formulations, each after the composed ones it uses."""
+        """Composed formulations and branches, each after those it uses."""
         composed = {
-            key: table["composition"]
+            key: table
             for key, table in tables.items()
-            if isinstance(table, dict) and "composition" in table
+            if isinstance(table, dict)
+            and ("composition" in table or "branches" in table)
         }
         order: list[str] = []
 
@@ -1733,14 +1885,7 @@ class _Builder:
                 cycle = " -> ".join([*path[path.index(key) :], key])
                 msg = f"formulations.{key}: compositions form a cycle: {cycle}"
                 raise CatalogError(msg)
-            parts = composed[key]
-            names = []
-            if isinstance(parts, dict):
-                inner = parts.get("inner")
-                names = [
-                    parts.get("outer"),
-                    *(inner.values() if isinstance(inner, dict) else ()),
-                ]
+            names = _used_formulations(composed[key])
             for name in names:
                 if isinstance(name, str) and name in composed:
                     visit(name, [*path, key])
@@ -2003,10 +2148,16 @@ class _Builder:
         built = {
             key: self.formulation(key, table)
             for key, table in tables.items()
-            if not (isinstance(table, dict) and "composition" in table)
+            if not (
+                isinstance(table, dict)
+                and ("composition" in table or "branches" in table)
+            )
         }
         for key in self.composition_order(tables):
-            built[key] = self.composed(key, tables[key], built)
+            if "branches" in tables[key]:
+                built[key] = self.branched(key, tables[key], built)
+            else:
+                built[key] = self.composed(key, tables[key], built)
         formulations = {key: built[key] for key in tables}
         # Two sources of one formulation make one entry with two citations.
         seen: dict[str, str] = {}
@@ -2078,6 +2229,25 @@ def _header(label: str, table: Any) -> dict[str, Any]:
     return f
 
 
+def _used_formulations(table: Any) -> list[Any]:
+    """The formulations a composition or a formulation by branches uses, by key.
+
+    Called on unvalidated tables too (to order the entries before building
+    them): anything malformed is left to the builder.
+    """
+    composition = table.get("composition")
+    if isinstance(composition, dict):
+        inner = composition.get("inner")
+        return [
+            composition.get("outer"),
+            *(inner.values() if isinstance(inner, dict) else ()),
+        ]
+    branches = table.get("branches")
+    if isinstance(branches, list):
+        return [b.get("formulation") for b in branches if isinstance(b, dict)]
+    return []
+
+
 def _references(section: str, table: Any) -> set[tuple[str, str]]:
     """The entries of other sections an entry refers to, by key.
 
@@ -2090,11 +2260,8 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
             found.add((target, value))
 
     if section == "formulations":
-        composition = table.get("composition")
-        if composition is not None:
-            add("formulations", composition["outer"])
-            for name in composition["inner"].values():
-                add("formulations", name)
+        for name in _used_formulations(table):
+            add("formulations", name)
         variables = [table["output"]] if "output" in table else []
         for variable in (*variables, *table.get("inputs", ())):
             add("kinds", variable["kind"])

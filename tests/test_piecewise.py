@@ -5,13 +5,14 @@
 
 import time
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pytest
 import sympy
 from matplotlib.mathtext import MathTextParser
 
-from nomogram.catalog import CatalogError, load_catalog
+from nomogram.catalog import CatalogError, catalog, load_catalog
 from nomogram.expression import (
     LATEX_COMMANDS,
     ExpressionError,
@@ -574,3 +575,249 @@ def test_a_condition_on_a_computed_value_is_refused() -> None:
     )
     with pytest.raises(CatalogError, match="bounds e, which magnus computes"):
         load_catalog([SOURCE + magnus() + written + COMPOSED])
+
+
+# --- Branches by reference ---------------------------------------------------------
+
+
+def saturation(key: str, a: float, b: float, domain: str = "", c: str = "C") -> str:
+    """A Magnus form, written for a test; ``c`` names its coefficient."""
+    return (
+        formulation(
+            f"{c} * exp({a} * t / ({b} + t))",
+            key=key,
+            output='kind = "VapourPressure", unit = "HectoPA"',
+            inputs=(
+                '{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", '
+                'description = "t" }'
+            ),
+            extra=f"coefficients = {{ {c} = 6.112 }}\n",
+        )
+        + domain
+    )
+
+
+ICE = saturation("ice", 22.46, 272.62, c="C_i")
+WATER = saturation("water", 17.62, 243.12, c="C_w")
+
+
+def branched(
+    branches: str = (
+        '{ formulation = "ice", where = "t < 0" }, '
+        '{ formulation = "water", where = "t >= 0" }'
+    ),
+    output: str = 'kind = "VapourPressure", unit = "HectoPA"',
+    extra: str = "",
+) -> str:
+    return f"""
+[formulations.both]
+label = "Over ice below 0 degC, over water above"
+branches = [{branches}]
+output = {{ identifier = "e_s", {output}, description = "e" }}
+{extra}
+[[formulations.both.citations]]
+reference = "src"
+"""
+
+
+def test_a_formulation_may_take_its_pieces_from_others() -> None:
+    loaded = load_catalog([SOURCE + ICE + WATER + branched()])
+    both = loaded.formulations["both"]
+    t = Q_([-10.0, 0.0, 10.0], "degC")
+    ice = loaded.formulations["ice"].evaluate(t=t).magnitude
+    water = loaded.formulations["water"].evaluate(t=t).magnitude
+    assert both.evaluate(t=t).magnitude == pytest.approx([ice[0], water[1], water[2]])
+    assert [(b.formulation.key, b.condition) for b in both.branches] == [
+        ("ice", "t < 0"),
+        ("water", "t >= 0"),
+    ]
+    assert both.derivation is not None
+    assert both.derivation.method == "branches"
+    # The search links a formulation to its branches, both ways.
+    assert {"formulations.ice", "formulations.water"} <= set(
+        loaded.uses("formulations.both").refs
+    )
+    assert loaded.used_by("formulations.ice").refs == ("formulations.both",)
+    assert "Defined by pieces: ice where t < 0; water where t >= 0." in (
+        both.render().markdown
+    )
+
+
+def test_the_domains_of_a_branch_apply_where_it_is_used() -> None:
+    domain = (
+        "[[formulations.{key}.citations.domains]]\nbounds = {{ t = [{low}, {high}] }}\n"
+    )
+    ice = saturation(
+        "ice", 22.46, 272.62, domain.format(key="ice", low=-40.0, high=0.0), "C_i"
+    )
+    water = saturation(
+        "water", 17.62, 243.12, domain.format(key="water", low=0.0, high=50.0), "C_w"
+    )
+    loaded = load_catalog([SOURCE + ice + water + branched()])
+    both = loaded.formulations["both"]
+    values = both.evaluate(t=Q_([-50.0, -10.0, 10.0, 60.0], "degC")).magnitude
+    assert np.isnan(values[[0, 3]]).all()
+    assert not np.isnan(values[[1, 2]]).any()
+    # A domain stated for the formulation replaces those of its branches.
+    stated = domain.format(key="both", low=-60.0, high=70.0)
+    loaded = load_catalog([SOURCE + ice + water + branched() + stated])
+    values = loaded.formulations["both"].evaluate(t=Q_([-50.0, 60.0], "degC"))
+    assert not np.isnan(values.magnitude).any()
+
+
+def test_one_formulation_may_serve_two_branches() -> None:
+    branches = (
+        '{ formulation = "ice", where = "t < -20" }, '
+        '{ formulation = "water", where = "-20 <= t < 0" }, '
+        '{ formulation = "water", where = "t >= 0" }'
+    )
+    both = load_catalog([SOURCE + ICE + WATER + branched(branches)]).formulations[
+        "both"
+    ]
+    assert [c.identifier for c in both.coefficients] == ["C_i", "C_w"]
+    assert len(both.branches) == 3
+
+
+@pytest.mark.parametrize(
+    ("document", "message"),
+    [
+        (branched('{ formulation = "ice", where = "t < 0" }'), "at least two"),
+        (branched(extra='expression = "1"'), "takes expression from its branches"),
+        (
+            branched(output='kind = "DimensionlessRatio", unit = "UNITLESS"'),
+            "which is not DimensionlessRatio or a specialization of it",
+        ),
+        (
+            branched(output='kind = "VapourPressure", unit = "PA"'),
+            "gives HectoPA, not PA",
+        ),
+        (
+            branched(
+                '{ formulation = "ice", where = "t < 0" }, '
+                '{ formulation = "water", where = "t >= 0 and t < 5" }'
+            ),
+            r"branches\[1\].where",
+        ),
+        (
+            branched(
+                '{ formulation = "ice", where = "t < 0" }, '
+                '{ formulation = "water", where = "x >= 0" }'
+            ),
+            "undeclared name",
+        ),
+        (
+            branched(
+                '{ formulation = "ice", where = "t < 5" }, '
+                '{ formulation = "water", where = "t >= 0" }'
+            ),
+            "the intervals of t overlap",
+        ),
+        (
+            branched(
+                '{ formulation = "ice", where = "t < 0" }, { formulation = "nope", where = "t >= 0" }'
+            ),
+            "nope",
+        ),
+    ],
+)
+def test_branches_are_checked(document: str, message: str) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([SOURCE + ICE + WATER + document])
+
+
+def test_branches_share_inputs_and_keep_coefficients_apart() -> None:
+    kelvin = formulation(
+        "C * exp(22.46 * (t - 273.15) / (272.62 + t - 273.15))",
+        key="kelvin",
+        output='kind = "VapourPressure", unit = "HectoPA"',
+        inputs=(
+            '{ identifier = "t", kind = "ThermodynamicTemperature", unit = "K", '
+            'description = "t" }'
+        ),
+        extra="coefficients = { C = 6.112 }\n",
+    )
+    pair = (
+        '{ formulation = "kelvin", where = "t < 273.15" }, '
+        '{ formulation = "water", where = "t >= 273.15" }'
+    )
+    with pytest.raises(CatalogError, match="input t of water differs"):
+        load_catalog([SOURCE + kelvin + WATER + branched(pair)])
+    other = (
+        WATER.replace("[formulations.water]", "[formulations.other]")
+        .replace("formulations.water.citations", "formulations.other.citations")
+        .replace("17.62", "17.5")
+        .replace("C_w", "C_i")
+    )
+    pair = (
+        '{ formulation = "ice", where = "t < 0" }, '
+        '{ formulation = "other", where = "t >= 0" }'
+    )
+    with pytest.raises(CatalogError, match="coefficient C_i in both ice and other"):
+        load_catalog([SOURCE + ICE + other + branched(pair)])
+
+
+def test_branches_of_mixed_equations_or_scales_are_refused() -> None:
+    quantity_water = formulation(
+        "e",
+        key="q",
+        fixed_units=False,
+        output='kind = "VapourPressure", unit = "HectoPA"',
+        inputs=(
+            '{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", '
+            'description = "e" }'
+        ),
+    )
+    pair = (
+        '{ formulation = "ice", where = "t < 0" }, '
+        '{ formulation = "q", where = "e >= 0" }'
+    )
+    with pytest.raises(CatalogError, match="mix numerical value and quantity"):
+        load_catalog([SOURCE + ICE + quantity_water + branched(pair)])
+
+
+def test_branches_share_their_constants() -> None:
+    constants = "".join(
+        f'\n[constants.{key}]\nidentifier = "epsilon"\nvalue = {value}\n'
+        'unit = "UNITLESS"\ndescription = "ratio"\nreference = "src"\n'
+        'nature = "conventional"\n'
+        for key, value in (("eps_a", 0.622), ("eps_b", 0.621))
+    )
+
+    def using(text: str, key: str) -> str:
+        return text.replace(" * exp(", " * epsilon * exp(").replace(
+            "coefficients = {", f'constants = ["{key}"]\ncoefficients = {{'
+        )
+
+    loaded = load_catalog(
+        [SOURCE + constants + using(ICE, "eps_a") + using(WATER, "eps_a") + branched()]
+    )
+    assert [k.key for k in loaded.formulations["both"].constants] == ["eps_a"]
+    with pytest.raises(CatalogError, match="constant epsilon is eps_a in one branch"):
+        load_catalog(
+            [
+                SOURCE
+                + constants
+                + using(ICE, "eps_a")
+                + using(WATER, "eps_b")
+                + branched()
+            ]
+        )
+
+
+def test_branches_give_values_on_one_scale(tmp_path: Path) -> None:
+    # Knudsen and Cox salinities from chlorinity: two scales.
+    path = tmp_path / "mylab.toml"
+    path.write_text(
+        '[catalog]\nname = "mylab"\nformat = 2\nrequires = ["sea-water"]\n'
+        '[references."mylab:note"]\nauthors = "Lab"\ntitle = "Note"\n'
+        'status = "verified"\n'
+        '[formulations."mylab:salinity"]\nlabel = "Salinity"\n'
+        'branches = [{ formulation = "knudsen1901_salinity", where = "Cl < 10" }, '
+        '{ formulation = "cox_salinity_jpots1966", where = "Cl >= 10" }]\n'
+        'output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", '
+        'description = "S" }\n'
+        '[[formulations."mylab:salinity".citations]]\nreference = "mylab:note"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(CatalogError, match="values on different scales"):
+        catalog(extra=[path])

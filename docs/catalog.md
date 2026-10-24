@@ -248,6 +248,44 @@ bounds = { t = [-40.0, 50.0] }
   outer formulation and the parts; the legend of a single formula says
   what it is composed of.
 
+### Formulations by branches
+
+When the pieces of a [piecewise definition](#piecewise-definitions) are
+formulations that make sense alone, with their own sources, validity
+domains and accuracy, the formulation refers to them instead of copying
+their expressions:
+
+```toml
+[formulations.psychrolib_saturation_pressure]
+label = "Saturation pressure of water vapour over ice, then over water"
+branches = [
+  { formulation = "hyland_wexler1983_ice", where = "T <= 273.16" },
+  { formulation = "hyland_wexler1983", where = "T > 273.16" },
+]
+output = { identifier = "p_ws", kind = "VapourPressure", unit = "PA", description = "Saturation pressure" }
+```
+
+- **`branches`**: at least two `{ formulation, where }` tables; `where` is
+  the condition of a piecewise definition, an interval of one input, the
+  same for every branch. The expression is the piecewise definition the
+  branches make, written by the catalog; `expression`, `inputs`,
+  `coefficients`, `constants`, `domains` and `fixed_units` come from the
+  branches and are not written.
+- **`output`** is required: its kind is that of every branch or one they
+  specialize (over ice, over water: a vapour pressure), in their unit.
+  Branches give values on one scale, and are all numerical value
+  equations or all quantity equations.
+- Inputs are shared by identifier, alike in kind, unit and scale.
+  Coefficients and constants are gathered; one formulation may serve two
+  branches, but two formulations may not give a coefficient the same name.
+- **Validity domains**: those of each branch apply where its condition
+  holds. A domain stated by a source of the formulation replaces those
+  the sources of the branches state, as for a composition; physical
+  domains of the branches always apply.
+- The formulation's `derivation` records the method `"branches"` and the
+  formulation used under each condition; the legend of a single formula
+  lists them. `uses` and `used_by` link the formulation and its branches.
+
 ### Citations
 
 A formula is written once; each source that gives it is a citation, a
