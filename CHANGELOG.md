@@ -79,6 +79,14 @@ and this project adheres to
 
 ### Fixed
 
+- The report of `check` took the domains of inputs on a conventional
+  scale, stated on that scale, as values of the reference scale on which
+  it evaluates. They are now converted to the reference scale first,
+  leaving out the values that do not convert: Weiss and Price (1980),
+  stated valid up to 313 K on IPTS-48, which converts up to 30 degC only,
+  are compared with Dickson et al. (2007) on the whole common domain
+  instead of three quarters of it. `ConventionalScale.interval_to_reference`
+  carries an interval of a scale to its reference scale.
 - `epsilon_ecmwf_ifs` is the value the IFS documentation prints, 0.621981
   (CY49R1, Part IV, section 7.5.2), instead of the ratio R_d / R_v
   computed by nomogram (0.6219808); it carries that ratio as its

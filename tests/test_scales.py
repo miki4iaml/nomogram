@@ -43,6 +43,17 @@ def test_its90_is_the_identity() -> None:
     assert not outside.any()
 
 
+def test_an_interval_on_a_table_scale_is_carried_to_its90() -> None:
+    # Table 6: t68 = 20.005 degC is t90 = 20 degC.
+    interval = IPTS68.interval_to_reference(0.0, 20.005)
+    assert interval == pytest.approx((0.0, 20.0), abs=1e-9)
+    # The table spans -190 to 390 degC on ITS-90; nothing converts beyond.
+    assert IPTS68.interval_to_reference(-math.inf, math.inf) == (-190.0, 390.0)
+    assert IPTS68.interval_to_reference(500.0, 600.0) is None
+    its90 = CATALOG.scales["its90"]
+    assert its90.interval_to_reference(-math.inf, 12.3) == (-math.inf, 12.3)
+
+
 def test_scales_of_formulations_and_how_they_are_known() -> None:
     assert IAPWS.inputs[0].scale is not None
     assert IAPWS.inputs[0].scale.key == "its90"

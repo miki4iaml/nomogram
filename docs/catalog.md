@@ -557,7 +557,10 @@ uv run python -m nomogram.catalog stats
 when it is not one of them), then reports, for each of its
 formulations, those of the same form (coefficients aside) and the
 maximum relative deviation **observed** against every formulation of the
-same kind, on the domain where both are valid. These are observations:
+same kind, on the domain where both are valid. Inputs are taken on the
+reference scale of their kind, as in an evaluation: the domain an input
+on a conventional scale is stated on is converted to the reference scale
+first, leaving out the values that do not convert. These are observations:
 only a relation with a citation states an approximation or an
 equivalence. A pair that comes out numerically identical deserves a
 look: an equivalence to state, or the same formulation written twice.
