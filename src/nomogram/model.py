@@ -717,6 +717,20 @@ class PhysicalConstant:
     printed : str or None
         The value as the source prints it, when written as text in the
         catalog to keep significant trailing zeros (``"287.0500"``).
+    definition : str or None
+        The formula giving the value from other constants, in the
+        restricted syntax of expressions (``"R_d / R_v"``), when the source
+        states one. The value used stays the one printed; the catalog
+        checks that it agrees with the formula.
+    components : tuple of str
+        Keys of the constants the definition uses (``constants`` in a
+        catalog file).
+    tolerance : float or None
+        How far the printed value may depart from the definition, in
+        ``unit``, when the source departs from its own formula; ``note``
+        then says by how much and why.
+    note : str or None
+        Remark.
     """
 
     key: str
@@ -730,6 +744,10 @@ class PhysicalConstant:
     uncertainty: float | None = None
     conditions: str | None = None
     printed: str | None = None
+    definition: str | None = None
+    components: tuple[str, ...] = ()
+    tolerance: float | None = None
+    note: str | None = None
 
 
 @dataclass(frozen=True)

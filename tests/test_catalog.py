@@ -600,6 +600,177 @@ def test_invalid_constants_are_refused(
         load_catalog([VALID + document])
 
 
+DERIVED = """
+[constants.a]
+identifier = "a"
+value = 1.380649
+unit = "UNITLESS"
+description = "an exact constant"
+reference = "src"
+nature = "exact"
+
+[constants.b]
+identifier = "b"
+value = 6.02214076e23
+unit = "UNITLESS"
+description = "another exact constant"
+reference = "src"
+nature = "exact"
+
+[constants.R_d]
+identifier = "R_d"
+value = 287.0597
+unit = "J-PER-KiloGM-K"
+description = "gas constant of dry air"
+reference = "src"
+nature = "conventional"
+
+[constants.R_v]
+identifier = "R_v"
+value = 461.5250
+unit = "J-PER-KiloGM-K"
+description = "gas constant of water vapour"
+reference = "src"
+nature = "conventional"
+
+[constants.c]
+identifier = "c"
+unit = "{unit}"
+description = "a derived constant"
+reference = "src"
+{fields}
+"""
+
+
+def derived(fields: str, unit: str = "UNITLESS") -> str:
+    return VALID + DERIVED.format(unit=unit, fields=fields)
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        # An exact product, which floats would not reproduce exactly.
+        (
+            'value = 8.31446261815324e23\nnature = "exact"\n'
+            'definition = "a * b"\nconstants = ["a", "b"]'
+        ),
+        # An exact constant prints a truncation of its definition.
+        'value = 40.80262463\nnature = "exact"\ndefinition = "2 * pi ** 5 / 15"',
+        # Rounded to half a unit of the last digit (the IFS ratio R_d / R_v).
+        (
+            'value = 0.6219808\nnature = "conventional"\n'
+            'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+        ),
+        # Within the uncertainty the source gives.
+        (
+            'value = 0.62198\nnature = "measured"\nuncertainty = 1e-5\n'
+            'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+        ),
+        # A source departing from its own formula, said in a note.
+        (
+            'value = 0.6219812\nnature = "conventional"\n'
+            'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]\n'
+            'tolerance = 5e-7\nnote = "The source rounds an intermediate value."'
+        ),
+    ],
+)
+def test_a_value_agrees_with_its_definition(fields: str) -> None:
+    constant = load_catalog([derived(fields)]).constants["c"]
+    assert constant.definition is not None
+
+
+@pytest.mark.parametrize(
+    ("fields", "message"),
+    [
+        (
+            'value = 40.80262464\nnature = "exact"\ndefinition = "2 * pi ** 5 / 15"',
+            "prints a truncation of its definition",
+        ),
+        (
+            (
+                'value = 0.6219812\nnature = "conventional"\n'
+                'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+            ),
+            "beyond half a unit of its last digit",
+        ),
+        # Written as text, the trailing zero counts: 0.6219810, not 0.621981.
+        (
+            (
+                'value = "0.6219810"\nnature = "conventional"\n'
+                'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+            ),
+            "beyond half a unit of its last digit",
+        ),
+        (
+            (
+                'value = 0.6219812\nnature = "conventional"\n'
+                'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]\ntolerance = 5e-7'
+            ),
+            "a note must say by how much and why",
+        ),
+        (
+            'value = 1.0\ntolerance = 0.1\nnote = "n"',
+            "tolerance: only with a definition",
+        ),
+        ('value = 1.0\nconstants = ["a"]', "constants: only with a definition"),
+        (
+            'value = 1.0\ndefinition = "a * x"\nconstants = ["a", "x"]',
+            "unknown constant 'x'",
+        ),
+        (
+            'value = 1.0\ndefinition = "a"\nconstants = ["a", "b"]',
+            "not used by the definition: b",
+        ),
+        ('value = 1.0\ndefinition = "a * y"\nconstants = ["a"]', "undeclared name"),
+        ('value = 1.0\ndefinition = "a"\nconstants = "a"', "a list of constant keys"),
+        (
+            (
+                'value = 1.0\ndefinition = "a"\nconstants = ["a"]\n'
+                'tolerance = -1.0\nnote = "n"'
+            ),
+            "tolerance: expected a positive number",
+        ),
+    ],
+)
+def test_a_definition_is_checked(fields: str, message: str) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([derived(fields)])
+
+
+def test_a_definition_names_each_component_once() -> None:
+    document = derived('value = 1.0\ndefinition = "a"\nconstants = ["a", "a_bis"]') + (
+        '\n[constants.a_bis]\nidentifier = "a"\nvalue = 1.0\nunit = "UNITLESS"\n'
+        'description = "the same identifier"\nreference = "src"\n'
+    )
+    with pytest.raises(CatalogError, match="'a' names two constants"):
+        load_catalog([document])
+
+
+def test_a_definition_gives_the_unit_of_its_constant() -> None:
+    fields = 'value = 2.0\ndefinition = "a * b"\nconstants = ["a", "b"]'
+    with pytest.raises(CatalogError, match="gives 1, not"):
+        load_catalog([derived(fields, unit="J-PER-KiloGM-K")])
+
+
+def test_constants_cannot_define_each_other() -> None:
+    document = derived('value = 1.0\ndefinition = "d"\nconstants = ["d"]') + (
+        '\n[constants.d]\nidentifier = "d"\nvalue = 1.0\nunit = "UNITLESS"\n'
+        'description = "d"\nreference = "src"\ndefinition = "c"\nconstants = ["c"]\n'
+    )
+    with pytest.raises(CatalogError, match="definitions form a cycle"):
+        load_catalog([document])
+
+
+def test_a_derived_constant_links_to_its_components() -> None:
+    fields = (
+        'value = 0.6219808\nnature = "conventional"\n'
+        'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+    )
+    loaded = load_catalog([derived(fields)])
+    assert {"constants.R_d", "constants.R_v"} <= set(loaded.uses("constants.c").refs)
+    assert loaded.used_by("constants.R_d").refs == ("constants.c",)
+
+
 def test_a_constant_may_leave_its_nature_out() -> None:
     # Files written for 0.3 have no nature; the bundled catalog states it.
     document = CONSTANT.format(value=1.0, nature="exact", extra="").replace(

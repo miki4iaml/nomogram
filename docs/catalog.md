@@ -112,7 +112,7 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
-| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `matches` |
+| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
@@ -367,6 +367,36 @@ nature = "conventional"
   significant: `value = "287.0500"` keeps the digits the source prints,
   which a number loses whatever its notation (`287.0500` and
   `2.870500e2` are both read as 287.05).
+
+A constant the source defines by a formula of other constants carries
+that formula; the value used stays the one printed, and the catalog
+checks that the two agree:
+
+```toml
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.6219808
+unit = "UNITLESS"
+description = "Ratio of the gas constants of dry air and water vapour"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R_d / R_v"
+constants = ["R_d_ecmwf_ifs", "R_v_ecmwf_ifs"]
+```
+
+- `definition` uses the identifiers of the constants listed in
+  `constants`, each one used, and gives the unit of the constant.
+- The formula is evaluated exactly on the values the components print
+  (pi exact). The printed value may depart from it by the uncertainty the
+  source gives; an exact constant prints a truncation of it (less than one
+  unit of its last digit below: CODATA's sigma); any other value is
+  rounded to half a unit of its last digit. Write the value as text when
+  its trailing zeros count.
+- A source that departs from its own formula is entered as it prints:
+  `tolerance` (in the unit of the constant) says how far, and `note`, which
+  is then required, says by how much and why.
+- Constants cannot define each other in a cycle; a constant using a
+  constant of another family requires that family.
 
 ### External links
 

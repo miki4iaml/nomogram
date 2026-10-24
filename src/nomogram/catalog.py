@@ -31,6 +31,7 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from fractions import Fraction
 from functools import cached_property, lru_cache
 from importlib.resources import files
 from itertools import pairwise
@@ -39,11 +40,13 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 import pint
+import sympy
 
 from nomogram.dimensions import DimensionError
 from nomogram.expression import (
     LATEX_COMMANDS,
     ExpressionError,
+    compile_numeric,
     latex_commands,
     parse_expression,
 )
@@ -86,7 +89,7 @@ from nomogram.semantics import (
     QuantityKind,
     semantic_catalog,
 )
-from nomogram.units import ScaleType
+from nomogram.units import Q_, ScaleType
 
 if TYPE_CHECKING:
     from nomogram.search import Entry, Selection
@@ -380,6 +383,18 @@ def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
     return float(number), value
 
 
+def _exact(constant: PhysicalConstant) -> Any:
+    """The value of a constant as an exact rational, as it is printed."""
+    text = constant.printed or repr(constant.value)
+    return _rational(text)
+
+
+def _rational(text: str) -> Any:
+    """A decimal text as an exact SymPy rational (``6.02214076e+23`` too)."""
+    fraction = Fraction(Decimal(text))
+    return sympy.Rational(fraction.numerator, fraction.denominator)
+
+
 def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
     """Two finite numbers, as a TOML array of two."""
     if not isinstance(value, list) or len(value) != 2:
@@ -657,7 +672,16 @@ class _Builder:
                 where,
                 table,
                 ("identifier", "value", "unit", "description", "reference"),
-                ("nature", "uncertainty", "conditions", "matches"),
+                (
+                    "nature",
+                    "uncertainty",
+                    "conditions",
+                    "definition",
+                    "constants",
+                    "tolerance",
+                    "note",
+                    "matches",
+                ),
             )
             nature = None
             if f["nature"] is not None:
@@ -672,11 +696,33 @@ class _Builder:
                 if uncertainty <= 0:
                     msg = f"{where}.uncertainty: expected a positive number"
                     raise CatalogError(msg)
+            for name in ("conditions", "definition", "note"):
+                text = f[name]
+                if text is not None and (not isinstance(text, str) or not text.strip()):
+                    msg = f"{where}.{name}: expected a non-empty string"
+                    raise CatalogError(msg)
             conditions = f["conditions"]
-            if conditions is not None and (
-                not isinstance(conditions, str) or not conditions.strip()
+            components = f["constants"] or []
+            if not isinstance(components, list) or not all(
+                isinstance(c, str) for c in components
             ):
-                msg = f"{where}.conditions: expected a non-empty string"
+                msg = f"{where}.constants: expected a list of constant keys"
+                raise CatalogError(msg)
+            tolerance = None
+            if f["tolerance"] is not None:
+                tolerance = _number(f"{where}.tolerance", f["tolerance"])
+                if tolerance <= 0:
+                    msg = f"{where}.tolerance: expected a positive number"
+                    raise CatalogError(msg)
+                if not f["note"]:
+                    msg = (
+                        f"{where}.tolerance: a note must say by how much and why "
+                        "the source departs from its definition"
+                    )
+                    raise CatalogError(msg)
+            if f["definition"] is None and (components or tolerance is not None):
+                name = "constants" if components else "tolerance"
+                msg = f"{where}.{name}: only with a definition"
                 raise CatalogError(msg)
             self.constants[key] = PhysicalConstant(
                 key=key,
@@ -690,7 +736,100 @@ class _Builder:
                 uncertainty=uncertainty,
                 conditions=conditions,
                 printed=printed,
+                definition=f["definition"],
+                components=tuple(components),
+                tolerance=tolerance,
+                note=f["note"],
             )
+        for key in self.constants:
+            self.check_definition(key)
+        self.check_definition_cycles()
+
+    def check_definition(self, key: str) -> None:
+        """The value of a constant agrees with its definition, if it has one.
+
+        The formula is evaluated in exact arithmetic on the values the
+        components print (π exact), so that an exact product is not taken
+        for a rounding. The value may depart from it by the tolerance the
+        catalog states, else by the uncertainty the source gives; an exact
+        constant prints a truncation of it (less than one unit of its last
+        digit below); any other value is rounded to half a unit of its last
+        digit.
+        """
+        constant = self.constants[key]
+        if constant.definition is None:
+            return
+        where = f"constants.{key}"
+        parts = []
+        for name in constant.components:
+            if name not in self.constants:
+                msg = f"{where}.constants: unknown constant {name!r}"
+                raise CatalogError(msg)
+            parts.append(self.constants[name])
+        identifiers = [p.identifier for p in parts]
+        for identifier in identifiers:
+            if identifiers.count(identifier) > 1:
+                msg = f"{where}.constants: {identifier!r} names two constants"
+                raise CatalogError(msg)
+        try:
+            expr = parse_expression(constant.definition, identifiers)
+        except ExpressionError as exc:
+            msg = f"{where}.definition: {exc}"
+            raise CatalogError(msg) from None
+        unused = sorted(set(identifiers) - {s.name for s in expr.free_symbols})
+        if unused:
+            msg = f"{where}.constants: not used by the definition: {', '.join(unused)}"
+            raise CatalogError(msg)
+        units = self.semantics.units
+        target = units[constant.unit].pint
+        function = compile_numeric(expr, tuple(identifiers))
+        result = Q_(function(*(Q_(p.value, units[p.unit].pint) for p in parts)))
+        try:
+            factor = Q_(1.0, result.units).to(target).magnitude
+        except pint.errors.DimensionalityError:
+            unit = format(result.units, "~P") or "1"
+            msg = f"{where}.definition: gives {unit}, not {target}"
+            raise CatalogError(msg) from None
+        values = {p.identifier: _exact(p) for p in parts}
+        exact = expr.subs({s: values[s.name] for s in expr.free_symbols})
+        exact = exact * _rational(repr(factor))
+        printed = Decimal(constant.printed or repr(constant.value))
+        digit = sympy.Rational(10) ** printed.as_tuple().exponent
+        difference = sympy.N(exact - _rational(str(printed)), 30)
+        if constant.tolerance is not None or constant.uncertainty is not None:
+            allowed = _rational(repr(constant.tolerance or constant.uncertainty))
+            agrees = abs(difference) <= allowed
+            rule = f"beyond {float(allowed):g}"
+        elif constant.nature is ConstantNature.EXACT:
+            agrees = 0 <= difference < digit
+            rule = "an exact constant prints a truncation of its definition"
+        else:
+            agrees = abs(difference) <= digit / 2
+            rule = "beyond half a unit of its last digit"
+        if not agrees:
+            msg = (
+                f"{where}.value: {printed} departs from its definition "
+                f"{constant.definition} = {sympy.N(exact, 20)} ({rule})"
+            )
+            raise CatalogError(msg)
+
+    def check_definition_cycles(self) -> None:
+        """No constant is defined, through others, by itself."""
+        done: set[str] = set()
+
+        def visit(key: str, path: tuple[str, ...]) -> None:
+            if key in path:
+                cycle = " -> ".join((*path[path.index(key) :], key))
+                msg = f"constants.{key}: definitions form a cycle ({cycle})"
+                raise CatalogError(msg)
+            if key in done:
+                return
+            for name in self.constants[key].components:
+                visit(name, (*path, key))
+            done.add(key)
+
+        for key in sorted(self.constants):
+            visit(key, ())
 
     def build_notations(self) -> dict[str, Notation]:
         notations = {}
@@ -1885,6 +2024,8 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
                 add("scales", scale)
     elif section in ("constants", "notations"):
         add("references", table.get("reference"))
+        for constant in table.get("constants", ()):
+            add("constants", constant)
     elif section == "trade_terms":
         for meaning in table["meanings"]:
             add("kinds", meaning["kind"])
