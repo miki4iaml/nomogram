@@ -186,7 +186,8 @@ class Reference:
     doi : str or None
         DOI, which takes precedence over any other identifier.
     url : str or None
-        Address, when there is no DOI.
+        Address of the source when there is no DOI, or beside a DOI the
+        address of a freely readable copy.
     status : ReferenceStatus
         Whether the details were checked against the source.
     note : str or None

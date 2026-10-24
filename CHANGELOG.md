@@ -21,6 +21,13 @@ and this project adheres to
 - The data notice credits the UCUM codes of the units (Regenstrief
   Institute, UCUM License 1.1), which QUDT identifies as third-party
   material.
+- Search by unit: `Catalog.search(unit=...)` finds what works in a unit,
+  named by its QUDT name, symbol, UCUM code, label or pint expression
+  (`unit="hPa"` is `unit="HectoPA"`). Formulations link to the units of
+  their variables, constants and declared coefficients, constants and
+  scales to theirs, so `uses` and `used_by` reach units.
+- The URL of a reference or a cross-check can be searched, whole or with
+  wildcards (`*archive.org*`).
 
 ### Changed
 
@@ -40,6 +47,11 @@ and this project adheres to
   a Celsius temperature (Magnus, Tetens, Buck...). CF names a temperature
   by its medium and allows `degC`, so the name is now linked to
   `CelsiusTemperature` too.
+- A DOI searched whole found nothing, since it was split at its slashes
+  and brackets (`10.1016/0304-4203(80)90024-9`). DOIs are now also kept
+  whole, bare or as their `https://doi.org/` address. A word written
+  exactly as a search term matches it even when the term holds wildcard
+  signs (`[0]` in an address).
 
 ## [0.3.0] - 2026-10-21
 
