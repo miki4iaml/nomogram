@@ -430,6 +430,38 @@ def _real(expr: Any, sample: Mapping[Any, float]) -> float | None:
     return value.real
 
 
+def _same_conditions(left: Any, right: Any) -> bool:
+    """Whether two piecewise definitions have the same conditions, in order."""
+    return (
+        isinstance(left, sympy.Piecewise)
+        and isinstance(right, sympy.Piecewise)
+        and [c for _, c in left.args] == [c for _, c in right.args]
+    )
+
+
+def _difference(left: Any, right: Any) -> Any:
+    """The difference of two expressions, simplified where it surely ends.
+
+    Piecewise definitions with the same conditions are compared branch by
+    branch; otherwise their difference is not simplified (SymPy would
+    combine the conditions, at a cost without bound), and the search for a
+    counterexample on samples decides.
+    """
+    if _same_conditions(left, right):
+        branches = [
+            _difference(a, b)
+            for (a, _), (b, _) in zip(left.args, right.args, strict=True)
+        ]
+        if all(branch == 0 for branch in branches):
+            return sympy.Integer(0)
+        conditions = [c for _, c in left.args]
+        return sympy.Piecewise(*zip(branches, conditions, strict=True), evaluate=False)
+    difference = sympy.nsimplify(left - right, rational=True)
+    if left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
+        return difference
+    return sympy.simplify(difference)
+
+
 def _equivalence(
     relation: Relation, subject: Formulation, other: Formulation, points: int
 ) -> Verdict:
@@ -459,8 +491,14 @@ def _equivalence(
             replacements[sympy.Symbol(identifier, real=True)] = sympy.Symbol(
                 source, real=True
             )
-    difference = sympy.nsimplify(left - right.xreplace(replacements), rational=True)
-    simplified = sympy.simplify(difference)
+    right = right.xreplace(replacements)
+    if left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
+        method += (
+            "; piecewise definitions compared branch by branch"
+            if _same_conditions(left, right)
+            else "; piecewise definitions not simplified, compared on samples"
+        )
+    simplified = _difference(left, right)
     if simplified == 0:
         return Verdict("proven", method)
     # Look for a counterexample on positive values, or on the stated domain,

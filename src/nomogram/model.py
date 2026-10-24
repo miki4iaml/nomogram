@@ -40,7 +40,12 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 import numpy as np
 import sympy
 
-from nomogram.expression import compile_numeric, parse_expression
+from nomogram.expression import (
+    _relations,
+    _variants,
+    compile_numeric,
+    parse_expression,
+)
 from nomogram.semantics import ExternalMatch, semantic_catalog
 from nomogram.units import Q_, convert
 
@@ -1116,24 +1121,54 @@ class Formulation:
 
         1 for a fixed-units formulation. For a quantity equation, the
         expression is evaluated once with pint quantities, which checks
-        its dimensional homogeneity.
+        its dimensional homogeneity; a piecewise definition is evaluated
+        once per branch (pint quantities do not go through numpy's choice
+        of branch), and both sides of each comparison of its conditions
+        are compared.
 
         Raises
         ------
         pint.errors.DimensionalityError
-            If the expression does not have the dimension of the output.
+            If the expression does not have the dimension of the output, or
+            a comparison joins two dimensions.
+        DimensionError
+            If the branches of a piecewise definition give values in
+            different units.
         """
         if self.fixed_units:
             return 1.0
+        from nomogram.dimensions import DimensionError
+
         units = semantic_catalog().units
         # Distinct probe values, so that no difference such as p - e
         # vanishes; only the unit of the result matters.
         probe = iter(1.5 ** (i + 1) for i in range(len(self.names)))
         values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
-        values += [next(probe) for _ in self.coefficients]
+        # A coefficient is a pure number unless declared otherwise (a
+        # threshold T_0 in K, compared with T).
+        values += [
+            Q_(next(probe), units[c.unit].pint if c.unit else "dimensionless")
+            for c in self.coefficients
+        ]
         values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
-        result = Q_(self._function(*values))
-        return float(Q_(1.0, result.units).to(units[self.output.unit].pint).magnitude)
+
+        def unit_of(expr: Any) -> Any:
+            return Q_(compile_numeric(expr, self.names)(*values)).units
+
+        for relation in _relations(self.sympy_expression):
+            Q_(1.0, unit_of(relation.lhs)).to(unit_of(relation.rhs))
+        target = units[self.output.unit].pint
+        factors = {
+            float(Q_(1.0, unit_of(variant)).to(target).magnitude)
+            for variant in _variants(self.sympy_expression)
+        }
+        if len(factors) > 1:
+            msg = (
+                f"{self.key}: the branches of its piecewise definition give "
+                "values in different units"
+            )
+            raise DimensionError(msg)
+        return factors.pop()
 
     def latex(self, notation: Notation | None = None, **options: Any) -> str:
         """The formulation as a LaTeX equation, in a given notation.
@@ -1258,7 +1293,7 @@ class Formulation:
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]
-        with np.errstate(invalid="ignore", divide="ignore"):
+        with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
             result = np.asarray(self._function(*arguments), dtype=float)
         return result * self.output_factor
 

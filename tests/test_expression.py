@@ -94,7 +94,7 @@ def test_decimal_coefficients_keep_their_digits() -> None:
         ("x[0]", "Subscript"),
         ("(lambda: 1)()", "only calls to"),
         ("x if x else 1", "IfExp"),
-        ("x < 1", "Compare"),
+        ("x < 1", "only as the conditions of piecewise"),
         ("'text'", "unsupported constant"),
         ("True * x", "unsupported constant"),
         ("y + 1", "undeclared name: 'y'"),

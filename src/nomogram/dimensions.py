@@ -57,6 +57,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import sympy
 
+from nomogram.expression import _relations
 from nomogram.semantics import semantic_catalog
 from nomogram.units import ureg
 
@@ -149,6 +150,8 @@ class _Context:
         """
         if node.is_Symbol:
             return node.name in names
+        if isinstance(node, sympy.Piecewise):
+            return all(self.involves(e, names) for e, _ in node.args)
         if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return False
         if node.is_Pow:
@@ -179,6 +182,10 @@ class _Context:
         """The unit of a node, or ``None`` while an unknown it needs is unsolved."""
         if node.is_Symbol:
             return self.units.get(node.name)
+        if isinstance(node, sympy.Piecewise):
+            # Its branches share one dimension (a constraint): any known one.
+            known = (self.unit(e) for e, _ in node.args)
+            return next((u for u in known if u is not None), None)
         if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return ureg.dimensionless
         if node.is_Pow:
@@ -231,6 +238,12 @@ class _Context:
                 for term in node.args
                 if self.unit(term) is None
             )
+        if isinstance(node, sympy.Piecewise):
+            return any(
+                self.solve(e, target, reason)
+                for e, _ in node.args
+                if self.unit(e) is None
+            )
         return False  # pragma: no cover - numbers and functions have a unit
 
 
@@ -244,7 +257,21 @@ class _Constraint:
 
 
 def _constraints(expr: Any) -> Iterator[_Constraint]:
-    """The constraints of an expression tree, outermost first."""
+    """The constraints of an expression tree, outermost first.
+
+    The branches of a piecewise definition share one dimension, and so do
+    both sides of each comparison of its conditions (T_ice < T gives T_ice
+    the unit of T).
+    """
+    if isinstance(expr, sympy.Piecewise):
+        branches = tuple(e for e, _ in expr.args)
+        if len(branches) > 1:
+            yield _Constraint("equal", branches, str(expr))
+        for relation in _relations(sympy.Piecewise(*expr.args, evaluate=False)):
+            yield _Constraint("equal", (relation.lhs, relation.rhs), str(relation))
+        for branch in branches:
+            yield from _constraints(branch)
+        return
     pure: list[Any] = []
     if isinstance(expr, sympy.Function):
         pure = list(expr.args)
@@ -400,6 +427,11 @@ def _linear(
                 return {b: exponents[node.name, b] for b in bases}
             dimension = basis(context.units[node.name])
             return {b: sympy.Rational(dimension.get(b, 0)) for b in bases}
+        if isinstance(node, sympy.Piecewise):
+            # Like a sum: a branch not depending on an unknown, if any.
+            branches = [e for e, _ in node.args]
+            fixed = [e for e in branches if not context.depends(e)]
+            return vector(fixed[0] if fixed else branches[0])
         if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return dict.fromkeys(bases, sympy.Integer(0))
         if node.is_Pow:

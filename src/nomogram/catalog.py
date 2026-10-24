@@ -46,6 +46,7 @@ from nomogram.dimensions import DimensionError
 from nomogram.expression import (
     LATEX_COMMANDS,
     ExpressionError,
+    _pieces,
     compile_numeric,
     latex_commands,
     parse_expression,
@@ -383,6 +384,45 @@ def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
         msg = f"{where}: expected a finite decimal number, not {value!r}"
         raise CatalogError(msg)
     return float(number), value
+
+
+def _check_pieces(where: str, formulation: Formulation) -> None:
+    """A piecewise definition cuts the range of one input into intervals.
+
+    Every condition is an interval of the same input, bounded by numbers,
+    coefficients or constants, and the intervals do not overlap; where none
+    holds, the formulation gives NaN.
+    """
+    pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+    pairs += [(k.identifier, k.value) for k in formulation.constants]
+    values = {sympy.Symbol(name, real=True): value for name, value in pairs}
+    inputs = [v.identifier for v in formulation.inputs]
+    for node in sympy.preorder_traversal(formulation.sympy_expression):
+        if not isinstance(node, sympy.Piecewise):
+            continue
+        try:
+            pieces = _pieces(node, inputs)
+        except ExpressionError as exc:
+            msg = f"{where}.expression: {exc}"
+            raise CatalogError(msg) from None
+        variable = pieces[0].variable
+        spans = sorted(
+            (
+                float(p.low.xreplace(values)),
+                not p.low_closed,
+                float(p.high.xreplace(values)),
+                p.high_closed,
+            )
+            for p in pieces
+        )
+        for low, low_open, high, high_closed in spans:
+            if low > high or (low == high and (low_open or not high_closed)):
+                msg = f"{where}.expression: an empty interval of {variable}"
+                raise CatalogError(msg)
+        for (_, _, high, high_closed), (low, low_open, _, _) in pairwise(spans):
+            if high > low or (high == low and high_closed and not low_open):
+                msg = f"{where}.expression: the intervals of {variable} overlap"
+                raise CatalogError(msg)
 
 
 def _exact(constant: PhysicalConstant) -> Any:
@@ -1450,6 +1490,11 @@ class _Builder:
             msg = f"{place}.inner: expected a table of input identifier to formulation"
             raise CatalogError(msg)
         outer_inputs = {v.identifier: v for v in outer.inputs}
+        bounded = {
+            _pieces(node, outer_inputs)[0].variable.name
+            for node in sympy.preorder_traversal(outer.sympy_expression)
+            if isinstance(node, sympy.Piecewise)
+        }
         inner: dict[str, Formulation] = {}
         for identifier, name in c["inner"].items():
             w = f"{place}.inner.{identifier}"
@@ -1457,6 +1502,14 @@ class _Builder:
             target = outer_inputs.get(identifier)
             if target is None:
                 msg = f"{w}: {outer.key} has no input {identifier!r}"
+                raise CatalogError(msg)
+            if identifier in bounded:
+                # A condition on a computed value is no interval of an input.
+                msg = (
+                    f"{w}: a condition of {outer.key}'s piecewise definition "
+                    f"bounds {identifier}, which {part.key} computes; the "
+                    "conditions bound inputs of the composed formulation"
+                )
                 raise CatalogError(msg)
             if not self.feeds(part.output.kind, target.kind):
                 msg = (
@@ -1916,9 +1969,11 @@ class _Builder:
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
             raise CatalogError(msg)
+        if not formulation.parts:
+            _check_pieces(where, formulation)
         try:
             _ = formulation.output_factor
-        except pint.errors.DimensionalityError as exc:
+        except (pint.errors.DimensionalityError, DimensionError) as exc:
             msg = f"{where}: not dimensionally homogeneous: {exc}"
             raise CatalogError(msg) from None
         # Every coefficient needs a unit, declared or inferred.

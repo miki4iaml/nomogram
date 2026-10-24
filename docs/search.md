@@ -101,7 +101,9 @@ families a family requires); `used_by(entry)` the entries that refer to
 it. The links are those the catalog checks for its families
 (`Catalog.links`), plus the units and the kinds and scales of a composed
 formulation's variables, which it takes from its parts. Results come in
-catalog order.
+catalog order. A piecewise definition adds nothing to index or link: its
+conditions use the identifiers of its expression (an input, coefficients,
+constants), already found as variables, coefficients and constants.
 
 A formulation links to the units of its variables and constants, and to
 the units of its coefficients when they are declared (added when the
