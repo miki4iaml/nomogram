@@ -94,7 +94,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q190200",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "interval",
@@ -117,7 +117,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q74758530",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "interval",
@@ -174,7 +174,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q208826",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -197,7 +197,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q76378808",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -225,7 +225,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q899138",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -252,7 +252,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q17232415",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -286,7 +286,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5776102",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -312,7 +312,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q39552",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -332,7 +332,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q174102",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -357,7 +357,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q2499617",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -413,7 +413,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q264647",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "scale_type": "ratio",
@@ -446,7 +446,7 @@
       "license": "CC0-1.0",
       "version": "95"
     },
-    "extracted": "2026-10-21",
+    "extracted": "2026-10-24",
     "qudt": {
       "attribution": "QUDT.org, https://qudt.org/",
       "license": "CC-BY-4.0",
@@ -462,7 +462,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q177974",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 101325.0,
@@ -480,7 +480,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q25267",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -498,7 +498,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q42289",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 0.5555555555555556,
@@ -516,7 +516,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21061369",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 0.001,
@@ -534,7 +534,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21604951",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 0.001,
@@ -552,7 +552,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5139563",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 100.0,
@@ -560,6 +560,42 @@
       "pint": "hPa",
       "symbol": "hPa",
       "ucum": "hPa",
+      "udunits": null
+    },
+    "J-PER-K": {
+      "dimension_vector": "A0E0L2I0M1H-1T-2D0",
+      "iri": "http://qudt.org/vocab/unit/J-PER-K",
+      "label": "Joule per Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q21393312",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "J/K",
+      "symbol": "J/K",
+      "ucum": "J.K-1",
+      "udunits": null
+    },
+    "J-PER-KiloGM": {
+      "dimension_vector": "A0E0L2I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/J-PER-KiloGM",
+      "label": "Joule per Kilogram",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q57175225",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "J/kg",
+      "symbol": "J/kg",
+      "ucum": "J.kg-1",
       "udunits": null
     },
     "J-PER-KiloGM-K": {
@@ -570,7 +606,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3085309",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -578,6 +614,42 @@
       "pint": "J/(kg*K)",
       "symbol": "J/(kg\u00b7K)",
       "ucum": "J.kg-1.K-1",
+      "udunits": null
+    },
+    "J-PER-MOL-K": {
+      "dimension_vector": "A-1E0L2I0M1H-1T-2D0",
+      "iri": "http://qudt.org/vocab/unit/J-PER-MOL-K",
+      "label": "Joule per Mole Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q20966455",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "J/(mol*K)",
+      "symbol": "J/(mol\u00b7K)",
+      "ucum": "J.mol-1.K-1",
+      "udunits": null
+    },
+    "J-SEC": {
+      "dimension_vector": "A0E0L2I0M1H0T-1D0",
+      "iri": "http://qudt.org/vocab/unit/J-SEC",
+      "label": "Joule Second",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q1709783",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "J*s",
+      "symbol": "J\u00b7s",
+      "ucum": "J.s",
       "udunits": null
     },
     "K": {
@@ -588,7 +660,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11579",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -606,7 +678,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q106645216",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -624,7 +696,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q844211",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -632,6 +704,24 @@
       "pint": "kg/m^3",
       "symbol": "kg/m\u00b3",
       "ucum": "kg.m-3",
+      "udunits": null
+    },
+    "KiloGM-PER-MOL": {
+      "dimension_vector": "A-1E0L0I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/KiloGM-PER-MOL",
+      "label": "Kilogram per Mole",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q28924753",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "kg/mol",
+      "symbol": "kg/mol",
+      "ucum": "kg.mol-1",
       "udunits": null
     },
     "KiloM": {
@@ -642,7 +732,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q828224",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1000.0,
@@ -660,7 +750,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21064807",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1000.0,
@@ -678,7 +768,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11573",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -688,6 +778,24 @@
       "ucum": "m",
       "udunits": "m"
     },
+    "M-PER-SEC": {
+      "dimension_vector": "A0E0L1I0M0H0T-1D0",
+      "iri": "http://qudt.org/vocab/unit/M-PER-SEC",
+      "label": "Metre per Second",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q182429",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "m/s",
+      "symbol": "m/s",
+      "ucum": "m.s-1",
+      "udunits": null
+    },
     "MOL-PER-KiloGM": {
       "dimension_vector": "A1E0L0I0M-1H0T0D0",
       "iri": "http://qudt.org/vocab/unit/MOL-PER-KiloGM",
@@ -696,7 +804,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q88957663",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -714,7 +822,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q6859652",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 133.322387415,
@@ -732,7 +840,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q44395",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -742,6 +850,24 @@
       "ucum": "Pa",
       "udunits": "Pa"
     },
+    "PER-MOL": {
+      "dimension_vector": "A-1E0L0I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/PER-MOL",
+      "label": "Reciprocal Mole",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q68712008",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "1/mol",
+      "symbol": "mol\u207b\u00b9",
+      "ucum": "mol-1",
+      "udunits": null
+    },
     "PERCENT": {
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/unit/PERCENT",
@@ -750,7 +876,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 0.01,
@@ -768,7 +894,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 0.001,
@@ -786,7 +912,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21006887",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1e-06,
@@ -804,7 +930,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q199",
-          "verified": "2026-10-21"
+          "verified": "2026-10-24"
         }
       ],
       "multiplier": 1.0,
@@ -812,6 +938,24 @@
       "pint": "dimensionless",
       "symbol": "1",
       "ucum": null,
+      "udunits": null
+    },
+    "W-PER-M2-K4": {
+      "dimension_vector": "A0E0L0I0M1H-4T-3D0",
+      "iri": "http://qudt.org/vocab/unit/W-PER-M2-K4",
+      "label": "Watt per Square Metre Quartic Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q21395834",
+          "verified": "2026-10-24"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "W/(m^2*K^4)",
+      "symbol": "W/(m\u00b2\u00b7K\u2074)",
+      "ucum": "W.m-2.K-4",
       "udunits": null
     }
   }

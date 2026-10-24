@@ -172,6 +172,15 @@ UNITS: dict[str, str] = {
     "MOL-PER-KiloGM": "mol/kg",
     "M": "m",
     "KiloM": "km",
+    # Units of physical constants.
+    "J-PER-K": "J/K",
+    "J-SEC": "J*s",
+    "M-PER-SEC": "m/s",
+    "PER-MOL": "1/mol",
+    "J-PER-MOL-K": "J/(mol*K)",
+    "W-PER-M2-K4": "W/(m^2*K^4)",
+    "KiloGM-PER-MOL": "kg/mol",
+    "J-PER-KiloGM": "J/kg",
 }
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
@@ -194,6 +203,9 @@ SYMBOLS: dict[str, str] = {
     # Brochure (9th ed., 2.3.3 and 5.4.7) gives the unit one the symbol 1,
     # rarely written.
     "UNITLESS": "1",
+    # QUDT writes "/mol"; the SI Brochure (9th ed., table 1) writes mol⁻¹,
+    # as does UCUM ("mol-1").
+    "PER-MOL": "mol⁻¹",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
