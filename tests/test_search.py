@@ -78,6 +78,16 @@ def test_kind_with_and_without_specializations() -> None:
     assert "formulations.buck1996" in (CATALOG.search(kind="SaturationVapour*")).refs
 
 
+def test_a_cf_name_finds_temperatures_on_either_scale() -> None:
+    # The Magnus forms take a Celsius temperature, IAPWS a thermodynamic
+    # one: the CF name air_temperature reaches both.
+    found = CATALOG.search(input="air_temperature").refs
+    for key in ("tetens1930", "buck1981_magnus", "sonntag1990_magnus", "iapws_sr1_86"):
+        assert f"formulations.{key}" in found, key
+    kinds = refs(CATALOG.search("air_temperature", section="kinds"))
+    assert kinds == {"kinds.CelsiusTemperature", "kinds.ThermodynamicTemperature"}
+
+
 def test_variables_whatever_their_notation() -> None:
     expected = {
         "formulations.mass_concentration_ideal_gas",

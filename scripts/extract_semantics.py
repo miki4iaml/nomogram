@@ -72,7 +72,12 @@ KINDS: dict[str, KindSpec] = {
     "ThermodynamicTemperature": KindSpec(
         "ratio", delta=False, cf_standard_names=("air_temperature",)
     ),
-    "CelsiusTemperature": KindSpec("interval", delta=False),
+    # CF names a temperature by its medium, not by its scale: a variable
+    # named air_temperature may be in degC, any unit convertible to the
+    # canonical K being allowed (CF conventions, section 3.3).
+    "CelsiusTemperature": KindSpec(
+        "interval", delta=False, cf_standard_names=("air_temperature",)
+    ),
     # A temperature point like the Celsius temperature: empirical formulas
     # give it in degC. A kind of its own, never matched with air temperature.
     "DewPointTemperature": KindSpec(
