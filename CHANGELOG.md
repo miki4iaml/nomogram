@@ -33,6 +33,9 @@ and this project adheres to
   Annex 4.B). It is now cited from the WMO ET-QTC training unit that
   states it, beside the guide's own wording. The Magnus form over ice
   cites the guide (4.B.3) and gains its stated domain, -65 to 0 degC.
+- `docs/rosetta.md` and two docstrings presented QUDT's `isDeltaQuantity`,
+  set on no quantity kind, as a gap. By design it belongs to the quantity
+  in its context (`qudt:Quantity`), the unit staying the same.
 
 ## [0.3.0] - 2026-10-21
 

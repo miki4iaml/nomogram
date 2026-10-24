@@ -28,8 +28,9 @@ Usage::
         --output src/nomogram/data/semantics.json
 
 What nomogram adds to the sources is stated here, not hidden in the data:
-the scale type and the point/difference typing of each kind (QUDT's
-``isDeltaQuantity`` is set on no kind), the link from each kind to CF
+the scale type and the point/difference typing of each kind (QUDT
+records it as ``isDeltaQuantity`` on a quantity in its context, not on
+kinds), the link from each kind to CF
 standard names, and the pint expression of each unit.
 """
 
