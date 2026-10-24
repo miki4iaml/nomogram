@@ -14,6 +14,7 @@ import pytest
 from nomogram.catalog import catalog
 from nomogram.comparison import compare, compose
 from nomogram.model import Outside
+from nomogram.semantics import MatchRelation
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -120,6 +121,30 @@ def test_the_wmo_training_unit_is_linked_to_both_magnus_forms() -> None:
     assert [entry.key for entry in CATALOG.used_by("notations.wmo")] == [
         "sonntag1990_magnus"
     ]
+
+
+#: Wikidata items of formulations, checked on 2026-10-24: the Goff-Gratch
+#: item covers the equations over water and over ice, the Buck item the
+#: group of his correlations; the Tetens item is the equation over water.
+FORMULATION_ITEMS = {
+    "goff_gratch1946": ("Q3433288", MatchRelation.BROAD),
+    "goff_gratch1946_ice": ("Q3433288", MatchRelation.BROAD),
+    "buck1981_magnus": ("Q4787919", MatchRelation.BROAD),
+    "buck1981": ("Q4787919", MatchRelation.BROAD),
+    "buck1981_ice": ("Q4787919", MatchRelation.BROAD),
+    "buck1996": ("Q4787919", MatchRelation.BROAD),
+    "buck1996_ice": ("Q4787919", MatchRelation.BROAD),
+    "tetens1930": ("Q28231917", MatchRelation.CLOSE),
+}
+
+
+def test_formulations_link_to_their_wikidata_items() -> None:
+    for key, (item, relation) in FORMULATION_ITEMS.items():
+        (match,) = CATALOG.formulations[key].matches
+        assert match.target == f"http://www.wikidata.org/entity/{item}", key
+        assert match.relation is relation, key
+    found = {e.key for e in CATALOG.search("Q4787919", section="formulations")}
+    assert found == {k for k, (q, _) in FORMULATION_ITEMS.items() if q == "Q4787919"}
 
 
 @pytest.mark.parametrize(
