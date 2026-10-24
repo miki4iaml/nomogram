@@ -30,6 +30,7 @@ import tomllib
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from functools import cached_property, lru_cache
 from importlib.resources import files
 from itertools import pairwise
@@ -50,6 +51,7 @@ from nomogram.model import (
     CheckCase,
     Citation,
     Coefficient,
+    ConstantNature,
     ConventionalScale,
     CrossCheck,
     Derivation,
@@ -359,6 +361,25 @@ def _number(where: str, value: Any) -> float:
     return float(value)
 
 
+def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
+    """A finite number, written as a number or as decimal text.
+
+    Text keeps the digits as printed, significant trailing zeros included
+    (``"287.0500"``), which a TOML float loses whatever its notation; the
+    text is returned with the number, ``None`` for a plain number.
+    """
+    if not isinstance(value, str):
+        return _number(where, value), None
+    try:
+        number = Decimal(value.strip())
+    except InvalidOperation:
+        number = None
+    if number is None or not number.is_finite() or value != value.strip():
+        msg = f"{where}: expected a finite decimal number, not {value!r}"
+        raise CatalogError(msg)
+    return float(number), value
+
+
 def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
     """Two finite numbers, as a TOML array of two."""
     if not isinstance(value, list) or len(value) != 2:
@@ -636,16 +657,39 @@ class _Builder:
                 where,
                 table,
                 ("identifier", "value", "unit", "description", "reference"),
-                ("matches",),
+                ("nature", "uncertainty", "conditions", "matches"),
             )
+            nature = None
+            if f["nature"] is not None:
+                nature = _enum(f"{where}.nature", ConstantNature, f["nature"])
+            value, printed = _printed_number(f"{where}.value", f["value"])
+            uncertainty = None
+            if f["uncertainty"] is not None:
+                uncertainty = _number(f"{where}.uncertainty", f["uncertainty"])
+                if nature is ConstantNature.EXACT:
+                    msg = f"{where}.uncertainty: an exact constant has none"
+                    raise CatalogError(msg)
+                if uncertainty <= 0:
+                    msg = f"{where}.uncertainty: expected a positive number"
+                    raise CatalogError(msg)
+            conditions = f["conditions"]
+            if conditions is not None and (
+                not isinstance(conditions, str) or not conditions.strip()
+            ):
+                msg = f"{where}.conditions: expected a non-empty string"
+                raise CatalogError(msg)
             self.constants[key] = PhysicalConstant(
                 key=key,
                 identifier=f["identifier"],
-                value=_number(f"{where}.value", f["value"]),
+                value=value,
                 unit=self.unit(f"{where}.unit", f["unit"]),
                 description=f["description"],
                 reference=self.reference(f"{where}.reference", f["reference"]),
                 matches=_matches(where, f["matches"]),
+                nature=nature,
+                uncertainty=uncertainty,
+                conditions=conditions,
+                printed=printed,
             )
 
     def build_notations(self) -> dict[str, Notation]:

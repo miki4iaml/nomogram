@@ -87,7 +87,7 @@ BASE = (
 )
 USER = header("user", '"base"') + (
     '[constants.k]\nidentifier = "k"\nvalue = 2.0\nunit = "K"\n'
-    'description = "d"\nreference = "src"\n'
+    'description = "d"\nreference = "src"\nnature = "conventional"\n'
 )
 
 

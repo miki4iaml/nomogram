@@ -112,7 +112,7 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
-| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
+| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
@@ -333,6 +333,40 @@ with a conventional origin is on an interval scale even under a
 ratio-scale parent; it is then never a difference). A missing
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
+
+### Physical constants
+
+A constant is one value from one source: two sources giving different
+values make two entries (`epsilon_ashrae2017`, `epsilon_ecmwf_ifs`), and a
+formulation lists the one it uses.
+
+```toml
+[constants.R_v_iapws95]
+identifier = "R_v"
+value = 461.51805
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "iapws95"
+nature = "conventional"
+```
+
+- `nature` says how the value is known; every constant of the bundled
+  catalog states it:
+  - `exact`: fixed by definition, without uncertainty, as the defining
+    constants of the SI (SI Brochure, 2.2) and the constants derived from
+    them alone (QUDT `exactConstant`, CODATA "exact");
+  - `conventional`: attributed by agreement for a given purpose (VIM
+    2.12), such as the standard acceleration of free fall, or a value a
+    source adopts for its formulas;
+  - `measured`: a measurement result (VIM 2.10), such as a CODATA value.
+- `uncertainty` is the standard uncertainty the source gives, in the unit
+  of the constant; an exact constant has none.
+- `conditions` says what the value depends on, if anything (a latent
+  heat at 0 degC).
+- `value` is a number, or decimal text when trailing zeros are
+  significant: `value = "287.0500"` keeps the digits the source prints,
+  which a number loses whatever its notation (`287.0500` and
+  `2.870500e2` are both read as 287.05).
 
 ### External links
 

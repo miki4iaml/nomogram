@@ -425,7 +425,14 @@ def _records(catalog: Catalog) -> list[_Record]:
             _Record(
                 Entry("constants", key, k.description, k),
                 words(
-                    _join(key, k.identifier, k.description, _matches_text(k.matches))
+                    _join(
+                        key,
+                        k.identifier,
+                        k.description,
+                        k.nature.value if k.nature else None,
+                        k.conditions,
+                        _matches_text(k.matches),
+                    )
                 ),
                 {},
                 citations=_sourced(catalog, k.reference),

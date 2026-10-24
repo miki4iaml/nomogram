@@ -52,6 +52,7 @@ __all__ = [
     "CheckCase",
     "Citation",
     "Coefficient",
+    "ConstantNature",
     "ConventionalScale",
     "CrossCheck",
     "Derivation",
@@ -666,6 +667,23 @@ class Coefficient:
     unit_basis: UnitBasis | None = None
 
 
+class ConstantNature(Enum):
+    """How the value of a physical constant is known."""
+
+    #: Fixed by definition, without uncertainty: the defining constants of
+    #: the SI, whose numerical values "have no uncertainty" (SI Brochure,
+    #: 9th ed., 2.2), and constants derived from them alone (CODATA
+    #: "exact"; QUDT ``qudt:exactConstant``).
+    EXACT = "exact"
+    #: Attributed by agreement for a given purpose (VIM 2.12, conventional
+    #: quantity value): the standard acceleration of free fall, or a value a
+    #: source adopts for its formulas.
+    CONVENTIONAL = "conventional"
+    #: Representing a measurement result (VIM 2.10, measured quantity
+    #: value), with its standard uncertainty when the source gives it.
+    MEASURED = "measured"
+
+
 @dataclass(frozen=True)
 class PhysicalConstant:
     """A constant with a metrological status, and its source.
@@ -687,6 +705,18 @@ class PhysicalConstant:
         Key of the source.
     matches : tuple of ExternalMatch
         Links to external vocabularies.
+    nature : ConstantNature or None
+        How the value is known; ``None`` when not stated (a catalog file
+        may leave it out; every constant of the bundled catalog states it).
+    uncertainty : float or None
+        Standard uncertainty in ``unit``, as the source gives it; ``None``
+        when exact or not given.
+    conditions : str or None
+        The conditions the value holds in, when it depends on them (a
+        latent heat at 0 degC).
+    printed : str or None
+        The value as the source prints it, when written as text in the
+        catalog to keep significant trailing zeros (``"287.0500"``).
     """
 
     key: str
@@ -696,6 +726,10 @@ class PhysicalConstant:
     description: str
     reference: str
     matches: tuple[ExternalMatch, ...]
+    nature: ConstantNature | None = None
+    uncertainty: float | None = None
+    conditions: str | None = None
+    printed: str | None = None
 
 
 @dataclass(frozen=True)

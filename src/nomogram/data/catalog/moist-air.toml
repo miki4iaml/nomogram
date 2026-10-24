@@ -99,6 +99,7 @@ value = 461.51805
 unit = "J-PER-KiloGM-K"
 description = "Specific gas constant of water vapour"
 reference = "iapws95"
+nature = "conventional"
 # The Wikidata item is the specific gas constant of any gas: broader.
 matches = [
   { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
@@ -110,6 +111,7 @@ value = 0.621945
 unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, M_w / M_d"
 reference = "ashrae2017"
+nature = "conventional"
 
 # Other values of the same ratio, read in their sources. The relative
 # spread (about 6e-5) is negligible against the deviations between
@@ -120,6 +122,7 @@ value = 0.6219808
 unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
 reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
 
 [constants.epsilon_metpy]
 identifier = "epsilon"
@@ -127,6 +130,7 @@ value = 0.6219569
 unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
 reference = "metpy171"
+nature = "conventional"
 
 # --- Ambiguous trade terms --------------------------------------------
 

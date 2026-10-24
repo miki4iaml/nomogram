@@ -42,6 +42,14 @@ and this project adheres to
 - The constant `pi` may be written in expressions (Planck's law, the
   Stefan-Boltzmann constant, the Coriolis parameter need it). It is
   rendered `\pi`, and `pi` is a reserved name that no identifier may take.
+- Physical constants state their nature: `exact` (a defining constant of the
+  SI, or one derived from them alone), `conventional` (attributed by
+  agreement, VIM 2.12) or `measured` (VIM 2.10), with an optional standard
+  uncertainty and the conditions the value holds in. A value may be written
+  as decimal text (`"287.0500"`) to keep the digits the source prints.
+  `nature` is optional in a catalog file, so files written for 0.3 still
+  load; every bundled constant states it (the four are conventional). A
+  search finds constants by nature and conditions.
 
 ### Changed
 
