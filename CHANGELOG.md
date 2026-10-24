@@ -36,6 +36,10 @@ and this project adheres to
 - `docs/rosetta.md` and two docstrings presented QUDT's `isDeltaQuantity`,
   set on no quantity kind, as a gap. By design it belongs to the quantity
   in its context (`qudt:Quantity`), the unit staying the same.
+- A search by the CF name `air_temperature` missed the formulations taking
+  a Celsius temperature (Magnus, Tetens, Buck...). CF names a temperature
+  by its medium and allows `degC`, so the name is now linked to
+  `CelsiusTemperature` too.
 
 ## [0.3.0] - 2026-10-21
 

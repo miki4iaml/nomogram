@@ -133,6 +133,14 @@ def test_celsius_is_not_a_unit_of_thermodynamic_temperature() -> None:
     assert kinds["CelsiusTemperature"].scale_type is ScaleType.INTERVAL
 
 
+def test_air_temperature_names_both_temperatures() -> None:
+    # CF names a temperature by its medium, not by its scale: air_temperature
+    # may be in degC, so it names the Celsius temperature too.
+    kinds = CATALOG.quantity_kinds
+    assert kinds["ThermodynamicTemperature"].cf_standard_names == ("air_temperature",)
+    assert kinds["CelsiusTemperature"].cf_standard_names == ("air_temperature",)
+
+
 def test_temperature_difference_is_the_only_delta_kind() -> None:
     deltas = [k.name for k in CATALOG.quantity_kinds.values() if k.delta]
     assert deltas == ["TemperatureDifference"]
