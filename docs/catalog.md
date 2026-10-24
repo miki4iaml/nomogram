@@ -375,9 +375,9 @@ checks that the two agree:
 ```toml
 [constants.epsilon_ecmwf_ifs]
 identifier = "epsilon"
-value = 0.6219808
+value = 0.621981
 unit = "UNITLESS"
-description = "Ratio of the gas constants of dry air and water vapour"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
 reference = "ecmwf_ifs_cy49r1"
 nature = "conventional"
 definition = "R_d / R_v"

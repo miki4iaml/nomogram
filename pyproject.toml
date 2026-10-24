@@ -120,8 +120,9 @@ extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20"]
 
 [tool.codespell]
 skip = "*.fr.md,uv.lock"
-# Format terms: the Flate filter of PDF, the ALPH chunk of WebP.
-ignore-words-list = "flate,alph"
+# Format terms: the Flate filter of PDF, the ALPH chunk of WebP; the
+# French name of the BIPM (Bureau International des Poids et Mesures).
+ignore-words-list = "flate,alph,mesures"
 
 [tool.repo-review.ignore]
 PC110 = "ruff format runs as a local hook through uv run --frozen (single version source: uv.lock)"

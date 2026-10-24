@@ -106,9 +106,12 @@ catalog order.
 A formulation links to the units of its variables and constants, and to
 the units of its coefficients when they are declared (added when the
 entry was written, or stated by a source), never to units inferred from
-the expression. A constant links to its unit, a scale to the unit of its
-conversion: `used_by("units.DEG_C")` gives the formulations working in
-degrees Celsius and the temperature scales converted in them.
+the expression. A constant links to its unit and to the constants its
+definition uses, a scale to the unit of its conversion:
+`used_by("units.DEG_C")` gives the formulations working in degrees
+Celsius and the temperature scales converted in them, and
+`used_by("constants.R_ecmwf_ifs")` the gas constants the IFS derives
+from R.
 
 ## What grows without changing searches
 

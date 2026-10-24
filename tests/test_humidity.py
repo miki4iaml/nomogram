@@ -247,10 +247,10 @@ def test_mixing_ratio_from_temperature_humidity_and_pressure() -> None:
 
 def test_epsilon_values_follow_their_sources() -> None:
     constants = CATALOG.constants
-    # ECMWF IFS CY49R1, Part IV, section 12.5: R_d / R_v.
-    assert constants["epsilon_ecmwf_ifs"].value == pytest.approx(
-        287.0597 / 461.5250, abs=1e-7
-    )
+    # ECMWF IFS CY49R1, Part IV: printed in section 7.5.2 (p. 136), defined
+    # as R_d / R_v from section 12.5.
+    ifs = constants["epsilon_ecmwf_ifs"]
+    assert (ifs.value, ifs.definition) == (0.621981, "R_d / R_v")
     # MetPy 1.7.1: M_w / M_d.
     assert constants["epsilon_metpy"].value == pytest.approx(
         18.015268 / 28.96546, abs=1e-7
