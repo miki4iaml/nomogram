@@ -56,8 +56,16 @@ authors = "World Meteorological Organization"
 year = 2024
 title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I, Annex 4.B"
 doi = "10.59327/WMO/CIMO/1"
-status = "to-confirm"
-note = "Primary text not read; formula and range cross-checked with WMO training material. Notation e_w to confirm in the text."
+status = "verified"
+note = "Annex 4.B read (2024 edition, pp. 197-198): formulae 4.B.1 (water, -45 to 60 degC) and 4.B.3 (ice, -65 to 0 degC), written e_w(t) and e_i(t); 'sufficiently accurate for all normal meteorological applications', not suitable below -45 degC (water) and -65 degC (ice). No uncertainty is stated for them; the 0.6 % of the annex's note is the pressure dependence of the enhancement factor f(p)."
+
+[references.wmo_etqtc2025]
+authors = "World Meteorological Organization, INFCOM SC-MINT Expert Team on Quality, Traceability and Calibration (ET-QTC)"
+year = 2025
+title = "Calibration of humidity instruments, Part 1: Introduction (training unit)"
+url = "https://etrp.wmo.int/pluginfile.php/97653/mod_folder/content/0/Training%20Material/5_1_Humidity%20Part%201%20Introduction.pdf"
+status = "verified"
+note = "Slide 13 read: the Magnus forms of WMO-No. 8 Annex 4.B with 'uncertainty up to 0.6 %, (k = 2)' over water (-45 to +60 degC) and 'up to 1 %, (k = 2)' over ice (-65 to 0 degC), attributed to the 2023 edition of the guide. The 2024 text of that annex states no uncertainty."
 
 [references.ashrae2017]
 authors = "ASHRAE"

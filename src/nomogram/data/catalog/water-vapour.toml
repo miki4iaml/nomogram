@@ -228,10 +228,19 @@ scales = { t = "its90" }
 
 [[formulations.sonntag1990_magnus.citations]]
 reference = "wmo2024"
+equation = "4.B.1"
+notation = "wmo"
 
 [[formulations.sonntag1990_magnus.citations.domains]]
 bounds = { t = [-45.0, 60.0] }
-criterion = "Uncertainty within 0.6 % (k=2), as quoted by the WMO guide."
+criterion = "Sufficiently accurate for all normal meteorological applications; not suitable below -45 degC. No uncertainty stated."
+
+[[formulations.sonntag1990_magnus.citations]]
+reference = "wmo_etqtc2025"
+
+[[formulations.sonntag1990_magnus.citations.domains]]
+bounds = { t = [-45.0, 60.0] }
+criterion = "Uncertainty up to 0.6 % (k = 2), attributed by the source to WMO-No. 8 (2023), Annex 4.B; not in the 2024 text."
 
 [[formulations.sonntag1990_magnus.citations]]
 reference = "alduchov_eskridge1996"
@@ -612,6 +621,21 @@ reference = "wmo2008"
 
 [[formulations.wmo2008_ice.citations]]
 reference = "voemel_vp"
+
+[[formulations.wmo2008_ice.citations]]
+reference = "wmo2024"
+equation = "4.B.3"
+
+[[formulations.wmo2008_ice.citations.domains]]
+bounds = { t = [-65.0, 0.0] }
+criterion = "Sufficiently accurate for all normal meteorological applications; not suitable below -65 degC. No uncertainty stated."
+
+[[formulations.wmo2008_ice.citations]]
+reference = "wmo_etqtc2025"
+
+[[formulations.wmo2008_ice.citations.domains]]
+bounds = { t = [-65.0, 0.0] }
+criterion = "Uncertainty up to 1 % (k = 2), attributed by the source to WMO-No. 8 (2023), Annex 4.B; not in the 2024 text."
 
 [formulations.murray1967_ice]
 label = "Magnus-Tetens form over ice, Murray (1967)"
