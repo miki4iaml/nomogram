@@ -14,8 +14,9 @@ can also be proposed through an issue (see the
 ## Principles
 
 - **A formula is written once**, as an expression in restricted Python
-  syntax: numbers, declared identifiers, `+ - * / **`, parentheses and
-  the functions `exp`, `ln`, `log10` and `sqrt`. LaTeX, numeric
+  syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
+  functions `exp`, `ln`, `log10` and `sqrt`, and the constant `pi` (a
+  reserved name, which no identifier may take). LaTeX, numeric
   functions and symbolic results all derive from it.
 - **Everything is traced to a source.** A reference is `verified` only
   when the detail was **read in the source itself**; anything else is

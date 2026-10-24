@@ -39,6 +39,9 @@ and this project adheres to
   nomogram.catalog stats` (and `nomogram.catalog.stats`) prints the
   indicators of how far the catalog covers them, such as formulations
   with a validity domain or quantity kinds with a CF standard name.
+- The constant `pi` may be written in expressions (Planck's law, the
+  Stefan-Boltzmann constant, the Coriolis parameter need it). It is
+  rendered `\pi`, and `pi` is a reserved name that no identifier may take.
 
 ### Changed
 

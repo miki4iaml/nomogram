@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from nomogram.expression import (
+    CONSTANTS,
     LATEX_COMMANDS,
     MAX_SOURCE_LENGTH,
     ExpressionError,
@@ -72,6 +73,7 @@ def test_compile_requires_every_free_symbol() -> None:
         ("-x + +x", 0.0),
         ("sqrt(x + 1)", 2.0),
         ("ln(exp(x))", 3.0),
+        ("2 * pi * x", 6 * math.pi),
     ],
 )
 def test_supported_syntax(source: str, expected: float) -> None:
@@ -115,10 +117,18 @@ def test_overlong_source_is_rejected() -> None:
         parse_expression("x + " * MAX_SOURCE_LENGTH + "x", ["x"])
 
 
-@pytest.mark.parametrize("name", ["exp", "not an identifier"])
+@pytest.mark.parametrize("name", ["exp", "pi", "not an identifier"])
 def test_reserved_or_invalid_names_are_rejected(name: str) -> None:
     with pytest.raises(ExpressionError, match="invalid or reserved name"):
         parse_expression("1", [name])
+
+
+def test_pi_is_a_constant_written_as_its_greek_letter() -> None:
+    expr = parse_expression("pi * x ** 2", ["x"])
+    assert {s.name for s in expr.free_symbols} == {"x"}  # pi is no variable
+    assert r"\pi" in to_latex(expr)
+    assert latex_commands(to_latex(expr)) <= LATEX_COMMANDS
+    assert set(CONSTANTS) == {"pi"}
 
 
 def test_latex_writes_exp_explicitly_never_as_a_power_of_e() -> None:

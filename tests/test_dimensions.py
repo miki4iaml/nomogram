@@ -9,12 +9,13 @@ always agree.
 """
 
 import dataclasses
+import math
 import random
 from fractions import Fraction
 
 import pytest
 
-from nomogram.catalog import catalog
+from nomogram.catalog import catalog, load_catalog
 from nomogram.dimensions import (
     DimensionError,
     _dimension,
@@ -26,7 +27,7 @@ from nomogram.dimensions import (
 )
 from nomogram.inversion import dew_point
 from nomogram.model import Coefficient, Formulation, Variable
-from nomogram.units import ureg
+from nomogram.units import Q_, ureg
 
 CATALOG = catalog()
 WITH_COEFFICIENTS = [f for f in CATALOG.formulations.values() if f.coefficients]
@@ -116,6 +117,23 @@ def test_every_coefficient_of_the_catalog_has_a_unit(formulation: Formulation) -
 def test_units_found_for_known_forms(key: str, expected: dict[str, str]) -> None:
     units = CATALOG.formulations[key].coefficient_units
     assert {name: unit_text(units[name].unit) for name in expected} == expected
+
+
+PI = """
+[formulations.f]
+label = "With pi"
+expression = "a * pi * t"
+fixed_units = true
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 2.0 }
+"""
+
+
+def test_pi_is_a_pure_number_in_unit_inference() -> None:
+    f = load_catalog([PI]).formulations["f"]
+    assert unit_text(f.coefficient_units["a"].unit) == "hPa/°C"
+    assert f.evaluate(t=Q_(1, "degC")).to("hPa").magnitude == pytest.approx(2 * math.pi)
 
 
 def test_a_composition_keeps_the_units_of_its_parts() -> None:
