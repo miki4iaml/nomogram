@@ -25,6 +25,7 @@ from __future__ import annotations
 import ast
 import re
 from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
@@ -38,6 +39,7 @@ __all__ = [
     "FUNCTIONS",
     "LATEX_COMMANDS",
     "MAX_SOURCE_LENGTH",
+    "PIECEWISE",
     "ExpressionError",
     "compile_numeric",
     "latex_commands",
@@ -58,6 +60,17 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = {
 #: reserved: no identifier may take them.
 CONSTANTS: Mapping[str, Any] = {
     "pi": sympy.pi,
+}
+
+#: Name of the piecewise definition, ``piecewise((expr, condition), ...)``;
+#: reserved like the functions.
+PIECEWISE = "piecewise"
+
+_COMPARISONS: Mapping[type[ast.cmpop], Any] = {
+    ast.Lt: sympy.StrictLessThan,
+    ast.LtE: sympy.LessThan,
+    ast.Gt: sympy.StrictGreaterThan,
+    ast.GtE: sympy.GreaterThan,
 }
 
 #: Longest accepted source text, to bound parsing work.
@@ -126,6 +139,12 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\cdot",
         r"\vert",
         r"\,",
+        # Piecewise definitions, written on one line in a left brace (in
+        # the lists of MathJax and KaTeX on 2026-10-24; parsed by mathtext).
+        r"\{",
+        r"\;",
+        r"\leq",
+        r"\geq",
     }
     | {"\\" + letter for letter in _GREEK}
 )
@@ -155,10 +174,15 @@ def parse_expression(source: str, names: Iterable[str]) -> Any:
 
     Allowed: numbers, the declared names, the constants of
     :data:`CONSTANTS`, ``+ - * / **``, unary ``-`` and ``+``, parentheses,
-    and calls to the functions of :data:`FUNCTIONS` with exactly one
-    positional argument. Everything else (attributes,
-    subscripts, keywords, lambdas, comparisons, strings, other calls,
-    undeclared names) is rejected. Nothing is evaluated.
+    calls to the functions of :data:`FUNCTIONS` with exactly one
+    positional argument, and a piecewise definition,
+    ``piecewise((expr, condition), ...)``, whose conditions are
+    comparisons (``<``, ``<=``, ``>``, ``>=``), possibly chained in one
+    direction (``T_ice < T <= T_0``). Everything else (attributes,
+    subscripts, keywords, lambdas, comparisons outside a condition,
+    ``and``, ``or``, booleans, strings, other calls, undeclared names) is
+    rejected. Nothing is evaluated: a piecewise definition keeps its
+    conditions as written, and gives NaN where none holds.
 
     Parameters
     ----------
@@ -184,7 +208,8 @@ def parse_expression(source: str, names: Iterable[str]) -> Any:
         raise ExpressionError(msg)
     allowed = frozenset(names)
     for name in allowed:
-        if not name.isidentifier() or name in FUNCTIONS or name in CONSTANTS:
+        reserved = name in FUNCTIONS or name in CONSTANTS or name == PIECEWISE
+        if not name.isidentifier() or reserved:
             msg = f"invalid or reserved name: {name!r}"
             raise ExpressionError(msg)
     try:
@@ -219,15 +244,153 @@ def _build(node: ast.AST, symbols: Mapping[str, Any]) -> Any:
             raise ExpressionError(msg)
         return symbols[node.id]
     if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id == PIECEWISE:
+            return _piecewise(node, symbols)
         if not isinstance(node.func, ast.Name) or node.func.id not in FUNCTIONS:
-            msg = "only calls to " + ", ".join(sorted(FUNCTIONS)) + " are allowed"
+            allowed = sorted(FUNCTIONS) + [PIECEWISE]
+            msg = "only calls to " + ", ".join(allowed) + " are allowed"
             raise ExpressionError(msg)
         if node.keywords or len(node.args) != 1:
             msg = f"{node.func.id}() takes exactly one positional argument"
             raise ExpressionError(msg)
         return FUNCTIONS[node.func.id](_build(node.args[0], symbols))
+    if isinstance(node, ast.Compare):
+        msg = "comparisons are allowed only as the conditions of piecewise()"
+        raise ExpressionError(msg)
     msg = f"unsupported syntax: {type(node).__name__}"
     raise ExpressionError(msg)
+
+
+def _piecewise(node: ast.Call, symbols: Mapping[str, Any]) -> Any:
+    """A piecewise definition, conditions kept as written."""
+    if node.keywords or not node.args:
+        msg = f"{PIECEWISE}() takes (expression, condition) pairs"
+        raise ExpressionError(msg)
+    pairs = []
+    for arg in node.args:
+        if not isinstance(arg, ast.Tuple) or len(arg.elts) != 2:
+            msg = f"{PIECEWISE}() takes (expression, condition) pairs"
+            raise ExpressionError(msg)
+        expression, condition = arg.elts
+        pairs.append((_build(expression, symbols), _condition(condition, symbols)))
+    # evaluate=False: SymPy would otherwise rewrite a condition that
+    # completes the others (T >= 273.15 after T < 273.15) as True.
+    return sympy.Piecewise(*pairs, evaluate=False)
+
+
+@dataclass(frozen=True)
+class _Piece:
+    """A branch of a piecewise definition, on an interval of one input."""
+
+    expression: Any
+    variable: Any
+    low: Any
+    low_closed: bool
+    high: Any
+    high_closed: bool
+
+
+def _pieces(piecewise: Any, inputs: Iterable[str]) -> tuple[_Piece, ...]:
+    """The branches of a piecewise definition, each on an interval of one input.
+
+    Every condition bounds the same input, alone on one side of each
+    comparison, by expressions free of inputs (numbers, coefficients,
+    constants); an end not bounded is infinite.
+
+    Raises
+    ------
+    ExpressionError
+        If a condition is not such an interval, or two conditions bound
+        different inputs.
+    """
+    names = frozenset(inputs)
+    pieces: list[_Piece] = []
+    for expression, condition in piecewise.args:
+        relations = condition.args if isinstance(condition, sympy.And) else (condition,)
+        ends: dict[str, tuple[Any, bool]] = {}
+        variable = None
+        for relation in relations:
+            alone = [
+                side
+                for side in (relation.lhs, relation.rhs)
+                if side.is_Symbol and side.name in names
+            ]
+            other = relation.rhs if relation.lhs in alone else relation.lhs
+            if len(alone) != 1 or any(s.name in names for s in other.free_symbols):
+                msg = f"the condition {condition} does not bound one input alone"
+                raise ExpressionError(msg)
+            if variable not in (None, alone[0]):
+                msg = f"the condition {condition} bounds two inputs"
+                raise ExpressionError(msg)
+            variable = alone[0]
+            below = (relation.rel_op in ("<", "<=")) == (relation.rhs == variable)
+            ends["low" if below else "high"] = (other, relation.rel_op in ("<=", ">="))
+        if pieces and pieces[0].variable != variable:
+            msg = f"the conditions bound {pieces[0].variable} and {variable}"
+            raise ExpressionError(msg)
+        low, low_closed = ends.get("low", (-sympy.oo, False))
+        high, high_closed = ends.get("high", (sympy.oo, False))
+        pieces.append(_Piece(expression, variable, low, low_closed, high, high_closed))
+    return tuple(pieces)
+
+
+def _variants(expr: Any) -> list[Any]:
+    """The expression with each piecewise definition replaced by each branch.
+
+    For a check that needs one expression per branch (the units of a
+    quantity equation, which pint evaluates).
+    """
+    node = next(
+        (n for n in sympy.preorder_traversal(expr) if isinstance(n, sympy.Piecewise)),
+        None,
+    )
+    if node is None:
+        return [expr]
+    return [v for e, _ in node.args for v in _variants(expr.xreplace({node: e}))]
+
+
+def _relations(expr: Any) -> list[Any]:
+    """The comparisons of the conditions of the piecewise definitions."""
+    found = []
+    for node in sympy.preorder_traversal(expr):
+        if isinstance(node, sympy.Piecewise):
+            for _, condition in node.args:
+                is_chain = isinstance(condition, sympy.And)
+                found += list(condition.args) if is_chain else [condition]
+    return found
+
+
+def _condition(node: ast.expr, symbols: Mapping[str, Any]) -> Any:
+    """A comparison, or two chained in one direction (``a < x <= b``)."""
+    if not isinstance(node, ast.Compare) or not all(
+        type(op) in _COMPARISONS for op in node.ops
+    ):
+        msg = "a condition of piecewise() is a comparison: <, <=, > or >="
+        raise ExpressionError(msg)
+    if len(node.ops) > 2:
+        msg = "a condition of piecewise() chains at most two comparisons"
+        raise ExpressionError(msg)
+    terms = [_build(term, symbols) for term in (node.left, *node.comparators)]
+    relations = [
+        _COMPARISONS[type(op)](left, right, evaluate=False)
+        for op, left, right in zip(node.ops, terms, terms[1:], strict=False)
+    ]
+    if len(relations) == 1:
+        return relations[0]
+    increasing = {type(op) in (ast.Lt, ast.LtE) for op in node.ops}
+    if len(increasing) != 1:
+        msg = "chained comparisons of piecewise() go in one direction"
+        raise ExpressionError(msg)
+    chained = sympy.And(*relations, evaluate=False)
+    if not isinstance(chained, sympy.And):
+        # SymPy reduces some chains even so (280 < T <= 280 to False), which
+        # would drop the branch without a word.
+        msg = (
+            f"the condition {ast.unparse(node)} reduces to {chained}: write an "
+            "interval of one input"
+        )
+        raise ExpressionError(msg)
+    return chained
 
 
 class _NotationPrinter(LatexPrinter):  # type: ignore[misc]
@@ -245,6 +408,31 @@ class _NotationPrinter(LatexPrinter):  # type: ignore[misc]
     def _print_log10(self, expr: Any, exp: Any = None) -> str:
         tex = r"\log_{10}\left(" + self._print(expr.args[0]) + r"\right)"
         return f"{tex}^{{{exp}}}" if exp is not None else tex
+
+    def _print_Piecewise(self, expr: Any) -> str:
+        """On one line, in a left brace: mathtext has no cases environment."""
+        pieces = [
+            rf"{self._print(e)} \;\mathrm{{if}}\; {self._condition(c)}"
+            for e, c in expr.args
+        ]
+        return r"\left\{" + r",\; ".join(pieces) + r"\right."
+
+    def _condition(self, condition: Any) -> str:
+        if not isinstance(condition, sympy.And):
+            return str(self._print(condition))
+        # And sorts its terms: the chain is written again, lower bound first.
+        bounds: dict[str, tuple[Any, str]] = {}
+        (variable,) = set(condition.args[0].args) & set(condition.args[1].args)
+        for relation in condition.args:
+            strict = relation.rel_op in ("<", ">")
+            below = (relation.rel_op in ("<", "<=")) == (relation.rhs == variable)
+            bound = relation.lhs if relation.rhs == variable else relation.rhs
+            bounds["lower" if below else "upper"] = (bound, "<" if strict else r"\leq")
+        (low, low_op), (high, high_op) = bounds["lower"], bounds["upper"]
+        return (
+            f"{self._print(low)} {low_op} {self._print(variable)} "
+            f"{high_op} {self._print(high)}"
+        )
 
 
 def latex_commands(tex: str) -> set[str]:

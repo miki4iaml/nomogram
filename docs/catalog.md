@@ -15,8 +15,9 @@ can also be proposed through an issue (see the
 
 - **A formula is written once**, as an expression in restricted Python
   syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
-  functions `exp`, `ln`, `log10` and `sqrt`, and the constant `pi` (a
-  reserved name, which no identifier may take). LaTeX, numeric
+  functions `exp`, `ln`, `log10` and `sqrt`, the constant `pi` (a
+  reserved name, which no identifier may take), and a
+  [piecewise definition](#piecewise-definitions). LaTeX, numeric
   functions and symbolic results all derive from it.
 - **Everything is traced to a source.** A reference is `verified` only
   when the detail was **read in the source itself**; anything else is
@@ -149,6 +150,40 @@ All sections are optional; a key may be defined in one file only.
   apply to the input's kind.
 - Every declared identifier must be used by the expression, and every
   identifier of the expression must be declared.
+
+### Piecewise definitions
+
+A formula given by pieces, one expression per interval of an input, is
+written with `piecewise((expression, condition), ...)`:
+
+```toml
+expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_ice < T < T_0), (1, T >= T_0))"
+```
+
+- **A piecewise definition cuts the range of one input into intervals.**
+  Each condition is a comparison (`<`, `<=`, `>`, `>=`) or two chained in
+  one direction, bounding the same input for every branch; the bounds are
+  numbers, coefficients or constants. No `and`, `or` or `True`: where no
+  condition holds, the formulation gives NaN. Loading refuses intervals
+  that overlap, are empty, or bound two inputs.
+- Conditions are kept as written (a last condition is not turned into
+  "otherwise"), and are in the units and on the scale of the input, like
+  the expression. Bounds take the unit of their input (T_ice in K when T
+  is); in a quantity equation, a bound has a unit, so it is a coefficient
+  with a declared unit or a constant, never a bare number, and every
+  branch gives the same unit.
+- The formula is rendered on one line, in a left brace
+  (`\left\{0 \;\mathrm{if}\; T \leq T_{\mathrm{ice}},\; ...\right.`), the
+  same string for LaTeX, Markdown and matplotlib's mathtext, which has no
+  `cases` environment.
+- In a composition, the conditions bound inputs of the composed
+  formulation: a condition on a value an inner part computes is refused.
+- **Inversion has a limit:** a piecewise definition is inverted branch by
+  branch **only if each branch is monotonic on its interval** (nomogram
+  checks it on samples), has a closed form, and the images of the
+  intervals do not overlap; the inverse is then piecewise too, its
+  conditions being those images. Otherwise the inverse is numerical (see
+  [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
 
 ### Composed formulations
 

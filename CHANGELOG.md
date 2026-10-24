@@ -42,6 +42,20 @@ and this project adheres to
 - The constant `pi` may be written in expressions (Planck's law, the
   Stefan-Boltzmann constant, the Coriolis parameter need it). It is
   rendered `\pi`, and `pi` is a reserved name that no identifier may take.
+- Piecewise definitions in expressions, `piecewise((expression,
+  condition), ...)`: each condition is an interval of one input (a
+  comparison, or two chained in one direction), the same input for every
+  branch, and the formulation gives NaN where none holds. Loading checks
+  the intervals (one input, no overlap, none empty) and the units: bounds
+  take the unit of their input, and a quantity equation is checked by
+  pint branch by branch. The formula is rendered on one line in a left
+  brace, one string for LaTeX, Markdown and mathtext. It is inverted
+  branch by branch when each branch is monotonic on its interval, the
+  inverse taking the images of the intervals as conditions, numerically
+  otherwise. An equivalence between piecewise definitions is proved
+  branch by branch when their conditions agree, and checked on samples
+  otherwise; in a composition, conditions bound inputs of the composed
+  formulation.
 - Units of physical constants, from QUDT 3.5.2: J/K, J·s, m/s, mol⁻¹,
   J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
   writes mol⁻¹, as the SI Brochure does.
