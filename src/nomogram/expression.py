@@ -34,6 +34,7 @@ from sympy.printing.conventions import split_super_sub
 from sympy.printing.latex import LatexPrinter, translate
 
 __all__ = [
+    "CONSTANTS",
     "FUNCTIONS",
     "LATEX_COMMANDS",
     "MAX_SOURCE_LENGTH",
@@ -51,6 +52,12 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = {
     "ln": sympy.log,
     "log10": log10,
     "sqrt": sympy.sqrt,
+}
+
+#: Mathematical constants allowed in a formula, by name. Their names are
+#: reserved: no identifier may take them.
+CONSTANTS: Mapping[str, Any] = {
+    "pi": sympy.pi,
 }
 
 #: Longest accepted source text, to bound parsing work.
@@ -146,9 +153,10 @@ class ExpressionError(ValueError):
 def parse_expression(source: str, names: Iterable[str]) -> Any:
     """Parse a formula written in restricted Python syntax into a SymPy expression.
 
-    Allowed: numbers, the declared names, ``+ - * / **``, unary ``-`` and
-    ``+``, parentheses, and calls to the functions of :data:`FUNCTIONS`
-    with exactly one positional argument. Everything else (attributes,
+    Allowed: numbers, the declared names, the constants of
+    :data:`CONSTANTS`, ``+ - * / **``, unary ``-`` and ``+``, parentheses,
+    and calls to the functions of :data:`FUNCTIONS` with exactly one
+    positional argument. Everything else (attributes,
     subscripts, keywords, lambdas, comparisons, strings, other calls,
     undeclared names) is rejected. Nothing is evaluated.
 
@@ -176,7 +184,7 @@ def parse_expression(source: str, names: Iterable[str]) -> Any:
         raise ExpressionError(msg)
     allowed = frozenset(names)
     for name in allowed:
-        if not name.isidentifier() or name in FUNCTIONS:
+        if not name.isidentifier() or name in FUNCTIONS or name in CONSTANTS:
             msg = f"invalid or reserved name: {name!r}"
             raise ExpressionError(msg)
     try:
@@ -204,6 +212,8 @@ def _build(node: ast.AST, symbols: Mapping[str, Any]) -> Any:
             sympy.Integer(value) if isinstance(value, int) else sympy.Float(repr(value))
         )
     if isinstance(node, ast.Name):
+        if node.id in CONSTANTS:
+            return CONSTANTS[node.id]
         if node.id not in symbols:
             msg = f"undeclared name: {node.id!r}"
             raise ExpressionError(msg)

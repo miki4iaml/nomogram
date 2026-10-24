@@ -149,7 +149,7 @@ class _Context:
         """
         if node.is_Symbol:
             return node.name in names
-        if node.is_Number or isinstance(node, sympy.Function):
+        if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return False
         if node.is_Pow:
             return bool(node.exp.is_Number) and self.involves(node.base, names)
@@ -179,7 +179,7 @@ class _Context:
         """The unit of a node, or ``None`` while an unknown it needs is unsolved."""
         if node.is_Symbol:
             return self.units.get(node.name)
-        if node.is_Number or isinstance(node, sympy.Function):
+        if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return ureg.dimensionless
         if node.is_Pow:
             if not node.exp.is_Number:
@@ -400,7 +400,7 @@ def _linear(
                 return {b: exponents[node.name, b] for b in bases}
             dimension = basis(context.units[node.name])
             return {b: sympy.Rational(dimension.get(b, 0)) for b in bases}
-        if node.is_Number or isinstance(node, sympy.Function):
+        if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return dict.fromkeys(bases, sympy.Integer(0))
         if node.is_Pow:
             if not node.exp.is_Number:

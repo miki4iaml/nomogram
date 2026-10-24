@@ -33,6 +33,9 @@ and this project adheres to
   ice (Q3433288, broader), the five Buck correlations (Q4787919, the
   group, broader) and Tetens (1930) (Q28231917, close). A search by item
   finds them (`search("Q4787919")`).
+- The constant `pi` may be written in expressions (Planck's law, the
+  Stefan-Boltzmann constant, the Coriolis parameter need it). It is
+  rendered `\pi`, and `pi` is a reserved name that no identifier may take.
 
 ### Changed
 
