@@ -386,12 +386,15 @@ constants = ["R_d_ecmwf_ifs", "R_v_ecmwf_ifs"]
 
 - `definition` uses the identifiers of the constants listed in
   `constants`, each one used, and gives the unit of the constant.
-- The formula is evaluated exactly on the values the components print
-  (pi exact). The printed value may depart from it by the uncertainty the
-  source gives; an exact constant prints a truncation of it (less than one
-  unit of its last digit below: CODATA's sigma); any other value is
-  rounded to half a unit of its last digit. Write the value as text when
-  its trailing zeros count.
+- The formula is evaluated exactly (pi exact) on the values the
+  components print, and on their unrounded values (the definition of a
+  component that has one), since a source may derive a constant from
+  either: the ECMWF IFS derives R_d = R / M_d from the unrounded
+  R = N k, then c_pd = 7/2 R_d from the printed R_d. The printed value
+  agrees with one of the two results: within the uncertainty the source
+  gives; as a truncation for an exact constant (less than one unit of its
+  last digit below: CODATA's sigma); otherwise rounded to half a unit of
+  its last digit. Write the value as text when its trailing zeros count.
 - A source that departs from its own formula is entered as it prints:
   `tolerance` (in the unit of the constant) says how far, and `note`, which
   is then required, says by how much and why.

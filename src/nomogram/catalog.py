@@ -92,6 +92,8 @@ from nomogram.semantics import (
 from nomogram.units import Q_, ScaleType
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from nomogram.search import Entry, Selection
 
 __all__ = [
@@ -589,6 +591,8 @@ class _Builder:
         self.kinds: dict[str, QuantityKind] = dict(self.semantics.quantity_kinds)
         self.references: dict[str, Reference] = {}
         self.constants: dict[str, PhysicalConstant] = {}
+        #: The definition of a constant, scaled to its unit.
+        self.definitions: dict[str, Any] = {}
         self.scales: dict[str, ConventionalScale] = {}
         self.notations: dict[str, Notation] = {}
 
@@ -744,18 +748,11 @@ class _Builder:
         for key in self.constants:
             self.check_definition(key)
         self.check_definition_cycles()
+        for key in self.definitions:
+            self.check_value(key)
 
     def check_definition(self, key: str) -> None:
-        """The value of a constant agrees with its definition, if it has one.
-
-        The formula is evaluated in exact arithmetic on the values the
-        components print (π exact), so that an exact product is not taken
-        for a rounding. The value may depart from it by the tolerance the
-        catalog states, else by the uncertainty the source gives; an exact
-        constant prints a truncation of it (less than one unit of its last
-        digit below); any other value is rounded to half a unit of its last
-        digit.
-        """
+        """The definition of a constant, if any, uses its components and gives its unit."""
         constant = self.constants[key]
         if constant.definition is None:
             return
@@ -790,26 +787,60 @@ class _Builder:
             unit = format(result.units, "~P") or "1"
             msg = f"{where}.definition: gives {unit}, not {target}"
             raise CatalogError(msg) from None
-        values = {p.identifier: _exact(p) for p in parts}
-        exact = expr.subs({s: values[s.name] for s in expr.free_symbols})
-        exact = exact * _rational(repr(factor))
+        self.definitions[key] = expr * _rational(repr(factor))
+
+    def evaluate(self, key: str, value: Callable[[str], Any]) -> Any:
+        """The definition of a constant, on the values ``value`` gives its components."""
+        expr = self.definitions[key]
+        names = {
+            self.constants[n].identifier: n for n in self.constants[key].components
+        }
+        return expr.subs({s: value(names[s.name]) for s in expr.free_symbols})
+
+    def unrounded(self, key: str) -> Any:
+        """The exact value of a constant: its definition, recursively, else as printed."""
+        if key not in self.definitions:
+            return _exact(self.constants[key])
+        return self.evaluate(key, self.unrounded)
+
+    def check_value(self, key: str) -> None:
+        """The value of a constant agrees with its definition.
+
+        The formula is evaluated in exact arithmetic (π exact), so that an
+        exact product is not taken for a rounding, on the values the
+        components print and on their unrounded values (the definition of a
+        component, recursively): a source may derive a constant from either.
+        The value agrees with one of the two results within the tolerance
+        the catalog states, else the uncertainty the source gives; an exact
+        constant prints a truncation of it (less than one unit of its last
+        digit below); any other value is rounded to half a unit of its last
+        digit.
+        """
+        constant = self.constants[key]
+        results = [
+            self.evaluate(key, lambda name: _exact(self.constants[name])),
+            self.evaluate(key, self.unrounded),
+        ]
         printed = Decimal(constant.printed or repr(constant.value))
         digit = sympy.Rational(10) ** printed.as_tuple().exponent
-        difference = sympy.N(exact - _rational(str(printed)), 30)
+        differences = [sympy.N(r - _rational(str(printed)), 30) for r in results]
         if constant.tolerance is not None or constant.uncertainty is not None:
             allowed = _rational(repr(constant.tolerance or constant.uncertainty))
-            agrees = abs(difference) <= allowed
+            agrees = any(abs(d) <= allowed for d in differences)
             rule = f"beyond {float(allowed):g}"
         elif constant.nature is ConstantNature.EXACT:
-            agrees = 0 <= difference < digit
+            agrees = any(0 <= d < digit for d in differences)
             rule = "an exact constant prints a truncation of its definition"
         else:
-            agrees = abs(difference) <= digit / 2
+            agrees = any(abs(d) <= digit / 2 for d in differences)
             rule = "beyond half a unit of its last digit"
         if not agrees:
+            found = f"{sympy.N(results[0], 20)}"
+            if results[1] != results[0]:
+                found += f" (unrounded components: {sympy.N(results[1], 20)})"
             msg = (
-                f"{where}.value: {printed} departs from its definition "
-                f"{constant.definition} = {sympy.N(exact, 20)} ({rule})"
+                f"constants.{key}.value: {printed} departs from its definition "
+                f"{constant.definition} = {found} ({rule})"
             )
             raise CatalogError(msg)
 

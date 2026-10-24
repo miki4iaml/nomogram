@@ -52,10 +52,12 @@ and this project adheres to
   search finds constants by nature and conditions.
 - A constant may carry the formula its source defines it by, from other
   constants (`definition`, `constants`). The value used stays the one
-  printed; loading checks it in exact arithmetic: within the uncertainty
-  given, as a truncation for an exact constant, else to half a unit of
-  its last digit, or within a `tolerance` explained in a `note` when the
-  source departs from its own formula. `uses` and `used_by` link a
+  printed; loading checks it in exact arithmetic, against the formula
+  computed from the printed and from the unrounded values of its
+  components: within the uncertainty given, as a truncation for an exact
+  constant, else to half a unit of its last digit, or within a
+  `tolerance` explained in a `note` when the source departs from its own
+  formula. `uses` and `used_by` link a
   constant to its components.
 
 ### Changed

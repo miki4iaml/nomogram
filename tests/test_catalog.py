@@ -737,6 +737,41 @@ def test_a_definition_is_checked(fields: str, message: str) -> None:
         load_catalog([derived(fields)])
 
 
+def chain(r_d: str = "287.0597") -> str:
+    """The ECMWF IFS gas constants (CY49R1, section 12.5), without units."""
+    constants = [
+        ("N", "6.0221367e23", ""),
+        ("k", "1.380658e-23", ""),
+        ("M_d", "28.9644e-3", ""),
+        ("R", "8.31451", 'definition = "N * k"\nconstants = ["N", "k"]'),
+        ("R_d", r_d, 'definition = "R / M_d"\nconstants = ["R", "M_d"]'),
+        ("c_pd", '"1004.7090"', 'definition = "7 / 2 * R_d"\nconstants = ["R_d"]'),
+    ]
+    return VALID + "".join(
+        f'\n[constants.{key}]\nidentifier = "{key}"\nvalue = {value}\n'
+        f'unit = "UNITLESS"\ndescription = "{key}"\nreference = "src"\n'
+        f'nature = "conventional"\n{extra}\n'
+        for key, value, extra in constants
+    )
+
+
+def test_a_source_may_derive_from_printed_or_unrounded_values() -> None:
+    # The IFS prints R = N k = 8.31451, derives R_d = R / M_d = 287.0597
+    # from the unrounded product (R / M_d gives 287.05963 with the printed
+    # R), then c_pd = 7/2 R_d = 1004.7090 from the printed R_d (7/2 of the
+    # unrounded R_d gives 1004.70886).
+    loaded = load_catalog([chain()])
+    assert loaded.constants["c_pd"].components == ("R_d",)
+
+
+def test_a_value_agreeing_with_neither_evaluation_is_refused() -> None:
+    message = (
+        r"287\.0598 departs .* = 287\.0596318.* \(unrounded components: 287\.0596736"
+    )
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([chain(r_d="287.0598")])
+
+
 def test_a_definition_names_each_component_once() -> None:
     document = derived('value = 1.0\ndefinition = "a"\nconstants = ["a", "a_bis"]') + (
         '\n[constants.a_bis]\nidentifier = "a"\nvalue = 1.0\nunit = "UNITLESS"\n'
