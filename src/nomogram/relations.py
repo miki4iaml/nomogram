@@ -557,8 +557,10 @@ def _common_bounds(
 
     units = semantic_catalog().units
     feeds = {source: name for name, source in match_inputs(subject, other).items()}
-    own_extent = _valid_extent(subject)
-    other_extent = _valid_extent(other)
+    own_extent = _on_reference(subject, _valid_extent(subject))
+    other_extent = _on_reference(other, _valid_extent(other))
+    if own_extent is None or other_extent is None:
+        return None
     bounds = {}
     for variable in subject.inputs:
         low, high = own_extent.get(variable.identifier, (-math.inf, math.inf))
@@ -574,6 +576,40 @@ def _common_bounds(
             return None
         bounds[variable.identifier] = (low, high)
     return bounds
+
+
+def _on_reference(
+    formulation: Formulation, extent: Mapping[str, tuple[float, float]]
+) -> dict[str, tuple[float, float]] | None:
+    """An extent of a formulation's inputs, carried to their reference scales.
+
+    Domains are stated on the scale a formulation was fitted on, while a
+    comparison takes its inputs on the reference scale (ITS-90, Reference
+    Salinity); values that do not convert are left out. ``None`` when no
+    value of an input's extent converts. A scale nomogram cannot convert is
+    left as it is: :func:`report` says why such a pair is not compared.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    carried = dict(extent)
+    for variable in formulation.inputs:
+        scale = variable.scale
+        if (
+            variable.identifier not in extent
+            or scale is None
+            or scale.is_reference
+            or not scale.convertible
+        ):
+            continue
+        own, table = units[variable.unit].pint, units[str(scale.unit)].pint
+        on_scale = Q_(np.array(extent[variable.identifier]), own).to(table)
+        interval = scale.interval_to_reference(*on_scale.magnitude)
+        if interval is None:
+            return None
+        back = Q_(np.array(interval), table).to(own).magnitude
+        carried[variable.identifier] = (float(back[0]), float(back[1]))
+    return carried
 
 
 def _stated_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:

@@ -438,15 +438,87 @@ class ConventionalScale:
             return values
         self.check_convertible()
         if self.conversion is None:
-            on_reference = values
-            for _ in range(4):
-                on_reference = values + np.interp(
-                    on_reference, self.points, self.difference
-                )
+            on_reference = self._through_table(values)
             outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
             return np.where(outside, np.nan, on_reference)
         on_base = np.where(self._outside(values), np.nan, self._forward(values))
         return on_base if self.base is None else self.base.to_reference(on_base)
+
+    def interval_to_reference(
+        self, low: float, high: float
+    ) -> tuple[float, float] | None:
+        """An interval of values on this scale, carried to the reference scale.
+
+        Conversions increase: each end is converted, an infinite end staying
+        infinite, and the part beyond the conversion table or the bounds of
+        the conversion, which has no value on the reference scale, is left
+        out.
+
+        Parameters
+        ----------
+        low, high : float
+            Ends of the interval on this scale, in the unit of the scale.
+
+        Returns
+        -------
+        (float, float) or None
+            The interval on the reference scale, in the same unit; ``None``
+            when no value of it converts.
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale nomogram cannot convert.
+        """
+        self.check_convertible()
+        ends = np.array([low, high], dtype=float)
+        finite = np.isfinite(ends)
+        converted = np.where(
+            finite, self._unbounded_to_reference(np.where(finite, ends, 0.0)), ends
+        )
+        floor, ceiling = self._reference_extent
+        low, high = max(float(converted[0]), floor), min(float(converted[1]), ceiling)
+        return (low, high) if low < high else None
+
+    def _through_table(self, values: Any) -> Any:
+        """Values on the reference scale, by the table, extended beyond it."""
+        on_reference = values
+        for _ in range(4):
+            on_reference = values + np.interp(
+                on_reference, self.points, self.difference
+            )
+        return on_reference
+
+    def _unbounded_to_reference(self, values: Any) -> Any:
+        """:meth:`to_reference` extended beyond the table and the bounds."""
+        if self.is_reference:
+            return values
+        if self.conversion is None:
+            return self._through_table(values)
+        on_base = self._forward(values)
+        return (
+            on_base if self.base is None else self.base._unbounded_to_reference(on_base)
+        )
+
+    @cached_property
+    def _reference_extent(self) -> tuple[float, float]:
+        """Values on the reference scale that convert to this scale.
+
+        The range of a table; the bounds of a conversion carried to the
+        reference scale, within the extent of its base; infinite on a side
+        nothing bounds.
+        """
+        if self.is_reference:
+            return (-np.inf, np.inf)
+        if self.conversion is None:
+            return (self.points[0], self.points[-1])
+        low, high = (
+            (-np.inf, np.inf) if self.base is None else self.base._reference_extent
+        )
+        if self.bounds is not None:
+            ends = self._unbounded_to_reference(np.array(self.bounds, dtype=float))
+            low, high = max(low, float(ends[0])), min(high, float(ends[1]))
+        return (float(low), float(high))
 
 
 class ScaleConversionError(ValueError):

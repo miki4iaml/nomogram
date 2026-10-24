@@ -15,7 +15,13 @@ import pytest
 from nomogram.catalog import CatalogError, catalog, load_catalog
 from nomogram.inversion import invert
 from nomogram.model import ScaleConversionError, Variable
-from nomogram.relations import _conversion_chain, fingerprint
+from nomogram.relations import (
+    _common_bounds,
+    _conversion_chain,
+    _on_reference,
+    fingerprint,
+    report,
+)
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -34,6 +40,43 @@ def test_reference_salinity_from_practical_salinity() -> None:
     assert np.isnan(pss78.to_reference(np.array([1.0, 45.0]))).all()
     _, outside = pss78.from_reference(np.array([1.0]))
     assert outside.all()
+
+
+def test_an_interval_of_salinity_is_carried_to_the_reference_scale() -> None:
+    u_ps = 35.16504 / 35
+    pss78 = SCALES["pss78"]
+    # Below S_P = 2 nothing converts: the interval starts there.
+    interval = pss78.interval_to_reference(0.0, 40.0)
+    assert interval == pytest.approx((2 * u_ps, 40 * u_ps))
+    assert pss78.interval_to_reference(45.0, 50.0) is None
+    # Knudsen to Cox to Reference Salinity, without bounds: an infinite end
+    # stays infinite.
+    knudsen = SCALES["knudsen1901"]
+    interval = knudsen.interval_to_reference(-np.inf, 35.0)
+    assert interval == pytest.approx((-np.inf, float(knudsen.to_reference(35.0))))
+    with pytest.raises(ScaleConversionError):
+        SCALES["absolute_salinity2010"].interval_to_reference(0.0, 40.0)
+
+
+def test_a_domain_beyond_its_scale_conversion_is_not_compared(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Stated valid only above S_P = 42, where PSS-78 does not convert.
+    dickson = F["dickson2007_vapour_pressure"]
+    assert _on_reference(dickson, {"S": (45.0, 50.0)}) is None
+    monkeypatch.setattr(
+        "nomogram.relations._valid_extent", lambda _: {"S": (45.0, 50.0)}
+    )
+    assert _common_bounds(dickson, F["weiss_price1980_vapour_pressure"]) is None
+
+
+def test_salinity_formulations_are_compared_on_the_reference_scale() -> None:
+    # Weiss and Price (1980) are stated valid up to 313 K, but their IPTS-48
+    # temperatures convert to ITS-90 up to 30 degC only: the comparison
+    # stops there instead of leaving a quarter of its grid without values.
+    text = report(CATALOG, ["weiss_price1980_vapour_pressure"], budget=1000)
+    assert "from dickson2007_vapour_pressure: " in text
+    assert "of the common domain only" not in text
 
 
 def test_knudsen_and_cox_salinities_from_chlorinity() -> None:
