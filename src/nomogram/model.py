@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from nomogram.display import Rendering
 
 __all__ = [
+    "Branch",
     "CheckCase",
     "Citation",
     "Coefficient",
@@ -700,16 +701,17 @@ class Derivation:
     ----------
     source : str
         Key of the formulation it derives from; for a composition, the
-        formulation evaluated last.
+        formulation evaluated last; for branches, the first branch.
     method : str
         ``"symbolic inversion"`` (closed form found by SymPy),
-        ``"numerical inversion"`` or ``"composition"``.
+        ``"numerical inversion"``, ``"composition"`` or ``"branches"``.
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
     parts : mapping of str to str
         For a composition, the formulation computing each input of the
-        source it replaces: input identifier to formulation key.
+        source it replaces: input identifier to formulation key. For
+        branches, the formulation used under each condition.
     """
 
     source: str
@@ -1023,6 +1025,24 @@ class Part:
 
 
 @dataclass(frozen=True)
+class Branch:
+    """A formulation a piecewise formulation uses on an interval of its input.
+
+    Attributes
+    ----------
+    formulation : Formulation
+        The formulation used there, with its own validity domains and
+        sources.
+    condition : str
+        Where it is used: an interval of the input, in the catalog syntax
+        (``"T <= 273.16"``).
+    """
+
+    formulation: Formulation
+    condition: str
+
+
+@dataclass(frozen=True)
 class Formulation:
     """One author's way of computing a quantity kind.
 
@@ -1066,6 +1086,11 @@ class Formulation:
         For a composed formulation, its parts: the inner formulations,
         then the outer one. Their validity domains apply to the values
         each part receives (see :meth:`outside_mask`).
+    branches : tuple of Branch
+        For a formulation defined by pieces taken from other formulations,
+        those formulations, each with its condition; the expression is
+        the piecewise definition they make. The validity domains of each
+        apply where its condition holds.
     """
 
     key: str
@@ -1084,6 +1109,7 @@ class Formulation:
     family: str | None = None
     keywords: tuple[str, ...] = ()
     parts: tuple[Part, ...] = ()
+    branches: tuple[Branch, ...] = ()
 
     @property
     def references(self) -> tuple[str, ...]:
@@ -1234,7 +1260,9 @@ class Formulation:
         receives, intermediate values included, unless a source of the
         composed formulation states its own domain, which then replaces
         the domains the sources of the parts state. Physical domains of
-        the parts always apply.
+        the parts always apply. In a formulation defined by branches, the
+        domains of each branch apply where its condition holds, under the
+        same rule.
         """
         _check_options("nan", basis, "convert")
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
@@ -1260,12 +1288,34 @@ class Formulation:
                 for domains in stating:
                     inside |= ~outside_all(domains)
                 outside |= ~inside
-        if self.parts:
+        if self.parts or self.branches:
             part_basis: Basis | None = basis
             if basis != "physical" and any(c.domains for c in self.citations):
                 part_basis = "physical" if basis == "all" else None
-            if part_basis is not None:
+            if part_basis is not None and self.parts:
                 outside = outside | self._parts_outside(arrays, part_basis)
+            if part_basis is not None and self.branches:
+                outside = outside | self._branches_outside(arrays, part_basis, shape)
+        return outside
+
+    def _branches_outside(
+        self, values: Mapping[str, Any], basis: Basis, shape: tuple[int, ...]
+    ) -> Any:
+        """Where the branch whose condition holds is outside its domains."""
+        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
+        arguments += [c.value for c in self.coefficients]
+        arguments += [k.value for k in self.constants]
+        outside = np.zeros(shape, dtype=bool)
+        for branch, (_, condition) in zip(
+            self.branches, self.sympy_expression.args, strict=True
+        ):
+            with np.errstate(invalid="ignore"):
+                active = compile_numeric(condition, self.names)(*arguments)
+            own = {
+                v.identifier: values[v.identifier] for v in branch.formulation.inputs
+            }
+            mask = branch.formulation.outside_mask(own, basis)
+            outside |= np.broadcast_to(np.asarray(active, dtype=bool), shape) & mask
         return outside
 
     def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:

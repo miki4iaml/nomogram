@@ -390,6 +390,12 @@ class Rendering:
                 f"{key} ({identifier})" for identifier, key in derivation.parts.items()
             )
             lines += ["", f"Composed of {parts} in {derivation.source}."]
+        if derivation is not None and derivation.method == "branches":
+            pieces = "; ".join(
+                f"{key} where {condition}"
+                for condition, key in derivation.parts.items()
+            )
+            lines += ["", f"Defined by pieces: {pieces}."]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:

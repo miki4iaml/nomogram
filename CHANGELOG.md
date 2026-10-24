@@ -56,6 +56,15 @@ and this project adheres to
   branch by branch when their conditions agree, and checked on samples
   otherwise; in a composition, conditions bound inputs of the composed
   formulation.
+- Formulations by branches: a catalog entry with `branches = [{
+  formulation, where }, ...]` takes the pieces of its piecewise definition
+  from formulations of the catalog, which keep their own sources and
+  domains. Its expression, inputs, coefficients and constants come from
+  the branches; the domains of each branch apply where its condition
+  holds, unless a source of the formulation states its own. `uses` and
+  `used_by` link the formulation and its branches, and the legend of a
+  single formula lists them (`nomogram.model.Branch`, `Formulation.branches`,
+  derivation method `"branches"`).
 - Units of physical constants, from QUDT 3.5.2: J/K, J·s, m/s, mol⁻¹,
   J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
   writes mol⁻¹, as the SI Brochure does.
