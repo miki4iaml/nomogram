@@ -38,10 +38,17 @@ def test_kind_defined_by_nomogram() -> None:
     kind = CATALOG.kinds["SaturationVapourPressureOverWater"]
     assert kind.origin == "nomogram"
     assert kind.iri is None
-    assert kind.specialization_of == "VapourPressure"
+    assert kind.specialization_of == "SaturationVapourPressure"
     assert kind.applicable_units == CATALOG.kinds["VapourPressure"].applicable_units
     assert kind.matches[0].relation is MatchRelation.BROAD
     assert CATALOG.kinds["VapourPressure"].origin == "qudt"
+    # Over water or over ice, or over each on one side of a temperature.
+    parent = CATALOG.kinds["SaturationVapourPressure"]
+    assert parent.specialization_of == "VapourPressure"
+    assert parent.matches[0].relation is MatchRelation.CLOSE
+    assert CATALOG.kinds["SaturationVapourPressureOverIce"].specialization_of == (
+        "SaturationVapourPressure"
+    )
 
 
 def test_formulations_are_grouped_by_computed_kind() -> None:

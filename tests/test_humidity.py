@@ -13,6 +13,7 @@ import pytest
 
 from nomogram.catalog import catalog
 from nomogram.comparison import compare, compose
+from nomogram.inversion import dew_point
 from nomogram.model import Outside
 from nomogram.semantics import MatchRelation
 from nomogram.units import Q_
@@ -285,6 +286,58 @@ def test_ice_and_water_meet_at_the_triple_point() -> None:
     water = IAPWS.evaluate(T=triple).to("Pa").magnitude
     assert ice == 611.657
     assert water == pytest.approx(ice, rel=1e-6)
+
+
+PSYCHROLIB = FORMULATIONS["psychrolib_saturation_pressure"]
+
+
+def test_psychrolib_switches_from_ice_to_water_at_the_triple_point() -> None:
+    ice = FORMULATIONS["hyland_wexler1983_ice"]
+    water = FORMULATIONS["hyland_wexler1983"]
+    triple, freezing = Q_(273.16, "K"), Q_(273.15, "K")
+    # The branches meet at the triple point (611.657 Pa); at 0 degC, where
+    # ASHRAE switches, they leave a step of 0.06 Pa (the note says so).
+    assert water.evaluate(T=triple).magnitude == pytest.approx(
+        ice.evaluate(T=triple).magnitude, rel=1e-8
+    )
+    step = water.evaluate(T=freezing).magnitude - ice.evaluate(T=freezing).magnitude
+    assert round(step, 2) == 0.06
+    assert "step of 0.06 Pa" in (PSYCHROLIB.note or "")
+    below, above = PSYCHROLIB.evaluate(T=Q_([273.15, 273.17], "K")).magnitude
+    assert below == ice.evaluate(T=freezing).magnitude
+    assert above == water.evaluate(T=Q_(273.17, "K")).magnitude
+    # PsychroLib refuses temperatures outside -100 to 200 degC.
+    assert np.isnan(PSYCHROLIB.evaluate(T=Q_([-101.0, 201.0], "degC")).magnitude).all()
+
+
+@pytest.mark.parametrize(
+    ("celsius", "pascals", "rel", "abs_"),
+    # ASHRAE Handbook - Fundamentals (2017), chapter 1, table 3, as the
+    # tests of PsychroLib give it: within 300 ppm, except at -60 degC.
+    [
+        (-60.0, 1.08, None, 0.01),
+        (-20.0, 103.24, 3e-4, None),
+        (-5.0, 401.74, 3e-4, None),
+        (5.0, 872.6, 3e-4, None),
+        (25.0, 3169.7, 3e-4, None),
+        (50.0, 12351.3, 3e-4, None),
+        (100.0, 101418.0, 3e-4, None),
+        (150.0, 476101.4, 3e-4, None),
+    ],
+)
+def test_psychrolib_against_the_ashrae_table(
+    celsius: float, pascals: float, rel: float | None, abs_: float | None
+) -> None:
+    found = PSYCHROLIB.evaluate(T=Q_(celsius, "degC")).magnitude
+    assert found == pytest.approx(pascals, rel=rel, abs=abs_)
+
+
+def test_a_dew_point_from_psychrolib_converges_at_the_triple_point() -> None:
+    # Continuous at the switch: the inverse finds the temperature back.
+    frost_dew = dew_point(PSYCHROLIB)
+    t = Q_([-10.0, 0.0, 0.01, 0.02, 10.0], "degC")
+    back = frost_dew.evaluate(e=PSYCHROLIB.evaluate(T=t)).to("degC").magnitude
+    assert back == pytest.approx(t.magnitude, abs=1e-6)
 
 
 def test_supercooled_water_holds_more_vapour_than_ice() -> None:

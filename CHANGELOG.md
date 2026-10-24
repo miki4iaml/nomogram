@@ -65,6 +65,14 @@ and this project adheres to
   `used_by` link the formulation and its branches, and the legend of a
   single formula lists them (`nomogram.model.Branch`, `Formulation.branches`,
   derivation method `"branches"`).
+- Quantity kind `SaturationVapourPressure` (Wikidata Q2387102, close):
+  over water or over ice, as a formulation states, or over each on one
+  side of a temperature. Formulation `psychrolib_saturation_pressure`, the
+  saturation pressure of PsychroLib: Hyland and Wexler over ice up to the
+  triple point, over water above, by branches. Unlike ASHRAE, which
+  switches at the freezing point and leaves a step of 0.06 Pa, the two
+  branches meet. A cross-check reproduces PsychroLib on six temperatures
+  around the switch.
 - Units of physical constants, from QUDT 3.5.2: J/K, J·s, m/s, mol⁻¹,
   J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
   writes mol⁻¹, as the SI Brochure does.
@@ -98,6 +106,10 @@ and this project adheres to
 
 ### Changed
 
+- `SaturationVapourPressureOverWater` and `SaturationVapourPressureOverIce`
+  specialize `SaturationVapourPressure`, itself a vapour pressure: they
+  still feed any vapour pressure input, and a search of the new kind with
+  its specializations finds every saturation pressure.
 - Practical Salinity is a number, as CF (canonical unit 1) and TEOS-10
   write it: the scale `pss78` and the salinity inputs of COARE 3.6, Weiss
   and Price (1980) and Dickson et al. (2007) are unitless instead of per
