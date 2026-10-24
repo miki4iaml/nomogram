@@ -24,7 +24,7 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | offset unit | unit with `qudt:conversionOffset` ≠ 0 (`unit:DEG_C`: multiplier 1, offset 273.15) | none: the SI says the degree Celsius equals the kelvin in magnitude; the *quantity* Celsius temperature is offset (SI Brochure 2.3.1) | non-multiplicative unit (`degC`, `degF`) | — | OM: a scale defined by an offset from another | QUDT and pint put the offset in the unit, the SI puts it in the quantity. nomogram follows pint for computation and the SI for meaning: `is_offset_unit` tells which units express points of an interval scale. |
 | conventional scale | `qudt:Scale` (class only: no instance in the QUDT 3.5.2 vocabularies used) | conventional reference scale (VIM 1.29), for example the International Temperature Scale (ITS-90), formerly IPTS-68, IPTS-48, ITS-27 | none | — | CF names salinity by scale (`sea_water_practical_salinity`, `sea_water_knudsen_salinity`...) | `nomogram.model.ConventionalScale`: a quantity-value scale defined by formal agreement, for given quantity kinds, with one reference scale per kind (ITS-90 for temperatures, Reference Salinity for salinity) and a conversion to it: a table, or an expression of the value, possibly through another scale (Knudsen salinity, then Cox salinity, then Reference Salinity); a scale may hold no conversion (Absolute Salinity, whose anomaly depends on the location). Not QUDT's `ScaleType` (ratio, interval), which is the level of measurement. The scale a formulation was fitted on is stated by the source, inferred from the publication date only (weak: ITS-90 itself took years to be applied) or inferred from numerical evidence. Inputs are taken on ITS-90 and converted before evaluation (table of t90 − t68 from the ITS-90 text); a formulation fitted to formulas on several scales gets none. Neither QUDT nor pint models it, though it shifts saturation vapour pressure by up to 0.09 % between 0 and 100 °C. |
 | scale type | `qudt:ScaleType`: `RatioScale`, `IntervalScale`, `OrdinalScale`, `NominalScale` | quantity-value scale (VIM 1.27); ordinal scale (VIM 1.28) | none | — | OM `Scale` | `nomogram.units.ScaleType` keeps only ratio and interval, the two the formulas need. The four types come from Stevens (1946). |
-| point / difference | `qudt:isDeltaQuantity` (schema only, see findings) | — | `degC` versus `delta_degC` | — | OM `Point` versus `Measure` | A Celsius temperature is a point; the difference of two points is a difference, expressed in `delta_degC` or `K`. pint refuses to add two points. |
+| point / difference | `qudt:isDeltaQuantity`, a boolean of `qudt:Quantity` (the quantity in its context), not of the kind; the unit stays the same | — | `degC` versus `delta_degC` | — | OM `Point` versus `Measure` | A Celsius temperature is a point; the difference of two points is a difference, expressed in `delta_degC` or `K`. pint refuses to add two points. In a formula each input or output is a point or a difference by definition, so nomogram types it on the variable's kind (`TemperatureDifference`); a nomogram variable plays the role of a `qudt:Quantity`. |
 | identifier | none (`qudt:QuantityKind` IRIs identify kinds, not variables) | — | — | name of a `sympy.Symbol` | — | The semantic name of a variable in a formula (`t`, `RH`, `e_s`), stable across notations. |
 | symbol | `qudt:symbol`, `qudt:latexSymbol`, `qudt:altSymbol` | quantity symbol (ISO 80000-1) | unit symbol only | `sympy.Symbol` is a *variable*, not a glyph | — | Ambiguous across vocabularies. In nomogram's prose, "symbol" means the glyph (QUDT sense); the SymPy object is always called "SymPy symbol". |
 | notation | none (one `latexSymbol` per kind, plus `altSymbol`) | — | — | `symbol_names` of the LaTeX printer | — | A mapping from identifiers to LaTeX symbols, one per author or convention (WMO, ASHRAE...). QUDT has no concept of competing notations: nomogram adds it. |
@@ -118,9 +118,14 @@ silently.
    vapour per mass of moist air) says it is commonly written ω in
    psychrometrics; in psychrometrics ω or W denotes the mixing ratio,
    a different quantity.
-5. `qudt:isDeltaQuantity` exists in the schema but is set on no kind,
-   not even `TemperatureDifference`. The distinction between points and
-   differences therefore comes from pint and OM, not from QUDT data.
+5. `qudt:isDeltaQuantity` is a boolean of `qudt:Quantity`, not of
+   `qudt:QuantityKind`, by design: whether a value is a difference
+   belongs to the quantity in its context, and the unit stays the same
+   ([QUDT wiki](https://github.com/qudt/qudt-public-repo/wiki/Support-for-measures-of-absolute-values-and-for-intervals-(differences))).
+   QUDT also has a `TemperatureDifference` kind. In nomogram the context
+   is the formula, so the point/difference typing sits on the kinds of
+   its variables and on pint's units; a nomogram variable maps to a
+   `qudt:Quantity`.
 6. There is no kind for the saturation vapour pressure. nomogram
    defines one as a specialization of `VapourPressure`, the mechanism
    QUDT itself uses.

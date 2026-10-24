@@ -129,7 +129,8 @@ class QuantityKind:
         Scale of the kind's values (nomogram's addition).
     delta : bool
         Whether values are differences rather than points (nomogram's
-        addition; QUDT's ``isDeltaQuantity`` is set on no kind).
+        addition; QUDT records it as ``isDeltaQuantity`` on a quantity in
+        its context, not on kinds).
     cf_standard_names : tuple of str
         CF standard names for this kind.
     applicable_units : tuple of str
