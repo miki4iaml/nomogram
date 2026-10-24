@@ -7,7 +7,7 @@ import datetime
 
 import pytest
 
-from nomogram.catalog import CatalogError, catalog, load_catalog
+from nomogram.catalog import CatalogError, catalog, load_catalog, main, stats
 from nomogram.model import ReferenceStatus, UnitBasis
 from nomogram.semantics import MatchRelation
 
@@ -569,3 +569,83 @@ def test_uses_and_used_by_follow_the_catalog_order() -> None:
     for ref in targets:
         found = CATALOG.used_by(ref).refs
         assert list(found) == sorted(found, key=order.__getitem__), ref
+
+
+# --- Indicators of the design goals -------------------------------------------
+
+WIKIDATA = 'matches = [{{ target = "http://www.wikidata.org/entity/{q}", relation = "close", verified = 2026-10-24 }}]'
+
+STATS = f"""
+[references.read]
+authors = "Author, A."
+title = "Read"
+status = "verified"
+{WIKIDATA.format(q="Q1")}
+
+[references.unread]
+authors = "Author, B."
+title = "Unread"
+status = "to-confirm"
+
+[scales.s0]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[formulations.f]
+label = "F"
+expression = "a * t"
+fixed_units = true
+citations = [{{ reference = "read" }}]
+{WIKIDATA.format(q="Q2")}
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in", scale = "s0", scale_basis = "inferred-from-date" }}]
+coefficients = {{ a = 2.0 }}
+
+[[formulations.f.domains]]
+bounds = {{ t = [0, 50] }}
+
+[formulations.g]
+label = "G"
+expression = "b * t"
+fixed_units = true
+citations = [{{ reference = "unread" }}]
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }}]
+coefficients = {{ b = 3.0 }}
+
+[formulations.h]
+label = "H"
+expression = "c * e"
+fixed_units = true
+output = {{ identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "out" }}
+inputs = [{{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "in" }}]
+coefficients = {{ c = 0.6 }}
+"""
+
+
+def test_stats_counts_the_indicators_of_the_design_goals() -> None:
+    lines = stats(load_catalog([STATS])).splitlines()
+    assert lines[0] == "Indicators of the design goals (AGENTS.md)"
+    assert lines[1:] == [
+        "1. Alternatives side by side",
+        "  quantity kinds computed by several formulations: 1 of 2",
+        "2. Validity, scale and sources stated, never invented",
+        "  formulations with a validity domain: 1 of 3",
+        "  inputs on a conventional scale with their scale recorded: 1 of 2",
+        "  references checked against the source: 1 of 2",
+        "5. Linked to shared vocabularies",
+        "  quantity kinds used that are QUDT kinds or specialize one: 3 of 3",
+        "  quantity kinds used with a CF standard name: 3 of 3",
+        "  quantity kinds used with a Wikidata link: 2 of 3",
+        "  formulations with a Wikidata link: 1 of 3",
+        "  references with a Wikidata link: 1 of 2",
+    ]
+
+
+def test_every_kind_of_the_bundled_catalog_is_tied_to_qudt(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["stats"]) == 0
+    line = next(x for x in capsys.readouterr().out.splitlines() if "QUDT" in x)
+    count, total = line.rsplit(": ", 1)[1].split(" of ")
+    assert count == total
