@@ -26,6 +26,14 @@ and this project adheres to
 
 - The data notice credits QUDT in the form its licensing guide suggests.
 
+### Fixed
+
+- The 0.6 % (k = 2) uncertainty of the WMO Magnus form over water was
+  attributed to the WMO guide, which states none (WMO-No. 8, 2024,
+  Annex 4.B). It is now cited from the WMO ET-QTC training unit that
+  states it, beside the guide's own wording. The Magnus form over ice
+  cites the guide (4.B.3) and gains its stated domain, -65 to 0 degC.
+
 ## [0.3.0] - 2026-10-21
 
 ### Added

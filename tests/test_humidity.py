@@ -91,6 +91,38 @@ def test_aekr_stated_domain_and_criterion() -> None:
 
 
 @pytest.mark.parametrize(
+    ("key", "uncertainty"), [("sonntag1990_magnus", "0.6 %"), ("wmo2008_ice", "1 %")]
+)
+def test_the_wmo_guide_states_no_uncertainty_for_its_magnus_forms(
+    key: str, uncertainty: str
+) -> None:
+    # WMO-No. 8 (2024), Annex 4.B gives ranges, no uncertainty; the WMO
+    # ET-QTC training unit states one, and is cited for it on its own.
+    citations = {c.reference: c for c in FORMULATIONS[key].citations}
+    guide = citations["wmo2024"].domains[0].criterion or ""
+    training = citations["wmo_etqtc2025"].domains[0].criterion or ""
+    assert "No uncertainty stated" in guide
+    assert "%" not in guide
+    assert f"up to {uncertainty} (k = 2)" in training
+
+
+def test_the_wmo_magnus_form_over_ice_keeps_to_its_stated_domain() -> None:
+    ice = FORMULATIONS["wmo2008_ice"]
+    assert np.isnan(ice.evaluate(t=Q_(5, "degC")).magnitude)
+    assert np.isnan(ice.evaluate(t=Q_(-70, "degC")).magnitude)
+    hectopascal = ice.evaluate(t=Q_(-10, "degC")).to("hPa").magnitude
+    assert hectopascal == pytest.approx(2.5988, abs=1e-4)
+
+
+def test_the_wmo_training_unit_is_linked_to_both_magnus_forms() -> None:
+    linked = {entry.key for entry in CATALOG.used_by("references.wmo_etqtc2025")}
+    assert linked == {"sonntag1990_magnus", "wmo2008_ice"}
+    assert [entry.key for entry in CATALOG.used_by("notations.wmo")] == [
+        "sonntag1990_magnus"
+    ]
+
+
+@pytest.mark.parametrize(
     ("celsius", "grams", "outside"),
     [(0.0, 4.848, "ignore"), (20.0, 17.290, "nan"), (40.0, 51.099, "nan")],
 )
