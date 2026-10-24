@@ -600,12 +600,12 @@ def test_invalid_constants_are_refused(
         load_catalog([VALID + document])
 
 
-def test_a_constant_states_its_nature() -> None:
+def test_a_constant_may_leave_its_nature_out() -> None:
+    # Files written for 0.3 have no nature; the bundled catalog states it.
     document = CONSTANT.format(value=1.0, nature="exact", extra="").replace(
         'nature = "exact"\n', ""
     )
-    with pytest.raises(CatalogError, match="missing keys: nature"):
-        load_catalog([VALID + document])
+    assert load_catalog([VALID + document]).constants["c"].nature is None
 
 
 def test_a_constant_must_be_a_finite_number() -> None:

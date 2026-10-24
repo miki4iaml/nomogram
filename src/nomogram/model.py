@@ -706,8 +706,8 @@ class PhysicalConstant:
     matches : tuple of ExternalMatch
         Links to external vocabularies.
     nature : ConstantNature or None
-        How the value is known; ``None`` only for a constant built outside
-        a catalog file, which always states it.
+        How the value is known; ``None`` when not stated (a catalog file
+        may leave it out; every constant of the bundled catalog states it).
     uncertainty : float or None
         Standard uncertainty in ``unit``, as the source gives it; ``None``
         when exact or not given.

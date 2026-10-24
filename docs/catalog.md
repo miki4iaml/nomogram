@@ -112,7 +112,7 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
-| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference`, `nature` | `uncertainty`, `conditions`, `matches` |
+| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
@@ -350,7 +350,8 @@ reference = "iapws95"
 nature = "conventional"
 ```
 
-- `nature` says how the value is known:
+- `nature` says how the value is known; every constant of the bundled
+  catalog states it:
   - `exact`: fixed by definition, without uncertainty, as the defining
     constants of the SI (SI Brochure, 2.2) and the constants derived from
     them alone (QUDT `exactConstant`, CODATA "exact");

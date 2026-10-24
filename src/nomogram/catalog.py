@@ -656,10 +656,12 @@ class _Builder:
             f = _fields(
                 where,
                 table,
-                ("identifier", "value", "unit", "description", "reference", "nature"),
-                ("uncertainty", "conditions", "matches"),
+                ("identifier", "value", "unit", "description", "reference"),
+                ("nature", "uncertainty", "conditions", "matches"),
             )
-            nature = _enum(f"{where}.nature", ConstantNature, f["nature"])
+            nature = None
+            if f["nature"] is not None:
+                nature = _enum(f"{where}.nature", ConstantNature, f["nature"])
             value, printed = _printed_number(f"{where}.value", f["value"])
             uncertainty = None
             if f["uncertainty"] is not None:

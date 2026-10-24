@@ -47,8 +47,9 @@ and this project adheres to
   agreement, VIM 2.12) or `measured` (VIM 2.10), with an optional standard
   uncertainty and the conditions the value holds in. A value may be written
   as decimal text (`"287.0500"`) to keep the digits the source prints.
-  `nature` is required in a `[constants]` entry; the four bundled constants
-  are conventional. A search finds constants by nature and conditions.
+  `nature` is optional in a catalog file, so files written for 0.3 still
+  load; every bundled constant states it (the four are conventional). A
+  search finds constants by nature and conditions.
 
 ### Changed
 
