@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Moist air: humidity quantities computed from the vapour pressure
-# (mass concentration, mixing ratio, specific humidity), and the
-# saturation vapour pressure in moist air (enhancement factor).
+# (mass concentration, mixing ratio, specific humidity), the saturation
+# vapour pressure in moist air (enhancement factor), and the constants of
+# moist air thermodynamics.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -62,7 +63,7 @@ year = 2024
 title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
 
 [references.metpy171]
 authors = "MetPy developers"
@@ -113,17 +114,10 @@ description = "Ratio of the molar masses of water and dry air, M_w / M_d"
 reference = "ashrae2017"
 nature = "conventional"
 
-# Other values of the same ratio, read in their sources. The relative
-# spread (about 6e-5) is negligible against the deviations between
-# formulations, but the value used is part of a formulation.
-[constants.epsilon_ecmwf_ifs]
-identifier = "epsilon"
-value = 0.6219808
-unit = "UNITLESS"
-description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
-reference = "ecmwf_ifs_cy49r1"
-nature = "conventional"
-
+# Other values of the same ratio, read in their sources (the IFS one
+# below). The relative spread (about 6e-5) is negligible against the
+# deviations between formulations, but the value used is part of a
+# formulation.
 [constants.epsilon_metpy]
 identifier = "epsilon"
 value = 0.6219569
@@ -131,6 +125,209 @@ unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
 reference = "metpy171"
 nature = "conventional"
+
+# Constants of the ECMWF IFS (CY49R1, Part IV, chapter 12, p. 246). The
+# fundamental constants are those of the 1986 CODATA adjustment, adopted
+# by the model. R_d and R_v are derived from the unrounded R = N k, the
+# specific heats of dry air from the printed R_d.
+[constants.c_ecmwf_ifs]
+identifier = "c"
+value = 299792458
+unit = "M-PER-SEC"
+description = "Speed of light in vacuum, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2111", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.h_ecmwf_ifs]
+identifier = "h"
+value = 6.6260755e-34
+unit = "J-SEC"
+description = "Planck constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q122894", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.k_ecmwf_ifs]
+identifier = "k"
+value = 1.380658e-23
+unit = "J-PER-K"
+description = "Boltzmann constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q5962", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.N_ecmwf_ifs]
+identifier = "N"
+value = 6.0221367e23
+unit = "PER-MOL"
+description = "Avogadro constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q6203", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.sigma_ecmwf_ifs]
+identifier = "sigma"
+value = 5.6705085e-8
+unit = "W-PER-M2-K4"
+description = "Stefan-Boltzmann constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "2 * pi**5 * k**4 / (15 * c**2 * h**3)"
+constants = ["k_ecmwf_ifs", "c_ecmwf_ifs", "h_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q51374", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.R_ecmwf_ifs]
+identifier = "R"
+value = 8.31451
+unit = "J-PER-MOL-K"
+description = "Universal gas constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "N * k"
+constants = ["N_ecmwf_ifs", "k_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q182333", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.M_d_ecmwf_ifs]
+identifier = "M_d"
+value = 0.0289644
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of dry air"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+
+[constants.M_v_ecmwf_ifs]
+identifier = "M_v"
+value = 0.0180153
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of water vapour"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+
+[constants.R_d_ecmwf_ifs]
+identifier = "R_d"
+value = 287.0597
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of dry air"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R / M_d"
+constants = ["R_ecmwf_ifs", "M_d_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-24 },
+]
+
+[constants.R_v_ecmwf_ifs]
+identifier = "R_v"
+value = "461.5250"
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R / M_v"
+constants = ["R_ecmwf_ifs", "M_v_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-24 },
+]
+
+[constants.c_pd_ecmwf_ifs]
+identifier = "c_pd"
+value = "1004.7090"
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant pressure"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "7 / 2 * R_d"
+constants = ["R_d_ecmwf_ifs"]
+
+[constants.c_vd_ecmwf_ifs]
+identifier = "c_vd"
+value = 717.6493
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant volume"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "5 / 2 * R_d"
+constants = ["R_d_ecmwf_ifs"]
+
+[constants.c_pv_ecmwf_ifs]
+identifier = "c_pv"
+value = 1846.1
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of water vapour at constant pressure"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "4 * R_v"
+constants = ["R_v_ecmwf_ifs"]
+
+[constants.c_vv_ecmwf_ifs]
+identifier = "c_vv"
+value = 1384.575
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of water vapour at constant volume"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "3 * R_v"
+constants = ["R_v_ecmwf_ifs"]
+
+[constants.c_l_ecmwf_ifs]
+identifier = "c_l"
+value = 4218
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of liquid water"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "Taken as constant; the value holds at the triple point temperature, T0 = 273.16 K."
+
+[constants.c_s_ecmwf_ifs]
+identifier = "c_s"
+value = 2106
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of ice"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "Taken as constant; the value holds at the triple point temperature, T0 = 273.16 K."
+
+[constants.L_v0_ecmwf_ifs]
+identifier = "L_v0"
+value = 2.5008e6
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of vaporisation"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "At the triple point temperature, T0 = 273.16 K; the model physics takes it as invariable."
+
+[constants.L_s0_ecmwf_ifs]
+identifier = "L_s0"
+value = 2.8345e6
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of sublimation"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "At the triple point temperature, T0 = 273.16 K; the model physics takes it as invariable."
+
+# Printed in section 7.5.2 (p. 136), with the relative humidity.
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.621981
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R_d / R_v"
+constants = ["R_d_ecmwf_ifs", "R_v_ecmwf_ifs"]
 
 # --- Ambiguous trade terms --------------------------------------------
 

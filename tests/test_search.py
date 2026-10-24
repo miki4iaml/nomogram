@@ -254,8 +254,13 @@ def test_a_unit_written_exactly_comes_before_case_and_wildcards() -> None:
 
 
 def test_constants_are_found_by_their_nature_and_conditions() -> None:
-    conventional = CATALOG.search("conventional", section="constants")
-    assert set(conventional.refs) == {f"constants.{k}" for k in CATALOG.constants}
+    for nature in ("exact", "conventional"):
+        found = CATALOG.search(nature, section="constants")
+        assert set(found.refs) == {
+            f"constants.{k}"
+            for k, c in CATALOG.constants.items()
+            if c.nature is not None and c.nature.value == nature
+        }
     document = """
 [references.src]
 authors = "A."

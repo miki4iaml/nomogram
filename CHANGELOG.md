@@ -51,8 +51,8 @@ and this project adheres to
   uncertainty and the conditions the value holds in. A value may be written
   as decimal text (`"287.0500"`) to keep the digits the source prints.
   `nature` is optional in a catalog file, so files written for 0.3 still
-  load; every bundled constant states it (the four are conventional). A
-  search finds constants by nature and conditions.
+  load; every bundled constant states it. A search finds constants by
+  nature and conditions.
 - A constant may carry the formula its source defines it by, from other
   constants (`definition`, `constants`). The value used stays the one
   printed; loading checks it in exact arithmetic, against the formula
@@ -60,8 +60,18 @@ and this project adheres to
   components: within the uncertainty given, as a truncation for an exact
   constant, else to half a unit of its last digit, or within a
   `tolerance` explained in a `note` when the source departs from its own
-  formula. `uses` and `used_by` link a
-  constant to its components.
+  formula. `uses` and `used_by` link a constant to its components.
+- Physical constants of the SI and of the ECMWF IFS, each linked to
+  Wikidata where an item exists:
+  - in `core`, the defining constants c, h, k and N_A (SI Brochure, 9th
+    edition, table 1), and the molar gas constant R = N_A k and the
+    Stefan-Boltzmann constant derived from them (CODATA 2022);
+  - in `moist-air`, the constants of the IFS (CY49R1, Part IV, chapter
+    12): c, h, k and N (the CODATA 1986 values), sigma, R = N k, the molar
+    masses and gas constants of dry air and water vapour, the specific
+    heats of dry air, water vapour, liquid water and ice, and the latent
+    heats of vaporisation and sublimation at the triple point, each
+    derived constant with its definition.
 
 ### Changed
 
@@ -69,6 +79,10 @@ and this project adheres to
 
 ### Fixed
 
+- `epsilon_ecmwf_ifs` is the value the IFS documentation prints, 0.621981
+  (CY49R1, Part IV, section 7.5.2), instead of the ratio R_d / R_v
+  computed by nomogram (0.6219808); it carries that ratio as its
+  definition.
 - The 0.6 % (k = 2) uncertainty of the WMO Magnus form over water was
   attributed to the WMO guide, which states none (WMO-No. 8, 2024,
   Annex 4.B). It is now cited from the WMO ET-QTC training unit that

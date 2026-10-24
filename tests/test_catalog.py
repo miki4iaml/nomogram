@@ -566,7 +566,24 @@ nature = "{nature}"
 
 def test_bundled_constants_state_their_nature() -> None:
     natures = {k.nature for k in CATALOG.constants.values()}
-    assert natures == {ConstantNature.CONVENTIONAL}
+    assert natures == {ConstantNature.EXACT, ConstantNature.CONVENTIONAL}
+    si = [c for k, c in CATALOG.constants.items() if k.endswith("_si2019")]
+    assert {c.identifier for c in si} == {"c", "h", "k", "N_A"}
+    assert all(c.nature is ConstantNature.EXACT for c in si)
+
+
+def test_bundled_derived_constants_link_to_their_components() -> None:
+    # CODATA derives R and sigma from the defining constants of the SI.
+    assert set(CATALOG.used_by("constants.k_si2019").refs) == {
+        "constants.R_codata2022",
+        "constants.sigma_codata2022",
+    }
+    # The IFS derives its gas constants from R = N k.
+    assert set(CATALOG.used_by("constants.R_ecmwf_ifs").refs) == {
+        "constants.R_d_ecmwf_ifs",
+        "constants.R_v_ecmwf_ifs",
+    }
+    assert CATALOG.constants["c_pd_ecmwf_ifs"].printed == "1004.7090"
 
 
 def test_a_measured_constant_keeps_its_uncertainty_and_printed_digits() -> None:

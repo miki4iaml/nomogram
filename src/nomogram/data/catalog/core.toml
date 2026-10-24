@@ -2,16 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Shared ground of the catalog: conventional reference scales, notation
-# conventions and the references they cite.
+# conventions, the defining constants of the SI and constants derived
+# from them, and the references they cite.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
 [catalog]
 name = "core"
-label = "Core: scales and notations"
+label = "Core: scales, notations and constants"
 format = 2
 requires = []
-keywords = ["conventional reference scales", "notations"]
+keywords = ["conventional reference scales", "notations", "physical constants"]
 
 # --- References -------------------------------------------------------
 
@@ -74,6 +75,25 @@ title = "ASHRAE Handbook - Fundamentals, chapter 1: Psychrometrics"
 status = "to-confirm"
 note = "Cited through the tests of PsychroLib; notation p_ws to confirm in the text."
 
+[references.bipm_si9]
+authors = "Bureau International des Poids et Mesures"
+year = 2019
+title = "The International System of Units (SI), 9th edition"
+container = "BIPM, version 4.01 (June 2026)"
+doi = "10.59161/AUEZ1291"
+status = "verified"
+note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Read on the PDF of version 4.01."
+
+[references.codata2022]
+authors = "Mohr, P. J.; Newell, D. B.; Taylor, B. N.; Tiesinga, E."
+year = 2025
+title = "CODATA recommended values of the fundamental physical constants: 2022"
+container = "Reviews of Modern Physics 97, 025002"
+doi = "10.1103/RevModPhys.97.025002"
+url = "https://physics.nist.gov/constants"
+status = "verified"
+note = "Table XXXIII (p. 025002-49): molar gas constant N_A k = 8.314 462 618... J/(mol K) and Stefan-Boltzmann constant (pi^2/60) k^4/(hbar^3 c^2) = 5.670 374 419... e-8 W/(m2 K4), both exact and printed truncated; the same values in the NIST listing of the 2022 adjustment."
+
 # --- Notations --------------------------------------------------------
 
 [notations.wmo]
@@ -85,6 +105,81 @@ reference = "wmo2024"
 label = "ASHRAE Handbook - Fundamentals"
 symbols = { e_s = 'p_{\mathrm{ws}}', RH = '\phi' }
 reference = "ashrae2017"
+
+# --- Physical constants -----------------------------------------------
+
+# Defining constants of the SI (SI Brochure, table 1).
+[constants.c_si2019]
+identifier = "c"
+value = 299792458
+unit = "M-PER-SEC"
+description = "Speed of light in vacuum, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2111", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.h_si2019]
+identifier = "h"
+value = 6.62607015e-34
+unit = "J-SEC"
+description = "Planck constant, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q122894", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.k_si2019]
+identifier = "k"
+value = 1.380649e-23
+unit = "J-PER-K"
+description = "Boltzmann constant, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q5962", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.N_A_si2019]
+identifier = "N_A"
+value = 6.02214076e23
+unit = "PER-MOL"
+description = "Avogadro constant, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q6203", relation = "close", verified = 2026-10-24 },
+]
+
+# Constants CODATA derives from them alone: exact, printed truncated.
+[constants.R_codata2022]
+identifier = "R"
+value = 8.314462618
+unit = "J-PER-MOL-K"
+description = "Molar gas constant"
+reference = "codata2022"
+nature = "exact"
+definition = "N_A * k"
+constants = ["N_A_si2019", "k_si2019"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q182333", relation = "close", verified = 2026-10-24 },
+]
+
+# CODATA writes (pi^2/60) k^4/(hbar^3 c^2), with hbar = h/(2 pi).
+[constants.sigma_codata2022]
+identifier = "sigma"
+value = 5.670374419e-8
+unit = "W-PER-M2-K4"
+description = "Stefan-Boltzmann constant"
+reference = "codata2022"
+nature = "exact"
+definition = "2 * pi**5 * k**4 / (15 * h**3 * c**2)"
+constants = ["k_si2019", "h_si2019", "c_si2019"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q51374", relation = "close", verified = 2026-10-24 },
+]
 
 # --- Conventional reference scales (VIM 1.29) -------------------------
 
