@@ -478,6 +478,14 @@ After adding or changing a relation, refresh the registry of verdicts
 uv run python -m nomogram.catalog verify --record
 ```
 
+To see how far the catalog covers the design goals (formulations with a
+validity domain, inputs with their conventional scale, references
+checked against the source, links to CF and Wikidata...):
+
+```
+uv run python -m nomogram.catalog stats
+```
+
 `check` loads the file with the bundled families (as a personal catalog
 when it is not one of them), then reports, for each of its
 formulations, those of the same form (coefficients aside) and the
