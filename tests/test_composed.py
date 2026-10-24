@@ -31,6 +31,7 @@ value = 1.5
 unit = "UNITLESS"
 description = "A constant"
 reference = "src"
+nature = "conventional"
 
 [constants.g2]
 identifier = "g"
@@ -38,6 +39,7 @@ value = 2.0
 unit = "UNITLESS"
 description = "Another value of it"
 reference = "src"
+nature = "conventional"
 
 [formulations.outer]
 label = "Outer"

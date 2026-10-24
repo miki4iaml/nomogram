@@ -253,6 +253,28 @@ def test_a_unit_written_exactly_comes_before_case_and_wildcards() -> None:
     assert _units(forms, "kPa") == frozenset()
 
 
+def test_constants_are_found_by_their_nature_and_conditions() -> None:
+    conventional = CATALOG.search("conventional", section="constants")
+    assert set(conventional.refs) == {f"constants.{k}" for k in CATALOG.constants}
+    document = """
+[references.src]
+authors = "A."
+title = "T"
+status = "verified"
+
+[constants.c_pd]
+identifier = "c_pd"
+value = 1004.0
+unit = "J-PER-KiloGM-K"
+description = "Specific heat capacity of dry air"
+reference = "src"
+nature = "measured"
+conditions = "at 300 K"
+"""
+    loaded = load_catalog([document])
+    assert loaded.search("measured", "300").refs == ("constants.c_pd",)
+
+
 def test_source_and_equation_in_the_same_citation() -> None:
     nine = CATALOG.search(source="itu_r_p453*", equation="9")
     assert "formulations.itu_r_p453_es_water" in nine.refs

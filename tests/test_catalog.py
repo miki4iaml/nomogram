@@ -8,7 +8,7 @@ import datetime
 import pytest
 
 from nomogram.catalog import CatalogError, catalog, load_catalog, main, stats
-from nomogram.model import ReferenceStatus, UnitBasis
+from nomogram.model import ConstantNature, ReferenceStatus, UnitBasis
 from nomogram.semantics import MatchRelation
 
 CATALOG = catalog()
@@ -181,6 +181,7 @@ value = 2.0
 unit = "J-PER-KiloGM-K"
 description = "constant"
 reference = "src"
+nature = "conventional"
 
 [formulations.q]
 label = "Quantity equation"
@@ -549,6 +550,62 @@ def test_a_domain_bound_must_be_a_finite_number() -> None:
     domain = DOMAIN.format(extra="", name="t", low=0, high="nan")
     with pytest.raises(CatalogError, match=r"bounds\.t\[1\]: expected a finite"):
         load_catalog([VALID + domain])
+
+
+CONSTANT = """
+[constants.c]
+identifier = "c"
+value = {value}
+unit = "J-PER-KiloGM-K"
+description = "constant"
+reference = "src"
+nature = "{nature}"
+{extra}
+"""
+
+
+def test_bundled_constants_state_their_nature() -> None:
+    natures = {k.nature for k in CATALOG.constants.values()}
+    assert natures == {ConstantNature.CONVENTIONAL}
+
+
+def test_a_measured_constant_keeps_its_uncertainty_and_printed_digits() -> None:
+    extra = 'uncertainty = 0.0002\nconditions = "at 0 degC"'
+    document = CONSTANT.format(value='"287.0500"', nature="measured", extra=extra)
+    constant = load_catalog([VALID + document]).constants["c"]
+    assert constant.nature is ConstantNature.MEASURED
+    assert (constant.value, constant.printed) == (287.05, "287.0500")
+    assert (constant.uncertainty, constant.conditions) == (0.0002, "at 0 degC")
+    plain = load_catalog([VALID + CONSTANT.format(value=1.5, nature="exact", extra="")])
+    assert plain.constants["c"].printed is None
+
+
+@pytest.mark.parametrize(
+    ("value", "nature", "extra", "message"),
+    [
+        ("1.0", "exact", "uncertainty = 0.1", "an exact constant has none"),
+        ("1.0", "measured", "uncertainty = -0.1", "expected a positive number"),
+        ("1.0", "known", "", "is not one of exact, conventional, measured"),
+        ('"1,5"', "measured", "", "expected a finite decimal number"),
+        ('"nan"', "measured", "", "expected a finite decimal number"),
+        ('" 1.5"', "measured", "", "expected a finite decimal number"),
+        ("1.0", "measured", 'conditions = ""', "expected a non-empty string"),
+    ],
+)
+def test_invalid_constants_are_refused(
+    value: str, nature: str, extra: str, message: str
+) -> None:
+    document = CONSTANT.format(value=value, nature=nature, extra=extra)
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([VALID + document])
+
+
+def test_a_constant_states_its_nature() -> None:
+    document = CONSTANT.format(value=1.0, nature="exact", extra="").replace(
+        'nature = "exact"\n', ""
+    )
+    with pytest.raises(CatalogError, match="missing keys: nature"):
+        load_catalog([VALID + document])
 
 
 def test_a_constant_must_be_a_finite_number() -> None:
