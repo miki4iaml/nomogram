@@ -15,9 +15,17 @@ keywords = ["water vapour", "saturation", "phase equilibrium"]
 
 # --- Quantity kinds defined by nomogram -------------------------------
 
+[kinds.SaturationVapourPressure]
+label = "Saturation Vapour Pressure"
+specialization_of = "VapourPressure"
+description = "Pressure of water vapour in equilibrium with a plane surface of pure water, liquid or ice, at the same temperature: over water or over ice as the formulation states, or over the one or the other on each side of a temperature."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2387102", relation = "close", verified = 2026-10-24 },
+]
+
 [kinds.SaturationVapourPressureOverWater]
 label = "Saturation Vapour Pressure over Water"
-specialization_of = "VapourPressure"
+specialization_of = "SaturationVapourPressure"
 description = "Pressure of water vapour in equilibrium with a plane surface of pure liquid water."
 # The Wikidata item covers saturation over water and over ice: broader.
 matches = [
@@ -26,7 +34,7 @@ matches = [
 
 [kinds.SaturationVapourPressureOverIce]
 label = "Saturation Vapour Pressure over Ice"
-specialization_of = "VapourPressure"
+specialization_of = "SaturationVapourPressure"
 description = "Pressure of water vapour in equilibrium with a plane surface of ice (ice Ih)."
 # The Wikidata item covers saturation over water and over ice: broader.
 matches = [
@@ -630,6 +638,24 @@ reference = "psychrolib"
 [[formulations.hyland_wexler1983_ice.citations]]
 reference = "voemel_vp"
 
+# Over ice, then over water: the two Hyland and Wexler formulations above,
+# each with its own sources.
+[formulations.psychrolib_saturation_pressure]
+label = "Saturation pressure of water vapour over ice up to the triple point, over water above (PsychroLib)"
+branches = [
+  { formulation = "hyland_wexler1983_ice", where = "T <= 273.16" },
+  { formulation = "hyland_wexler1983", where = "T > 273.16" },
+]
+output = { identifier = "p_ws", kind = "SaturationVapourPressure", unit = "PA", description = "Saturation pressure of water vapour" }
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equations 5 and 6, as PsychroLib codes them (GetSatVapPres): it switches from ice to water at the triple point, 0.01 degC, where ASHRAE writes the freezing point. The two branches then meet (611.657 Pa at 273.16 K), and the dew point that inverts the function converges; at 0 degC, the ASHRAE switch leaves a step of 0.06 Pa. PsychroLib converts degC with T = t + 273.15."
+
+[[formulations.psychrolib_saturation_pressure.citations]]
+reference = "psychrolib"
+
+[[formulations.psychrolib_saturation_pressure.citations.domains]]
+bounds = { T = [173.15, 473.15] }
+criterion = "GetSatVapPres refuses a dry-bulb temperature outside -100 to 200 degC, the range of ASHRAE equations 5 and 6."
+
 [formulations.wmo2008_ice]
 label = "Magnus form over ice, WMO Guide (CIMO) coefficients"
 expression = "C * exp(A * t / (B + t))"
@@ -908,3 +934,48 @@ at = { T = 233.15 }
 bounds = { T = [233.15, 323.15] }
 scale = "ignore"
 note = "Table III, row SO90, r_g."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.psychrolib_saturation_pressure]
+implementation = "PsychroLib"
+version = "commit 3066345dc8cf91bf59134147cf917f982c1fce13"
+url = "https://github.com/psychrometrics/psychrolib"
+checked = 2026-10-24
+note = "GetSatVapPres in SI units (SetUnitSystem(SI)), temperatures in degC converted by PsychroLib with T = t + 273.15; around the triple point, 0.01 degC, where it switches from ice to water. Computed with the source of the commit, kept in the local reference store."
+
+[[cross_checks.psychrolib_saturation_pressure.cases]]
+formulation = "psychrolib_saturation_pressure"
+inputs = { T = 253.15 }
+value = 103.26037858050408
+call = "GetSatVapPres(-20.0)"
+
+[[cross_checks.psychrolib_saturation_pressure.cases]]
+formulation = "psychrolib_saturation_pressure"
+inputs = { T = 273.15 }
+value = 611.1535708907679
+call = "GetSatVapPres(0.0)"
+
+[[cross_checks.psychrolib_saturation_pressure.cases]]
+formulation = "psychrolib_saturation_pressure"
+inputs = { T = 273.16 }
+value = 611.6570243908766
+call = "GetSatVapPres(0.01)"
+
+[[cross_checks.psychrolib_saturation_pressure.cases]]
+formulation = "psychrolib_saturation_pressure"
+inputs = { T = 273.17 }
+value = 612.1014746394677
+call = "GetSatVapPres(0.02)"
+
+[[cross_checks.psychrolib_saturation_pressure.cases]]
+formulation = "psychrolib_saturation_pressure"
+inputs = { T = 298.15 }
+value = 3169.2164701436277
+call = "GetSatVapPres(25.0)"
+
+[[cross_checks.psychrolib_saturation_pressure.cases]]
+formulation = "psychrolib_saturation_pressure"
+inputs = { T = 373.15 }
+value = 101418.71682799235
+call = "GetSatVapPres(100.0)"
