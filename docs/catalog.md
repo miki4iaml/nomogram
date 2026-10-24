@@ -271,9 +271,9 @@ reference scale, and each relation is written once:
 label = "Practical Salinity Scale 1978 (PSS-78)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
-unit = "PERMILLE"
-conversion = "35.16504 / 35 * x"       # TEOS-10 eq. 2.4.1
-bounds = [2.0, 42.0]                   # the limits of PSS-78
+unit = "UNITLESS"                       # S_P is a number: S_P = 35
+conversion = "35.16504 / 35 * x / 1000" # TEOS-10 eq. 2.4.1, S_R in 1
+bounds = [2.0, 42.0]                    # the limits of PSS-78
 cf_standard_names = ["sea_water_practical_salinity"]
 
 [scales.cox1967]

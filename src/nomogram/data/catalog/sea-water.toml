@@ -191,14 +191,14 @@ reference = "teos10_manual"
 label = "Practical Salinity Scale 1978 (PSS-78)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
-unit = "PERMILLE"
-conversion = "35.16504 / 35 * x"
+unit = "UNITLESS"
+conversion = "35.16504 / 35 * x / 1000"
 bounds = [2.0, 42.0]
 symbol = "PSS-78"
 subscript = "P"
 cf_standard_names = ["sea_water_practical_salinity"]
 reference = "teos10_manual"
-note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42, the limits of PSS-78: below S_P = 2 the conversion is undefined, and a formulation on this scale gives NaN under the default evaluation (scale='ignore' takes the salinity as given). Practical Salinity is a number, written here in per mille so that S_P = 35 is 35."
+note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42, the limits of PSS-78: below S_P = 2 the conversion is undefined, and a formulation on this scale gives NaN under the default evaluation (scale='ignore' takes the salinity as given). Practical Salinity is a number, written without a unit as CF (canonical unit 1) and TEOS-10 write it: S_P = 35, not 35 per mille, and the conversion gives S_R as a mass fraction, in the unit of the scale (1). QUDT's unit:PSU is not used (formally incorrect and strongly discouraged, in QUDT's own words)."
 
 [scales.cox1967]
 label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
@@ -395,14 +395,14 @@ fixed_units = true
 note = "Linear in salinity: 0.98 at 35, the fixed factor of COARE 3.0. The expression gives 1 for fresh water (the Great Lakes example of the code, Ss = 0), but PSS-78 holds for 2 < S_P < 42: below S_P = 2 the default evaluation gives NaN, and scale='ignore' takes the salinity as given."
 output = { identifier = "f_s", kind = "RelativeVapourPressureOfSeaWater", unit = "UNITLESS", description = "Salinity factor of the saturation vapour pressure" }
 inputs = [
-  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Sea surface salinity" },
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "UNITLESS", description = "Sea surface salinity (Practical Salinity)" },
 ]
 coefficients = { a = 0.02, S_0 = 35.0 }
 
 [[formulations.coare36_salinity_factor.citations]]
 reference = "coare36"
 scales = { S = "pss78" }
-units = { S_0 = "PERMILLE" }
+units = { S_0 = "UNITLESS" }
 notation = { f_s = "fs", S = "Ss" }
 note = "Function qsat26sea; salinity in PSU."
 
@@ -445,7 +445,7 @@ note = "Printed as ln(p_v,sw) = 24.4543 - 67.4509 (100/T48) - 4.8489 ln(T48/100)
 output = { identifier = "p", kind = "SaturationVapourPressureOverSeaWater", unit = "ATM", description = "Vapour pressure of sea water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
-  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Practical Salinity" },
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "UNITLESS", description = "Practical Salinity" },
 ]
 
 [formulations.weiss_price1980_vapour_pressure.coefficients]
@@ -501,13 +501,13 @@ fixed_units = true
 note = "For sea water of the composition Dickson et al. give (chapter 5, section 6.1, Table 2: S = 35 for Cl = 19.374). Printed as the sum of m_B/m°, m° = 1 mol/kg. The guide names no salinity scale. S = 35 for Cl = 19.374 is S = 1.80655 Cl, the relation used in the definition of Practical Salinity and exact for Standard Seawater (TEOS-10 A.4): PSS-78 is inferred from these numbers. Cox salinity fits them too, and converts to Reference Salinity alike."
 output = { identifier = "m", kind = "MolalityOfSolute", unit = "MOL-PER-KiloGM", description = "Total molality of dissolved species" }
 inputs = [
-  { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", description = "Practical Salinity", scale = "pss78", scale_basis = "inferred-from-numbers" },
+  { identifier = "S", kind = "SeaWaterSalinity", unit = "UNITLESS", description = "Practical Salinity", scale = "pss78", scale_basis = "inferred-from-numbers" },
 ]
 
 [formulations.dickson2007_total_molality.coefficients]
 c = 31.998
 d = 1.005
-S_1 = { value = 1000.0, unit = "PERMILLE", unit_basis = "added", note = "The 10^3 of 10^3 - 1.005 S, in the unit of S (per mille)" }
+S_1 = { value = 1000.0, unit = "UNITLESS", unit_basis = "added", note = "The 10^3 of 10^3 - 1.005 S, a number as S is" }
 
 [[formulations.dickson2007_total_molality.citations]]
 reference = "dickson2007"

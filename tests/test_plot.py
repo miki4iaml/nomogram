@@ -211,19 +211,22 @@ def test_without_scale_conversion_the_axes_claim_no_scale() -> None:
     # Weiss and Price took the values as given, on IPTS-48 and PSS-78:
     # neither T_90 nor S_R may label them.
     weiss = FORMULATIONS["weiss_price1980_vapour_pressure"]
-    inputs = {
-        "ThermodynamicTemperature": Q_(np.array([10.0, 20.0]), "degC"),
+    t = Q_(np.array([10.0, 20.0]), "degC")
+    # Practical Salinity is a number; Reference Salinity is in g/kg.
+    as_given = {"ThermodynamicTemperature": t, "SeaWaterSalinity": Q_([30.0, 35.0])}
+    reference = {
+        "ThermodynamicTemperature": t,
         "SeaWaterSalinity": Q_(np.array([30.0, 35.0]), "g/kg"),
     }
-    ignored = compare([weiss], weiss, inputs, scale="ignore")
+    ignored = compare([weiss], weiss, as_given, scale="ignore")
     ax = plot_values(ignored, input_kind="ThermodynamicTemperature")
     assert ax.get_xlabel() == "Celsius temperature $t$/°C"
     salinity = plot_values(ignored, input_kind="SeaWaterSalinity").get_xlabel()
-    assert salinity.endswith("$S$/(g/kg)")
+    assert salinity == "Sea water salinity $S$"
     with display_options(axis_labels="explicit"):
         ax = plot_values(ignored, input_kind="SeaWaterSalinity")
-    assert ax.get_xlabel().endswith("$S$ [g/kg]")
-    converted = compare([weiss], weiss, inputs)
+    assert ax.get_xlabel().endswith("$S$ [1]")
+    converted = compare([weiss], weiss, reference)
     ax = plot_values(converted, input_kind="SeaWaterSalinity")
     assert ax.get_xlabel().endswith(r"$S_{\mathrm{R}}$/(g/kg)")
 

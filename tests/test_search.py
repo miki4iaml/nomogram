@@ -213,7 +213,10 @@ def test_unit_finds_what_works_in_a_unit() -> None:
     assert {"units.HectoPA", "formulations.buck1996"} <= hpa
     assert "formulations.buck1996" in CATALOG.search(unit="°C").refs  # an input
     assert "constants.R_v_iapws95" in CATALOG.search(unit="J/(kg·K)").refs
-    assert "scales.pss78" in CATALOG.search(unit="‰").refs
+    # Knudsen and Cox salinities are in per mille; Practical Salinity is a number.
+    per_mille = CATALOG.search(unit="‰").refs
+    assert "scales.cox1967" in per_mille
+    assert "scales.pss78" not in per_mille
     assert refs(CATALOG.search(unit="*Pa", section="units")) == {
         "units.HectoPA",
         "units.KiloPA",
@@ -354,7 +357,8 @@ def test_constants_and_scales_link_to_their_unit() -> None:
         assert f"units.{constant.unit}" in CATALOG.uses(f"constants.{key}").refs
     assert "constants.R_v_iapws95" in CATALOG.used_by("units.J-PER-KiloGM-K").refs
     assert {"scales.ipts68", "scales.ipts48"} <= refs(CATALOG.used_by("units.DEG_C"))
-    assert "scales.pss78" in CATALOG.used_by("units.PERMILLE").refs
+    assert "scales.cox1967" in CATALOG.used_by("units.PERMILLE").refs
+    assert "scales.pss78" in CATALOG.used_by("units.UNITLESS").refs
     assert not CATALOG.uses("scales.its90").search(section="units")
 
 

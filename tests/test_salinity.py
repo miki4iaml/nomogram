@@ -30,10 +30,12 @@ F = CATALOG.formulations
 
 
 def test_reference_salinity_from_practical_salinity() -> None:
-    # TEOS-10 eq. 2.4.1: S_P = 35 gives S_R = 35.16504 g/kg exactly.
+    # TEOS-10 eq. 2.4.1: S_P = 35 gives S_R = 35.16504 g/kg exactly, a mass
+    # fraction in the unit of the scale (1): Practical Salinity is a number.
     pss78 = SCALES["pss78"]
-    assert pss78.to_reference(35.0) == pytest.approx(35.16504, abs=1e-12)
-    back, outside = pss78.from_reference(np.array([35.16504]))
+    assert pss78.unit == "UNITLESS"
+    assert pss78.to_reference(35.0) == pytest.approx(0.03516504, abs=1e-15)
+    back, outside = pss78.from_reference(np.array([0.03516504]))
     assert back == pytest.approx([35.0])
     assert not outside.any()
     # Beyond 2 < S_P < 42, no conversion.
@@ -43,7 +45,7 @@ def test_reference_salinity_from_practical_salinity() -> None:
 
 
 def test_an_interval_of_salinity_is_carried_to_the_reference_scale() -> None:
-    u_ps = 35.16504 / 35
+    u_ps = 35.16504 / 35 / 1000  # S_R as a mass fraction, the unit of PSS-78
     pss78 = SCALES["pss78"]
     # Below S_P = 2 nothing converts: the interval starts there.
     interval = pss78.interval_to_reference(0.0, 40.0)
@@ -145,7 +147,8 @@ def test_chlorinity_salinities_convert_below_the_limits_of_pss78() -> None:
     # PSS-78 directly for 25 < S < 38; the conversion carried departs from
     # that by up to about 0.009 at 25, the disagreement the note records.
     s_k = np.array([25.0, 32.0, 38.0])
-    s_p = SCALES["pss78"].from_reference(knudsen.to_reference(s_k))[0]
+    # Knudsen converts in per mille, PSS-78 in 1.
+    s_p = SCALES["pss78"].from_reference(knudsen.to_reference(s_k) / 1000)[0]
     assert s_p - s_k == pytest.approx([-0.0086, -0.0025, 0.0026], abs=5e-5)
     assert "Lewis and Perkin" in (knudsen.note or "")
     assert "0.009" in (knudsen.note or "")
