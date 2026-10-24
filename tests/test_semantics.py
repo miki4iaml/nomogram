@@ -42,7 +42,7 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 def test_sources_are_recorded() -> None:
     assert CATALOG.qudt_version == "3.5.2"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 10, 21)
+    assert CATALOG.extracted == datetime.date(2026, 10, 24)
 
 
 def test_catalog_is_read_once() -> None:
@@ -54,6 +54,8 @@ def test_unit_symbols_follow_the_si_brochure() -> None:
     assert CATALOG.units["UNITLESS"].symbol == "1"
     assert CATALOG.units["PPM"].symbol == "ppm"
     assert CATALOG.units["PERCENT"].symbol == "%"
+    # Table 1 writes mol⁻¹; QUDT writes /mol.
+    assert CATALOG.units["PER-MOL"].symbol == "mol⁻¹"
 
 
 def test_reference_case_kinds_are_present() -> None:
@@ -166,7 +168,7 @@ def test_wikidata_links_carry_their_relation_and_verification_date() -> None:
         ExternalMatch(
             target="http://www.wikidata.org/entity/Q76378808",
             relation=MatchRelation.CLOSE,
-            verified=datetime.date(2026, 10, 21),
+            verified=datetime.date(2026, 10, 24),
         ),
     )
     assert CATALOG.units["DEG_C"].matches[0].target.endswith("/Q25267")

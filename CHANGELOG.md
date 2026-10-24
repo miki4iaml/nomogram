@@ -42,6 +42,9 @@ and this project adheres to
 - The constant `pi` may be written in expressions (Planck's law, the
   Stefan-Boltzmann constant, the Coriolis parameter need it). It is
   rendered `\pi`, and `pi` is a reserved name that no identifier may take.
+- Units of physical constants, from QUDT 3.5.2: J/K, J·s, m/s, mol⁻¹,
+  J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
+  writes mol⁻¹, as the SI Brochure does.
 - Physical constants state their nature: `exact` (a defining constant of the
   SI, or one derived from them alone), `conventional` (attributed by
   agreement, VIM 2.12) or `measured` (VIM 2.10), with an optional standard
