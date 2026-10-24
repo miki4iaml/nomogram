@@ -28,6 +28,11 @@ and this project adheres to
   scales to theirs, so `uses` and `used_by` reach units.
 - The URL of a reference or a cross-check can be searched, whole or with
   wildcards (`*archive.org*`).
+- Formulations link to their Wikidata items, with their SKOS relation and
+  the date they were checked: the Goff-Gratch equations over water and
+  ice (Q3433288, broader), the five Buck correlations (Q4787919, the
+  group, broader) and Tetens (1930) (Q28231917, close). A search by item
+  finds them (`search("Q4787919")`).
 
 ### Changed
 
