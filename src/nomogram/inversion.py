@@ -19,7 +19,8 @@ result is a :class:`NumericalInverse`, solved by vectorised bisection
 over a search interval.
 
 A piecewise definition is inverted branch by branch, **provided each
-branch is monotonic on its interval** (nomogram checks it on samples):
+branch is strictly monotonic on its interval** (nomogram checks it on
+samples; a constant branch is not):
 each branch then needs a closed form, and the images of the intervals,
 which become the conditions of the inverse, must not overlap. Otherwise
 the inverse is numerical.
@@ -148,7 +149,10 @@ def _forward(formulation: Formulation, expr: Any = None) -> Any:
 
     def forward(x: Any) -> Any:
         with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
-            return np.asarray(function(x, *fixed), dtype=float) * factor
+            result = np.asarray(function(x, *fixed), dtype=float) * factor
+        # A constant (a branch of a piecewise definition) gives one number
+        # whatever the shape of x.
+        return np.broadcast_to(result, np.shape(x))
 
     return forward
 
@@ -279,10 +283,10 @@ def _closed_form_of_pieces(
 ) -> tuple[str, list[Coefficient]] | None:
     """A closed-form inverse of a piecewise definition, branch by branch.
 
-    Each branch must be monotonic on its interval (checked on samples) and
-    have a closed-form inverse; the inverse takes the image of each
-    interval as its condition, and the images must not overlap. One
-    piecewise definition only: with several, ``None``.
+    Each branch must be strictly monotonic on its interval (checked on
+    samples) and have a closed-form inverse; the inverse takes the image
+    of each interval as its condition, and the images must not overlap.
+    One piecewise definition only: with several, ``None``.
     """
     import sympy
 
@@ -624,8 +628,8 @@ def invert(
     method : {"auto", "symbolic", "numerical"}
         ``"auto"`` tries a closed form, then falls back to numerical
         inversion; the others force one method. A piecewise definition
-        has a closed form only if each branch is monotonic on its
-        interval, has a closed form itself, and the images of the
+        has a closed form only if each branch is strictly monotonic on
+        its interval, has a closed form itself, and the images of the
         intervals do not overlap.
     search : (float, float), optional
         Interval of x searched by numerical inversion, in x's unit;
@@ -673,9 +677,9 @@ def invert(
             msg = f"{formulation.key}: no closed form found for {solve_for}"
             if f"{PIECEWISE}(" in formulation.expression:
                 msg += (
-                    " (a piecewise definition needs each branch monotonic on "
-                    "its interval, with a closed form, and images that do not "
-                    "overlap)"
+                    " (a piecewise definition needs each branch strictly "
+                    "monotonic on its interval, with a closed form, and images "
+                    "that do not overlap)"
                 )
             raise InversionError(msg)
     if interval is None:

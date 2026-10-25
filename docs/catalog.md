@@ -179,10 +179,12 @@ expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_
 - In a composition, the conditions bound inputs of the composed
   formulation: a condition on a value an inner part computes is refused.
 - **Inversion has a limit:** a piecewise definition is inverted branch by
-  branch **only if each branch is monotonic on its interval** (nomogram
-  checks it on samples), has a closed form, and the images of the
-  intervals do not overlap; the inverse is then piecewise too, its
-  conditions being those images. Otherwise the inverse is numerical (see
+  branch **only if each branch is strictly monotonic on its interval**
+  (nomogram checks it on samples), has a closed form, and the images of
+  the intervals do not overlap; the inverse is then piecewise too, its
+  conditions being those images. A constant branch, such as the 0 and 1
+  of a mixed-phase fraction, has no inverse. Otherwise the inverse is
+  numerical (see
   [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
 
 ### Composed formulations

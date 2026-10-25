@@ -66,6 +66,28 @@ CONSTANTS: Mapping[str, Any] = {
 #: reserved like the functions.
 PIECEWISE = "piecewise"
 
+
+class Piecewise(sympy.Piecewise):  # type: ignore[misc]
+    """A piecewise definition kept as written.
+
+    SymPy evaluates a piecewise definition whenever it is built or rebuilt:
+    a condition that completes the others (T >= 273.15 after T < 273.15)
+    becomes True, and a power is distributed over the branches, which
+    rebuilds them (1 / e_s, for a saturation pressure by branches). Here
+    the conditions stay as written and a power applies to the whole.
+
+    The class keeps SymPy's name: printers find their method by the name
+    of the class (``_print_Piecewise``), not by that of a parent.
+    """
+
+    def __new__(cls, *args: Any, **options: Any) -> Any:
+        options.setdefault("evaluate", False)
+        return super().__new__(cls, *args, **options)
+
+    def _eval_power(self, _exponent: Any) -> None:
+        return None
+
+
 _COMPARISONS: Mapping[type[ast.cmpop], Any] = {
     ast.Lt: sympy.StrictLessThan,
     ast.LtE: sympy.LessThan,
@@ -273,9 +295,7 @@ def _piecewise(node: ast.Call, symbols: Mapping[str, Any]) -> Any:
             raise ExpressionError(msg)
         expression, condition = arg.elts
         pairs.append((_build(expression, symbols), _condition(condition, symbols)))
-    # evaluate=False: SymPy would otherwise rewrite a condition that
-    # completes the others (T >= 273.15 after T < 273.15) as True.
-    return sympy.Piecewise(*pairs, evaluate=False)
+    return Piecewise(*pairs)
 
 
 @dataclass(frozen=True)
@@ -409,13 +429,17 @@ class _NotationPrinter(LatexPrinter):  # type: ignore[misc]
         tex = r"\log_{10}\left(" + self._print(expr.args[0]) + r"\right)"
         return f"{tex}^{{{exp}}}" if exp is not None else tex
 
-    def _print_Piecewise(self, expr: Any) -> str:
-        """On one line, in a left brace: mathtext has no cases environment."""
+    def _print_Piecewise(self, expr: Any, exp: str | None = None) -> str:
+        """On one line, in a left brace: mathtext has no cases environment.
+
+        A power of the definition (``exp``) applies to it in parentheses.
+        """
         pieces = [
             rf"{self._print(e)} \;\mathrm{{if}}\; {self._condition(c)}"
             for e, c in expr.args
         ]
-        return r"\left\{" + r",\; ".join(pieces) + r"\right."
+        text = r"\left\{" + r",\; ".join(pieces) + r"\right."
+        return text if exp is None else rf"\left({text}\right)^{{{exp}}}"
 
     def _condition(self, condition: Any) -> str:
         if not isinstance(condition, sympy.And):

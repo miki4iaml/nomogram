@@ -47,6 +47,10 @@ MAGNUS = (
 )
 
 
+#: Coefficients of the mixed-phase fraction (IFS).
+FRACTION = "coefficients = { T_ice = 250.16, T_0 = 273.16 }"
+
+
 def formulation(
     expression: str,
     *,
@@ -148,6 +152,18 @@ def test_conditions_are_kept_as_written() -> None:
     )
 
 
+@pytest.mark.parametrize("source", ["1 / {}", "{} ** 2", "sqrt({})"])
+def test_a_power_keeps_the_conditions_as_written(source: str) -> None:
+    # SymPy would distribute the power over the branches and rebuild them,
+    # the last condition becoming True.
+    expr = parse_expression(source.format(MIXED_PHASE), NAMES)
+    (node,) = [
+        n for n in sympy.preorder_traversal(expr) if isinstance(n, sympy.Piecewise)
+    ]
+    assert node == parse_expression(MIXED_PHASE, NAMES)
+    assert len(_pieces(node, ["T"])) == 3
+
+
 def test_each_branch_is_an_interval_of_one_input() -> None:
     expr = parse_expression(MIXED_PHASE, NAMES)
     pieces = _pieces(expr, ["T", "p"])
@@ -212,6 +228,18 @@ def test_a_condition_on_two_inputs_is_refused_when_loading() -> None:
     document = SOURCE + formulation("piecewise((1, T < U))", inputs=inputs)
     with pytest.raises(CatalogError, match="does not bound one input alone"):
         load_catalog([document])
+
+
+@pytest.mark.parametrize(
+    ("source", "power"), [("1 / {}", -1), ("{} ** 2", 2), ("sqrt({})", 0.5)]
+)
+def test_a_power_of_a_piecewise_definition_is_evaluated(
+    source: str, power: float
+) -> None:
+    document = SOURCE + formulation(source.format(MIXED_PHASE), extra=FRACTION)
+    f = load_catalog([document]).formulations["f"]
+    values = f.evaluate(T=Q_([260.0, 280.0], "K")).magnitude
+    assert values == pytest.approx([((260 - 250.16) / 23) ** (2 * power), 1.0])
 
 
 def test_where_no_condition_holds_the_value_is_nan() -> None:
@@ -346,6 +374,14 @@ def test_one_string_serves_latex_markdown_and_mathtext() -> None:
     MathTextParser("path").parse(rendering.mathtext)
 
 
+def test_a_power_of_a_piecewise_definition_is_written_in_parentheses() -> None:
+    document = SOURCE + formulation(f"{MIXED_PHASE} ** 2", extra=FRACTION)
+    rendering = load_catalog([document]).formulations["f"].render()
+    assert r"\left(\left\{0 \;\mathrm{if}\; " in rendering.latex
+    assert rendering.latex.endswith(r"\right.\right)^{2}")
+    MathTextParser("path").parse(rendering.mathtext)
+
+
 # --- Inversion -------------------------------------------------------------------
 
 
@@ -424,9 +460,28 @@ def test_without_a_closed_form_the_inverse_is_numerical(expression: str) -> None
     given = Variable("e", "VapourPressure", "HectoPA", "e")
     found = invert(f, "t", output=output, input=given, search=(-20.0, 20.0))
     assert isinstance(found, NumericalInverse)
-    with pytest.raises(InversionError, match="each branch monotonic on its interval"):
+    with pytest.raises(
+        InversionError, match="each branch strictly monotonic on its interval"
+    ):
         invert(
             f, "t", output=output, input=given, method="symbolic", search=(-20.0, 20.0)
+        )
+
+
+def test_a_constant_branch_makes_the_inverse_numerical() -> None:
+    # The mixed-phase fraction is 0 below T_ice and 1 above T_0: monotonic,
+    # but not strictly, so no inverse branch exists for those values.
+    document = SOURCE + formulation(MIXED_PHASE, extra=FRACTION)
+    f = load_catalog([document]).formulations["f"]
+    output = Variable("T", "ThermodynamicTemperature", "K", "T")
+    given = Variable("y", "DimensionlessRatio", "UNITLESS", "y")
+    found = invert(f, "T", output=output, input=given, search=(230.0, 290.0))
+    assert isinstance(found, NumericalInverse)
+    back = found.evaluate(y=Q_([0.25, 0.5], "")).magnitude
+    assert back == pytest.approx(250.16 + 23 * np.sqrt([0.25, 0.5]))
+    with pytest.raises(InversionError, match="strictly monotonic"):
+        invert(
+            f, "T", output=output, input=given, method="symbolic", search=(230.0, 290.0)
         )
 
 
@@ -562,6 +617,24 @@ def test_composing_two_piecewise_definitions_solves_no_inequality() -> None:
     )
     assert "ITE" not in sympy.srepr(expr)
     assert elapsed < 10.0
+
+
+def test_a_composition_may_divide_by_a_piecewise_definition() -> None:
+    # A relative humidity over a saturation pressure by branches: 1 / e.
+    written = formulation(
+        "100 * e_a / e",
+        key="outer",
+        output='kind = "RelativeHumidity", unit = "PERCENT"',
+        inputs=(
+            '{ identifier = "e_a", kind = "VapourPressure", unit = "HectoPA", '
+            'description = "e_a" }, ' + OUTER_INPUTS.split(', { identifier = "t"')[0]
+        ),
+    )
+    loaded = load_catalog([SOURCE + magnus() + written + COMPOSED])
+    t = Q_([-10.0, 20.0], "degC")
+    values = loaded.formulations["both"].evaluate(t=t, e_a=Q_(2.0, "hPa")).magnitude
+    inner = loaded.formulations["magnus"].evaluate(t=t).magnitude
+    assert values == pytest.approx(100 * 2.0 / inner)
 
 
 def test_a_condition_on_a_computed_value_is_refused() -> None:

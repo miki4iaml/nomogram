@@ -47,7 +47,7 @@ import numpy as np
 import sympy
 
 from nomogram.comparison import same_state
-from nomogram.expression import parse_expression
+from nomogram.expression import Piecewise, parse_expression
 from nomogram.model import (
     CheckCase,
     CrossCheck,
@@ -455,7 +455,7 @@ def _difference(left: Any, right: Any) -> Any:
         if all(branch == 0 for branch in branches):
             return sympy.Integer(0)
         conditions = [c for _, c in left.args]
-        return sympy.Piecewise(*zip(branches, conditions, strict=True), evaluate=False)
+        return Piecewise(*zip(branches, conditions, strict=True))
     difference = sympy.nsimplify(left - right, rational=True)
     if left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
         return difference
