@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from nomogram import _logo
+
 SCRIPT = Path(__file__).parents[1] / "scripts" / "make_logo.py"
 SPEC = importlib.util.spec_from_file_location("make_logo", SCRIPT)
 assert SPEC is not None
@@ -36,13 +38,13 @@ def test_each_image_is_a_titled_svg(name: str) -> None:
 
 
 def test_the_reading_line_crosses_the_diagonal_at_u_over_v() -> None:
-    width, height = 64.0, make_logo.H
-    _, left, right = make_logo.n_chart(0.0, 0.0, width)
+    width, height = 64.0, _logo.H
+    _, left, right = _logo.n_chart(0.0, 0.0, width)
     # The diagonal runs from (0, 0) to (width, height); the line through both
     # reading points meets it at a fraction s of its length, where w = s / (1 - s).
     slope = (right[1] - left[1]) / (right[0] - left[0])
     s = left[1] / (height - slope * width)
-    assert s / (1 - s) == pytest.approx(make_logo.U / make_logo.V)
+    assert s / (1 - s) == pytest.approx(_logo.U / _logo.V)
 
 
 def test_the_logo_follows_the_theme_and_the_banners_do_not() -> None:
@@ -51,7 +53,7 @@ def test_the_logo_follows_the_theme_and_the_banners_do_not() -> None:
     for theme in ("light", "dark"):
         banner = files[f"banner-{theme}.svg"]
         assert "prefers-color-scheme" not in banner
-        assert make_logo.THEMES[theme]["ink"] in banner
+        assert _logo.THEMES[theme]["ink"] in banner
 
 
 def test_the_favicon_has_no_graduations() -> None:

@@ -82,6 +82,11 @@ and this project adheres to
   working nomogram, then a sphere of linked nodes, M and a globe. Light
   and dark variants, a banner with the word "nomogram", an icon and a
   favicon ([docs/logo.md](docs/logo.md)).
+- The figures that `plot_values` and `plot_deviations` create are
+  signed with the logo, at the right edge, on the line of the x-axis
+  label (`signature=False` leaves it out). A figure given through `ax` is
+  never signed. `nomogram.plot.sign` signs any figure; the signature is a
+  vector artist, which `remove()` takes off.
 - Quantity kind `SpecificEnergy` (QUDT, Wikidata Q3023293), in J/kg.
 - The submodules are attributes of the package, imported the first time
   they are used (PEP 562): `import nomogram as nomo`, then `nomo.catalog`,

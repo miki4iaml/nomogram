@@ -77,7 +77,7 @@ table = nomo.comparison.compare(
 nomo.plot.plot_deviations(table)  # extra viz
 ```
 
-![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
+![Deviation of saturation vapour pressure formulations from IAPWS](docs/images/saturation-vapour-pressure.png)
 
 ## Usage
 
