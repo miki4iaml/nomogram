@@ -82,8 +82,8 @@ SYMBOLIC_MAX_OCCURRENCES = 3
 #: validity domain, in degC: a search interval, not a validity domain.
 DEW_POINT_SEARCH_CELSIUS = (-100.0, 100.0)
 
-#: Name of the offset coefficient added when the result changes from K to
-#: degC (t = T - T0, SI Brochure, section 2.3.1).
+#: Name of the offset coefficient, 273.15 K, added when the result changes
+#: from K to degC or back (t = T - T0, SI Brochure, section 2.3.1).
 _OFFSET = "T_celsius_zero"
 
 Method = Literal["auto", "symbolic", "numerical"]
@@ -192,7 +192,8 @@ def _closed_form(
     """A closed-form inverse of ``expr``, as source text, checked on samples.
 
     Returns the source and the coefficients it uses (those of the
-    formulation, plus the offset when the result changes from K to degC).
+    formulation, plus the offset when the result changes from K to degC
+    or back).
     """
     import sympy
 
@@ -217,7 +218,7 @@ def _closed_form(
         coefficients.append(
             Coefficient(
                 _OFFSET,
-                -shift,
+                abs(shift),
                 "K",
                 "t = T - T0 (SI Brochure, section 2.3.1)",
                 UnitBasis.ADDED,
@@ -233,7 +234,9 @@ def _closed_form(
     for solution in solutions:
         found = solution
         if shift:
-            found = found - sympy.Symbol(_OFFSET, real=True)
+            # t = T - T0 from K to degC, T = t + T0 from degC to K.
+            offset = sympy.Symbol(_OFFSET, real=True)
+            found = found + offset if shift > 0 else found - offset
         source = _source(found)
         try:
             parsed = parse_expression(source, names)

@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+import sympy
 
 from nomogram.catalog import catalog, load_catalog
 from nomogram.comparison import compose
@@ -76,12 +77,18 @@ def test_buck_picks_the_right_branch_of_its_quadratic_solution() -> None:
     assert inverse.evaluate(e=vapour).magnitude == pytest.approx(25.0, abs=1e-6)
 
 
+#: The offset added when a result changes from K to degC or back.
+T0 = sympy.Symbol("T_celsius_zero", real=True)
+
+
 def test_kelvin_formulation_gets_an_explicit_celsius_offset() -> None:
     inverse = dew_point(FORMULATIONS["murray1967"])
     assert isinstance(inverse, Formulation)
     offset = next(c for c in inverse.coefficients if c.identifier == "T_celsius_zero")
     assert offset.value == 273.15
     assert "SI Brochure" in (offset.note or "")
+    # t = T - T0.
+    assert inverse.sympy_expression.coeff(T0) == -1
 
 
 def test_validity_domain_is_carried_through_the_function() -> None:
@@ -336,11 +343,18 @@ def test_invalid_inversions_are_refused(kwargs: dict[str, str], message: str) ->
 
 
 def test_a_dew_point_may_be_solved_in_kelvins() -> None:
-    # The same point as in degC: the closed form adds 273.15 K.
+    # The same point as in degC: the closed form adds T0 = 273.15 K.
     formulation = FORMULATIONS["sonntag1990_magnus"]
     output = Variable("t_d", "DewPointTemperature", "K", "x")
     vapour = Variable("e", "VapourPressure", "HectoPA", "e")
     in_kelvins = invert(formulation, "t", output=output, input=vapour)
+    assert isinstance(in_kelvins, Formulation)
+    # T = t + T0.
+    assert in_kelvins.sympy_expression.coeff(T0) == 1
+    offset = next(
+        c for c in in_kelvins.coefficients if c.identifier == "T_celsius_zero"
+    )
+    assert offset.value == 273.15
     e = Q_([6.112, 12.27, 23.37], "hPa")
     expected = dew_point(formulation).evaluate(e=e).to("degC").magnitude
     assert in_kelvins.evaluate(e=e).to("degC").magnitude == pytest.approx(expected)

@@ -133,6 +133,9 @@ and this project adheres to
 
 ### Fixed
 
+- The closed-form inverse of a formulation in degC, solved in K, writes
+  T = t + T0 with T0 = 273.15 K. It wrote t - T0 with T0 = -273.15 K:
+  the values were right, the expression misleading.
 - The report of `check` took the domains of inputs on a conventional
   scale, stated on that scale, as values of the reference scale on which
   it evaluates. They are now converted to the reference scale first,
