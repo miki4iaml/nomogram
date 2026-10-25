@@ -267,7 +267,7 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
         branches = tuple(e for e, _ in expr.args)
         if len(branches) > 1:
             yield _Constraint("equal", branches, str(expr))
-        for relation in _relations(sympy.Piecewise(*expr.args, evaluate=False)):
+        for relation in _relations(expr):
             yield _Constraint("equal", (relation.lhs, relation.rhs), str(relation))
         for branch in branches:
             yield from _constraints(branch)
