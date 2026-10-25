@@ -384,6 +384,13 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("dickson2007_vapour_pressure", "S_1"): "added",
         ("dickson2007_vapour_pressure", "T_c"): "stated",
         ("dickson2007_vapour_pressure", "p_c"): "stated",
+        ("ambaum2020_latent_heat_vaporization", "L_0"): "stated",
+        ("ambaum2020_latent_heat_vaporization", "Delta_c"): "stated",
+        ("ambaum2020_latent_heat_vaporization", "T_0"): "stated",
+        ("ambaum2020_latent_heat_fusion", "L_m0"): "stated",
+        ("ambaum2020_latent_heat_fusion", "c_l"): "stated",
+        ("ambaum2020_latent_heat_fusion", "c_i"): "stated",
+        ("ambaum2020_latent_heat_fusion", "T_0"): "stated",
     }
 
 

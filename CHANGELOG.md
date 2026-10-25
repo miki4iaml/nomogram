@@ -103,6 +103,10 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- The specific latent heats of vaporization and of melting of Ambaum
+  (2020), linear in temperature, with the units and the 0-100 degC
+  range the article states, and the quantity kind
+  `SpecificLatentHeatOfFusion`.
 - Formulations of WMO-No. 8 (2024), Annex 4.B:
   - the enhancement factor f(p) (4.B.5);
   - the saturation vapour pressures over water and over ice in moist air,
