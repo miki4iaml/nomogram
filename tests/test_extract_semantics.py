@@ -115,6 +115,21 @@ def test_an_interval_scale_may_take_multiplicative_units(
     assert found["VapourPressure"]["applicable_units"] == ["HectoPA"]
 
 
+def test_a_kind_may_take_units_with_and_without_an_offset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A temperature point written in degC or in K, as the dew point is.
+    spec = extract_semantics.KINDS["CelsiusTemperature"]
+    kinds = dict(
+        extract_semantics.KINDS, CelsiusTemperature=spec._replace(offset_units="any")
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["CelsiusTemperature"]["applicable_units"] == ["DEG_C", "K"]
+    assert found["CelsiusTemperature"]["added_units"] == []
+
+
 def test_english_label_is_preferred_and_plain_label_accepted() -> None:
     kinds = run()["quantity_kinds"]
     assert isinstance(kinds, dict)

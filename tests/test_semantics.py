@@ -99,6 +99,10 @@ def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
 #: unit: multiplicative units (``offset_units=False`` in the extraction).
 SURFACE_ZERO = frozenset({"Altitude"})
 
+#: Temperature points written with or without an offset, in degC or in K
+#: (``offset_units="any"`` in the extraction).
+ANY_OFFSET = frozenset({"DewPointTemperature"})
+
 
 @pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))
 def test_applicable_units_follow_the_scale_rule(name: str) -> None:
@@ -108,7 +112,7 @@ def test_applicable_units_follow_the_scale_rule(name: str) -> None:
     for unit_name in kind.applicable_units:
         unit = CATALOG.units[unit_name]
         assert unit.dimensions == kind.dimensions
-        assert (unit.offset != 0.0) is offset
+        assert name in ANY_OFFSET or (unit.offset != 0.0) is offset
     assert set(kind.added_units) <= set(kind.applicable_units)
 
 
@@ -133,6 +137,21 @@ def test_celsius_is_not_a_unit_of_thermodynamic_temperature() -> None:
     assert kinds["ThermodynamicTemperature"].applicable_units == ("K",)
     assert "DEG_C" in kinds["CelsiusTemperature"].applicable_units
     assert kinds["CelsiusTemperature"].scale_type is ScaleType.INTERVAL
+
+
+def test_a_dew_point_is_given_in_degc_or_in_k() -> None:
+    # QUDT has one kind for the dew point, which CF gives in K and empirical
+    # formulas in degC; nomogram's scale rule would keep only degC and degF.
+    kind = CATALOG.quantity_kinds["DewPointTemperature"]
+    assert set(kind.applicable_units) == {"DEG_C", "DEG_F", "K"}
+    assert kind.scale_type is ScaleType.INTERVAL
+    assert not kind.added_units
+
+
+def test_specific_energy_is_in_joules_per_kilogram() -> None:
+    kind = CATALOG.quantity_kinds["SpecificEnergy"]
+    assert kind.applicable_units == ("J-PER-KiloGM",)
+    assert not kind.added_units
 
 
 def test_air_temperature_names_both_temperatures() -> None:

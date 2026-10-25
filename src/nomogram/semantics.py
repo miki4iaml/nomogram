@@ -12,9 +12,9 @@ nomogram does not build its own ontology. It bundles a frozen subset of
 On top of QUDT, nomogram states the scale type of each kind and whether
 it is a difference (QUDT's *delta quantity*, OM's ``Measure``) or a point;
 the scale type decides which units apply (offset units only for
-interval-scale kinds). Links to external vocabularies (Wikidata...) are
-:class:`ExternalMatch` objects carrying a SKOS relation and the date they
-were last verified. ``docs/rosetta.md`` maps this vocabulary.
+interval-scale kinds; the dew point, in degC or in K, takes both). Links
+to external vocabularies (Wikidata...) are :class:`ExternalMatch` objects
+carrying a SKOS relation and the date they were last verified. ``docs/rosetta.md`` maps this vocabulary.
 """
 
 from __future__ import annotations

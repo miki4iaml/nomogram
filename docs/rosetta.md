@@ -57,7 +57,7 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | thermodynamic temperature T | `ThermodynamicTemperature` | Q264647 | `air_temperature` | `K` |
 | Celsius temperature t | `CelsiusTemperature` | Q74758530 | `air_temperature` (in `degC`) | `degC` |
 | temperature difference | `TemperatureDifference` | — | — | `delta_degC`, `K` |
-| dew point temperature T_d | `DewPointTemperature` | — | `dew_point_temperature` | `degC` |
+| dew point temperature T_d | `DewPointTemperature` | — | `dew_point_temperature` | `degC`, `K` |
 | air pressure p | `Pressure` | Q39552 | `air_pressure` | `hPa` |
 | relative humidity RH | `RelativeHumidity` | Q2499617 | `relative_humidity` | `percent`, `1` |
 | vapour pressure e | `VapourPressure` | — | `water_vapor_partial_pressure_in_air` | `hPa` |
@@ -65,6 +65,7 @@ edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14.
 | absolute humidity (mass concentration of water vapour) | `MassConcentrationOfWaterVapour` | Q76378808 | `mass_concentration_of_water_vapor_in_air` | `g/m³` |
 | humidity mixing ratio | `MassRatioOfWaterVapourToDryGas` | Q17232415 | `humidity_mixing_ratio` | `g/kg` |
 | specific humidity | `SpecificHumidity` | — | `specific_humidity` | `g/kg` |
+| specific energy | `SpecificEnergy` | Q3023293 | none | `J/kg` |
 
 ## Ambiguous trade terms
 
@@ -140,7 +141,10 @@ silently.
    nomogram makes a unit applicable to a kind when it is declared for
    that kind or one it specializes, then keeps offset units for
    interval-scale kinds only. Without that rule, QUDT would make the
-   degree Celsius a unit of the thermodynamic temperature.
+   degree Celsius a unit of the thermodynamic temperature. The dew point
+   is the exception: QUDT has one kind for it, where the air temperature
+   has two, and CF gives it in K while empirical formulas give it in
+   degC, so `DewPointTemperature` takes both (`offset_units="any"`).
 9. `MassRatioOfWaterVapourToDryGas` specializes no kind, so the mass
    ratio units (g/kg) do not reach it; `RelativeHumidity` and
    `SpecificHumidity` have no unit 1, CF's canonical unit for both.

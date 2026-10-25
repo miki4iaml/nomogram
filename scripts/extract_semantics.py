@@ -43,7 +43,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET  # parses a trusted, pinned CF release
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 from rdflib import Graph, Namespace, URIRef
 
@@ -63,8 +63,9 @@ class KindSpec(NamedTuple):
     added_units: tuple[str, ...] = ()
     #: Whether its units carry an offset (degC); by default, those of an
     #: interval scale do. An interval scale whose zero is a reference
-    #: surface rather than a unit (altitude) takes multiplicative units.
-    offset_units: bool | None = None
+    #: surface rather than a unit (altitude) takes multiplicative units;
+    #: ``"any"`` takes both (a temperature point written in degC or in K).
+    offset_units: bool | Literal["any"] | None = None
 
 
 #: Quantity kinds kept, by QUDT local name.
@@ -78,10 +79,15 @@ KINDS: dict[str, KindSpec] = {
     "CelsiusTemperature": KindSpec(
         "interval", delta=False, cf_standard_names=("air_temperature",)
     ),
-    # A temperature point like the Celsius temperature: empirical formulas
-    # give it in degC. A kind of its own, never matched with air temperature.
+    # A temperature point, never matched with air temperature. Empirical
+    # formulas give it in degC; CF (its canonical unit) and the IFS give it
+    # in K. QUDT has one kind for both, where the air temperature has two,
+    # so it takes units with and without an offset.
     "DewPointTemperature": KindSpec(
-        "interval", delta=False, cf_standard_names=("dew_point_temperature",)
+        "interval",
+        delta=False,
+        cf_standard_names=("dew_point_temperature",),
+        offset_units="any",
     ),
     "TemperatureDifference": KindSpec("ratio", delta=True),
     # CF's canonical unit for relative humidity is 1.
@@ -120,6 +126,9 @@ KINDS: dict[str, KindSpec] = {
     # Kept although nomogram does not use it as a kind: the term is
     # ambiguous across trades (see docs/rosetta.md).
     "AbsoluteHumidity": KindSpec("ratio", delta=False),
+    # Energy per unit mass, in which latent heats are given; QUDT declares
+    # J/kg for it.
+    "SpecificEnergy": KindSpec("ratio", delta=False),
     # Radio refractivity (ITU-R P.453): the refractive index, the parent of
     # the dimensionless kinds nomogram defines, and heights above the
     # surface (CF: "the vertical distance above the surface").
@@ -347,7 +356,8 @@ def extract_kinds(
     others. Without it, QUDT would make ``DEG_C`` applicable to the
     thermodynamic temperature. A kind may set ``offset_units`` when its
     scale's zero comes from a reference surface rather than from the unit
-    (an altitude is on an interval scale, in metres).
+    (an altitude is on an interval scale, in metres), or to take both
+    (the dew point, in degC or in K).
     """
     kinds: dict[str, dict[str, Any]] = {}
     for name, spec in KINDS.items():
@@ -360,7 +370,8 @@ def extract_kinds(
         applicable = {
             unit
             for unit, data in units.items()
-            if declared[unit] & lineage and (data["offset"] != 0.0) == offset
+            if declared[unit] & lineage
+            and (offset == "any" or (data["offset"] != 0.0) == offset)
         }
         added = set(spec.added_units) - applicable
         kinds[name] = {
