@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 116 152" role="img" aria-label="nomogram">
+  <title>nomogram</title>
+  <style>
+  .ink { stroke: #1f2937; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .fine { stroke: #1f2937; fill: none; stroke-linecap: round; opacity: 0.55; }
+  .sea { fill: #dbeafe; stroke: none; }
+  .read { stroke: #c2410c; fill: none; stroke-linecap: round; }
+  .dot { fill: #c2410c; }
+  .node { fill: #1f2937; }
+  @media (prefers-color-scheme: dark) {
+    .ink, .fine { stroke: #e5e7eb; }
+    .sea { fill: #1e3a5f; }
+    .read { stroke: #fb923c; }
+    .dot { fill: #fb923c; }
+    .node { fill: #e5e7eb; }
+  }
+  </style>
+  <line x1="26" y1="26" x2="26" y2="126" class="ink" stroke-width="14"/>
+  <line x1="90" y1="26" x2="90" y2="126" class="ink" stroke-width="14"/>
+  <line x1="26" y1="26" x2="90" y2="126" class="ink" stroke-width="14"/>
+  <circle cx="62.92" cy="83.69" r="7.7" class="dot"/>
+  <line x1="12" y1="86.88" x2="104" y2="81.12" class="read" stroke-width="7"/>
+  <circle cx="26" cy="86" r="7.7" class="dot"/>
+  <circle cx="90" cy="82" r="7.7" class="dot"/>
+</svg>

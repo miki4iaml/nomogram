@@ -1,4 +1,9 @@
-# nomogram
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-dark.svg">
+    <img alt="nomogram" src="docs/images/banner-light.svg" width="480">
+  </picture>
+</p>
 
 **English** | [Français](README.fr.md)
 
@@ -13,9 +18,19 @@
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-fe5196)](https://www.conventionalcommits.org/en/v1.0.0/)
 
-A repository of scientific formulas: alternative notations across
-authors and conventions, parameter units (including empirical ones),
-validity domains, LaTeX rendering and symbolic computation.
+**Formulas as data, not as code.**
+
+nomogram does not hard-code functions: it catalogs formulas, each one
+
+- **meaningful**: QUDT quantity kinds and units, links to CF and
+  Wikidata, its source, its validity domain when stated;
+- **checked**: dimensions and units on loading, equivalences proved
+  symbolically, values cross-checked against references;
+- **ready to use**: compute, compose, invert, plot, and compare with its
+  alternatives.
+
+Built for trust, not for speed: to show that a calculation is right, and
+where it comes from.
 
 Pure Python, built on SymPy, numpy and pint; it works on an offline
 workstation (no online engine).
@@ -48,17 +63,18 @@ validity domain ([script](docs/examples/saturation_vapour_pressure.py)):
 
 ```python
 import numpy as np
-from nomogram.catalog import catalog
-from nomogram.comparison import compare
-from nomogram.plot import plot_deviations  # extra viz
+import nomogram as nomo
 from nomogram.units import Q_
 
-formulations = catalog().formulations_of("SaturationVapourPressureOverWater")
-reference = catalog().formulations["iapws_sr1_86"]
+catalog = nomo.catalog.catalog()
+formulations = catalog.formulations_of("SaturationVapourPressureOverWater")
+reference = catalog.formulations["iapws_sr1_86"]
 temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 
-table = compare(formulations, reference, {"ThermodynamicTemperature": temperatures})
-plot_deviations(table)
+table = nomo.comparison.compare(
+    formulations, reference, {"ThermodynamicTemperature": temperatures}
+)
+nomo.plot.plot_deviations(table)  # extra viz
 ```
 
 ![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
@@ -71,9 +87,9 @@ otherwise (`outside="ignore"`). Formulations also chain, for instance
 the absolute humidity from any saturation vapour pressure formulation:
 
 ```python
-from nomogram.comparison import compose
-
-ha = compose(catalog().formulations["mass_concentration_ideal_gas"], {"e_s": reference})
+ha = nomo.comparison.compose(
+    catalog.formulations["mass_concentration_ideal_gas"], {"e_s": reference}
+)
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
@@ -81,8 +97,8 @@ Formulations are found by words, wildcards and fields, whatever their
 notation ([Finding formulations](docs/search.md)):
 
 ```python
-catalog().search(variable="rho*")                    # ρ in every notation
-catalog().search(kind="VapourPressure", source="buck*")
+catalog.search(variable="rho*")                    # ρ in every notation
+catalog.search(kind="VapourPressure", source="buck*")
 ```
 
 Each formulation keeps its units, validity domain, temperature scale and
@@ -91,7 +107,8 @@ references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
 how, and [Displaying formulas](docs/display.md) shows formulas in notebooks,
 Markdown and plots. [Sea water](docs/sea-water.md) shows the salinity
 scales and the vapour pressure of sea water, and what its 2 % lowering
-changes at the sea surface.
+changes at the sea surface. [The logo](docs/logo.md) is a working
+nomogram.
 
 ## Contributing
 

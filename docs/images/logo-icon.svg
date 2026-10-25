@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 116 152" role="img" aria-label="nomogram">
+  <title>nomogram</title>
+  <style>
+  .ink { stroke: #1f2937; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .fine { stroke: #1f2937; fill: none; stroke-linecap: round; opacity: 0.55; }
+  .sea { fill: #dbeafe; stroke: none; }
+  .read { stroke: #c2410c; fill: none; stroke-linecap: round; }
+  .dot { fill: #c2410c; }
+  .node { fill: #1f2937; }
+  @media (prefers-color-scheme: dark) {
+    .ink, .fine { stroke: #e5e7eb; }
+    .sea { fill: #1e3a5f; }
+    .read { stroke: #fb923c; }
+    .dot { fill: #fb923c; }
+    .node { fill: #e5e7eb; }
+  }
+  </style>
+  <line x1="26" y1="26" x2="26" y2="126" class="ink" stroke-width="8"/>
+  <line x1="90" y1="26" x2="90" y2="126" class="ink" stroke-width="8"/>
+  <line x1="26" y1="26" x2="90" y2="126" class="ink" stroke-width="8"/>
+  <line x1="14" y1="26" x2="22" y2="26" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="126" x2="102" y2="126" class="fine" stroke-width="1.6"/>
+  <line x1="17" y1="36" x2="22" y2="36" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="116" x2="99" y2="116" class="fine" stroke-width="1.6"/>
+  <line x1="14" y1="46" x2="22" y2="46" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="106" x2="102" y2="106" class="fine" stroke-width="1.6"/>
+  <line x1="17" y1="56" x2="22" y2="56" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="96" x2="99" y2="96" class="fine" stroke-width="1.6"/>
+  <line x1="14" y1="66" x2="22" y2="66" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="86" x2="102" y2="86" class="fine" stroke-width="1.6"/>
+  <line x1="17" y1="76" x2="22" y2="76" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="76" x2="99" y2="76" class="fine" stroke-width="1.6"/>
+  <line x1="14" y1="86" x2="22" y2="86" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="66" x2="102" y2="66" class="fine" stroke-width="1.6"/>
+  <line x1="17" y1="96" x2="22" y2="96" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="56" x2="99" y2="56" class="fine" stroke-width="1.6"/>
+  <line x1="14" y1="106" x2="22" y2="106" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="46" x2="102" y2="46" class="fine" stroke-width="1.6"/>
+  <line x1="17" y1="116" x2="22" y2="116" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="36" x2="99" y2="36" class="fine" stroke-width="1.6"/>
+  <line x1="14" y1="126" x2="22" y2="126" class="fine" stroke-width="1.6"/>
+  <line x1="94" y1="26" x2="102" y2="26" class="fine" stroke-width="1.6"/>
+  <line x1="42.17" y1="43.84" x2="48.91" y2="39.53" class="fine" stroke-width="1.6"/>
+  <line x1="50.7" y1="57.18" x2="57.44" y2="52.86" class="fine" stroke-width="1.6"/>
+  <line x1="61.37" y1="73.84" x2="68.11" y2="69.53" class="fine" stroke-width="1.6"/>
+  <line x1="72.04" y1="90.51" x2="78.77" y2="86.2" class="fine" stroke-width="1.6"/>
+  <line x1="80.57" y1="103.84" x2="87.31" y2="99.53" class="fine" stroke-width="1.6"/>
+  <circle cx="62.92" cy="83.69" r="4.4" class="dot"/>
+  <line x1="12" y1="86.88" x2="104" y2="81.12" class="read" stroke-width="3.2"/>
+  <circle cx="26" cy="86" r="4.4" class="dot"/>
+  <circle cx="90" cy="82" r="4.4" class="dot"/>
+</svg>
