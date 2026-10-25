@@ -88,6 +88,13 @@ and this project adheres to
   never signed. `nomogram.plot.sign` signs any figure; the signature is a
   vector artist, which `remove()` takes off.
 - Quantity kind `SpecificEnergy` (QUDT, Wikidata Q3023293), in J/kg.
+- Formulations of WMO-No. 8 (2024), Annex 4.B:
+  - the enhancement factor f(p) (4.B.5);
+  - the saturation vapour pressures over water and over ice in moist air,
+    as compositions of f(p) with 4.B.1 and 4.B.3 (4.B.2, 4.B.4);
+  - the relative humidity with respect to water (4.B.10);
+  - the dew point (4.B.6), with the enhancement factor as an input or
+    taken from 4.B.5.
 - The submodules are attributes of the package, imported the first time
   they are used (PEP 562): `import nomogram as nomo`, then `nomo.catalog`,
   `nomo.comparison`, `nomo.plot`... `import nomogram` stays light, and type

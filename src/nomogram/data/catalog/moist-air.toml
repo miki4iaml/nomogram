@@ -522,3 +522,85 @@ coefficients = { C = 216.7 }
 [[formulations.itu_r_p453_vapour_pressure_from_density.citations]]
 reference = "itu_r_p453_14"
 equation = "10"
+
+# WMO-No. 8 (2024), Volume I, Annex 4.B (p. 197): the enhancement factor
+# f(p), the saturation vapour pressures in moist air, the relative
+# humidity and the dew point, built on the saturation vapour pressures
+# 4.B.1 (sonntag1990_magnus) and 4.B.3 (wmo2008_ice) of the water-vapour
+# family.
+
+[formulations.wmo_enhancement_factor]
+label = "Enhancement factor, WMO Guide (CIMO)"
+expression = "f_0 + f_1 * p - f_2 / p"
+fixed_units = true
+note = "The guide omits the temperature dependence of f (below 0.1 %, against 0 to +0.6 % for the pressure) and keeps the formula to pressures around 1000 hPa, surface measurements; for upper-air measurements it refers to WMO (1966), Table 4.10. That restriction states no bounds, so it stays in this note."
+output = { identifier = "f", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+coefficients = { f_0 = 1.0016, f_1 = 3.15e-6, f_2 = 0.074 }
+
+[[formulations.wmo_enhancement_factor.citations]]
+reference = "wmo2024"
+equation = "4.B.5"
+
+[formulations.wmo_es_water_moist_air]
+label = "Saturation vapour pressure over water in moist air, WMO Guide (CIMO)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "wmo_enhancement_factor", e_s = "sonntag1990_magnus" } }
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+
+[[formulations.wmo_es_water_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.2"
+notation = { e_ws = "e'_{\\mathrm{w}}" }
+
+[formulations.wmo_es_ice_moist_air]
+label = "Saturation vapour pressure over ice in moist air, WMO Guide (CIMO)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "wmo_enhancement_factor", e_s = "wmo2008_ice" } }
+output = { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air" }
+
+[[formulations.wmo_es_ice_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.4"
+notation = { e_is = "e'_{\\mathrm{i}}" }
+
+[formulations.wmo_relative_humidity]
+label = "Relative humidity with respect to water, WMO Guide (CIMO)"
+expression = "100 * e / e_ws"
+fixed_units = true
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air, at the same pressure and temperature" },
+]
+
+[[formulations.wmo_relative_humidity.citations]]
+reference = "wmo2024"
+equation = "4.B.10"
+notation = { RH = "U", e = "e'", e_ws = "e'_{\\mathrm{w}}" }
+
+[formulations.wmo_dew_point]
+label = "Dew point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
+expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
+fixed_units = true
+note = "The guide states the range -45 to 60 degC for the dew point over water, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_dew_point_moist_air takes it from 4.B.5."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "f", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" },
+]
+coefficients = { A = 17.62, B = 243.12, C = 6.112 }
+
+[[formulations.wmo_dew_point.citations]]
+reference = "wmo2024"
+equation = "4.B.6"
+notation = { e = "e'" }
+
+[formulations.wmo_dew_point_moist_air]
+label = "Dew point from the vapour pressure and the pressure of moist air, WMO Guide (CIMO)"
+composition = { outer = "wmo_dew_point", inner = { f = "wmo_enhancement_factor" } }
+
+[[formulations.wmo_dew_point_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.6"
+notation = { e = "e'" }
