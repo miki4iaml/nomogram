@@ -375,3 +375,61 @@ def test_hyland_wexler_over_ice_behaves_as_its90() -> None:
     grid = Q_(np.array([-80.0, -60.0, -40.0, -20.0, -1.0]), "degC")
     comparison = compare([hyland], IAPWS_ICE, {"ThermodynamicTemperature": grid})
     assert comparison.max_abs_deviation()["hyland_wexler1983_ice"] < 0.00033
+
+
+# --- WMO-No. 8 (2024), Annex 4.B --------------------------------------------
+
+WMO_F = FORMULATIONS["wmo_enhancement_factor"]
+WMO_ES_WATER = FORMULATIONS["wmo_es_water_moist_air"]
+WMO_ES_ICE = FORMULATIONS["wmo_es_ice_moist_air"]
+
+
+def test_wmo_enhancement_factor_stays_within_the_stated_effect_of_pressure() -> None:
+    # Note to Annex 4.B: the pressure dependence of f is 0 % to +0.6 %, the
+    # formula being meant for pressures around 1000 hPa.
+    f = WMO_F.evaluate(p=Q_(np.linspace(500.0, 1100.0, 61), "hPa")).magnitude
+    assert np.all(f > 1.0)
+    assert np.all(f < 1.006)
+
+
+@pytest.mark.parametrize(
+    ("moist", "pure", "celsius"),
+    [
+        ("wmo_es_water_moist_air", "sonntag1990_magnus", [-40.0, 0.0, 20.0, 50.0]),
+        ("wmo_es_ice_moist_air", "wmo2008_ice", [-60.0, -30.0, -5.0]),
+    ],
+)
+def test_wmo_saturation_in_moist_air_is_f_times_the_pure_phase(
+    moist: str, pure: str, celsius: list[float]
+) -> None:
+    # Equations 4.B.2 and 4.B.4: e'(p, t) = f(p) e(t).
+    t, p = Q_(np.array(celsius), "degC"), Q_(850.0, "hPa")
+    expected = (
+        WMO_F.evaluate(p=p).magnitude * FORMULATIONS[pure].evaluate(t=t).magnitude
+    )
+    assert FORMULATIONS[moist].evaluate(p=p, t=t).magnitude == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("hectopascal", [700.0, 1013.25])
+def test_wmo_dew_point_inverts_the_saturation_in_moist_air(hectopascal: float) -> None:
+    # Equation 4.B.6 is 4.B.2 solved for the temperature.
+    t, p = Q_(np.linspace(-40.0, 50.0, 10), "degC"), Q_(hectopascal, "hPa")
+    e = WMO_ES_WATER.evaluate(p=p, t=t)
+    dew = FORMULATIONS["wmo_dew_point_moist_air"].evaluate(e=e, p=p)
+    assert dew.to("degC").magnitude == pytest.approx(t.magnitude, abs=1e-9)
+
+
+def test_wmo_relative_humidity_is_the_ratio_to_saturation_in_percent() -> None:
+    # Equation 4.B.10: U = 100 e'/e'_w(p, t).
+    saturation = WMO_ES_WATER.evaluate(p=Q_(1000.0, "hPa"), t=Q_(20.0, "degC"))
+    humidity = FORMULATIONS["wmo_relative_humidity"]
+    assert humidity.evaluate(e=saturation, e_ws=saturation).to("percent").magnitude == (
+        pytest.approx(100.0)
+    )
+    half = humidity.evaluate(e=saturation / 2, e_ws=saturation)
+    assert half.to("percent").magnitude == pytest.approx(50.0)
+
+
+def test_the_wmo_dew_point_is_found_by_its_kind() -> None:
+    found = {f.key for f in CATALOG.search(kind="DewPointTemperature").formulations}
+    assert {"wmo_dew_point", "wmo_dew_point_moist_air"} <= found
