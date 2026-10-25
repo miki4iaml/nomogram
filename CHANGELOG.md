@@ -98,6 +98,11 @@ and this project adheres to
   the dew point of WMO-No. 8 (4.B.11) is the first such entry.
 - Units of coefficients are inferred through every level of a
   composition of compositions.
+- The specific latent heats of vaporization and sublimation of the
+  ECMWF IFS, linear in temperature (CY49R1, equations 12.1 and 12.2),
+  with the triple point temperature T_0 of the IFS and the quantity kind
+  `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
+  for vaporization and sublimation.
 - Formulations of WMO-No. 8 (2024), Annex 4.B:
   - the enhancement factor f(p) (4.B.5);
   - the saturation vapour pressures over water and over ice in moist air,

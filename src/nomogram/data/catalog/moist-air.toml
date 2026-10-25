@@ -47,6 +47,26 @@ label = "Partial Pressure of Dry Air"
 specialization_of = "Pressure"
 description = "Partial pressure of the dry air in moist air: the total pressure minus the vapour pressure."
 
+# Merged into QUDT on 2026-10-25 (qudt-public-repo pull request 1578),
+# not yet in a release.
+[kinds.SpecificLatentHeat]
+label = "Specific Latent Heat"
+specialization_of = "SpecificEnergy"
+description = "Latent heat of a phase transition per unit mass: vaporization, sublimation or fusion."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q104217205", relation = "exact", verified = 2026-10-25 },
+]
+
+[kinds.SpecificLatentHeatOfVaporization]
+label = "Specific Latent Heat of Vaporization"
+specialization_of = "SpecificLatentHeat"
+description = "Latent heat of vaporization per unit mass, at a given temperature: the difference of the specific enthalpies of the vapour and of the liquid."
+
+[kinds.SpecificLatentHeatOfSublimation]
+label = "Specific Latent Heat of Sublimation"
+specialization_of = "SpecificLatentHeat"
+description = "Latent heat of sublimation per unit mass, at a given temperature: the difference of the specific enthalpies of the vapour and of the solid."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -63,7 +83,7 @@ year = 2024
 title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
 
 [references.metpy171]
 authors = "MetPy developers"
@@ -317,6 +337,14 @@ description = "Specific latent heat of sublimation"
 reference = "ecmwf_ifs_cy49r1"
 nature = "conventional"
 conditions = "At the triple point temperature, T0 = 273.16 K; the model physics takes it as invariable."
+
+[constants.T_0_ecmwf_ifs]
+identifier = "T_0"
+value = 273.16
+unit = "K"
+description = "Triple point temperature of water, at which the IFS gives the specific heats of liquid water and ice and the latent heats"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
 
 # Printed in section 7.5.2 (p. 136), with the relative humidity.
 [constants.epsilon_ecmwf_ifs]
@@ -622,3 +650,40 @@ inputs = [
 reference = "wmo2024"
 equation = "4.B.11"
 notation = { RH = "U" }
+
+# Latent heats of the ECMWF IFS (CY49R1, Part IV, section 12.5, p. 246):
+# differences of specific enthalpies, linear in temperature.
+
+[formulations.ecmwf_ifs_latent_heat_vaporization]
+label = "Specific latent heat of vaporisation, linear in temperature, ECMWF IFS"
+expression = "L_v0 + (c_pv - c_l) * (T - T_0)"
+fixed_units = false
+note = "The difference of the specific enthalpies of water vapour and liquid water, with specific heats taken as constant. The IFS states no validity domain. Its model physics takes the latent heat as invariable, L_v0; this form gives the temperature dependency in the moist static energy (equations 12.26 to 12.28)."
+output = { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+constants = ["L_v0_ecmwf_ifs", "c_pv_ecmwf_ifs", "c_l_ecmwf_ifs", "T_0_ecmwf_ifs"]
+keywords = ["latent heat", "Kirchhoff"]
+
+[[formulations.ecmwf_ifs_latent_heat_vaporization.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.1"
+notation = { L_v0 = 'L_{\mathrm{v}}(T_0)' }
+
+[formulations.ecmwf_ifs_latent_heat_sublimation]
+label = "Specific latent heat of sublimation, linear in temperature, ECMWF IFS"
+expression = "L_s0 + (c_pv - c_s) * (T - T_0)"
+fixed_units = false
+note = "The difference of the specific enthalpies of water vapour and ice, with specific heats taken as constant. The IFS states no validity domain. Its model physics takes the latent heat as invariable, L_s0; this form gives the temperature dependency in the moist static energy (equations 12.26 to 12.28)."
+output = { identifier = "L_s", kind = "SpecificLatentHeatOfSublimation", unit = "J-PER-KiloGM", description = "Specific latent heat of sublimation" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+constants = ["L_s0_ecmwf_ifs", "c_pv_ecmwf_ifs", "c_s_ecmwf_ifs", "T_0_ecmwf_ifs"]
+keywords = ["latent heat", "Kirchhoff"]
+
+[[formulations.ecmwf_ifs_latent_heat_sublimation.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.2"
+notation = { L_s0 = 'L_{\mathrm{s}}(T_0)' }
