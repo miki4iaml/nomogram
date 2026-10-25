@@ -434,9 +434,9 @@ def _linear(
     context, constraints, _ = _setup(formulation)
     basis = _factors if in_units else _dimension
     bases = sorted({name for unit in context.units.values() for name in basis(unit)})
-    if not bases:
+    if not bases or not context.unknown:
         # Every unit is a number (per mille against per mille): so is each
-        # coefficient.
+        # coefficient. Or every unit is declared: nothing to solve.
         return {name: {} for name in sorted(context.unknown)}
     exponents = {
         (name, base): sympy.Symbol(f"x_{name}_{index}")
