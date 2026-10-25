@@ -16,9 +16,7 @@ import sys
 import matplotlib as mpl
 import numpy as np
 
-from nomogram.catalog import catalog
-from nomogram.comparison import compare
-from nomogram.plot import plot_deviations
+import nomogram as nomo
 from nomogram.units import Q_
 
 mpl.use("Agg")  # render to a file, without a display
@@ -26,12 +24,15 @@ mpl.use("Agg")  # render to a file, without a display
 
 def main(output: str) -> None:
     """Write the comparison plot to ``output``."""
-    formulations = catalog().formulations_of("SaturationVapourPressureOverWater")
-    reference = catalog().formulations["iapws_sr1_86"]
+    catalog = nomo.catalog.catalog()
+    formulations = catalog.formulations_of("SaturationVapourPressureOverWater")
+    reference = catalog.formulations["iapws_sr1_86"]
     temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 
-    table = compare(formulations, reference, {"ThermodynamicTemperature": temperatures})
-    ax = plot_deviations(table)
+    table = nomo.comparison.compare(
+        formulations, reference, {"ThermodynamicTemperature": temperatures}
+    )
+    ax = nomo.plot.plot_deviations(table)
 
     # Formatting only.
     ax.set_ylim(-1.0, 1.0)

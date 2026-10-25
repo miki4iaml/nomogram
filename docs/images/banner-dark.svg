@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 220.4" role="img" aria-label="nomogram">
+  <title>nomogram</title>
+  <style>
+  .ink { stroke: #e5e7eb; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .fine { stroke: #e5e7eb; fill: none; stroke-linecap: round; opacity: 0.55; }
+  .sea { fill: #1e3a5f; stroke: none; }
+  .read { stroke: #fb923c; fill: none; stroke-linecap: round; }
+  .dot { fill: #fb923c; }
+  .node { fill: #e5e7eb; }
+  </style>
+  <line x1="22" y1="22" x2="22" y2="122" class="ink" stroke-width="8"/>
+  <line x1="86" y1="22" x2="86" y2="122" class="ink" stroke-width="8"/>
+  <line x1="22" y1="22" x2="86" y2="122" class="ink" stroke-width="8"/>
+  <line x1="10" y1="22" x2="18" y2="22" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="122" x2="98" y2="122" class="fine" stroke-width="1.6"/>
+  <line x1="13" y1="32" x2="18" y2="32" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="112" x2="95" y2="112" class="fine" stroke-width="1.6"/>
+  <line x1="10" y1="42" x2="18" y2="42" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="102" x2="98" y2="102" class="fine" stroke-width="1.6"/>
+  <line x1="13" y1="52" x2="18" y2="52" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="92" x2="95" y2="92" class="fine" stroke-width="1.6"/>
+  <line x1="10" y1="62" x2="18" y2="62" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="82" x2="98" y2="82" class="fine" stroke-width="1.6"/>
+  <line x1="13" y1="72" x2="18" y2="72" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="72" x2="95" y2="72" class="fine" stroke-width="1.6"/>
+  <line x1="10" y1="82" x2="18" y2="82" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="62" x2="98" y2="62" class="fine" stroke-width="1.6"/>
+  <line x1="13" y1="92" x2="18" y2="92" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="52" x2="95" y2="52" class="fine" stroke-width="1.6"/>
+  <line x1="10" y1="102" x2="18" y2="102" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="42" x2="98" y2="42" class="fine" stroke-width="1.6"/>
+  <line x1="13" y1="112" x2="18" y2="112" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="32" x2="95" y2="32" class="fine" stroke-width="1.6"/>
+  <line x1="10" y1="122" x2="18" y2="122" class="fine" stroke-width="1.6"/>
+  <line x1="90" y1="22" x2="98" y2="22" class="fine" stroke-width="1.6"/>
+  <line x1="38.17" y1="39.84" x2="44.91" y2="35.53" class="fine" stroke-width="1.6"/>
+  <line x1="46.7" y1="53.18" x2="53.44" y2="48.86" class="fine" stroke-width="1.6"/>
+  <line x1="57.37" y1="69.84" x2="64.11" y2="65.53" class="fine" stroke-width="1.6"/>
+  <line x1="68.04" y1="86.51" x2="74.77" y2="82.2" class="fine" stroke-width="1.6"/>
+  <line x1="76.57" y1="99.84" x2="83.31" y2="95.53" class="fine" stroke-width="1.6"/>
+  <circle cx="58.92" cy="79.69" r="4.4" class="dot"/>
+  <line x1="162" y1="32.71" x2="184.97" y2="42.96" class="fine" stroke-width="1.6"/>
+  <line x1="162" y1="32.71" x2="143.5" y2="49.79" class="fine" stroke-width="1.6"/>
+  <line x1="137.05" y1="39.54" x2="143.5" y2="49.79" class="fine" stroke-width="1.6"/>
+  <line x1="137.05" y1="39.54" x2="125.16" y2="66.88" class="fine" stroke-width="1.6"/>
+  <line x1="184.97" y1="42.96" x2="175.45" y2="60.04" class="fine" stroke-width="1.6"/>
+  <line x1="184.97" y1="42.96" x2="201.09" y2="70.29" class="fine" stroke-width="1.6"/>
+  <line x1="143.5" y1="49.79" x2="125.16" y2="66.88" class="fine" stroke-width="1.6"/>
+  <line x1="143.5" y1="49.79" x2="153.27" y2="77.12" class="fine" stroke-width="1.6"/>
+  <line x1="175.45" y1="60.04" x2="201.09" y2="70.29" class="fine" stroke-width="1.6"/>
+  <line x1="175.45" y1="60.04" x2="153.27" y2="77.12" class="fine" stroke-width="1.6"/>
+  <line x1="125.16" y1="66.88" x2="153.27" y2="77.12" class="fine" stroke-width="1.6"/>
+  <line x1="125.16" y1="66.88" x2="137.69" y2="94.21" class="fine" stroke-width="1.6"/>
+  <line x1="201.09" y1="70.29" x2="186.49" y2="87.38" class="fine" stroke-width="1.6"/>
+  <line x1="201.09" y1="70.29" x2="193.97" y2="97.62" class="fine" stroke-width="1.6"/>
+  <line x1="153.27" y1="77.12" x2="137.69" y2="94.21" class="fine" stroke-width="1.6"/>
+  <line x1="153.27" y1="77.12" x2="165.34" y2="104.46" class="fine" stroke-width="1.6"/>
+  <line x1="186.49" y1="87.38" x2="193.97" y2="97.62" class="fine" stroke-width="1.6"/>
+  <line x1="186.49" y1="87.38" x2="165.34" y2="104.46" class="fine" stroke-width="1.6"/>
+  <line x1="137.69" y1="94.21" x2="150.57" y2="111.29" class="fine" stroke-width="1.6"/>
+  <line x1="137.69" y1="94.21" x2="165.34" y2="104.46" class="fine" stroke-width="1.6"/>
+  <line x1="193.97" y1="97.62" x2="165.34" y2="104.46" class="fine" stroke-width="1.6"/>
+  <line x1="165.34" y1="104.46" x2="150.57" y2="111.29" class="fine" stroke-width="1.6"/>
+  <circle cx="162" cy="32.71" r="2.2" class="node"/>
+  <circle cx="137.05" cy="39.54" r="2.2" class="node"/>
+  <circle cx="184.97" cy="42.96" r="2.2" class="node"/>
+  <circle cx="143.5" cy="49.79" r="2.2" class="node"/>
+  <circle cx="175.45" cy="60.04" r="2.2" class="node"/>
+  <circle cx="125.16" cy="66.88" r="2.2" class="node"/>
+  <circle cx="201.09" cy="70.29" r="2.2" class="node"/>
+  <circle cx="153.27" cy="77.12" r="2.2" class="node"/>
+  <circle cx="186.49" cy="87.38" r="2.2" class="node"/>
+  <circle cx="137.69" cy="94.21" r="2.2" class="node"/>
+  <circle cx="193.97" cy="97.62" r="2.2" class="node"/>
+  <circle cx="165.34" cy="104.46" r="2.2" class="node"/>
+  <circle cx="150.57" cy="111.29" r="2.2" class="node"/>
+  <circle cx="162" cy="72" r="50" class="ink" stroke-width="8"/>
+  <path d="M 238,122 L 238,22 L 270,84 L 302,22 L 302,122" class="ink" stroke-width="8"/>
+  <circle cx="378" cy="72" r="50" class="sea"/>
+  <ellipse cx="378" cy="72" rx="25" ry="50" class="fine" stroke-width="1.6"/>
+  <ellipse cx="378" cy="72" rx="43.3" ry="50" class="fine" stroke-width="1.6"/>
+  <line x1="378" y1="22" x2="378" y2="122" class="fine" stroke-width="1.6"/>
+  <line x1="353" y1="115.3" x2="403" y2="115.3" class="fine" stroke-width="1.6"/>
+  <line x1="334.7" y1="97" x2="421.3" y2="97" class="fine" stroke-width="1.6"/>
+  <line x1="328" y1="72" x2="428" y2="72" class="fine" stroke-width="1.6"/>
+  <line x1="334.7" y1="47" x2="421.3" y2="47" class="fine" stroke-width="1.6"/>
+  <line x1="353" y1="28.7" x2="403" y2="28.7" class="fine" stroke-width="1.6"/>
+  <circle cx="378" cy="72" r="50" class="ink" stroke-width="8"/>
+  <line x1="10" y1="82.75" x2="440" y2="55.88" class="read" stroke-width="2.6"/>
+  <circle cx="22" cy="82" r="4.4" class="dot"/>
+  <circle cx="86" cy="78" r="4.4" class="dot"/>
+  <g transform="translate(39.02 144)">
+  <path d="M 0,34 V 0 M 0,17 A 17 17 0 0 1 34,17 V 34" class="ink" stroke-width="6"/>
+  <circle cx="61.88" cy="17" r="17" class="ink" stroke-width="6"/>
+  <path d="M 89.76,34 V 0 M 89.76,13.6 A 13.6 13.6 0 0 1 116.96,13.6 V 34 M 116.96,13.6 A 13.6 13.6 0 0 1 144.16,13.6 V 34" class="ink" stroke-width="6"/>
+  <circle cx="172.04" cy="17" r="17" class="ink" stroke-width="6"/>
+  <circle cx="216.92" cy="17" r="17" class="ink" stroke-width="6"/>
+  <path d="M 233.92,0 V 40.8 A 13.6 13.6 0 0 1 206.72,40.8" class="ink" stroke-width="6"/>
+  <path d="M 244.8,34 V 0 M 244.8,11.9 A 11.9 11.9 0 0 1 256.7,0 H 261.8" class="ink" stroke-width="6"/>
+  <circle cx="289.68" cy="17" r="17" class="ink" stroke-width="6"/>
+  <path d="M 306.68,0 V 34" class="ink" stroke-width="6"/>
+  <path d="M 317.56,34 V 0 M 317.56,13.6 A 13.6 13.6 0 0 1 344.76,13.6 V 34 M 344.76,13.6 A 13.6 13.6 0 0 1 371.96,13.6 V 34" class="ink" stroke-width="6"/>
+  </g>
+</svg>

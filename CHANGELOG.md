@@ -78,6 +78,10 @@ and this project adheres to
 - Units of physical constants, from QUDT 3.5.2: J/K, J·s, m/s, mol⁻¹,
   J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
   writes mol⁻¹, as the SI Brochure does.
+- A logo, drawn by code (`scripts/make_logo.py`): NOMO, whose N is a
+  working nomogram, then a sphere of linked nodes, M and a globe. Light
+  and dark variants, a banner with the word "nomogram", an icon and a
+  favicon ([docs/logo.md](docs/logo.md)).
 - Quantity kind `SpecificEnergy` (QUDT, Wikidata Q3023293), in J/kg.
 - The submodules are attributes of the package, imported the first time
   they are used (PEP 562): `import nomogram as nomo`, then `nomo.catalog`,
@@ -117,6 +121,9 @@ and this project adheres to
 
 ### Changed
 
+- The README opens with the logo and says what nomogram is: formulas as
+  data, not as code, each one meaningful, checked and ready to use. Its
+  examples use `import nomogram as nomo`.
 - `SaturationVapourPressureOverWater` and `SaturationVapourPressureOverIce`
   specialize `SaturationVapourPressure`, itself a vapour pressure: they
   still feed any vapour pressure input, and a search of the new kind with
