@@ -1021,8 +1021,10 @@ class Part:
         Identifier of the outer formulation's input it computes; ``None``
         for the outer formulation itself.
     rename : mapping of str to str
-        Its inputs taken under another identifier in the composed
-        formulation (``bind``), by its own identifier.
+        Its identifiers taken under another in the formulation made of it,
+        by its own identifier: inputs bound (``bind``) or passed as
+        arguments, and, for a formulation called, its coefficients and
+        constants renamed.
     """
 
     formulation: Formulation
@@ -1059,8 +1061,9 @@ class Call:
     formulation : Formulation
         The formulation called, with its own validity domains and sources.
     arguments : mapping of str to str
-        For each of its inputs, by identifier, the input of the calling
-        formulation passed to it (``{"t": "t_d", "p": "p"}``).
+        For each of its inputs, by identifier and in the order of its
+        inputs, the input of the calling formulation passed to it
+        (``{"p": "p", "t": "t_d"}``).
     """
 
     alias: str
@@ -1118,11 +1121,14 @@ class Formulation:
         the piecewise definition they make. The validity domains of each
         apply where its condition holds.
     calls : tuple of Call
-        For a formulation whose expression calls others, the calls, in
-        order of appearance. ``expression`` is then the expression with
-        each call developed, the coefficients of each called formulation
-        under an identifier qualified by the formulation that defines
-        them; ``written`` keeps the expression as written.
+        For a formulation whose expression calls others, every call, in
+        order of appearance (two identical calls are both kept; they make
+        one part). ``expression`` is then the expression with each call
+        developed: the coefficients of each formulation called under an
+        identifier qualified by the formulation that defines them, a
+        constant under its identifier, or qualified by its key when
+        another constant has that identifier. ``written`` keeps the
+        expression as written.
     written : str or None
         The expression as written, with its calls; ``None`` without calls.
     """
@@ -1527,3 +1533,31 @@ class Formulation:
             )
         magnitude = result.item() if result.ndim == 0 else result
         return Q_(magnitude, output_unit)
+
+
+def _origin(formulation: Formulation, identifier: str) -> tuple[str, str]:
+    """Where a coefficient or a constant of a formulation comes from.
+
+    The key of the formulation that defines a coefficient, through
+    compositions and branches, which keep its identifier, and through
+    calls, which rename it; or the key of a constant. Then the identifier
+    it is written with there.
+    """
+    if formulation.calls:
+        for part in formulation.parts:
+            inner = part.formulation
+            held = {c.identifier for c in inner.coefficients}
+            held |= {c.identifier for c in inner.constants}
+            for name, renamed in part.rename.items():
+                if renamed == identifier and name in held:
+                    return _origin(inner, name)
+    else:
+        used = [p.formulation for p in formulation.parts]
+        used += [b.formulation for b in formulation.branches]
+        for inner in used:
+            if any(c.identifier == identifier for c in inner.coefficients):
+                return _origin(inner, identifier)
+    constant = next(
+        (c for c in formulation.constants if c.identifier == identifier), None
+    )
+    return (formulation.key if constant is None else constant.key), identifier

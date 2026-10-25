@@ -3,6 +3,7 @@
 
 """Tests for formulations that call others: syntax, checks, values, display."""
 
+import re
 from importlib.resources import files
 from importlib.resources.abc import Traversable
 
@@ -129,7 +130,7 @@ def test_a_domain_of_the_caller_adds_to_those_of_the_calls() -> None:
     assert np.isnan(value)
 
 
-def test_arguments_take_any_unit_of_their_kind() -> None:
+def test_evaluation_converts_arguments_to_their_declared_units() -> None:
     f = rh(caller("100 * e_w(t=t_d) / e_w(t=t)"))
     in_kelvins = f.evaluate(t_d=Q_(285.15, "K"), t=Q_(20.0, "degC")).magnitude
     in_celsius = f.evaluate(t_d=Q_(12.0, "degC"), t=Q_(20.0, "degC")).magnitude
@@ -220,8 +221,15 @@ def test_inputs_take_the_scale_of_the_inputs_they_feed() -> None:
         ("100 * e_w(t=t_d) / e_w(t=t)", '{ e_w = "ew", e_i = "ei" }', "not called"),
         ("100 * e_w(t=t_d) / e_w(t=t)", '{ e_w = "nowhere" }', "unknown formulation"),
         ("100 * exp(t=t_d) / exp(t=t)", '{ exp = "ew" }', "reserved"),
+        ("100 * pi(t=t_d) / pi(t=t)", '{ pi = "ew" }', "reserved"),
+        ("100 * piecewise(t=t_d) / piecewise(t=t)", '{ piecewise = "ew" }', "reserved"),
         ("100 * t(t=t_d) / t(t=t)", '{ t = "ew" }', "reserved or already used"),
         ("100 * e_w(t=t_d) / e_w(t=t)", '"ew"', "expected a table"),
+        (
+            "piecewise((100 * e_w(t=t_d) / e_w(t=t), t > 0), (100, t <= 0))",
+            '{ e_w = "ew" }',
+            "piecewise definition",
+        ),
     ],
 )
 def test_malformed_calls_are_refused(expression: str, calls: str, message: str) -> None:
@@ -320,11 +328,14 @@ def test_a_formulation_with_calls_is_found_and_linked() -> None:
     assert FROM_DEW_POINT.derivation is not None
     assert FROM_DEW_POINT.derivation.method == "calls"
     assert set(FROM_DEW_POINT.derivation.parts) == {"e_w(p=p, t=t_d)", "e_w(p=p, t=t)"}
+    # A coefficient of a formulation called, by the name it is written with.
+    found = {f.key for f in CATALOG.search(symbol="f_0").formulations}
+    assert FROM_DEW_POINT.key in found
 
 
 def test_a_formulation_with_calls_is_shown_as_written() -> None:
     rendering = FROM_DEW_POINT.render()
-    assert r"e_{w}\left(p, t_{\mathrm{d}}\right)" in rendering.latex
+    assert r"e_{\mathrm{w}}\left(p, t_{\mathrm{d}}\right)" in rendering.latex
     assert latex_commands(rendering.latex) <= LATEX_COMMANDS
     MathTextParser("path").parse(rendering.mathtext)
     assert "$C = 6.112$ hPa (unit inferred by nomogram), of sonntag1990_magnus" in (
@@ -489,3 +500,202 @@ def test_an_unknown_constant_is_refused() -> None:
     document = caller("100 * e_w(t=t_d) / e_w(t=t)", extra='constants = ["nowhere"]')
     with pytest.raises(CatalogError, match="unknown constant 'nowhere'"):
         rh(document)
+
+
+def test_a_dew_point_feeds_a_thermodynamic_temperature_in_the_same_unit() -> None:
+    part = """
+[formulations.twice]
+label = "twice"
+expression = "2 * T"
+fixed_units = false
+output = { identifier = "y", kind = "ThermodynamicTemperature", unit = "K", description = "y" }
+inputs = [{ identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "T" }]
+
+[[formulations.twice.citations]]
+reference = "src"
+
+[formulations.at_dew_point]
+label = "at_dew_point"
+expression = "twice(T=T_d)"
+calls = { twice = "twice" }
+fixed_units = false
+output = { identifier = "z", kind = "ThermodynamicTemperature", unit = "K", description = "z" }
+inputs = [{ identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "T_d" }]
+
+[[formulations.at_dew_point.citations]]
+reference = "src"
+"""
+    f = load(part).formulations["at_dew_point"]
+    assert f.evaluate(T_d=Q_(280.0, "K")).magnitude == pytest.approx(560.0)
+
+
+def test_calls_keep_their_arguments_in_the_order_of_the_inputs_called() -> None:
+    f = rh(caller("100 * e_w(t=t_d) / e_w(t=t)"))
+    assert [dict(c.arguments) for c in f.calls] == [{"t": "t_d"}, {"t": "t"}]
+    assert [c.alias for c in f.calls] == ["e_w", "e_w"]
+    assert FROM_DEW_POINT.calls[0].arguments == {"p": "p", "t": "t_d"}
+    assert list(FROM_DEW_POINT.calls[0].arguments) == ["p", "t"]
+
+
+def test_without_calls_the_written_expression_is_the_expression() -> None:
+    water = CATALOG.formulations["sonntag1990_magnus"]
+    assert water.written is None
+    assert water.written_expression == water.sympy_expression
+
+
+# --- Formulations reached through others ---------------------------------------
+
+INVERSE = """
+[formulations.ew_inverse]
+label = "ew_inverse"
+expression = "b * ln(e / c) / (a - ln(e / c))"
+fixed_units = true
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "t_d" }
+inputs = [{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }]
+coefficients = { a = 17.62, b = 243.12, c = 6.112 }
+
+[[formulations.ew_inverse.citations]]
+reference = "src"
+
+[formulations.round_trip]
+label = "round_trip"
+composition = { outer = "ew_inverse", inner = { e = "ew" } }
+"""
+
+
+def test_a_formulation_composed_with_its_inverse_is_the_identity() -> None:
+    # f^-1(f(t)) = t, with a Magnus form and its inverse written for the test.
+    # A call takes inputs, not calls: the nesting is a composition. Its
+    # expression simplifies to t once the coefficients of the inverse are
+    # those of the form, and ln(exp(x)) is x (SymPy keeps it while B + t
+    # may vanish).
+    f = load(INVERSE).formulations["round_trip"]
+    t = Q_(np.linspace(-40.0, 55.0, 20), "degC")
+    back = f.evaluate(t=t).to("degC").magnitude
+    assert back == pytest.approx(t.magnitude, abs=1e-9)
+    same = {
+        sympy.Symbol(x, real=True): sympy.Symbol(x.upper(), real=True) for x in "abc"
+    }
+    developed = sympy.expand_log(f.sympy_expression.xreplace(same), force=True)
+    assert sympy.simplify(developed - sympy.Symbol("t", real=True)) == 0
+
+
+SCALED = """
+[formulations.g]
+label = "g"
+expression = "A * e_w(t=t)"
+calls = { e_w = "ew" }
+fixed_units = true
+output = { identifier = "e_g", kind = "VapourPressure", unit = "HectoPA", description = "e" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "t" }]
+coefficients = { A = 2.0 }
+
+[[formulations.g.citations]]
+reference = "src"
+"""
+
+
+def test_the_own_coefficients_of_a_formulation_called_stay_its_own() -> None:
+    # g names A like the Magnus form it calls: its A is not the form's.
+    document = """
+[formulations.gap]
+label = "gap"
+expression = "g(t=t_d) - e_w(t=t)"
+calls = { g = "g", e_w = "ew" }
+fixed_units = true
+output = { identifier = "d", kind = "VapourPressure", unit = "HectoPA", description = "d" }
+inputs = [{inputs}]
+
+[[formulations.gap.citations]]
+reference = "src"
+""".replace("{inputs}", POINTS)
+    loaded = load(SCALED, document)
+    f = loaded.formulations["gap"]
+    values = {c.identifier: c.value for c in f.coefficients}
+    assert (values["A__g"], values["A__ew"]) == (2.0, 17.62)
+    water = loaded.formulations["ew"]
+    t = Q_(20.0, "degC")
+    expected = 2 * water.evaluate(t=GRID).magnitude - water.evaluate(t=t).magnitude
+    assert f.evaluate(t_d=GRID, t=t).magnitude == pytest.approx(expected)
+    markdown = f.render().markdown
+    assert "$A = 2.0$ (pure number, inferred by nomogram), of g" in markdown
+    assert "$C = 6.112$ hPa (unit inferred by nomogram), of ew" in markdown
+
+
+def test_a_composition_tells_a_caller_s_own_coefficient_from_the_called_one() -> None:
+    outer = """
+[formulations.scaled]
+label = "scaled"
+expression = "{name} * e"
+fixed_units = true
+output = {{ identifier = "y", kind = "VapourPressure", unit = "HectoPA", description = "y" }}
+inputs = [{{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }}]
+coefficients = {{ {name} = 3.0 }}
+
+[[formulations.scaled.citations]]
+reference = "src"
+
+[formulations.composed]
+label = "composed"
+composition = {{ outer = "scaled", inner = {{ e = "g" }} }}
+"""
+    with pytest.raises(CatalogError, match="coefficient A in both scaled and g"):
+        load(SCALED, outer.format(name="A"))
+    f = load(SCALED, outer.format(name="k")).formulations["composed"]
+    water = load().formulations["ew"]
+    t = Q_(20.0, "degC")
+    assert f.evaluate(t=t).magnitude == pytest.approx(6 * water.evaluate(t=t).magnitude)
+
+
+def test_branches_tell_a_caller_s_own_coefficient_from_the_called_one() -> None:
+    branches = """
+[formulations.both]
+label = "both"
+branches = [{ formulation = "g", where = "t < 0" }, { formulation = "ew", where = "t >= 0" }]
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }
+"""
+    with pytest.raises(CatalogError, match="coefficient A in both g and ew"):
+        load(SCALED, branches)
+
+
+def superscripts(document: str) -> str:
+    """A, B and C as a__w, b__w and c__w, as SymPy writes superscripts."""
+    return re.sub(r"\b([ABC])\b", lambda m: f"{m.group(1).lower()}__w", document)
+
+
+def test_double_underscores_of_a_formulation_called_are_its_own() -> None:
+    first = superscripts(magnus("m1", 17.27, 237.3, -45.0, 60.0))
+    second = superscripts(magnus("m2", 21.87, 265.5, -65.0, 0.0))
+    inputs = POINTS.replace("DewPointTemperature", "CelsiusTemperature")
+    document = caller(
+        "100 * f(t=t_d) / g(t=t)", '{ f = "m1", g = "m2" }', inputs=inputs
+    )
+    loaded = load(first, second, document)
+    f = loaded.formulations["rh"]
+    assert "a__w__m1" in {c.identifier for c in f.coefficients}
+    water, ice = (loaded.formulations[k] for k in ("m1", "m2"))
+    t_f, t = Q_(-10.0, "degC"), Q_(-5.0, "degC")
+    expected = 100 * water.evaluate(t=t_f).magnitude / ice.evaluate(t=t).magnitude
+    assert f.evaluate(t_d=t_f, t=t).magnitude == pytest.approx(expected)
+    # Shown as written, with their owner; in their own formulation, as always.
+    line = r"$a^{\mathrm{w}} = 17.27$ (pure number, inferred by nomogram), of m1"
+    assert line in f.render().markdown
+    own = loaded.formulations["m1"].render().markdown
+    assert r"$a^{\mathrm{w}} = 17.27$" in own
+    assert ", of" not in own
+
+
+def test_a_constant_declared_but_used_only_by_a_call_is_refused() -> None:
+    document = MIXING.format(
+        expression="w(e=e, p=p) - w(e=e_2, p=p)",
+        constants='constants = ["epsilon_ashrae2017"]',
+    )
+    with pytest.raises(CatalogError, match="declared but not used: epsilon"):
+        with_catalog(SOURCE + document)
+
+
+def test_the_name_of_a_call_is_written_like_an_identifier() -> None:
+    f = rh(caller("100 * ebar(t=t_d) / ebar(t=t)", '{ ebar = "ew" }'))
+    latex = f.render().latex
+    assert r"\mathrm{ebar}\left(t_{\mathrm{d}}\right)" in latex
+    assert latex_commands(latex) <= LATEX_COMMANDS

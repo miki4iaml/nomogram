@@ -616,7 +616,11 @@ def to_latex(
     """
     names = {}
     default = _NotationPrinter()
-    for symbol in expr.free_symbols:
+    # The name of a formulation called is written like an identifier.
+    called = {
+        sympy.Symbol(c.func.__name__, real=True) for c in expr.atoms(AppliedUndef)
+    }
+    for symbol in expr.free_symbols | called:
         if notation and symbol.name in notation:
             names[symbol] = notation[symbol.name]
         elif upright or not latex_commands(default.doprint(symbol)) <= LATEX_COMMANDS:

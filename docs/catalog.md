@@ -278,21 +278,33 @@ inputs = [
 - **A call names its arguments** by the identifiers of the inputs of the
   formulation called, even when it has only one: `e_w(t=t_d)`. Every
   input is given once, and each argument is an input of the entry, not
-  a number nor an expression.
+  a number, an expression nor another call. A call stands anywhere in the
+  expression but in a `piecewise` definition, where the domains of the
+  formulation called would hold in every branch: such an entry is defined
+  by branches.
 - **An argument has the kind of the input it feeds, or a specialization
   of it**, in the same unit. A point at which a formula is evaluated is
   the exception: a dew point may feed a Celsius or a thermodynamic
-  temperature. A temperature difference never feeds a temperature.
-- **An input takes the conventional scale of the inputs it feeds**; one
-  that feeds inputs on two scales is refused.
+  temperature, still in the same unit. A temperature difference never
+  feeds a temperature.
+- **An input takes the conventional scale of the inputs it feeds**. One
+  that feeds inputs on two scales is refused, and so is one that states
+  a scale other than that of the input it feeds.
 - **`fixed_units`** is written by the entry; it is `true` as soon as a
   formulation called holds only in its declared units.
-- **Identifiers stay free.** nomogram renames for the computation: the
-  coefficients and constants of each formulation called take a name
-  qualified by the formulation that defines them (`A__sonntag1990_magnus`),
-  so that those of two formulations never meet, and two calls of one
-  formulation share them. The display keeps the name as written, with
-  its owner.
+- **Identifiers stay free.** nomogram renames for the computation:
+  - the coefficients of each formulation called take their name as
+    written, qualified by the formulation that defines them
+    (`A__sonntag1990_magnus`), however it is reached (through a
+    composition, branches or another call), so that those of two
+    formulations never meet, and two calls of one formulation share them;
+  - a constant keeps its identifier when it is the same constant
+    everywhere; one of the same identifier but another constant (the
+    epsilon of another source) takes a name qualified by its key
+    (`epsilon__epsilon_ashrae2017`).
+
+  The display keeps the name as written, with its owner. `__` is kept
+  for these names: the entry's own identifiers may not contain it.
 - **Validity domains**: those of each formulation called apply to the
   values each call receives (t_d and t above, each against −45 to 60 °C).
   Those the entry states apply as well; they never replace them.
@@ -303,11 +315,17 @@ inputs = [
 - The expression shown is the one written, with its calls,
   `e_w(p, t_d)`; `Formulation.written_expression` holds it, with each call
   kept as an opaque function, and `sympy_expression` the developed one,
-  for the computation. The `derivation` records the method `"calls"` and
-  each call with its formulation; the legend lists the calls.
-- A formulation calling others takes part in `uses` and `used_by`, and
-  its inputs in `search(input=...)`: a search for a dew point input finds
-  it.
+  for the computation. The `derivation` records the method `"calls"`,
+  the first formulation called as its `source`, and each call with its
+  formulation (two identical calls count once); the legend lists the
+  calls.
+- A formulation called may be composed, defined by branches, or call
+  others itself; formulations calling each other, directly or not, are
+  refused.
+- A formulation calling others takes part in `uses` and `used_by`, its
+  inputs in `search(input=...)` (a search for a dew point input finds
+  it), and the coefficients it calls in `search(symbol=...)`, by the name
+  they are written with.
 
 ### Formulations by branches
 

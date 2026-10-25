@@ -92,9 +92,10 @@ and this project adheres to
   arguments, as sources write them: `expression = "100 * e_w(p=p, t=t_d) /
   e_w(p=p, t=t)"` with `calls = { e_w = "..." }`. Arguments are named and
   checked (kind, unit, scale); the domains of each formulation called
-  apply to each call; coefficients are renamed for the computation, so
-  that two formulations never meet. The relative humidity from the dew
-  point of WMO-No. 8 (4.B.11) is the first such entry.
+  apply to each call; coefficients, and constants in conflict, are
+  renamed for the computation, so that two formulations never meet, and
+  found by the name they are written with. The relative humidity from
+  the dew point of WMO-No. 8 (4.B.11) is the first such entry.
 - Units of coefficients are inferred through every level of a
   composition of compositions.
 - Formulations of WMO-No. 8 (2024), Annex 4.B:

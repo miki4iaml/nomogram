@@ -37,7 +37,7 @@ from importlib.resources import files
 from itertools import pairwise
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypeGuard, cast
 
 import pint
 import sympy
@@ -81,6 +81,7 @@ from nomogram.model import (
     UnitBasis,
     ValidityDomain,
     Variable,
+    _origin,
 )
 from nomogram.relations import (
     match_inputs,
@@ -585,16 +586,6 @@ _DERIVED = (
 )
 
 
-def _defined_in(formulation: Formulation, identifier: str) -> str:
-    """Key of the formulation that defines a coefficient, through compositions."""
-    used = [p.formulation for p in formulation.parts]
-    used += [b.formulation for b in formulation.branches]
-    for inner in used:
-        if any(c.identifier == identifier for c in inner.coefficients):
-            return _defined_in(inner, identifier)
-    return formulation.key
-
-
 def _substitute(
     outer: Formulation,
     inner: Mapping[str, Formulation],
@@ -640,20 +631,25 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
 )
 
 
+def _named_call(node: ast.AST, names: Iterable[str]) -> TypeGuard[ast.Call]:
+    """Whether a node calls one of the names."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in names
+    )
+
+
 def _qualified(formulation: Formulation, identifier: str) -> str:
     """A coefficient of a called formulation, under a name of its own.
 
-    Qualified by the formulation that defines it (``A__sonntag1990_magnus``),
-    so that the coefficients of two formulations never meet, and those of
-    one formulation are shared by its calls. Already qualified when the
-    formulation called itself calls others.
+    Its identifier as written, qualified by the formulation that defines it
+    (``A__sonntag1990_magnus``): the coefficients of two formulations never
+    meet, and those of one formulation are shared by its calls, however it
+    is reached.
     """
-    if "__" in identifier:
-        return identifier
-    definer = (
-        formulation.key if formulation.calls else _defined_in(formulation, identifier)
-    )
-    return f"{identifier}__{definer}"
+    definer, written = _origin(formulation, identifier)
+    return f"{written}__{definer}"
 
 
 def _developed(
@@ -1658,7 +1654,7 @@ class _Builder:
         constants: dict[str, PhysicalConstant] = {}
         for piece in (outer, *inner.values()):
             for coefficient in piece.coefficients:
-                origin = _defined_in(piece, coefficient.identifier)
+                origin, _ = _origin(piece, coefficient.identifier)
                 if coefficient.identifier in owner:
                     first, defined = owner[coefficient.identifier]
                     if defined == origin:
@@ -1900,14 +1896,17 @@ class _Builder:
                         dataclasses.replace(coefficient, identifier=name)
                     )
             for constant in part.constants:
-                found = constants.get(constant.identifier)
-                if found is None and constant.identifier not in own:
-                    constants[constant.identifier] = constant
-                    name = constant.identifier
+                _, written = _origin(part, constant.identifier)
+                found = constants.get(written)
+                if found is None and written not in own:
+                    constants[written] = dataclasses.replace(
+                        constant, identifier=written
+                    )
+                    name = written
                 elif found is not None and found.key == constant.key:
-                    name = constant.identifier
+                    name = written
                 else:
-                    name = f"{constant.identifier}__{constant.key}"
+                    name = f"{written}__{constant.key}"
                     constants.setdefault(
                         name, dataclasses.replace(constant, identifier=name)
                     )
@@ -1969,6 +1968,14 @@ class _Builder:
             written=f["expression"],
         )
         self.check(where, formulation)
+        # What the entry declares is used as written, not only by a call.
+        declared = set(own_constants) | own_names
+        unused = sorted(
+            declared - {s.name for s in formulation.written_expression.free_symbols}
+        )
+        if unused:
+            msg = f"{where}: declared but not used: {', '.join(unused)}"
+            raise CatalogError(msg)
         return formulation
 
     def calls_written(
@@ -1987,6 +1994,22 @@ class _Builder:
         except ExpressionError as exc:
             msg = f"{where}.expression: {exc}"
             raise CatalogError(msg) from None
+        inside = sorted(
+            {
+                cast("ast.Name", n.func).id  # found by name
+                for node in ast.walk(ast.parse(expression, mode="eval"))
+                if _named_call(node, {PIECEWISE})
+                for n in ast.walk(node)
+                if _named_call(n, aliases)
+            }
+        )
+        if inside:
+            msg = (
+                f"{where}.expression: {', '.join(inside)} is called in a "
+                "piecewise definition, where its domain would hold in every "
+                "branch: define the formulation by branches"
+            )
+            raise CatalogError(msg)
         bare = sorted(
             {
                 n.id
@@ -2142,7 +2165,7 @@ class _Builder:
         constants: dict[str, PhysicalConstant] = {}
         for part, _ in branches:
             for coefficient in part.coefficients:
-                origin = _defined_in(part, coefficient.identifier)
+                origin, _ = _origin(part, coefficient.identifier)
                 if owner.get(coefficient.identifier, origin) != origin:
                     msg = (
                         f"{where}: coefficient {coefficient.identifier} in both "

@@ -40,6 +40,8 @@ from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Any, overload
 
+from nomogram.model import _origin
+
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
     from nomogram.model import Formulation, Variable
@@ -301,6 +303,24 @@ def _symbols_of(
     return list(found.items())
 
 
+def _written_symbols(
+    catalog: Catalog, formulation: Formulation, identifier: str, *, owned: bool
+) -> list[tuple[str, str]]:
+    """Symbols of a coefficient or constant, also as written where it comes from.
+
+    A formulation that calls others holds their coefficients, and some of
+    their constants, renamed (``A__sonntag1990_magnus``): they are found by
+    the name they are written with too, in the notations of the formulation
+    that defines a coefficient.
+    """
+    found = _symbols_of(catalog, formulation, identifier)
+    owner, written = _origin(formulation, identifier)
+    if written != identifier:
+        source = catalog.formulations.get(owner, formulation) if owned else formulation
+        found += _symbols_of(catalog, source, written)
+    return found
+
+
 def _variable_words(
     catalog: Catalog, formulation: Formulation, variable: Variable
 ) -> frozenset[str]:
@@ -327,28 +347,29 @@ def _formulation(
     )
     inputs = tuple(_variable_words(catalog, f, v) for v in f.inputs)
     output = _variable_words(catalog, f, f.output)
+    coefficients = [
+        _written_symbols(catalog, f, c.identifier, owned=True) for c in f.coefficients
+    ]
+    constants = [
+        _written_symbols(catalog, f, k.identifier, owned=False) for k in f.constants
+    ]
     others = tuple(
-        frozenset().union(
-            *(_symbol_words(t) for _, t in _symbols_of(catalog, f, c.identifier))
-        )
-        | words(_join(c.note))
-        for c in f.coefficients
+        frozenset().union(*(_symbol_words(t) for _, t in found)) | words(_join(c.note))
+        for c, found in zip(f.coefficients, coefficients, strict=True)
     ) + tuple(
-        frozenset().union(
-            *(_symbol_words(t) for _, t in _symbols_of(catalog, f, k.identifier))
-        )
+        frozenset().union(*(_symbol_words(t) for _, t in found))
         | words(_join(k.key, k.description))
-        for k in f.constants
+        for k, found in zip(f.constants, constants, strict=True)
     )
     symbols = tuple(
         (notation, _symbol_words(tex))
-        for name in (
-            f.output.identifier,
-            *(v.identifier for v in f.inputs),
-            *(c.identifier for c in f.coefficients),
-            *(k.identifier for k in f.constants),
+        for found in (
+            _symbols_of(catalog, f, f.output.identifier),
+            *(_symbols_of(catalog, f, v.identifier) for v in f.inputs),
+            *coefficients,
+            *constants,
         )
-        for notation, tex in _symbols_of(catalog, f, name)
+        for notation, tex in found
     )
     citations = tuple(
         (

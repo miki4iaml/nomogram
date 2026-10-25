@@ -682,8 +682,9 @@ def _beyond_parts(formulation: Formulation) -> list[str]:
     """Where the sources of a composed formulation state more than those of its parts.
 
     A domain stated for the composed formulation replaces those stated for
-    its parts (see :meth:`~nomogram.model.Formulation.outside_mask`): a
-    disagreement is pointed out, never smoothed.
+    its parts; for a formulation calling others, both hold (see
+    :meth:`~nomogram.model.Formulation.outside_mask`). A disagreement is
+    pointed out, never smoothed.
     """
     own = _stated_extent(formulation)
     if not own:
