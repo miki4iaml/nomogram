@@ -5,8 +5,11 @@
 The logo spells NOMO, the short name of the project: `import nomogram as
 nomo`. *Nomos*, law or convention, is the root of the word nomogram.
 Like the rest of the project, the logo is code:
-[`scripts/make_logo.py`](../scripts/make_logo.py) computes every point
-of it, with the standard library only.
+[`nomogram/_logo.py`](../src/nomogram/_logo.py) computes every point of
+it, with the standard library only.
+[`scripts/make_logo.py`](../scripts/make_logo.py) writes it as SVG, and
+`nomogram.plot.sign` draws the same shapes under the figures nomogram
+plots ([Displaying formulas](display.md#signature)).
 
 ## What it shows
 

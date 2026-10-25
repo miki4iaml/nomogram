@@ -5,6 +5,8 @@
 
 import sys
 from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -13,8 +15,12 @@ matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import to_hex
+from matplotlib.lines import Line2D
 from matplotlib.mathtext import MathTextParser
+from matplotlib.offsetbox import AnchoredOffsetbox, AnnotationBbox
 
+from nomogram import _logo
 from nomogram.catalog import catalog
 from nomogram.comparison import Comparison, compare
 from nomogram.display import (
@@ -24,7 +30,7 @@ from nomogram.display import (
     reference_scale,
 )
 from nomogram.expression import LATEX_COMMANDS
-from nomogram.plot import plot_deviations, plot_values
+from nomogram.plot import plot_deviations, plot_values, sign
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -244,3 +250,108 @@ def test_units_are_written_as_the_si_brochure_does() -> None:
     ax = plot_values(found)
     assert ax.get_xlabel() == "Temperature difference / °C"
     assert ax.get_ylabel() == "Pa⋅s"
+
+
+# --- Signature -------------------------------------------------------------
+
+
+def signatures(figure: Any) -> list[Any]:
+    return [
+        a for a in figure.artists if isinstance(a, AnchoredOffsetbox | AnnotationBbox)
+    ]
+
+
+def drawing(mark: Any) -> Any:
+    """The drawing area of a signature."""
+    return mark.offsetbox if isinstance(mark, AnnotationBbox) else mark.get_child()
+
+
+def inks(mark: Any) -> set[str]:
+    return {
+        to_hex(a.get_color())
+        for a in drawing(mark).get_children()
+        if isinstance(a, Line2D)
+    }
+
+
+def test_a_figure_drawn_by_nomogram_is_signed(comparison: Comparison) -> None:
+    for draw in (plot_deviations, plot_values):
+        assert len(signatures(draw(comparison).figure)) == 1
+
+
+def test_a_figure_given_through_ax_is_not_signed(comparison: Comparison) -> None:
+    _, ax = plt.subplots()
+    plot_deviations(comparison, ax=ax)
+    plot_values(comparison, ax=ax)
+    assert signatures(ax.figure) == []
+
+
+def test_the_signature_can_be_left_out_or_removed(comparison: Comparison) -> None:
+    assert signatures(plot_deviations(comparison, signature=False).figure) == []
+    figure = plot_values(comparison).figure
+    (mark,) = signatures(figure)
+    mark.remove()
+    assert signatures(figure) == []
+
+
+def test_sign_draws_the_whole_logo_and_changes_no_setting() -> None:
+    before = dict(matplotlib.rcParams)
+    mark = sign(plt.figure(), height=30.0)
+    assert dict(matplotlib.rcParams) == before
+    # Without axes, at the bottom right corner; no part in the layout.
+    assert isinstance(mark, AnchoredOffsetbox)
+    assert not mark.get_in_layout()
+    shapes, width, height = _logo.logo()
+    assert len(drawing(mark).get_children()) == len(shapes)
+    assert drawing(mark).height == 30.0
+    assert drawing(mark).width == pytest.approx(30.0 * width / height)
+
+
+def test_the_signature_follows_the_background() -> None:
+    light = sign(plt.figure())
+    with plt.style.context("dark_background"):
+        dark = sign(plt.figure())
+    assert _logo.THEMES["light"]["ink"] in inks(light)
+    assert _logo.THEMES["dark"]["ink"] in inks(dark)
+
+
+@pytest.mark.parametrize("extension", ["png", "svg", "pdf"])
+def test_a_signed_figure_is_saved(
+    comparison: Comparison, tmp_path: Path, extension: str
+) -> None:
+    path = tmp_path / f"plot.{extension}"
+    plot_deviations(comparison).figure.savefig(path)
+    assert path.stat().st_size > 0
+
+
+@pytest.mark.parametrize("size", [None, (11.0, 6.5)])
+def test_the_signature_covers_no_text(size: tuple[float, float] | None) -> None:
+    # The figure of the README example, at the default size and at its own.
+    temperatures = Q_(np.linspace(-60, 110, 341), "degC")
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
+    ax = plot_deviations(table)
+    ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
+    if size is not None:
+        ax.figure.set_size_inches(*size)
+    ax.figure.tight_layout()
+    ax.figure.canvas.draw()
+    renderer = ax.figure.canvas.get_renderer()
+    (mark,) = signatures(ax.figure)
+    box = mark.get_window_extent(renderer)
+    # The tick labels drawn: those within the limits of the axes.
+    low, high = sorted(ax.get_xlim())
+    ticks = [t for t in ax.get_xticklabels() if low <= t.get_position()[0] <= high]
+    texts = [
+        *ticks,
+        *ax.get_yticklabels(),
+        ax.xaxis.label,
+        ax.yaxis.label,
+        ax.title,
+        *ax.get_legend().get_texts(),
+    ]
+    covered = [
+        t.get_text()
+        for t in texts
+        if t.get_text() and box.overlaps(t.get_window_extent(renderer))
+    ]
+    assert covered == []

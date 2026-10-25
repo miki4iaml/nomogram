@@ -14,10 +14,15 @@ curves: the domains are visible on the plot.
 Axis labels mark the reference scale of a kind (ITS-90 for temperatures)
 only when the comparison converted the values to it (``scale="convert"``,
 the default of :func:`nomogram.comparison.compare`).
+
+The figures these functions create are signed with the logo, at the
+right of the x-axis label (:func:`sign`); a figure given through ``ax`` is
+never signed, so that plots stay reusable in a layout of one's own.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import numpy as np
@@ -28,7 +33,10 @@ from nomogram.display import axis_label, reference_scale, sentence_case, symbol
 from nomogram.model import ConventionalScale, Notation
 from nomogram.units import is_offset_unit, ureg
 
-__all__ = ["plot_deviations", "plot_values"]
+__all__ = ["SIGNATURE_HEIGHT", "plot_deviations", "plot_values", "sign"]
+
+#: Height of the signature, in points.
+SIGNATURE_HEIGHT = 16.0
 
 
 def _pyplot() -> Any:
@@ -134,7 +142,11 @@ def _label(comparison: Comparison, key: str) -> str:
 
 
 def plot_deviations(
-    comparison: Comparison, *, input_kind: str | None = None, ax: Any = None
+    comparison: Comparison,
+    *,
+    input_kind: str | None = None,
+    ax: Any = None,
+    signature: bool = True,
 ) -> Any:
     """Plot the relative deviation of each formulation from the reference, in %.
 
@@ -147,6 +159,9 @@ def plot_deviations(
         several inputs are one-dimensional arrays.
     ax : matplotlib.axes.Axes, optional
         Axes to draw on; new ones are created otherwise.
+    signature : bool
+        Sign the figure with the logo (:func:`sign`) when the function
+        creates it; a figure given through ``ax`` is never signed.
 
     Returns
     -------
@@ -161,6 +176,7 @@ def plot_deviations(
         If the input to plot along x cannot be determined.
     """
     x_label, x = _abscissa(comparison, input_kind)
+    created = ax is None
     ax = _axes(ax)
     others = [k for k in comparison.relative_deviations if k != comparison.reference]
     for index, key in enumerate(others):
@@ -172,6 +188,8 @@ def plot_deviations(
     name = f"Relative deviation from {_label(comparison, comparison.reference)}"
     ax.set_ylabel(axis_label(name, r"\delta", "%"))
     ax.legend(fontsize="small")
+    if created and signature:
+        sign(ax.figure, axes=ax)
     return ax
 
 
@@ -181,6 +199,7 @@ def plot_values(
     input_kind: str | None = None,
     notation: Notation | None = None,
     ax: Any = None,
+    signature: bool = True,
 ) -> Any:
     """Plot the values of each formulation, the reference included.
 
@@ -195,6 +214,9 @@ def plot_values(
         display options in force otherwise (:mod:`nomogram.display`).
     ax : matplotlib.axes.Axes, optional
         Axes to draw on; new ones are created otherwise.
+    signature : bool
+        Sign the figure with the logo (:func:`sign`) when the function
+        creates it; a figure given through ``ax`` is never signed.
 
     Returns
     -------
@@ -209,6 +231,7 @@ def plot_values(
         If the input to plot along x cannot be determined.
     """
     x_label, x = _abscissa(comparison, input_kind, notation)
+    created = ax is None
     ax = _axes(ax)
     for index, (key, quantity) in enumerate(comparison.values.items()):
         values = np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), x.shape)
@@ -234,4 +257,128 @@ def plot_values(
         ax.set_ylabel(axis_label(None, None, unit))
     ax.set_xlabel(x_label)
     ax.legend(fontsize="small")
+    if created and signature:
+        sign(ax.figure, axes=ax)
     return ax
+
+
+def sign(figure: Any, *, axes: Any = None, height: float = SIGNATURE_HEIGHT) -> Any:
+    """Sign a figure with the logo, at its right edge.
+
+    The logo is drawn with matplotlib artists, ``height`` points high
+    whatever the size of the figure, and stays vector in SVG and PDF. Its
+    colours follow the background of the figure, light or dark. It takes
+    no part in the layout, and no setting of matplotlib is changed.
+
+    Parameters
+    ----------
+    figure : matplotlib.figure.Figure
+        The figure to sign.
+    axes : matplotlib.axes.Axes, optional
+        Axes whose x-axis label the signature follows: it sits at the right
+        edge of the figure, on the line of that label, below the tick
+        labels whatever the layout. Without, at the bottom right corner.
+    height : float
+        Height of the logo, in points.
+
+    Returns
+    -------
+    matplotlib.artist.Artist
+        The signature; its ``remove()`` takes it off.
+    """
+    from matplotlib.colors import to_rgba
+    from matplotlib.offsetbox import AnchoredOffsetbox, AnnotationBbox, DrawingArea
+
+    from nomogram import _logo
+
+    shapes, width, logo_height = _logo.logo()
+    scale = height / logo_height
+    red, green, blue, alpha = to_rgba(figure.get_facecolor())
+    dark = alpha > 0 and 0.2126 * red + 0.7152 * green + 0.0722 * blue < 0.5
+    colours = _logo.THEMES["dark" if dark else "light"]
+
+    def point(p: tuple[float, float]) -> tuple[float, float]:
+        # SVG units, y downward, to points, y upward.
+        return p[0] * scale, (logo_height - p[1]) * scale
+
+    area = DrawingArea(width * scale, height, clip=False)
+    for shape in shapes:
+        area.add_artist(_artist(shape, point, scale, colours))
+    box: Any
+    if axes is None:
+        box = AnchoredOffsetbox(
+            loc="lower right",
+            child=area,
+            pad=0.0,
+            borderpad=0.3,
+            frameon=False,
+            bbox_to_anchor=(1.0, 0.0),
+            bbox_transform=figure.transFigure,
+        )
+    else:
+        # x: the right edge of the figure; y: the middle of the axis label.
+        box = AnnotationBbox(
+            area,
+            (1.0, 0.5),
+            xycoords=("figure fraction", axes.xaxis.label),
+            xybox=(-4.0, 0.0),
+            boxcoords="offset points",
+            box_alignment=(1.0, 0.5),
+            frameon=False,
+            pad=0.0,
+        )
+    box.set_in_layout(False)
+    figure.add_artist(box)
+    return box
+
+
+def _artist(
+    shape: Any,
+    point: Callable[[tuple[float, float]], tuple[float, float]],
+    scale: float,
+    colours: Mapping[str, str],
+) -> Any:
+    """A shape of the logo as a matplotlib artist."""
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Ellipse
+
+    from nomogram import _logo
+
+    ink, accent = colours["ink"], colours["accent"]
+    strokes = {
+        "ink": (ink, 1.0),
+        "fine": (ink, _logo.FINE_OPACITY),
+        "read": (accent, 1.0),
+    }
+    fills = {"sea": colours["sea"], "dot": accent, "node": ink}
+    if isinstance(shape, _logo.Line | _logo.Polyline):
+        ends = (
+            (shape.start, shape.end) if isinstance(shape, _logo.Line) else shape.points
+        )
+        xs, ys = zip(*(point(p) for p in ends), strict=True)
+        colour, opacity = strokes[shape.role]
+        return Line2D(
+            xs,
+            ys,
+            color=colour,
+            alpha=opacity,
+            linewidth=shape.width * scale,
+            solid_capstyle="round",
+            solid_joinstyle="round",
+        )
+    if isinstance(shape, _logo.Circle):
+        rx = ry = shape.radius
+    else:
+        rx, ry = shape.rx, shape.ry
+    centre, size = point(shape.centre), (2 * rx * scale, 2 * ry * scale)
+    if shape.width:
+        colour, opacity = strokes[shape.role]
+        return Ellipse(
+            centre,
+            *size,
+            facecolor="none",
+            edgecolor=colour,
+            alpha=opacity,
+            linewidth=shape.width * scale,
+        )
+    return Ellipse(centre, *size, facecolor=fills[shape.role], edgecolor="none")

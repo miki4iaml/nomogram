@@ -101,6 +101,27 @@ that a reader comparing with the source knows they are nomogram's). For a formul
 gives the units its coefficients hold for. Tables and plot labels never
 show where units come from.
 
+### Signature
+
+The figures that `plot_values` and `plot_deviations` create are signed
+with the logo, at the right edge, on the line of the x-axis label: the
+signature follows that label and stays below the tick labels whatever
+the layout. `signature=False` leaves it out, and a figure given through
+`ax` is never signed, so that a plot keeps its place in a layout of one's
+own. `sign` signs any figure, and returns the signature: an artist, which
+`remove()` takes off. Its colours follow the background of the figure,
+light or dark, and it changes no setting of matplotlib.
+
+```python
+import matplotlib.pyplot as plt
+
+from nomogram.plot import sign
+
+figure, ax = plt.subplots()
+mark = sign(figure)  # bottom right corner; sign(figure, axes=ax) follows its x label
+mark.remove()  # unsigned again
+```
+
 ## Typography
 
 By default:

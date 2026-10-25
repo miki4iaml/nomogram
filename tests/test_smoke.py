@@ -34,7 +34,7 @@ def test_version_comes_from_the_metadata() -> None:
 
 def test_every_submodule_is_listed() -> None:
     package = Path(nomogram.__file__).parent
-    found = sorted(p.stem for p in package.glob("*.py") if p.stem != "__init__")
+    found = sorted(p.stem for p in package.glob("*.py") if not p.stem.startswith("_"))
     assert found == SUBMODULES
 
 
