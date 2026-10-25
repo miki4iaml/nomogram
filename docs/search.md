@@ -61,7 +61,7 @@ each matching a word.
 | `output` | the output variable of a formulation: identifier, symbols in every notation, kind (name, label, CF names), description |
 | `input` | an input variable, likewise |
 | `variable` | any variable, coefficient or constant of a formulation |
-| `symbol` | a symbol, as written by a notation; `notation=` restricts the notations (default: all) |
+| `symbol` | a symbol, as written by a notation; `notation=` restricts the notations (default: all). A coefficient of a formulation called is found by the name it is written with, and its symbols in the notations of the formulation that defines it |
 | `notation` | the notation of the symbols (of those `symbol=` matches, if given): a notation of the catalog by its key (`wmo`, `ashrae`), `default` for the identifiers themselves, or the symbols a source uses in a citation, by the source's reference key (`dickson2007`); the full key of such a notation is `<formulation>:<reference>` |
 | `source` | a cited reference (key and authors); `equation=` asks for its equation number in the same citation |
 | `family` | the family of the entry |
@@ -96,8 +96,8 @@ c.search(output="SaturationVapourPressure*") - c.search(source="buck*")
 
 `uses(entry)` gives the entries an entry refers to (kinds of its
 variables, cited references, notations, constants, scales, units, the
-formulations a composition, a formulation by branches, a relation or a
-cross-check uses, the families a family requires); `used_by(entry)` the
+formulations a composition, a formulation by branches or calling others,
+a relation or a cross-check uses, the families a family requires); `used_by(entry)` the
 entries that refer to it. The links are those the catalog checks for its families
 (`Catalog.links`), plus the units and the kinds and scales of a composed
 formulation's variables, which it takes from its parts. Results come in

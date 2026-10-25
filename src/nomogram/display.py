@@ -57,6 +57,7 @@ from nomogram.model import (
     Formulation,
     Notation,
     Variable,
+    _origin,
 )
 from nomogram.semantics import semantic_catalog
 
@@ -335,7 +336,7 @@ class Rendering:
         """The equation in LaTeX, without dollar signs."""
         formulation = self.formulation
         left = _identifier(formulation.output.identifier, self._symbols, self.options)
-        right = _tex(formulation.sympy_expression, self._symbols, self.options)
+        right = _tex(formulation.written_expression, self._symbols, self.options)
         return f"{left} = {right}"
 
     @property
@@ -367,12 +368,19 @@ class Rendering:
             lines.append(f"- ${label}$: {meaning}")
         if not options.values:
             for coefficient in formulation.coefficients:
-                label = _identifier(coefficient.identifier, symbols, options)
+                # A coefficient of a formulation called, renamed for the
+                # computation, shows the name it is written with, and where.
+                owner, name = _origin(formulation, coefficient.identifier)
+                renamed = name != coefficient.identifier
+                label = _identifier(name, {} if renamed else symbols, options)
                 value = f"${label} = {_number(coefficient.value, options)}$"
                 unit = _coefficient_unit(formulation, coefficient)
-                lines.append(f"- {value} {unit}" if unit else f"- {value}")
+                line = f"- {value} {unit}" if unit else f"- {value}"
+                lines.append(f"{line}, of {owner}" if renamed else line)
         for constant in formulation.constants:
-            label = _identifier(constant.identifier, symbols, options)
+            _, name = _origin(formulation, constant.identifier)
+            renamed = name != constant.identifier
+            label = _identifier(name, {} if renamed else symbols, options)
             value = f"${label} = {_number(constant.value, options)}$"
             lines.append(
                 f"- {_with_unit(value, constant.unit)}: {constant.description}"
@@ -396,6 +404,11 @@ class Rendering:
                 for condition, key in derivation.parts.items()
             )
             lines += ["", f"Defined by pieces: {pieces}."]
+        if derivation is not None and derivation.method == "calls":
+            calls = "; ".join(
+                f"{call} with {key}" for call, key in derivation.parts.items()
+            )
+            lines += ["", f"Calls {calls}."]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:

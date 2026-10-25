@@ -31,6 +31,7 @@ from typing import Any
 
 import sympy
 from sympy.codegen.cfunctions import log10
+from sympy.core.function import AppliedUndef
 from sympy.printing.conventions import split_super_sub
 from sympy.printing.latex import LatexPrinter, translate
 
@@ -354,6 +355,62 @@ def _pieces(piecewise: Any, inputs: Iterable[str]) -> tuple[_Piece, ...]:
     return tuple(pieces)
 
 
+def _call_sites(source: str, aliases: Iterable[str]) -> tuple[str, list[ast.Call]]:
+    """Calls of formulations in an expression, each replaced by a placeholder.
+
+    Returns the source with each call of an alias replaced by the name
+    ``_call_<i>``, and the calls, in order of appearance (left to right,
+    outer first). The calls are not checked: the catalog does it.
+
+    Raises
+    ------
+    ExpressionError
+        If the text is not valid Python syntax.
+    """
+    try:
+        tree = ast.parse(source.strip(), mode="eval")
+    except SyntaxError as exc:
+        msg = f"invalid syntax: {exc.msg}"
+        raise ExpressionError(msg) from None
+    callable_names = frozenset(aliases)
+    found: list[ast.Call] = []
+
+    class Replace(ast.NodeTransformer):
+        def visit_Call(self, node: ast.Call) -> ast.AST:
+            if isinstance(node.func, ast.Name) and node.func.id in callable_names:
+                found.append(node)
+                return ast.copy_location(
+                    ast.Name(f"_call_{len(found) - 1}", ast.Load()), node
+                )
+            self.generic_visit(node)
+            return node
+
+    text = ast.unparse(Replace().visit(tree))
+    return text, found
+
+
+def _opaque_calls(
+    source: str, names: Iterable[str], calls: Iterable[tuple[str, Iterable[str]]]
+) -> Any:
+    """An expression whose calls of formulations stay opaque functions.
+
+    ``calls`` gives, in order of appearance, the alias of each call and its
+    arguments in the order of the called formulation's inputs.
+    """
+    pairs = [(alias, tuple(arguments)) for alias, arguments in calls]
+    text, found = _call_sites(source, {alias for alias, _ in pairs})
+    placeholders = [f"_call_{i}" for i in range(len(found))]
+    expr = parse_expression(text, [*names, *placeholders])
+    return expr.xreplace(
+        {
+            sympy.Symbol(name, real=True): sympy.Function(alias)(
+                *(sympy.Symbol(a, real=True) for a in arguments)
+            )
+            for name, (alias, arguments) in zip(placeholders, pairs, strict=True)
+        }
+    )
+
+
 def _variants(expr: Any) -> list[Any]:
     """The expression with each piecewise definition replaced by each branch.
 
@@ -427,6 +484,15 @@ class _NotationPrinter(LatexPrinter):  # type: ignore[misc]
 
     def _print_log10(self, expr: Any, exp: Any = None) -> str:
         tex = r"\log_{10}\left(" + self._print(expr.args[0]) + r"\right)"
+        return f"{tex}^{{{exp}}}" if exp is not None else tex
+
+    def _print_Function(self, expr: Any, exp: Any = None) -> str:
+        """A call of a formulation, kept opaque: its alias, then its arguments."""
+        if not isinstance(expr, AppliedUndef):
+            return str(super()._print_Function(expr, exp))
+        name = self._print(sympy.Symbol(expr.func.__name__, real=True))
+        arguments = ", ".join(str(self._print(a)) for a in expr.args)
+        tex = rf"{name}\left({arguments}\right)"
         return f"{tex}^{{{exp}}}" if exp is not None else tex
 
     def _print_Piecewise(self, expr: Any, exp: str | None = None) -> str:
@@ -550,7 +616,11 @@ def to_latex(
     """
     names = {}
     default = _NotationPrinter()
-    for symbol in expr.free_symbols:
+    # The name of a formulation called is written like an identifier.
+    called = {
+        sympy.Symbol(c.func.__name__, real=True) for c in expr.atoms(AppliedUndef)
+    }
+    for symbol in expr.free_symbols | called:
         if notation and symbol.name in notation:
             names[symbol] = notation[symbol.name]
         elif upright or not latex_commands(default.doprint(symbol)) <= LATEX_COMMANDS:

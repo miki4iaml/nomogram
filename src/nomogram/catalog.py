@@ -37,16 +37,19 @@ from importlib.resources import files
 from itertools import pairwise
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeGuard, cast
 
 import pint
 import sympy
 
 from nomogram.dimensions import DimensionError
 from nomogram.expression import (
+    CONSTANTS,
+    FUNCTIONS,
     LATEX_COMMANDS,
     PIECEWISE,
     ExpressionError,
+    _call_sites,
     _pieces,
     compile_numeric,
     latex_commands,
@@ -54,6 +57,7 @@ from nomogram.expression import (
 )
 from nomogram.model import (
     Branch,
+    Call,
     CheckCase,
     Citation,
     Coefficient,
@@ -77,6 +81,7 @@ from nomogram.model import (
     UnitBasis,
     ValidityDomain,
     Variable,
+    _origin,
 )
 from nomogram.relations import (
     match_inputs,
@@ -581,16 +586,6 @@ _DERIVED = (
 )
 
 
-def _defined_in(formulation: Formulation, identifier: str) -> str:
-    """Key of the formulation that defines a coefficient, through compositions."""
-    used = [p.formulation for p in formulation.parts]
-    used += [b.formulation for b in formulation.branches]
-    for inner in used:
-        if any(c.identifier == identifier for c in inner.coefficients):
-            return _defined_in(inner, identifier)
-    return formulation.key
-
-
 def _substitute(
     outer: Formulation,
     inner: Mapping[str, Formulation],
@@ -621,6 +616,72 @@ def _substitute(
             return parts.get(node.id, node)
 
     return ast.unparse(Substitute().visit(body(outer, {})))
+
+
+#: Kinds whose values may be passed to an input of another kind, when a
+#: formulation calls another: the temperature of a point at which the
+#: called formulation is evaluated (a saturation vapour pressure at the
+#: dew point). Never a difference.
+_EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
+    {
+        "DewPointTemperature": frozenset(
+            {"CelsiusTemperature", "ThermodynamicTemperature"}
+        ),
+    }
+)
+
+
+def _named_call(node: ast.AST, names: Iterable[str]) -> TypeGuard[ast.Call]:
+    """Whether a node calls one of the names."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in names
+    )
+
+
+def _qualified(formulation: Formulation, identifier: str) -> str:
+    """A coefficient of a called formulation, under a name of its own.
+
+    Its identifier as written, qualified by the formulation that defines it
+    (``A__sonntag1990_magnus``): the coefficients of two formulations never
+    meet, and those of one formulation are shared by its calls, however it
+    is reached.
+    """
+    definer, written = _origin(formulation, identifier)
+    return f"{written}__{definer}"
+
+
+def _developed(
+    written: str,
+    calls: Iterable[Call],
+    renames: Iterable[Mapping[str, str]],
+    fixed: bool,
+) -> str:
+    """The expression with each call replaced by the expression it calls.
+
+    Each called expression takes the arguments of its call and the renamed
+    coefficients and constants; in a fixed-units formulation, a quantity
+    equation keeps its value in its output unit through its factor.
+    """
+    pairs = list(zip(calls, renames, strict=True))
+    text, _ = _call_sites(written, {call.alias for call, _ in pairs})
+    bodies: dict[str, ast.expr] = {}
+    for i, (call, rename) in enumerate(pairs):
+        part = call.formulation
+        tree = ast.parse(part.expression, mode="eval").body
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                node.id = rename.get(node.id, node.id)
+        if fixed and not part.fixed_units and part.output_factor != 1.0:
+            tree = ast.BinOp(ast.Constant(part.output_factor), ast.Mult(), tree)
+        bodies[f"_call_{i}"] = tree
+
+    class Substitute(ast.NodeTransformer):
+        def visit_Name(self, node: ast.Name) -> ast.expr:
+            return bodies.get(node.id, node)
+
+    return ast.unparse(Substitute().visit(ast.parse(text, mode="eval").body))
 
 
 class _Builder:
@@ -1593,7 +1654,7 @@ class _Builder:
         constants: dict[str, PhysicalConstant] = {}
         for piece in (outer, *inner.values()):
             for coefficient in piece.coefficients:
-                origin = _defined_in(piece, coefficient.identifier)
+                origin, _ = _origin(piece, coefficient.identifier)
                 if coefficient.identifier in owner:
                     first, defined = owner[coefficient.identifier]
                     if defined == origin:
@@ -1720,6 +1781,309 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def called(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation whose expression calls other formulations."""
+        where = f"formulations.{key}"
+        f = _fields(
+            where,
+            table,
+            ("label", "expression", "fixed_units", "output", "inputs", "calls"),
+            (
+                "coefficients",
+                "constants",
+                "domains",
+                "citations",
+                "note",
+                "matches",
+                "keywords",
+            ),
+        )
+        if not isinstance(f["calls"], dict) or not f["calls"]:
+            msg = f"{where}.calls: expected a table of alias to formulation"
+            raise CatalogError(msg)
+        output = self.variable(f"{where}.output", f["output"])
+        inputs = tuple(
+            self.variable(f"{where}.inputs[{i}]", v) for i, v in enumerate(f["inputs"])
+        )
+        own_constants: dict[str, PhysicalConstant] = {}
+        for name in f["constants"] or ():
+            if name not in self.constants:
+                msg = f"{where}.constants: unknown constant {name!r}"
+                raise CatalogError(msg)
+            own_constants[self.constants[name].identifier] = self.constants[name]
+        own_coefficients = self.coefficients(f"{where}.coefficients", f["coefficients"])
+        own = (
+            {output.identifier}
+            | {v.identifier for v in inputs}
+            | {c.identifier for c in own_coefficients}
+            | set(own_constants)
+        )
+        qualified = sorted(n for n in own if "__" in n)
+        if qualified:
+            msg = (
+                f"{where}: '__' is kept for the coefficients of called "
+                f"formulations: {', '.join(qualified)}"
+            )
+            raise CatalogError(msg)
+        aliases: dict[str, Formulation] = {}
+        for alias, name in f["calls"].items():
+            w = f"{where}.calls.{alias}"
+            reserved = alias in FUNCTIONS or alias in CONSTANTS or alias == PIECEWISE
+            if not alias.isidentifier() or reserved or alias in own:
+                msg = f"{w}: {alias!r} cannot name a call: reserved or already used"
+                raise CatalogError(msg)
+            aliases[alias] = self.part(w, name, formulations)
+        calls = self.calls_written(where, f["expression"], aliases, inputs)
+        fixed = bool(f["fixed_units"])
+        loose = [c.formulation.key for c in calls if c.formulation.fixed_units]
+        if loose and not fixed:
+            msg = (
+                f"{where}: calls {', '.join(dict.fromkeys(loose))}, which only "
+                "hold in their declared units: write fixed_units = true"
+            )
+            raise CatalogError(msg)
+
+        # Each input takes the scale of the inputs it feeds.
+        fed: dict[str, dict[Any, tuple[str, Any]]] = {}
+        for call in calls:
+            for v in call.formulation.inputs:
+                if v.scale is not None:
+                    target = fed.setdefault(call.arguments[v.identifier], {})
+                    target[v.scale.key] = (call.formulation.key, v)
+        inherited: dict[str, str] = {}
+        typed = []
+        for variable in inputs:
+            scales = fed.get(variable.identifier, {})
+            if len(scales) > 1:
+                msg = (
+                    f"{where}: {variable.identifier} feeds inputs on different "
+                    f"scales: {', '.join(sorted(scales))}"
+                )
+                raise CatalogError(msg)
+            if scales:
+                (owner, source), *_ = scales.values()
+                if variable.scale is not None and variable.scale != source.scale:
+                    msg = (
+                        f"{where}: {variable.identifier} is on "
+                        f"{variable.scale.key}, but feeds {owner} on "
+                        f"{source.scale.key}"
+                    )
+                    raise CatalogError(msg)
+                variable = dataclasses.replace(
+                    variable, scale=source.scale, scale_basis=source.scale_basis
+                )
+                inherited[variable.identifier] = owner
+            typed.append(variable)
+
+        # Coefficients and constants of the called formulations, renamed:
+        # one formulation's coefficients are shared by its calls, and never
+        # meet those of another formulation.
+        coefficients = list(own_coefficients)
+        known = {c.identifier for c in coefficients}
+        constants = dict(own_constants)
+        renames: list[dict[str, str]] = []
+        for call in calls:
+            part = call.formulation
+            rename = dict(call.arguments)
+            for coefficient in part.coefficients:
+                name = _qualified(part, coefficient.identifier)
+                rename[coefficient.identifier] = name
+                if name not in known:
+                    known.add(name)
+                    coefficients.append(
+                        dataclasses.replace(coefficient, identifier=name)
+                    )
+            for constant in part.constants:
+                _, written = _origin(part, constant.identifier)
+                found = constants.get(written)
+                if found is None and written not in own:
+                    constants[written] = dataclasses.replace(
+                        constant, identifier=written
+                    )
+                    name = written
+                elif found is not None and found.key == constant.key:
+                    name = written
+                else:
+                    name = f"{written}__{constant.key}"
+                    constants.setdefault(
+                        name, dataclasses.replace(constant, identifier=name)
+                    )
+                rename[constant.identifier] = name
+            renames.append(rename)
+
+        names = own | set(known) | set(constants)
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            tuple(typed),
+            names,
+            {c.identifier for c in own_coefficients},
+            (output,),
+        )
+        stated = f"{where}.citations"
+        parts: dict[str, Part] = {}
+        for call, rename in zip(calls, renames, strict=True):
+            written = ", ".join(f"{k}={v}" for k, v in call.arguments.items())
+            parts.setdefault(
+                f"{call.alias}({written})",
+                Part(
+                    call.formulation,
+                    f"{call.alias}({written})",
+                    MappingProxyType(rename),
+                ),
+            )
+        own_names = {c.identifier for c in own_coefficients}
+        formulation = Formulation(
+            key=key,
+            label=f["label"],
+            output=_stated_scales(stated, (output,), citations)[0],
+            inputs=_stated_scales(stated, tuple(typed), citations, inherited),
+            coefficients=(
+                *_stated_units(stated, tuple(own_coefficients), citations),
+                *(c for c in coefficients if c.identifier not in own_names),
+            ),
+            constants=tuple(constants.values()),
+            expression=_developed(f["expression"], calls, renames, fixed),
+            fixed_units=fixed,
+            physical_domains=self.domains(
+                f"{where}.domains", f["domains"], tuple(typed), None
+            ),
+            citations=citations,
+            note=f["note"],
+            matches=_matches(where, f["matches"]),
+            derivation=Derivation(
+                calls[0].formulation.key,
+                "calls",
+                parts=MappingProxyType(
+                    {s: p.formulation.key for s, p in parts.items()}
+                ),
+            ),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            parts=tuple(parts.values()),
+            calls=tuple(calls),
+            written=f["expression"],
+        )
+        self.check(where, formulation)
+        # What the entry declares is used as written, not only by a call.
+        declared = set(own_constants) | own_names
+        unused = sorted(
+            declared - {s.name for s in formulation.written_expression.free_symbols}
+        )
+        if unused:
+            msg = f"{where}: declared but not used: {', '.join(unused)}"
+            raise CatalogError(msg)
+        return formulation
+
+    def calls_written(
+        self,
+        where: str,
+        expression: Any,
+        aliases: Mapping[str, Formulation],
+        inputs: tuple[Variable, ...],
+    ) -> list[Call]:
+        """The calls of an expression, checked against what they call."""
+        if not isinstance(expression, str):
+            msg = f"{where}.expression: expected a string"
+            raise CatalogError(msg)
+        try:
+            text, sites = _call_sites(expression, aliases)
+        except ExpressionError as exc:
+            msg = f"{where}.expression: {exc}"
+            raise CatalogError(msg) from None
+        inside = sorted(
+            {
+                cast("ast.Name", n.func).id  # found by name
+                for node in ast.walk(ast.parse(expression, mode="eval"))
+                if _named_call(node, {PIECEWISE})
+                for n in ast.walk(node)
+                if _named_call(n, aliases)
+            }
+        )
+        if inside:
+            msg = (
+                f"{where}.expression: {', '.join(inside)} is called in a "
+                "piecewise definition, where its domain would hold in every "
+                "branch: define the formulation by branches"
+            )
+            raise CatalogError(msg)
+        bare = sorted(
+            {
+                n.id
+                for n in ast.walk(ast.parse(text, mode="eval"))
+                if isinstance(n, ast.Name)
+            }
+            & set(aliases)
+        )
+        if bare:
+            msg = f"{where}.expression: {', '.join(bare)} is called with its arguments"
+            raise CatalogError(msg)
+        by_name = {v.identifier: v for v in inputs}
+        calls = []
+        for site in sites:
+            alias = cast("ast.Name", site.func).id  # found by name
+            part = aliases[alias]
+            w = f"{where}.expression: {alias}()"
+            if site.args:
+                msg = f"{w}: name its arguments, as {alias}(t=t_d)"
+                raise CatalogError(msg)
+            arguments: dict[str, str] = {}
+            for keyword in site.keywords:
+                if keyword.arg is None:
+                    msg = f"{w}: name its arguments, as {alias}(t=t_d)"
+                    raise CatalogError(msg)
+                if keyword.arg in arguments:
+                    msg = f"{w}: {keyword.arg} is given twice"
+                    raise CatalogError(msg)
+                if (
+                    not isinstance(keyword.value, ast.Name)
+                    or keyword.value.id not in by_name
+                ):
+                    msg = f"{w}: the argument {keyword.arg} is an input of the formulation"
+                    raise CatalogError(msg)
+                arguments[keyword.arg] = keyword.value.id
+            expected = [v.identifier for v in part.inputs]
+            unknown = sorted(set(arguments) - set(expected))
+            missing = [n for n in expected if n not in arguments]
+            if unknown or missing:
+                msg = (
+                    f"{w}: {part.key} takes {', '.join(expected)}"
+                    + (f"; unknown {', '.join(unknown)}" if unknown else "")
+                    + (f"; missing {', '.join(missing)}" if missing else "")
+                )
+                raise CatalogError(msg)
+            for v in part.inputs:
+                self.argument(w, part, v, by_name[arguments[v.identifier]])
+            calls.append(
+                Call(alias, part, MappingProxyType({n: arguments[n] for n in expected}))
+            )
+        unused = sorted(set(aliases) - {c.alias for c in calls})
+        if unused:
+            msg = f"{where}.calls: declared but not called: {', '.join(unused)}"
+            raise CatalogError(msg)
+        return calls
+
+    def argument(
+        self, where: str, part: Formulation, inner: Variable, outer: Variable
+    ) -> None:
+        """Check that an input may be passed to an input of a called formulation."""
+        point = inner.kind in _EVALUATION_POINTS.get(outer.kind, ())
+        if not (self.feeds(outer.kind, inner.kind) or point):
+            msg = (
+                f"{where}: {outer.identifier} is {outer.kind}, but {part.key} "
+                f"takes {inner.identifier} as {inner.kind}"
+            )
+            raise CatalogError(msg)
+        if outer.unit != inner.unit:
+            msg = (
+                f"{where}: {outer.identifier} is in {outer.unit}, but {part.key} "
+                f"takes {inner.identifier} in {inner.unit}"
+            )
+            raise CatalogError(msg)
+
     def branched(
         self, key: str, table: Any, formulations: Mapping[str, Formulation]
     ) -> Formulation:
@@ -1801,7 +2165,7 @@ class _Builder:
         constants: dict[str, PhysicalConstant] = {}
         for part, _ in branches:
             for coefficient in part.coefficients:
-                origin = _defined_in(part, coefficient.identifier)
+                origin, _ = _origin(part, coefficient.identifier)
                 if owner.get(coefficient.identifier, origin) != origin:
                     msg = (
                         f"{where}: coefficient {coefficient.identifier} in both "
@@ -1869,12 +2233,11 @@ class _Builder:
 
     @staticmethod
     def composition_order(tables: Mapping[str, Any]) -> list[str]:
-        """Composed formulations and branches, each after those it uses."""
+        """Formulations made of others, each after those it uses."""
         composed = {
             key: table
             for key, table in tables.items()
-            if isinstance(table, dict)
-            and ("composition" in table or "branches" in table)
+            if isinstance(table, dict) and set(table) & set(_USING)
         }
         order: list[str] = []
 
@@ -2110,11 +2473,23 @@ class _Builder:
         except ExpressionError as exc:
             msg = f"{where}.expression: {exc}"
             raise CatalogError(msg) from None
-        unused = sorted(set(names) - {s.name for s in expr.free_symbols})
+        used = {s.name for s in expr.free_symbols}
+        if formulation.calls:
+            # Checked on the expression as written: what a call brings needs
+            # no use, and what the development simplifies stays declared.
+            inputs = {v.identifier for v in formulation.inputs}
+            used = {s.name for s in formulation.written_expression.free_symbols}
+            used |= {
+                name
+                for part in formulation.parts
+                for name in part.rename.values()
+                if name not in inputs
+            }
+        unused = sorted(set(names) - used)
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
             raise CatalogError(msg)
-        if not formulation.parts:
+        if not formulation.parts or formulation.calls:
             _check_pieces(where, formulation)
         try:
             _ = formulation.output_factor
@@ -2148,14 +2523,13 @@ class _Builder:
         built = {
             key: self.formulation(key, table)
             for key, table in tables.items()
-            if not (
-                isinstance(table, dict)
-                and ("composition" in table or "branches" in table)
-            )
+            if not (isinstance(table, dict) and set(table) & set(_USING))
         }
         for key in self.composition_order(tables):
             if "branches" in tables[key]:
                 built[key] = self.branched(key, tables[key], built)
+            elif "calls" in tables[key]:
+                built[key] = self.called(key, tables[key], built)
             else:
                 built[key] = self.composed(key, tables[key], built)
         formulations = {key: built[key] for key in tables}
@@ -2229,12 +2603,19 @@ def _header(label: str, table: Any) -> dict[str, Any]:
     return f
 
 
+#: The fields by which a formulation uses others.
+_USING = ("composition", "branches", "calls")
+
+
 def _used_formulations(table: Any) -> list[Any]:
-    """The formulations a composition or a formulation by branches uses, by key.
+    """The formulations a formulation made of others uses, by key.
 
     Called on unvalidated tables too (to order the entries before building
     them): anything malformed is left to the builder.
     """
+    calls = table.get("calls")
+    if isinstance(calls, dict):
+        return list(calls.values())
     composition = table.get("composition")
     if isinstance(composition, dict):
         inner = composition.get("inner")

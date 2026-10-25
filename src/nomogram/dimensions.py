@@ -328,6 +328,35 @@ def _check(context: _Context, constraints: list[_Constraint]) -> None:
                 raise DimensionError(msg)
 
 
+def _intermediates(
+    formulation: Formulation, rename: Mapping[str, str], path: str
+) -> Iterator[tuple[Any, Any, Any]]:
+    """Each intermediate quantity of a formulation made of others.
+
+    Yields a marker, the unit of the part's output and the part's
+    expression, renamed into the outermost formulation (``rename`` maps the
+    identifiers of ``formulation`` to it), for the parts and, recursively,
+    the parts of the parts.
+    """
+    for part in formulation.parts:
+        inner = part.formulation
+        into = {
+            name: rename.get(part.rename.get(name, name), part.rename.get(name, name))
+            for name in inner.names
+        }
+        if part.computes is not None:
+            piece = inner.sympy_expression.xreplace(
+                {
+                    sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
+                    for old, new in into.items()
+                    if old != new
+                }
+            )
+            marker = sympy.Symbol(f"{path}{part.computes} ({inner.key})", real=True)
+            yield marker, _pint(inner.output.unit), piece
+        yield from _intermediates(inner, into, f"{path}{part.computes or inner.key}/")
+
+
 def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     units: dict[str, Any] = {}
     for variable in (formulation.output, *formulation.inputs):
@@ -340,22 +369,16 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
             unknown.append(coefficient.identifier)
         else:
             units[coefficient.identifier] = _pint(coefficient.unit)
-    # A composed formulation keeps the units of its intermediate quantities:
-    # each inner part's expression has the unit of the part's output.
+    # A formulation made of others keeps the units of its intermediate
+    # quantities: each part's expression has the unit of the part's output,
+    # and so do the parts of its parts, renamed into the formulation.
+    # Each brings its own structure too: the expression of the formulation
+    # may have simplified it away (a factor common to two calls).
     pieces = []
-    for part in formulation.parts:
-        if part.computes is None:
-            continue
-        inner = part.formulation
-        piece = inner.sympy_expression.xreplace(
-            {
-                sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
-                for old, new in part.rename.items()
-            }
-        )
-        marker = sympy.Symbol(f"{part.computes} ({inner.key})", real=True)
-        units[marker.name] = _pint(inner.output.unit)
+    for marker, unit, piece in _intermediates(formulation, {}, ""):
+        units[marker.name] = unit
         pieces.append(_Constraint("equal", (marker, piece), f"{marker} = {piece}"))
+        pieces.extend(_constraints(piece))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
         formulation.fixed_units, units, frozenset(unknown), coefficients, {}

@@ -41,6 +41,7 @@ import numpy as np
 import sympy
 
 from nomogram.expression import (
+    _opaque_calls,
     _relations,
     _variants,
     compile_numeric,
@@ -55,6 +56,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Branch",
+    "Call",
     "CheckCase",
     "Citation",
     "Coefficient",
@@ -701,17 +703,21 @@ class Derivation:
     ----------
     source : str
         Key of the formulation it derives from; for a composition, the
-        formulation evaluated last; for branches, the first branch.
+        formulation evaluated last; for branches, the first branch; for
+        calls, the first formulation called.
     method : str
         ``"symbolic inversion"`` (closed form found by SymPy),
-        ``"numerical inversion"``, ``"composition"`` or ``"branches"``.
+        ``"numerical inversion"``, ``"composition"``, ``"branches"`` or
+        ``"calls"``.
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
     parts : mapping of str to str
         For a composition, the formulation computing each input of the
         source it replaces: input identifier to formulation key. For
-        branches, the formulation used under each condition.
+        branches, the formulation used under each condition. For calls,
+        the formulation of each call, by the call as written
+        (``"e_w(p=p, t=t_d)"``).
     """
 
     source: str
@@ -1015,8 +1021,10 @@ class Part:
         Identifier of the outer formulation's input it computes; ``None``
         for the outer formulation itself.
     rename : mapping of str to str
-        Its inputs taken under another identifier in the composed
-        formulation (``bind``), by its own identifier.
+        Its identifiers taken under another in the formulation made of it,
+        by its own identifier: inputs bound (``bind``) or passed as
+        arguments, and, for a formulation called, its coefficients and
+        constants renamed.
     """
 
     formulation: Formulation
@@ -1040,6 +1048,27 @@ class Branch:
 
     formulation: Formulation
     condition: str
+
+
+@dataclass(frozen=True)
+class Call:
+    """A formulation called in the expression of another, with its arguments.
+
+    Attributes
+    ----------
+    alias : str
+        The name the expression calls it by (``e_w``).
+    formulation : Formulation
+        The formulation called, with its own validity domains and sources.
+    arguments : mapping of str to str
+        For each of its inputs, by identifier and in the order of its
+        inputs, the input of the calling formulation passed to it
+        (``{"p": "p", "t": "t_d"}``).
+    """
+
+    alias: str
+    formulation: Formulation
+    arguments: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -1091,6 +1120,17 @@ class Formulation:
         those formulations, each with its condition; the expression is
         the piecewise definition they make. The validity domains of each
         apply where its condition holds.
+    calls : tuple of Call
+        For a formulation whose expression calls others, every call, in
+        order of appearance (two identical calls are both kept; they make
+        one part). ``expression`` is then the expression with each call
+        developed: the coefficients of each formulation called under an
+        identifier qualified by the formulation that defines them, a
+        constant under its identifier, or qualified by its key when
+        another constant has that identifier. ``written`` keeps the
+        expression as written.
+    written : str or None
+        The expression as written, with its calls; ``None`` without calls.
     """
 
     key: str
@@ -1110,6 +1150,8 @@ class Formulation:
     keywords: tuple[str, ...] = ()
     parts: tuple[Part, ...] = ()
     branches: tuple[Branch, ...] = ()
+    calls: tuple[Call, ...] = ()
+    written: str | None = None
 
     @property
     def references(self) -> tuple[str, ...]:
@@ -1136,6 +1178,25 @@ class Formulation:
     def sympy_expression(self) -> Any:
         """The expression as a SymPy expression."""
         return parse_expression(self.expression, self.names)
+
+    @cached_property
+    def written_expression(self) -> Any:
+        """The expression as written, each call of a formulation kept opaque.
+
+        The same as :attr:`sympy_expression` for a formulation without
+        calls; with calls, an opaque function per call (``e_w(p, t_d)``),
+        its arguments in the order of the called formulation's inputs.
+        """
+        if not self.calls or self.written is None:
+            return self.sympy_expression
+        return _opaque_calls(
+            self.written,
+            self.names,
+            [
+                (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
+                for c in self.calls
+            ],
+        )
 
     @cached_property
     def _function(self) -> Callable[..., Any]:
@@ -1290,7 +1351,10 @@ class Formulation:
                 outside |= ~inside
         if self.parts or self.branches:
             part_basis: Basis | None = basis
-            if basis != "physical" and any(c.domains for c in self.citations):
+            # A domain stated for a composition replaces those of its parts;
+            # the domains of called formulations always apply to each call.
+            stated = any(c.domains for c in self.citations)
+            if basis != "physical" and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None
             if part_basis is not None and self.parts:
                 outside = outside | self._parts_outside(arrays, part_basis)
@@ -1469,3 +1533,31 @@ class Formulation:
             )
         magnitude = result.item() if result.ndim == 0 else result
         return Q_(magnitude, output_unit)
+
+
+def _origin(formulation: Formulation, identifier: str) -> tuple[str, str]:
+    """Where a coefficient or a constant of a formulation comes from.
+
+    The key of the formulation that defines a coefficient, through
+    compositions and branches, which keep its identifier, and through
+    calls, which rename it; or the key of a constant. Then the identifier
+    it is written with there.
+    """
+    if formulation.calls:
+        for part in formulation.parts:
+            inner = part.formulation
+            held = {c.identifier for c in inner.coefficients}
+            held |= {c.identifier for c in inner.constants}
+            for name, renamed in part.rename.items():
+                if renamed == identifier and name in held:
+                    return _origin(inner, name)
+    else:
+        used = [p.formulation for p in formulation.parts]
+        used += [b.formulation for b in formulation.branches]
+        for inner in used:
+            if any(c.identifier == identifier for c in inner.coefficients):
+                return _origin(inner, identifier)
+    constant = next(
+        (c for c in formulation.constants if c.identifier == identifier), None
+    )
+    return (formulation.key if constant is None else constant.key), identifier

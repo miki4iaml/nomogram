@@ -604,3 +604,21 @@ composition = { outer = "wmo_dew_point", inner = { f = "wmo_enhancement_factor" 
 reference = "wmo2024"
 equation = "4.B.6"
 notation = { e = "e'" }
+
+[formulations.wmo_relative_humidity_from_dew_point]
+label = "Relative humidity with respect to water, from the dew point, WMO Guide (CIMO)"
+expression = "100 * e_w(p=p, t=t_d) / e_w(p=p, t=t)"
+calls = { e_w = "wmo_es_water_moist_air" }
+fixed_units = true
+note = "The enhancement factor cancels between the two calls, as the guide's equation shows: the value does not depend on p."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+
+[[formulations.wmo_relative_humidity_from_dew_point.citations]]
+reference = "wmo2024"
+equation = "4.B.11"
+notation = { RH = "U" }
