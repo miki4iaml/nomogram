@@ -113,6 +113,7 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
+| `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
@@ -249,6 +250,64 @@ bounds = { t = [-40.0, 50.0] }
 - The formulation's `derivation` records the method `"composition"`, the
   outer formulation and the parts; the legend of a single formula says
   what it is composed of.
+
+### Formulations calling others
+
+When a source evaluates one formula at several arguments, the entry calls
+that formulation in its expression, as the source writes it. WMO-No. 8
+equation 4.B.11 takes the saturation vapour pressure in moist air at the
+dew point and at the air temperature:
+
+```toml
+[formulations.wmo_relative_humidity_from_dew_point]
+label = "Relative humidity with respect to water, from the dew point, WMO Guide (CIMO)"
+expression = "100 * e_w(p=p, t=t_d) / e_w(p=p, t=t)"
+calls = { e_w = "wmo_es_water_moist_air" }
+fixed_units = true
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+```
+
+- **`calls`** gives the formulations called, by the name the expression
+  uses. That name is neither a function, `pi` nor `piecewise`, nor an
+  identifier of the entry, and every formulation declared is called.
+- **A call names its arguments** by the identifiers of the inputs of the
+  formulation called, even when it has only one: `e_w(t=t_d)`. Every
+  input is given once, and each argument is an input of the entry, not
+  a number nor an expression.
+- **An argument has the kind of the input it feeds, or a specialization
+  of it**, in the same unit. A point at which a formula is evaluated is
+  the exception: a dew point may feed a Celsius or a thermodynamic
+  temperature. A temperature difference never feeds a temperature.
+- **An input takes the conventional scale of the inputs it feeds**; one
+  that feeds inputs on two scales is refused.
+- **`fixed_units`** is written by the entry; it is `true` as soon as a
+  formulation called holds only in its declared units.
+- **Identifiers stay free.** nomogram renames for the computation: the
+  coefficients and constants of each formulation called take a name
+  qualified by the formulation that defines them (`A__sonntag1990_magnus`),
+  so that those of two formulations never meet, and two calls of one
+  formulation share them. The display keeps the name as written, with
+  its owner.
+- **Validity domains**: those of each formulation called apply to the
+  values each call receives (t_d and t above, each against −45 to 60 °C).
+  Those the entry states apply as well; they never replace them.
+- **Nothing is removed.** A factor common to two calls (the enhancement
+  factor above, the coefficient C of the Magnus form) may simplify away
+  from the computation; the inputs written stay inputs (p above), and the
+  coefficients stay listed.
+- The expression shown is the one written, with its calls,
+  `e_w(p, t_d)`; `Formulation.written_expression` holds it, with each call
+  kept as an opaque function, and `sympy_expression` the developed one,
+  for the computation. The `derivation` records the method `"calls"` and
+  each call with its formulation; the legend lists the calls.
+- A formulation calling others takes part in `uses` and `used_by`, and
+  its inputs in `search(input=...)`: a search for a dew point input finds
+  it.
 
 ### Formulations by branches
 

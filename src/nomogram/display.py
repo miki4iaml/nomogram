@@ -247,6 +247,17 @@ def _identifier(name: str, symbols: Mapping[str, str], options: DisplayOptions) 
     return _tex(sympy.Symbol(name, real=True), symbols, options)
 
 
+def _written_name(identifier: str) -> tuple[str, str | None]:
+    """The name a coefficient or constant is written with, and its owner.
+
+    A formulation that calls others holds their coefficients under a
+    qualified identifier (``A__sonntag1990_magnus``): the name as written,
+    then the formulation (or constant) it belongs to.
+    """
+    name, _, owner = identifier.partition("__")
+    return name, owner or None
+
+
 def _number(value: float, options: DisplayOptions) -> str:
     """A number in LaTeX, with the digits of the catalog.
 
@@ -335,7 +346,7 @@ class Rendering:
         """The equation in LaTeX, without dollar signs."""
         formulation = self.formulation
         left = _identifier(formulation.output.identifier, self._symbols, self.options)
-        right = _tex(formulation.sympy_expression, self._symbols, self.options)
+        right = _tex(formulation.written_expression, self._symbols, self.options)
         return f"{left} = {right}"
 
     @property
@@ -367,12 +378,15 @@ class Rendering:
             lines.append(f"- ${label}$: {meaning}")
         if not options.values:
             for coefficient in formulation.coefficients:
-                label = _identifier(coefficient.identifier, symbols, options)
+                name, owner = _written_name(coefficient.identifier)
+                label = _identifier(name, symbols, options)
                 value = f"${label} = {_number(coefficient.value, options)}$"
                 unit = _coefficient_unit(formulation, coefficient)
-                lines.append(f"- {value} {unit}" if unit else f"- {value}")
+                line = f"- {value} {unit}" if unit else f"- {value}"
+                lines.append(f"{line}, of {owner}" if owner else line)
         for constant in formulation.constants:
-            label = _identifier(constant.identifier, symbols, options)
+            name, _ = _written_name(constant.identifier)
+            label = _identifier(name, symbols, options)
             value = f"${label} = {_number(constant.value, options)}$"
             lines.append(
                 f"- {_with_unit(value, constant.unit)}: {constant.description}"
@@ -396,6 +410,11 @@ class Rendering:
                 for condition, key in derivation.parts.items()
             )
             lines += ["", f"Defined by pieces: {pieces}."]
+        if derivation is not None and derivation.method == "calls":
+            calls = "; ".join(
+                f"{call} with {key}" for call, key in derivation.parts.items()
+            )
+            lines += ["", f"Calls {calls}."]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:

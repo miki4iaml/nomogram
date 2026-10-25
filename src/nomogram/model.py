@@ -41,6 +41,7 @@ import numpy as np
 import sympy
 
 from nomogram.expression import (
+    _opaque_calls,
     _relations,
     _variants,
     compile_numeric,
@@ -55,6 +56,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Branch",
+    "Call",
     "CheckCase",
     "Citation",
     "Coefficient",
@@ -701,17 +703,21 @@ class Derivation:
     ----------
     source : str
         Key of the formulation it derives from; for a composition, the
-        formulation evaluated last; for branches, the first branch.
+        formulation evaluated last; for branches, the first branch; for
+        calls, the first formulation called.
     method : str
         ``"symbolic inversion"`` (closed form found by SymPy),
-        ``"numerical inversion"``, ``"composition"`` or ``"branches"``.
+        ``"numerical inversion"``, ``"composition"``, ``"branches"`` or
+        ``"calls"``.
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
     parts : mapping of str to str
         For a composition, the formulation computing each input of the
         source it replaces: input identifier to formulation key. For
-        branches, the formulation used under each condition.
+        branches, the formulation used under each condition. For calls,
+        the formulation of each call, by the call as written
+        (``"e_w(p=p, t=t_d)"``).
     """
 
     source: str
@@ -1043,6 +1049,26 @@ class Branch:
 
 
 @dataclass(frozen=True)
+class Call:
+    """A formulation called in the expression of another, with its arguments.
+
+    Attributes
+    ----------
+    alias : str
+        The name the expression calls it by (``e_w``).
+    formulation : Formulation
+        The formulation called, with its own validity domains and sources.
+    arguments : mapping of str to str
+        For each of its inputs, by identifier, the input of the calling
+        formulation passed to it (``{"t": "t_d", "p": "p"}``).
+    """
+
+    alias: str
+    formulation: Formulation
+    arguments: Mapping[str, str]
+
+
+@dataclass(frozen=True)
 class Formulation:
     """One author's way of computing a quantity kind.
 
@@ -1091,6 +1117,14 @@ class Formulation:
         those formulations, each with its condition; the expression is
         the piecewise definition they make. The validity domains of each
         apply where its condition holds.
+    calls : tuple of Call
+        For a formulation whose expression calls others, the calls, in
+        order of appearance. ``expression`` is then the expression with
+        each call developed, the coefficients of each called formulation
+        under an identifier qualified by the formulation that defines
+        them; ``written`` keeps the expression as written.
+    written : str or None
+        The expression as written, with its calls; ``None`` without calls.
     """
 
     key: str
@@ -1110,6 +1144,8 @@ class Formulation:
     keywords: tuple[str, ...] = ()
     parts: tuple[Part, ...] = ()
     branches: tuple[Branch, ...] = ()
+    calls: tuple[Call, ...] = ()
+    written: str | None = None
 
     @property
     def references(self) -> tuple[str, ...]:
@@ -1136,6 +1172,25 @@ class Formulation:
     def sympy_expression(self) -> Any:
         """The expression as a SymPy expression."""
         return parse_expression(self.expression, self.names)
+
+    @cached_property
+    def written_expression(self) -> Any:
+        """The expression as written, each call of a formulation kept opaque.
+
+        The same as :attr:`sympy_expression` for a formulation without
+        calls; with calls, an opaque function per call (``e_w(p, t_d)``),
+        its arguments in the order of the called formulation's inputs.
+        """
+        if not self.calls or self.written is None:
+            return self.sympy_expression
+        return _opaque_calls(
+            self.written,
+            self.names,
+            [
+                (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
+                for c in self.calls
+            ],
+        )
 
     @cached_property
     def _function(self) -> Callable[..., Any]:
@@ -1290,7 +1345,10 @@ class Formulation:
                 outside |= ~inside
         if self.parts or self.branches:
             part_basis: Basis | None = basis
-            if basis != "physical" and any(c.domains for c in self.citations):
+            # A domain stated for a composition replaces those of its parts;
+            # the domains of called formulations always apply to each call.
+            stated = any(c.domains for c in self.citations)
+            if basis != "physical" and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None
             if part_basis is not None and self.parts:
                 outside = outside | self._parts_outside(arrays, part_basis)

@@ -88,6 +88,15 @@ and this project adheres to
   never signed. `nomogram.plot.sign` signs any figure; the signature is a
   vector artist, which `remove()` takes off.
 - Quantity kind `SpecificEnergy` (QUDT, Wikidata Q3023293), in J/kg.
+- A formulation may call others in its expression, each at its own
+  arguments, as sources write them: `expression = "100 * e_w(p=p, t=t_d) /
+  e_w(p=p, t=t)"` with `calls = { e_w = "..." }`. Arguments are named and
+  checked (kind, unit, scale); the domains of each formulation called
+  apply to each call; coefficients are renamed for the computation, so
+  that two formulations never meet. The relative humidity from the dew
+  point of WMO-No. 8 (4.B.11) is the first such entry.
+- Units of coefficients are inferred through every level of a
+  composition of compositions.
 - Formulations of WMO-No. 8 (2024), Annex 4.B:
   - the enhancement factor f(p) (4.B.5);
   - the saturation vapour pressures over water and over ice in moist air,

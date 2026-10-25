@@ -96,8 +96,8 @@ c.search(output="SaturationVapourPressure*") - c.search(source="buck*")
 
 `uses(entry)` gives the entries an entry refers to (kinds of its
 variables, cited references, notations, constants, scales, units, the
-formulations a composition, a formulation by branches, a relation or a
-cross-check uses, the families a family requires); `used_by(entry)` the
+formulations a composition, a formulation by branches or calling others,
+a relation or a cross-check uses, the families a family requires); `used_by(entry)` the
 entries that refer to it. The links are those the catalog checks for its families
 (`Catalog.links`), plus the units and the kinds and scales of a composed
 formulation's variables, which it takes from its parts. Results come in
