@@ -79,6 +79,10 @@ and this project adheres to
   J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
   writes mol⁻¹, as the SI Brochure does.
 - Quantity kind `SpecificEnergy` (QUDT, Wikidata Q3023293), in J/kg.
+- The submodules are attributes of the package, imported the first time
+  they are used (PEP 562): `import nomogram as nomo`, then `nomo.catalog`,
+  `nomo.comparison`, `nomo.plot`... `import nomogram` stays light, and type
+  checkers see each submodule.
 - A dew point may be given in K as well as in degC. QUDT has one kind for
   it, CF writes it in K and empirical formulas in degC, so
   `DewPointTemperature` takes units with and without an offset, an
