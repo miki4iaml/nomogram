@@ -78,6 +78,11 @@ and this project adheres to
 - Units of physical constants, from QUDT 3.5.2: J/K, J·s, m/s, mol⁻¹,
   J/(mol·K), W/(m²·K⁴), kg/mol and J/kg. QUDT writes `/mol`; nomogram
   writes mol⁻¹, as the SI Brochure does.
+- Quantity kind `SpecificEnergy` (QUDT, Wikidata Q3023293), in J/kg.
+- A dew point may be given in K as well as in degC. QUDT has one kind for
+  it, CF writes it in K and empirical formulas in degC, so
+  `DewPointTemperature` takes units with and without an offset, an
+  exception to the scale rule declared in the extraction script.
 - Physical constants state their nature: `exact` (a defining constant of the
   SI, or one derived from them alone), `conventional` (attributed by
   agreement, VIM 2.12) or `measured` (VIM 2.10), with an optional standard

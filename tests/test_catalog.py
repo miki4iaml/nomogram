@@ -10,6 +10,7 @@ import pytest
 from nomogram.catalog import CatalogError, catalog, load_catalog, main, stats
 from nomogram.model import ConstantNature, ReferenceStatus, UnitBasis
 from nomogram.semantics import MatchRelation
+from nomogram.units import Q_
 
 CATALOG = catalog()
 
@@ -97,6 +98,25 @@ def test_minimal_valid_document() -> None:
     formulation = loaded.formulations["f"]
     assert formulation.coefficients[0].unit is None
     assert loaded.formulations_of("VapourPressure") == (formulation,)
+
+
+def test_a_dew_point_may_be_given_in_kelvins() -> None:
+    # CF and the IFS give the dew point in K, empirical formulas in degC.
+    document = (
+        VALID.replace("a * t", "t - a")
+        .replace(
+            'identifier = "e", kind = "VapourPressure", unit = "HectoPA"',
+            'identifier = "T_d", kind = "DewPointTemperature", unit = "K"',
+        )
+        .replace(
+            'identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C"',
+            'identifier = "t", kind = "ThermodynamicTemperature", unit = "K"',
+        )
+    )
+    f = load_catalog([document]).formulations["f"]
+    dew_point = f.evaluate(t=Q_(293.15, "K"))
+    assert f.output.kind == "DewPointTemperature"
+    assert dew_point.to("degC").magnitude == pytest.approx(18.0)
 
 
 def test_documents_are_merged() -> None:

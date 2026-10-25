@@ -127,7 +127,8 @@
       "added_units": [],
       "applicable_units": [
         "DEG_C",
-        "DEG_F"
+        "DEG_F",
+        "K"
       ],
       "cf_standard_names": [
         "dew_point_temperature"
@@ -362,6 +363,26 @@
       ],
       "scale_type": "ratio",
       "specialization_of": "RelativePartialPressure"
+    },
+    "SpecificEnergy": {
+      "added_units": [],
+      "applicable_units": [
+        "J-PER-KiloGM"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L2I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/SpecificEnergy",
+      "label": "Specific Energy",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q3023293",
+          "verified": "2026-10-24"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
     },
     "SpecificHumidity": {
       "added_units": [

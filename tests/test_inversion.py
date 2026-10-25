@@ -314,7 +314,7 @@ def test_no_usable_closed_form_falls_back_or_refuses(key: str) -> None:
         ),
         ({"solve_for": "T"}, "has no input 'T'"),
         ({"input_unit": "PA"}, "must keep the unit"),
-        ({"output_unit": "K"}, "K does not apply to DewPointTemperature"),
+        ({"output_unit": "HectoPA"}, "HectoPA does not apply to DewPointTemperature"),
         ({"output_unit": "DEG_F"}, "cannot express a result solved in DEG_C in DEG_F"),
         (
             {"output_kind": "TemperatureDifference", "output_unit": "K"},
@@ -333,6 +333,17 @@ def test_invalid_inversions_are_refused(kwargs: dict[str, str], message: str) ->
     vapour = Variable("e", "VapourPressure", kwargs.get("input_unit", "HectoPA"), "e")
     with pytest.raises(InversionError, match=message):
         invert(formulation, kwargs.get("solve_for", "t"), output=output, input=vapour)
+
+
+def test_a_dew_point_may_be_solved_in_kelvins() -> None:
+    # The same point as in degC: the closed form adds 273.15 K.
+    formulation = FORMULATIONS["sonntag1990_magnus"]
+    output = Variable("t_d", "DewPointTemperature", "K", "x")
+    vapour = Variable("e", "VapourPressure", "HectoPA", "e")
+    in_kelvins = invert(formulation, "t", output=output, input=vapour)
+    e = Q_([6.112, 12.27, 23.37], "hPa")
+    expected = dew_point(formulation).evaluate(e=e).to("degC").magnitude
+    assert in_kelvins.evaluate(e=e).to("degC").magnitude == pytest.approx(expected)
 
 
 def test_forced_symbolic_without_closed_form_is_refused() -> None:
