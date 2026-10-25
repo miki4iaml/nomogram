@@ -39,7 +39,7 @@ def test_every_submodule_is_listed() -> None:
 
 
 def test_submodules_are_attributes_of_the_package() -> None:
-    # import nomogram as nom, then nom.catalog: imported on first use. Here
+    # import nomogram as nomo, then nomo.catalog: imported on first use. Here
     # the other tests have imported them already, so the package's
     # __getattr__ is called directly; test_import_stays_light checks the
     # first use in a fresh interpreter.
@@ -61,10 +61,10 @@ def test_import_stays_light() -> None:
     # listed by dir() or reached as attributes, and nomogram.plot imports
     # matplotlib only when drawing.
     code = (
-        "import sys, nomogram as nom; dir(nom);"
+        "import sys, nomogram as nomo; dir(nomo);"
         "print('sympy' in sys.modules, 'pint' in sys.modules);"
-        "nom.units; print('sympy' in sys.modules, 'pint' in sys.modules);"
-        "nom.plot; print('matplotlib' in sys.modules)"
+        "nomo.units; print('sympy' in sys.modules, 'pint' in sys.modules);"
+        "nomo.plot; print('matplotlib' in sys.modules)"
     )
     result = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, check=True

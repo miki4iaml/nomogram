@@ -14,9 +14,9 @@ light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
 Each is also an attribute of the package, imported the first time it is
 used (PEP 562)::
 
-    import nomogram as nom
+    import nomogram as nomo
 
-    formulations = nom.catalog.catalog().formulations_of("VapourPressure")
+    formulations = nomo.catalog.catalog().formulations_of("VapourPressure")
 """
 
 from importlib import import_module
