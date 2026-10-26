@@ -216,6 +216,9 @@ def test_dois_and_urls_are_kept_whole() -> None:
     doi = "10.1016/0304-4203(80)90024-9"
     assert "references.weiss_price1980" in CATALOG.search(doi).refs
     assert "references.weiss_price1980" in CATALOG.search(f"https://doi.org/{doi}").refs
+    # A SICI-style DOI, in lower case as Crossref returns it.
+    sici = "10.1175/1520-0450(1981)020<1527:nefcvp>2.0.co;2"
+    assert "references.buck1981" in CATALOG.search(sici).refs
     assert "references.robinson1954" in CATALOG.search("*archive.org*").refs
 
 

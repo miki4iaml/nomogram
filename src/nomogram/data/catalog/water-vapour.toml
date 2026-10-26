@@ -73,6 +73,7 @@ authors = "Wagner, W.; Pruß, A."
 year = 1993
 title = "International equations for the saturation properties of ordinary water substance. Revised according to the international temperature scale of 1990"
 container = "Journal of Physical and Chemical Reference Data 22, 783"
+doi = "10.1063/1.555926"
 status = "to-confirm"
 note = "Article behind IAPWS SR1-86(1992); DOI not checked."
 
@@ -81,6 +82,7 @@ authors = "Alduchov, O. A.; Eskridge, R. E."
 year = 1996
 title = "Improved Magnus form approximation of saturation vapor pressure"
 container = "Journal of Applied Meteorology 35, 601-609"
+doi = "10.1175/1520-0450(1996)035<0601:IMFAOS>2.0.CO;2"
 url = "https://www.osti.gov/servlets/purl/548871"
 status = "verified"
 note = "Read in the report version (OSTI 548871, DOE/ER/61011--T6): Table II (formulas), Table III (maximum relative errors)."
@@ -98,6 +100,7 @@ authors = "Buck, A. L."
 year = 1981
 title = "New equations for computing vapor pressure and enhancement factor"
 container = "Journal of Applied Meteorology 20, 1527-1532"
+doi = "10.1175/1520-0450(1981)020<1527:NEFCVP>2.0.CO;2"
 status = "to-confirm"
 note = "Original not read; formulas over water as quoted by Alduchov and Eskridge (1996, Table II), the Magnus form also by Vömel; over ice as quoted by Vömel only."
 
@@ -129,6 +132,7 @@ authors = "Bolton, D."
 year = 1980
 title = "The computation of equivalent potential temperature"
 container = "Monthly Weather Review 108, 1046-1053"
+doi = "10.1175/1520-0493(1980)108<1046:TCOEPT>2.0.CO;2"
 status = "to-confirm"
 note = "Original not read; formula as quoted by Vömel."
 
@@ -137,6 +141,7 @@ authors = "Murray, F. W."
 year = 1967
 title = "On the computation of saturation vapor pressure"
 container = "Journal of Applied Meteorology 6, 203-204"
+doi = "10.1175/1520-0450(1967)006<0203:OTCOSV>2.0.CO;2"
 status = "to-confirm"
 note = "Original not read; formula as quoted by Vömel."
 
@@ -191,6 +196,7 @@ authors = "Wagner, W.; Riethmann, T.; Feistel, R.; Harvey, A. H."
 year = 2011
 title = "New equations for the sublimation pressure and melting pressure of H2O ice Ih"
 container = "Journal of Physical and Chemical Reference Data 40, 043103"
+doi = "10.1063/1.3657937"
 status = "to-confirm"
 note = "Article behind IAPWS R14-08(2011), as cited by the release; not read."
 
@@ -206,6 +212,7 @@ authors = "Marti, J.; Mauersberger, K."
 year = 1993
 title = "A survey and new measurements of ice vapor pressure at temperatures between 170 and 250 K"
 container = "Geophysical Research Letters 20, 363-366"
+doi = "10.1029/93GL00105"
 status = "to-confirm"
 note = "Cited by Vömel; title and journal from memory, not checked."
 
@@ -214,6 +221,7 @@ authors = "Murphy, D. M.; Koop, T."
 year = 2005
 title = "Review of the vapour pressures of ice and supercooled water for atmospheric applications"
 container = "Quarterly Journal of the Royal Meteorological Society 131, 1539-1565"
+doi = "10.1256/qj.04.94"
 status = "to-confirm"
 note = "Cited by Vömel; journal details from memory, not checked."
 

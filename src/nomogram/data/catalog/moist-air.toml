@@ -155,6 +155,7 @@ note = "Annex 1, sections 1, 2.1 and 5 (equations 1 to 12 and 17, enhancement fa
 authors = "ECMWF"
 year = 2024
 title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
+doi = "10.21957/c731ee1102"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
 note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."

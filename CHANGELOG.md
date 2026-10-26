@@ -251,6 +251,12 @@ and this project adheres to
 
 ### Fixed
 
+- Ten references had no DOI although they have one: Alduchov and
+  Eskridge (1996), Bolton (1980), Buck (1981), Lewis and Perkin (1981),
+  Marti and Mauersberger (1993), Murphy and Koop (2005), Murray (1967),
+  Wagner and Pruß (1993), Wagner et al. (2011), and the IFS
+  documentation CY49R1, Part IV (`10.21957/c731ee1102`, ECMWF). Each was
+  checked against Crossref or DataCite and resolved at doi.org.
 - The closed-form inverse of a quantity equation in kelvins, asked in
   degC (`dew_point`), subtracted a unitless 273.15 from a result in
   kelvins, which gave wrong values. A quantity equation now keeps the
