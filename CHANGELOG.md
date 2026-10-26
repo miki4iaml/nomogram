@@ -103,9 +103,9 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
-- Definitions of WMO-No. 8, Annex 4.A: the vapour pressure of moist air
-  e' = r p / (0.62198 + r) (4.A.6), and the relative humidities with
-  respect to water and to ice (4.A.15, 4.A.17), with their conditions;
+- Three definitions of WMO-No. 8, Annex 4.A: the vapour pressure of
+  moist air e' = r p / (0.62198 + r) (4.A.6), and the relative humidities
+  with respect to water and to ice (4.A.15, 4.A.17), with their conditions;
   the quantity kind `RelativeHumidityWithRespectToIce`. A definition may
   be a numerical value equation when its source prints it so.
 - Proportionalities: a relation may state that a formulation equals
