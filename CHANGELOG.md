@@ -103,6 +103,14 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- Proportionalities: a relation may state that a formulation equals
+  another times a constant factor. nomogram proves it, or holds it to the
+  printed precision of the coefficients, and says what the factor is the
+  ratio of, whether the two are equal to the printed precision, and
+  whether a shift or a factor of a temperature or a salinity would explain
+  it. An equivalence or a proportionality without a citation is computed
+  by nomogram. A `given` expression may convert a unit. Murray (1967) is
+  Tetens (1930) in kelvins, to the printed precision.
 - Assumptions: a citation lists those its source states; a formulation
   notes the others with their status (stated by another source, deduced,
   suspected). The legend shows them and `search(assumption=...)` finds
