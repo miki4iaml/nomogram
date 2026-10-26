@@ -314,21 +314,23 @@ class Catalog:
         entries = sorted(selection.entries, key=lambda e: positions[e.ref])
         return Selection(tuple(entries), self)
 
-    def uses(self, entry: str | Entry) -> Selection:
+    def uses(self, entry: str | Entry | Formulation) -> Selection:
         """The entries an entry refers to (see :attr:`links`), in catalog order.
 
         ``catalog().uses("formulations.itu_r_p453_es_water")`` gives its
-        parts, its kinds and its reference.
+        parts, its kinds and its reference. The entry is a reference
+        ``section.key``, an entry a search found, or a formulation of the
+        catalog.
         """
         from nomogram.search import uses
 
         return self._in_order(uses(self, entry))
 
-    def used_by(self, entry: str | Entry) -> Selection:
+    def used_by(self, entry: str | Entry | Formulation) -> Selection:
         """The entries that refer to an entry, in catalog order.
 
         ``catalog().used_by("references.itu_r_p453_14")`` gives everything
-        citing ITU-R P.453.
+        citing ITU-R P.453. The entry is given as for :meth:`uses`.
         """
         from nomogram.search import used_by
 

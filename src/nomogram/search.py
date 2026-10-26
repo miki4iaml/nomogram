@@ -40,11 +40,11 @@ from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Any, overload
 
-from nomogram.model import _origin
+from nomogram.model import Formulation, _origin
 
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
-    from nomogram.model import Formulation, Variable
+    from nomogram.model import Variable
     from nomogram.semantics import UnitDefinition
 
 __all__ = [
@@ -737,11 +737,22 @@ def search(
     return Selection(chosen, catalog)
 
 
-def _ref(entry: str | Entry) -> str:
-    return entry.ref if isinstance(entry, Entry) else entry
+def _ref(entry: str | Entry | Formulation) -> str:
+    value: object = entry  # checked at run time, whatever the caller passes
+    if isinstance(value, Entry):
+        return value.ref
+    if isinstance(value, Formulation):
+        return f"formulations.{value.key}"
+    if isinstance(value, str):
+        return value
+    msg = (
+        "expected a reference 'section.key', an Entry or a Formulation, "
+        f"not {type(value).__name__}"
+    )
+    raise TypeError(msg)
 
 
-def uses(catalog: Catalog, entry: str | Entry) -> Selection:
+def uses(catalog: Catalog, entry: str | Entry | Formulation) -> Selection:
     """See :meth:`nomogram.catalog.Catalog.uses`."""
     built = catalog._search_index
     ref = _ref(entry)
@@ -752,7 +763,7 @@ def uses(catalog: Catalog, entry: str | Entry) -> Selection:
     return Selection(tuple(built.by_ref[t].entry for t in targets), catalog)
 
 
-def used_by(catalog: Catalog, entry: str | Entry) -> Selection:
+def used_by(catalog: Catalog, entry: str | Entry | Formulation) -> Selection:
     """See :meth:`nomogram.catalog.Catalog.used_by`."""
     built = catalog._search_index
     ref = _ref(entry)

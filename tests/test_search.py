@@ -333,6 +333,18 @@ def test_uses_and_used_by() -> None:
     )
     with pytest.raises(KeyError, match="no entry"):
         CATALOG.uses("formulations.nope")
+
+
+def test_links_of_a_formulation_given_as_itself() -> None:
+    formulation = CATALOG.formulations["itu_r_p453_es_water"]
+    assert (
+        CATALOG.uses(formulation).refs
+        == CATALOG.uses("formulations.itu_r_p453_es_water").refs
+    )
+    buck = CATALOG.formulations["buck1996"]
+    assert "formulations.itu_r_p453_es_water" in CATALOG.used_by(buck).refs
+    with pytest.raises(TypeError, match="not Reference"):
+        CATALOG.uses(CATALOG.references["itu_r_p453_14"])  # type: ignore[arg-type]
     with pytest.raises(KeyError, match="no entry"):
         CATALOG.used_by("nope")
 
