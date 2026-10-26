@@ -31,13 +31,13 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
         "KINDS",
         {
             "ThermodynamicTemperature": KindSpec(
-                "ratio", delta=False, cf_standard_names=("air_temperature",)
+                "ratio", delta=False, cf_standard_names=(("air_temperature", "narrow"),)
             ),
             "CelsiusTemperature": KindSpec("interval", delta=False),
             "VapourPressure": KindSpec(
                 "ratio",
                 delta=False,
-                cf_standard_names=("water_vapor_partial_pressure_in_air",),
+                cf_standard_names=(("water_vapor_partial_pressure_in_air", "exact"),),
                 added_units=("PA", "HectoPA"),
             ),
         },
@@ -186,7 +186,7 @@ def test_missing_cf_name_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         extract_semantics.KINDS,
         "CelsiusTemperature",
-        KindSpec("interval", False, cf_standard_names=("no_such_name",)),
+        KindSpec("interval", False, cf_standard_names=(("no_such_name", "exact"),)),
     )
     with pytest.raises(ValueError, match="CF standard names not found: no_such_name"):
         run()

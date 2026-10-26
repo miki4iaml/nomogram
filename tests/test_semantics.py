@@ -9,6 +9,7 @@ import datetime
 import pytest
 
 from nomogram.semantics import (
+    CF_NAMESPACE,
     ExternalMatch,
     MatchRelation,
     QuantityKind,
@@ -181,15 +182,25 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
     assert ureg.Quantity(1, cf.pint).to("g/m^3").magnitude == pytest.approx(1000)
 
 
-def test_wikidata_links_carry_their_relation_and_verification_date() -> None:
+def test_external_links_carry_their_relation_and_verification_date() -> None:
     kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
+    checked = datetime.date(2026, 10, 26)
     assert kind.matches == (
         ExternalMatch(
-            target="http://www.wikidata.org/entity/Q76378808",
-            relation=MatchRelation.CLOSE,
-            verified=datetime.date(2026, 10, 26),
+            "http://www.wikidata.org/entity/Q76378808", MatchRelation.CLOSE, checked
+        ),
+        ExternalMatch(
+            f"{CF_NAMESPACE}mass_concentration_of_water_vapor_in_air/",
+            MatchRelation.EXACT,
+            checked,
         ),
     )
+    # CF names the temperature of the air: narrower than the kind.
+    temperature = CATALOG.quantity_kinds["ThermodynamicTemperature"].matches[-1]
+    assert temperature.target == f"{CF_NAMESPACE}air_temperature/"
+    assert temperature.relation is MatchRelation.NARROW
+    altitude = CATALOG.quantity_kinds["Altitude"]
+    assert [m.relation.value for m in altitude.matches[1:]] == ["exact", "close"]
     assert CATALOG.units["DEG_C"].matches[0].target.endswith("/Q25267")
 
 

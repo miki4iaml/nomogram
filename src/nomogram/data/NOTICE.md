@@ -12,13 +12,16 @@ Quantities, Units, Dimensions and Types, by QUDT.org
 
 Changes: a subset of quantity kinds and units was selected and
 restructured as JSON; nomogram adds the scale type and point/difference
-typing of each kind (with `offset_units` for a kind on an interval
-scale whose units carry no offset, such as Altitude), the units QUDT
-does not declare for some kinds (`added_units`), the pint expression of
-each unit, and the link from each kind to CF standard names; it
-replaces some unit symbols with those of the SI Brochure (`SYMBOLS`:
-`1` for UNITLESS, `ppm` for PPM). Links from QUDT's `wikidataMatch` are
-recorded as SKOS close matches, with the extraction date as their
+typing of each kind (with `offset_units`: no offset for a kind on an
+interval scale whose zero is a reference surface, such as Altitude, and
+units with and without an offset for the temperature points
+DewPointTemperature, WetBulbTemperature and their parent Temperature),
+the units QUDT does not declare for some kinds (`added_units`), the pint
+expression of each unit, and the links from kinds to CF standard names,
+each with its SKOS relation; it replaces some unit symbols with those of
+the SI Brochure (`SYMBOLS`: `1` for UNITLESS, `ppm` for PPM, `mol⁻¹` for
+PER-MOL, `K⁻¹` for PER-K). Links from QUDT's `wikidataMatch` are recorded
+as SKOS close matches; every link takes the extraction date as its
 verification date.
 
 ## UCUM codes

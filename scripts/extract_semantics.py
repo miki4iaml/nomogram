@@ -52,13 +52,19 @@ QK = Namespace("http://qudt.org/vocab/quantitykind/")
 UNIT = Namespace("http://qudt.org/vocab/unit/")
 RDFS_LABEL = URIRef("http://www.w3.org/2000/01/rdf-schema#label")
 
+#: Links to CF standard names: the namespace of the NERC Vocabulary
+#: Server, as nomogram.semantics.CF_NAMESPACE.
+CF_NAMESPACE = "http://vocab.nerc.ac.uk/standard_name/"
+
 
 class KindSpec(NamedTuple):
     """nomogram's additions to a QUDT quantity kind."""
 
     scale_type: str
     delta: bool
-    cf_standard_names: tuple[str, ...] = ()
+    #: CF standard names with their SKOS relation: "exact", "close", or
+    #: "narrow" when the CF name is narrower (the temperature of air).
+    cf_standard_names: tuple[tuple[str, str], ...] = ()
     #: Units QUDT does not declare for the kind, added by nomogram.
     added_units: tuple[str, ...] = ()
     #: Whether its units carry an offset (degC); by default, those of an
@@ -71,13 +77,14 @@ class KindSpec(NamedTuple):
 #: Quantity kinds kept, by QUDT local name.
 KINDS: dict[str, KindSpec] = {
     "ThermodynamicTemperature": KindSpec(
-        "ratio", delta=False, cf_standard_names=("air_temperature",)
+        "ratio", delta=False, cf_standard_names=(("air_temperature", "narrow"),)
     ),
     # CF names a temperature by its medium, not by its scale: a variable
     # named air_temperature may be in degC, any unit convertible to the
-    # canonical K being allowed (CF conventions, section 3.3).
+    # canonical K being allowed (CF conventions, section 3.3). The air's
+    # temperature is narrower than the kind; so is the air's pressure.
     "CelsiusTemperature": KindSpec(
-        "interval", delta=False, cf_standard_names=("air_temperature",)
+        "interval", delta=False, cf_standard_names=(("air_temperature", "narrow"),)
     ),
     # A temperature point, never matched with air temperature. Empirical
     # formulas give it in degC; CF (its canonical unit) and the IFS give it
@@ -86,7 +93,7 @@ KINDS: dict[str, KindSpec] = {
     "DewPointTemperature": KindSpec(
         "interval",
         delta=False,
-        cf_standard_names=("dew_point_temperature",),
+        cf_standard_names=(("dew_point_temperature", "exact"),),
         offset_units="any",
     ),
     # The parent of the dew point and of the wet-bulb temperature, under
@@ -99,17 +106,17 @@ KINDS: dict[str, KindSpec] = {
     "WetBulbTemperature": KindSpec(
         "interval",
         delta=False,
-        cf_standard_names=("wet_bulb_temperature",),
+        cf_standard_names=(("wet_bulb_temperature", "exact"),),
         offset_units="any",
     ),
     "TemperatureDifference": KindSpec("ratio", delta=True),
     # ISO 80000 psi = x / x_sat, the mixing ratio over its saturation value:
     # the "relative humidity" r / r_sat of some textbooks (TEOS-10 3.40.2).
-    # QUDT 3.5.2 gives it no unit; a ratio, it takes 1 and %.
+    # QUDT 3.5.2 declares the unit 1; a ratio, it takes % too.
     "RelativeMassRatioOfVapour": KindSpec(
         "ratio",
         delta=False,
-        added_units=("UNITLESS", "PERCENT"),
+        added_units=("PERCENT",),
     ),
     # p / p_sat over either phase, the parent of the relative humidity (with
     # respect to water, as QUDT defines it) under which the catalog declares
@@ -125,33 +132,35 @@ KINDS: dict[str, KindSpec] = {
     "RelativeHumidity": KindSpec(
         "ratio",
         delta=False,
-        cf_standard_names=("relative_humidity",),
+        cf_standard_names=(("relative_humidity", "exact"),),
         added_units=("UNITLESS",),
     ),
-    "Pressure": KindSpec("ratio", delta=False, cf_standard_names=("air_pressure",)),
+    "Pressure": KindSpec(
+        "ratio", delta=False, cf_standard_names=(("air_pressure", "narrow"),)
+    ),
     "VapourPressure": KindSpec(
         "ratio",
         delta=False,
-        cf_standard_names=("water_vapor_partial_pressure_in_air",),
+        cf_standard_names=(("water_vapor_partial_pressure_in_air", "exact"),),
     ),
     "MassConcentrationOfWaterVapour": KindSpec(
         "ratio",
         delta=False,
-        cf_standard_names=("mass_concentration_of_water_vapor_in_air",),
+        cf_standard_names=(("mass_concentration_of_water_vapor_in_air", "exact"),),
     ),
     # QUDT gives this kind no specializationOf MassRatio, so the mass
     # ratio units do not reach it; g/kg is its usual unit.
     "MassRatioOfWaterVapourToDryGas": KindSpec(
         "ratio",
         delta=False,
-        cf_standard_names=("humidity_mixing_ratio",),
+        cf_standard_names=(("humidity_mixing_ratio", "exact"),),
         added_units=("GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
     ),
     # CF's canonical unit for specific humidity is 1.
     "SpecificHumidity": KindSpec(
         "ratio",
         delta=False,
-        cf_standard_names=("specific_humidity",),
+        cf_standard_names=(("specific_humidity", "exact"),),
         added_units=("UNITLESS",),
     ),
     # Kept although nomogram does not use it as a kind: the term is
@@ -165,7 +174,7 @@ KINDS: dict[str, KindSpec] = {
     # surface (CF: "the vertical distance above the surface").
     "RefractiveIndex": KindSpec("ratio", delta=False),
     "DimensionlessRatio": KindSpec("ratio", delta=False),
-    "Height": KindSpec("ratio", delta=False, cf_standard_names=("height",)),
+    "Height": KindSpec("ratio", delta=False, cf_standard_names=(("height", "exact"),)),
     # Altitude: height above the geoid (CF), a reference surface fixed by
     # convention, hence an interval scale; QUDT's description leaves the
     # reference to the context. CF's height above mean sea level is close:
@@ -174,7 +183,10 @@ KINDS: dict[str, KindSpec] = {
     "Altitude": KindSpec(
         "interval",
         delta=False,
-        cf_standard_names=("altitude", "height_above_mean_sea_level"),
+        cf_standard_names=(
+            ("altitude", "exact"),
+            ("height_above_mean_sea_level", "close"),
+        ),
         offset_units=False,
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
@@ -455,10 +467,17 @@ def extract_kinds(
             "specialization_of": _local(_value(graph, subject, QUDT.specializationOf)),
             "scale_type": spec.scale_type,
             "delta": spec.delta,
-            "cf_standard_names": list(spec.cf_standard_names),
             "applicable_units": sorted(applicable | added),
             "added_units": sorted(added),
-            "matches": _matches(_value(graph, subject, QUDT.wikidataMatch), date),
+            "matches": _matches(_value(graph, subject, QUDT.wikidataMatch), date)
+            + [
+                {
+                    "target": f"{CF_NAMESPACE}{cf}/",
+                    "relation": relation,
+                    "verified": date,
+                }
+                for cf, relation in spec.cf_standard_names
+            ],
         }
     return kinds
 
@@ -500,7 +519,7 @@ def extract(
     kinds_graph.parse(kinds_path, format="turtle")
     units = extract_units(units_graph, date)
     kinds = extract_kinds(kinds_graph, units, unit_kinds(units_graph), date)
-    cf_names = {n for spec in KINDS.values() for n in spec.cf_standard_names}
+    cf_names = {n for spec in KINDS.values() for n, _ in spec.cf_standard_names}
     cf_names |= set(SCALE_CF_NAMES) | set(LOCAL_KIND_CF_NAMES)
     cf_version, cf = extract_cf(cf_path, cf_names)
     return {

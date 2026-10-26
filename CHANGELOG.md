@@ -287,6 +287,17 @@ and this project adheres to
 
 ### Changed
 
+- CF standard names are links like Wikidata items: each carries its SKOS
+  relation and the date it was checked, as an `ExternalMatch` in the
+  `matches` of a kind or a scale, whose target is the name in the NERC
+  Vocabulary Server (`nomogram.semantics.CF_NAMESPACE`).
+  `cf_standard_names` still gives the names alone, and `QuantityKind` and
+  `ConventionalScale` are built with their links. The catalog writes them
+  as tables (`{ name, relation, verified }`); a bare name, as format 2
+  writes it, is an exact match. `air_temperature` and `air_pressure` are
+  narrow matches of the temperatures and of the pressure (air only),
+  `height_above_mean_sea_level` a close match of the altitude, the CF
+  salinity names close matches of the salinity scales.
 - `plot_deviations` draws off scale a curve whose largest deviation
   exceeds those of all the others by more than three times, so that it
   no longer flattens them: the curve leaves the axis, and its legend

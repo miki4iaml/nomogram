@@ -371,6 +371,36 @@ def test_a_local_kind_may_carry_cf_standard_names() -> None:
         load_catalog([document + 'cf_standard_names = ["sea_water_salinity"]\n'])
 
 
+def test_cf_links_carry_their_relation_and_verification_date() -> None:
+    from nomogram.semantics import CF_NAMESPACE, MatchRelation, semantic_catalog
+
+    link = CATALOG.kinds["VirtualTemperature"].matches[-1]
+    assert link.target == f"{CF_NAMESPACE}virtual_temperature/"
+    assert link.relation is MatchRelation.EXACT
+    assert link.verified == datetime.date(2026, 10, 26)
+    # A CF name denotes a salinity on the scale, not the scale: close.
+    assert CATALOG.scales["pss78"].matches[0].relation is MatchRelation.CLOSE
+    document = KIND.format(name="Local", parent="ThermodynamicTemperature")
+    # A bare name, as format 2 writes it: exact, checked with the frozen table.
+    bare = load_catalog([document + 'cf_standard_names = ["air_temperature"]\n'])
+    (link,) = bare.kinds["Local"].matches
+    assert link.relation is MatchRelation.EXACT
+    assert link.verified == semantic_catalog().extracted
+    for value, message in (
+        ('"air_temperature"', "expected a list"),
+        (
+            '[{ name = "air_temperature", relation = "near", verified = 2026-10-26 }]',
+            "is not one of",
+        ),
+        (
+            '[{ name = "air_temperature", relation = "narrow", verified = "today" }]',
+            "expected a date",
+        ),
+    ):
+        with pytest.raises(CatalogError, match=message):
+            load_catalog([document + f"cf_standard_names = {value}\n"])
+
+
 def test_table_expected() -> None:
     with pytest.raises(CatalogError, match="expected a table"):
         load_catalog(["[formulations]\nf = 1\n"])

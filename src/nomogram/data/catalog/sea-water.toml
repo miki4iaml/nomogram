@@ -20,7 +20,7 @@ keywords = ["oceanography", "salinity", "sea water", "vapour pressure", "salinit
 label = "Sea Water Salinity"
 specialization_of = "MassFraction"
 description = "Mass fraction of dissolved material in sea water, estimated on a conventional scale (Knudsen, Cox, PSS-78, Reference or Absolute Salinity), each scale with its own CF standard name."
-cf_standard_names = ["sea_water_salinity"]
+cf_standard_names = [{ name = "sea_water_salinity", relation = "exact", verified = 2026-10-26 }]
 
 [kinds.Chlorinity]
 label = "Chlorinity"
@@ -186,7 +186,7 @@ label = "Reference-Composition Salinity Scale (Millero et al. 2008)"
 kinds = ["SeaWaterSalinity"]
 symbol = "Reference Salinity"
 subscript = "R"
-cf_standard_names = ["sea_water_reference_salinity"]
+cf_standard_names = [{ name = "sea_water_reference_salinity", relation = "close", verified = 2026-10-26 }]
 reference = "teos10_manual"
 
 [scales.pss78]
@@ -198,7 +198,7 @@ conversion = "35.16504 / 35 * x / 1000"
 bounds = [2.0, 42.0]
 symbol = "PSS-78"
 subscript = "P"
-cf_standard_names = ["sea_water_practical_salinity"]
+cf_standard_names = [{ name = "sea_water_practical_salinity", relation = "close", verified = 2026-10-26 }]
 reference = "teos10_manual"
 note = "S_R = u_PS S_P with u_PS = (35.16504/35) g/kg (TEOS-10 eq. 2.4.1), for 2 < S_P < 42, the limits of PSS-78: below S_P = 2 the conversion is undefined, and a formulation on this scale gives NaN under the default evaluation (scale='ignore' takes the salinity as given). Practical Salinity is a number, written without a unit as CF (canonical unit 1) and TEOS-10 write it: S_P = 35, not 35 per mille, and the conversion gives S_R as a mass fraction, in the unit of the scale (1). QUDT's unit:PSU is not used (formally incorrect and strongly discouraged, in QUDT's own words)."
 
@@ -210,7 +210,7 @@ unit = "PERMILLE"
 conversion = "35.16504 / 35 * x"
 symbol = "Cox"
 subscript = "C"
-cf_standard_names = ["sea_water_cox_salinity"]
+cf_standard_names = [{ name = "sea_water_cox_salinity", relation = "close", verified = 2026-10-26 }]
 reference = "teos10_manual"
 note = "Converted as TEOS-10 (A.4) converts salinities measured before PSS-78, S_R = u_PS S, for which it states no range: chlorinity salinities are defined below S = 2, where PSS-78 is not, so this scale has no bounds. CF writes S_P = S_C. For chlorinity values, Lewis and Perkin (1981) find no true conversion to PSS-78 and recommend a route through R15 (errors unlikely to exceed 0.03)."
 
@@ -223,7 +223,7 @@ unit = "PERMILLE"
 conversion = "(x - 0.03) * 1.80655 / 1.805"
 symbol = "Knudsen"
 subscript = "K"
-cf_standard_names = ["sea_water_knudsen_salinity"]
+cf_standard_names = [{ name = "sea_water_knudsen_salinity", relation = "close", verified = 2026-10-26 }]
 reference = "gsw_sp_from_sk"
 note = "Derived by eliminating chlorinity between the Knudsen and Cox relations (GSW, CF), as Feistel (2008, eq. 2.9) does too; then on as Cox salinity, without bounds. Two sources disagree. TEOS-10 A.4 converts pre-1978 salinities as S_R = u_PS S, without the 0.03 offset. Lewis and Perkin (1981, p. 325) find Knudsen salinities within 0.001 of PSS-78 directly for 25 < S < 38, which this conversion departs from by up to about 0.009 at S = 25 (S_K = 25 gives 24.9914): their finding sides with TEOS-10 A.4."
 
@@ -234,7 +234,7 @@ reference_scale = "reference_salinity2008"
 convertible = false
 symbol = "Absolute Salinity"
 subscript = "A"
-cf_standard_names = ["sea_water_absolute_salinity"]
+cf_standard_names = [{ name = "sea_water_absolute_salinity", relation = "close", verified = 2026-10-26 }]
 reference = "teos10_manual"
 note = "S_A = S_R + delta S_A, the anomaly depending on the location (TEOS-10 look-up table): nomogram holds no conversion; values on this scale are taken as given."
 
