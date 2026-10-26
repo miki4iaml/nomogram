@@ -109,8 +109,8 @@ def test_every_coefficient_of_the_catalog_has_a_unit(formulation: Formulation) -
     [
         ("sonntag1990_magnus", {"A": "", "B": "°C", "C": "hPa"}),
         ("buck1996", {"A": "", "B": "°C", "C": "hPa", "D": "°C"}),
-        ("sonntag1990", {"a0": "K", "a1": "", "a2": "1/K", "a3": "1/K²", "a4": ""}),
-        ("murphy_koop2005_ice", {"c0": "", "c1": "K", "c2": "", "c3": "1/K"}),
+        ("sonntag1990", {"a0": "K", "a1": "", "a2": "K⁻¹", "a3": "K⁻²", "a4": ""}),
+        ("murphy_koop2005_ice", {"c0": "", "c1": "K", "c2": "", "c3": "K⁻¹"}),
         ("iapws_r14_08_sublimation", {"a1": "", "b1": "", "T_t": "K", "p_t": "Pa"}),
     ],
 )
@@ -316,7 +316,9 @@ def test_numerical_values_only_for_fixed_units() -> None:
         ("dimensionless", ""),
         ("delta_degC", "°C"),
         ("hPa", "hPa"),
-        ("1/K", "1/K"),
+        ("1/K", "K⁻¹"),
+        ("1/K**2", "K⁻²"),
+        ("1/hPa", "hPa⁻¹"),
     ],
 )
 def test_unit_text(unit: str | None, text: str) -> None:

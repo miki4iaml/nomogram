@@ -193,7 +193,7 @@ def test_markdown_explains_each_symbol_with_its_unit() -> None:
     assert "- $e_{\\mathrm{st}} = 1013.246$ hPa (unit added by nomogram)" in gg
     sonntag = FORMULATIONS["sonntag1990"].render().markdown.splitlines()
     assert (
-        r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K² (unit inferred by nomogram)"
+        r"- $a_{3} = 1.673952 \times 10^{-5}$ K⁻² (unit inferred by nomogram)"
         in sonntag
     )
     with_values = MAGNUS.render(values=True).markdown

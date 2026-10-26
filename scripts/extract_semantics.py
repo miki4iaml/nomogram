@@ -191,6 +191,11 @@ KINDS: dict[str, KindSpec] = {
     # temperature, and the total water mixing ratio of the equivalent
     # potential temperature, specialized in the catalog.
     "Density": KindSpec("ratio", delta=False),
+    # WMO-No. 8: the psychrometer coefficient A, in K-1 (4.1, 4.2), and the
+    # specific heats of dry air and water vapour of the wet-bulb
+    # temperature (4.A.19).
+    "InverseTemperature": KindSpec("ratio", delta=False),
+    "SpecificHeatCapacityAtConstantPressure": KindSpec("ratio", delta=False),
     "MassRatio": KindSpec("ratio", delta=False),
 }
 
@@ -226,6 +231,7 @@ UNITS: dict[str, str] = {
     "J-SEC": "J*s",
     "M-PER-SEC": "m/s",
     "PER-MOL": "1/mol",
+    "PER-K": "1/K",
     "J-PER-MOL-K": "J/(mol*K)",
     "W-PER-M2-K4": "W/(m^2*K^4)",
     "KiloGM-PER-MOL": "kg/mol",
@@ -268,6 +274,8 @@ SYMBOLS: dict[str, str] = {
     # QUDT writes "/mol"; the SI Brochure (9th ed., table 1) writes mol⁻¹,
     # as does UCUM ("mol-1").
     "PER-MOL": "mol⁻¹",
+    # Likewise "/K" for QUDT, K⁻¹ for the SI Brochure.
+    "PER-K": "K⁻¹",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping

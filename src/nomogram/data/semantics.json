@@ -259,6 +259,26 @@
       "scale_type": "ratio",
       "specialization_of": "Length"
     },
+    "InverseTemperature": {
+      "added_units": [],
+      "applicable_units": [
+        "PER-K"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H-1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/InverseTemperature",
+      "label": "Inverse Temperature",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q107028650",
+          "verified": "2026-10-26"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "Mass": {
       "added_units": [],
       "applicable_units": [
@@ -549,6 +569,26 @@
       ],
       "scale_type": "ratio",
       "specialization_of": null
+    },
+    "SpecificHeatCapacityAtConstantPressure": {
+      "added_units": [],
+      "applicable_units": [
+        "J-PER-KiloGM-K"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L2I0M0H-1T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/SpecificHeatCapacityAtConstantPressure",
+      "label": "Specific Heat Capacity at Constant Pressure",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q75774282",
+          "verified": "2026-10-26"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "SpecificHeatCapacity"
     },
     "SpecificHumidity": {
       "added_units": [
@@ -1187,6 +1227,24 @@
       "symbol": "Pa",
       "ucum": "Pa",
       "udunits": "Pa"
+    },
+    "PER-K": {
+      "dimension_vector": "A0E0L0I0M0H-1T0D0",
+      "iri": "http://qudt.org/vocab/unit/PER-K",
+      "label": "Reciprocal Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q107028673",
+          "verified": "2026-10-26"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "1/K",
+      "symbol": "K\u207b\u00b9",
+      "ucum": "K-1",
+      "udunits": null
     },
     "PER-MOL": {
       "dimension_vector": "A-1E0L0I0M0H0T0D0",

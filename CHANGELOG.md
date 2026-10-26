@@ -246,9 +246,18 @@ and this project adheres to
   definition (3.40.2) and which WMO-No. 8 (2024) does not use. That ratio
   is a formulation of its own, distinct from the WMO relative humidity in
   mixing ratios (4.A.16).
+- The general psychrometric formulae of WMO-No. 8 (4.1, 4.2), for a
+  given psychrometer coefficient and the saturation vapour pressure at the
+  bulb temperature; and the air temperature from the thermodynamic
+  wet-bulb and ice-bulb temperatures, for ideal gases with constant
+  specific heats (4.A.19, 4.A.21, whose printed c_p is read as c_pa). The
+  QUDT kinds InverseTemperature and SpecificHeatCapacityAtConstantPressure,
+  the unit K⁻¹, and the local kind PsychrometerCoefficient.
 
 ### Changed
 
+- A reciprocal unit is written with a negative exponent, as the SI
+  Brochure writes it (K⁻¹, K⁻², hPa⁻¹), instead of 1/K.
 - A conventional scale applies to the specializations of the kinds it
   lists, never to a difference (`ConventionalScale.applies_to`); the
   temperature scales list `Temperature`, so they apply to every

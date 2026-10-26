@@ -49,6 +49,7 @@ leaves the coefficient undetermined when they do not fix its unit.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from fractions import Fraction
@@ -117,13 +118,18 @@ def _pint(key: str) -> Any:
     return ureg.Unit("delta_degC" if expression == "degC" else expression)
 
 
+#: A reciprocal unit as pint writes it (1/K, 1/K²), for a negative exponent.
+_RECIPROCAL = re.compile(r"1/([^\s/·()¹²³⁴⁵⁶⁷⁸⁹]+)([²³⁴⁵⁶⁷⁸⁹]?)")
+
+
 def unit_text(unit: Any) -> str:
     """A unit as text, with the symbols of the catalog where possible.
 
     A temperature difference in degrees Celsius is written °C, as the SI
     Brochure does, not pint's Δ°C. A product takes the middle dot of the
     catalog symbols (J/(kg·K)), whichever dot the version of pint writes.
-    A pure number gives an empty string.
+    A reciprocal unit takes a negative exponent, as the SI Brochure writes
+    it (K⁻¹, K⁻², not 1/K). A pure number gives an empty string.
     """
     if unit is None or unit.dimensionless and unit == ureg.dimensionless:
         return ""
@@ -131,7 +137,11 @@ def unit_text(unit: Any) -> str:
         if definition.symbol and key != "UNITLESS" and _pint(key) == unit:
             return definition.symbol
     # Dot operator (pint from 0.25) to middle dot (pint 0.24, QUDT symbols).
-    return f"{unit:~P}".replace("Δ°C", "°C").replace("\u22c5", "\u00b7")
+    text = f"{unit:~P}".replace("Δ°C", "°C").replace("\u22c5", "\u00b7")
+    found = _RECIPROCAL.fullmatch(text)
+    if found:
+        return f"{found.group(1)}⁻{found.group(2) or '¹'}"
+    return text
 
 
 @dataclass
