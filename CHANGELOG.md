@@ -333,6 +333,36 @@ and this project adheres to
 
 ### Fixed
 
+- Verification of proportionalities (the method moves to version 3,
+  and every recorded verdict is recomputed; the verdicts of the bundled
+  catalog keep their status):
+  - the rounding of a coefficient is half a unit of its last significant
+    digit in any notation: a coefficient below 10⁻⁴ hid 0.5, so that
+    formulations far from proportional were held;
+  - a ratio is held only when moving one coefficient within its rounding
+    takes its variation away, not as soon as that coefficient could move
+    the ratio as much; the same holds for equality to the printed
+    precision;
+  - points where a side is negative are compared by their ratio, instead
+    of being dropped, or of failing when all were; a ratio that changes
+    sign is refuted, the share of the samples compared is given, and a
+    proportionality between outputs in °C is refused;
+  - a factor is the ratio of two coefficients only within their printed
+    rounding, never of two equal ones; a sampled factor is the median
+    of a ratio that varies, not a constant deviation;
+  - a shift or a factor of an input is put down to a conventional scale
+    only within what the catalog's scales give over the bounds (a shift
+    of 0.7 °C was);
+  - the signature of a formulation includes the units of its
+    coefficients and constants, and the fingerprint of a verdict the
+    keys of the formulations, the names of their coefficients and the
+    scales applying to the inputs, so that no recorded verdict outlives
+    what it was computed for;
+  - proofs read the decimal numbers of expressions and of `given` as
+    exact rationals (`parse_expression(..., exact=True)`, new): with
+    SymPy 1.13, the lowest version supported, 273.15 written in a
+    formula and in `given = { t = "T - 273.15" }` did not cancel, and an
+    equivalence stayed unproven.
 - Ten references had no DOI although they have one: Alduchov and
   Eskridge (1996), Bolton (1980), Buck (1981), Lewis and Perkin (1981),
   Marti and Mauersberger (1993), Murphy and Koop (2005), Murray (1967),

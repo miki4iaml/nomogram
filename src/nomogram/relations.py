@@ -50,6 +50,7 @@ import math
 import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from fractions import Fraction
 from functools import lru_cache
 from importlib.resources import files
@@ -64,8 +65,10 @@ from nomogram.comparison import same_state
 from nomogram.expression import Piecewise, parse_expression
 from nomogram.model import (
     CheckCase,
+    ConstantNature,
     CrossCheck,
     Formulation,
+    PhysicalConstant,
     Relation,
     RelationKind,
     Variable,
@@ -143,9 +146,28 @@ class Verdict:
     detail: str | None = None
 
 
-def _decimals(value: float) -> int:
-    text = repr(value)
-    return len(text.split(".")[1]) if "." in text and "e" not in text else 0
+def _printed_step(value: float) -> float:
+    """Half a unit of the last significant digit: the rounding a value may hide.
+
+    Read from the shortest text of the value, in any notation: 5.9e-06
+    hides 5e-08, 6.112 hides 5e-04. The catalog keeps no text of its
+    numbers, so an integral value is read without trailing zeros: 2.501e6
+    hides 500, 72 hides 0.5.
+    """
+    digits = Decimal(repr(float(value)))
+    if digits == digits.to_integral_value():
+        digits = digits.normalize()
+    exponent = digits.as_tuple().exponent
+    return 0.5 * 10.0 ** int(exponent)
+
+
+def _constant_step(constant: PhysicalConstant) -> float:
+    """The rounding a constant may hide: none when exact, else its printed digits."""
+    if constant.nature is ConstantNature.EXACT:
+        return 0.0
+    if constant.printed is not None:
+        return 0.5 * 10.0 ** int(Decimal(constant.printed).as_tuple().exponent)
+    return _printed_step(constant.value)
 
 
 #: Evaluations of the first grid of an approximation, all in one
@@ -205,6 +227,12 @@ def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
         str(formulation.fixed_units),
     ]
     head += [f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in ordered]
+    if keep_coefficients:
+        # The units of coefficients and constants set the factor that brings
+        # a quantity equation into its output unit.
+        units = [f"{c.value!r} {c.unit}" for c in formulation.coefficients]
+        units += [f"{k.value!r} {k.unit}" for k in formulation.constants]
+        head.append(" ".join(sorted(units)))
     return "|".join(head) + "|" + min(texts)
 
 
@@ -342,7 +370,7 @@ def _approximation(
             found, where = value, centre
     at = MappingProxyType({n: float(x) for n, x in zip(names, where, strict=True)})
     claimed = float(relation.accuracy or 0.0)
-    tolerance = 0.5 * 10.0 ** -_decimals(claimed)
+    tolerance = _printed_step(claimed)
     if abs(found - claimed) <= tolerance:
         status: Status = "reproduced"
     elif found < claimed:
@@ -408,13 +436,13 @@ def _unit_factor(source: str, target: str) -> Any:
 
 
 def _rational(formulation: Formulation) -> Any:
-    """The result in the output unit, with exact coefficients and constants.
+    """The result in the output unit, with exact numbers, coefficients and constants.
 
     A quantity equation gives its result in the units of its inputs, which
     :attr:`~nomogram.model.Formulation.output_factor` brings into the
     output unit (1 for fixed units): the factor is part of the result.
     """
-    expr = parse_expression(formulation.expression, formulation.names)
+    expr = parse_expression(formulation.expression, formulation.names, exact=True)
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {
@@ -524,7 +552,7 @@ def _sides(
     names = [v.identifier for v in subject.inputs]
     units = {v.identifier: v.unit for v in subject.inputs}
     replacements = {
-        sympy.Symbol(identifier, real=True): parse_expression(source, names)
+        sympy.Symbol(identifier, real=True): parse_expression(source, names, exact=True)
         for identifier, source in relation.given.items()
     }
     # An input of the object fed by a subject input of another identifier
@@ -609,9 +637,9 @@ def _equivalence(
     return Verdict("unproven", method, detail=str(simplified))
 
 
-def _printed_step(value: float) -> float:
-    """Half a unit of the last digit printed: the rounding a value may hide."""
-    return 0.5 * 10.0 ** -_decimals(value)
+#: Share of the variation of a ratio, or of its distance from 1, that moving
+#: one coefficient within its rounding may leave: a rest of second order.
+UNEXPLAINED = 1e-3
 
 
 def _sensitivities(
@@ -620,17 +648,20 @@ def _sensitivities(
     """For each coefficient and constant, d(sign * ln f)/dc and its printed step."""
     expr = parse_expression(formulation.expression, formulation.names)
     expr = expr.xreplace(replacements)
-    pairs = [(c.identifier, c.value) for c in formulation.coefficients]
-    pairs += [(k.identifier, k.value) for k in formulation.constants]
+    pairs = [
+        (c.identifier, c.value, _printed_step(c.value))
+        for c in formulation.coefficients
+    ]
+    pairs += [(k.identifier, k.value, _constant_step(k)) for k in formulation.constants]
     values = {
         sympy.Symbol(name, real=True): sympy.Rational(repr(value))
-        for name, value in pairs
+        for name, value, _ in pairs
     }
     found = []
-    for name, value in pairs:
+    for name, value, step in pairs:
         derivative = sign * sympy.diff(sympy.log(expr), sympy.Symbol(name, real=True))
         label = f"{name} of {formulation.key} ({value!r})"
-        found.append((label, derivative.xreplace(values), _printed_step(value)))
+        found.append((label, derivative.xreplace(values), step))
     return found
 
 
@@ -643,12 +674,16 @@ def _samples(
     return symbols, [random.uniform(*relation.bounds[s.name], points) for s in symbols]
 
 
-def _finest(
-    needed: float, allowances: list[tuple[float, str]]
-) -> tuple[float, str] | None:
-    """The smallest allowance that still covers what is needed, if any."""
-    covering = [a for a in allowances if a[0] >= needed]
-    return min(covering) if covering else None
+def _absorbed(target: Any, effect: Any, step: float) -> Any:
+    """What is left of ``target`` once a coefficient moves within its rounding.
+
+    The move is the least-squares one along ``effect``, the change of the
+    log ratio per unit of the coefficient, held within plus or minus
+    ``step``.
+    """
+    norm = float(effect @ effect)
+    move = 0.0 if norm == 0 else float(np.clip(-(target @ effect) / norm, -step, step))
+    return target + move * effect
 
 
 def _ratio_check(
@@ -660,34 +695,57 @@ def _ratio_check(
     right: Any,
     replacements: Mapping[Any, Any],
     points: int,
-) -> tuple[bool, float, str, Mapping[str, float]]:
+) -> tuple[Status, float | None, str, Mapping[str, float], float]:
     """The ratio on samples of the bounds, against the printed precision.
 
-    The ratio holds as constant when its variation is within what the
-    rounding of one printed coefficient may cause (half a unit of its last
-    digit, through its effect on the ratio); the verdict names the finest
-    such coefficient. Returns whether it holds, the factor, what explains
-    it, and where it strays most.
+    The ratio holds as constant when moving one printed coefficient within
+    its rounding (half a unit of its last digit) takes its variation away,
+    to a rest of second order (:data:`UNEXPLAINED`); the verdict names the
+    finest such coefficient. The two are equal to the printed precision
+    when such a move takes the ratio to 1. Points where a side is zero or
+    not finite are left aside; a ratio that changes sign is refuted.
+    Returns the status, the factor, what explains it (or why it is
+    refuted), where it strays most, and the share of the samples compared.
     """
     symbols, columns = _samples(relation, subject, points)
-    log_ratio = sympy.lambdify(symbols, sympy.log(left) - sympy.log(right), "numpy")
+    function = sympy.lambdify(symbols, left / right, "numpy")
     with np.errstate(all="ignore"):
-        logs = np.broadcast_to(np.asarray(log_ratio(*columns), dtype=float), (points,))
-    finite = np.isfinite(logs)
-    logs = logs[finite]
-    columns = [c[finite] for c in columns]
+        ratios = np.broadcast_to(np.asarray(function(*columns), dtype=float), (points,))
+    usable = np.isfinite(ratios) & (ratios != 0)
+    share = float(np.mean(usable))
+    if not usable.any():
+        return "unverified", None, "", MappingProxyType({}), share
+    ratios = ratios[usable]
+    columns = [c[usable] for c in columns]
+
+    def where(index: int) -> Mapping[str, float]:
+        return MappingProxyType(
+            {s.name: float(c[index]) for s, c in zip(symbols, columns, strict=True)}
+        )
+
+    signs = np.sign(ratios)
+    if (signs != signs[0]).any():
+        return (
+            "refuted",
+            None,
+            "the ratio changes sign",
+            where(int(np.argmax(signs != signs[0]))),
+            share,
+        )
+    logs = np.log(np.abs(ratios))
     middle = float(np.median(logs))
-    factor = math.exp(middle)
+    factor = float(signs[0]) * math.exp(middle)
     spread = float(logs.max() - logs.min())
     residual = float(np.abs(logs - middle).max())
-    # What the rounding of each printed coefficient may hide in the ratio:
-    # a varying part (its effect changes with the inputs) and in all.
-    varying: list[tuple[float, str]] = []
-    whole: list[tuple[float, str]] = []
+    centred = logs - logs.mean()
+    explaining: list[tuple[float, str]] = []
+    equalling: list[tuple[float, str]] = []
     sensitivities = _sensitivities(subject, {}, 1) + _sensitivities(
         other, replacements, -1
     )
     for label, derivative, step in sensitivities:
+        if step == 0:
+            continue
         function = sympy.lambdify(symbols, derivative, "numpy")
         with np.errstate(all="ignore"):
             values = np.broadcast_to(
@@ -695,49 +753,63 @@ def _ratio_check(
             )
         # Where the sensitivity is not finite, it tells nothing.
         values = np.where(np.isfinite(values), values, 0.0)
-        varying.append((float(values.max() - values.min()) * step, label))
-        whole.append((float(np.abs(values).max()) * step, label))
-    explained = _finest(spread, varying)
-    held = explained is not None
-    worst = int(np.argmax(np.abs(logs - middle)))
-    at = MappingProxyType(
-        {s.name: float(c[worst]) for s, c in zip(symbols, columns, strict=True)}
-    )
+        rest = _absorbed(centred, values - values.mean(), step)
+        if float(rest.max() - rest.min()) <= max(
+            UNEXPLAINED * spread, EQUALITY_TOLERANCE
+        ):
+            explaining.append((float(values.max() - values.min()) * step, label))
+        rest = _absorbed(logs, values, step)
+        if float(np.abs(rest).max()) <= max(
+            UNEXPLAINED * abs(middle), EQUALITY_TOLERANCE
+        ):
+            equalling.append((float(np.abs(values).max()) * step, label))
+    held = spread <= EQUALITY_TOLERANCE or bool(explaining)
+    if not held:
+        worst = int(np.argmax(np.abs(logs - middle)))
+        return "refuted", None, "", where(worst), share
     text, ratio_of = _factor_text(factor, subject, other, spread)
     parts = [text]
-    if explained is not None:
+    if explaining:
+        allowance, label = min(explaining)
         parts.append(
-            f"the ratio varies by {spread:.2g}, which the rounding of "
-            f"{explained[1]} explains (up to {explained[0]:.2g})"
+            f"the ratio varies by {spread:.2g}, which the rounding of {label} "
+            f"explains (up to {allowance:.2g})"
         )
-        # A factor that is the ratio of two coefficients is explained by
-        # theirs first.
-        equal = _finest(abs(middle), [w for w in whole if w[1] in ratio_of])
-        equal = equal or _finest(abs(middle), whole)
-        if equal is not None:
-            parts.append(
-                f"equivalent to the printed precision: |ln factor| = "
-                f"{abs(middle):.2g}, which the rounding of {equal[1]} explains "
-                f"(up to {equal[0]:.2g})"
-            )
+    else:
         parts.append(
-            _scale_text(subject, catalog, symbols, columns, left, right, residual)
+            f"the ratio varies by {spread:.2g} only, within the precision of "
+            "the computation"
         )
-    return held, factor, "; ".join(parts), at
+    # A factor that is the ratio of two coefficients is explained by theirs
+    # first.
+    equal = min([e for e in equalling if e[1] in ratio_of] or equalling, default=None)
+    if equal is not None:
+        parts.append(
+            f"equivalent to the printed precision: |ln factor| = "
+            f"{abs(middle):.2g}, which the rounding of {equal[1]} explains "
+            f"(up to {equal[0]:.2g})"
+        )
+    parts.append(_scale_text(subject, catalog, symbols, columns, left, right, residual))
+    return "held", factor, "; ".join(parts), MappingProxyType({}), share
 
 
 def _factor_text(
     factor: float, subject: Formulation, other: Formulation, spread: float = 0.0
 ) -> tuple[str, tuple[str, ...]]:
-    """The factor, its constant deviation, and the two coefficients it is the ratio of.
+    """The factor, its deviation, and the two coefficients it is the ratio of.
 
-    A sampled factor is known to the variation of the ratio (``spread``).
-    A coefficient of the object is brought into the output unit of the
-    subject (611.21 Pa is 6.1121 hPa).
+    A proven factor is constant; a sampled one is the median of a ratio
+    that varies by ``spread``, and it is the ratio of two coefficients
+    only within their printed rounding. Two equal coefficients give no
+    factor. A coefficient of the object is brought into the output unit of
+    the subject (611.21 Pa is 6.1121 hPa).
     """
+    deviation = f"{100 * abs(1 - factor):.2g} %"
     text = (
-        f"factor {factor:.8g}, a constant relative deviation of "
-        f"{100 * abs(1 - factor):.2g} %"
+        f"factor {factor:.8g}, a constant relative deviation of {deviation}"
+        if not spread
+        else f"factor {factor:.8g}, the median of the sampled ratio, a relative "
+        f"deviation of {deviation}"
     )
     unit = float(_unit_factor(other.output.unit, subject.output.unit))
     converted = (
@@ -749,7 +821,14 @@ def _factor_text(
         return pairs + [(k.identifier, k.value) for k in formulation.constants]
 
     for (a, x), (b, y) in itertools.product(values(subject), values(other)):
-        if y and abs(x / (y * unit) - factor) <= max(1e-9, spread) * abs(factor):
+        if not x or not y or x == y * unit:
+            continue
+        allowed = (
+            max(1e-9, _printed_step(x) / abs(x) + _printed_step(y) / abs(y))
+            if spread
+            else 1e-9
+        )
+        if abs(x / (y * unit) - factor) <= allowed * abs(factor):
             labels = (f"{a} of {subject.key} ({x!r})", f"{b} of {other.key} ({y!r})")
             found = (
                 f"{text}, the ratio of {a} of {subject.key} to {b} of "
@@ -757,6 +836,42 @@ def _factor_text(
             )
             return found, labels
     return text, ()
+
+
+def _scale_windows(
+    variable: Variable, values: Any, catalog: Catalog
+) -> tuple[float, float]:
+    """How far the catalog's scales move an input, as a shift and as a factor.
+
+    The largest difference, over the samples, between a value on a scale
+    applying to the input and the same value on the reference scale: as a
+    shift in the unit of the input, and as a relative factor. A temperature
+    may also be shifted by 0.01 K, a Celsius origin written 273.16 K.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    unit = units[variable.unit].pint
+    shift = factor = 0.0
+    for scale in catalog.scales.values():
+        if scale.is_reference or not scale.convertible or scale.unit is None:
+            continue
+        if not scale.applies_to(variable.kind, catalog.kinds):
+            continue
+        own = units[scale.unit].pint
+        on_reference = scale.to_reference(Q_(values, unit).to(own).magnitude)
+        back = Q_(on_reference, own).to(unit).magnitude
+        with np.errstate(all="ignore"):
+            moved = np.abs(back - values)
+            scaled = np.abs(back / values - 1)
+        if np.isfinite(moved).any():
+            shift = max(shift, float(np.nanmax(moved)))
+        if np.isfinite(scaled).any():
+            factor = max(factor, float(np.nanmax(scaled)))
+    if Q_(1.0, unit).dimensionality == Q_(1.0, "K").dimensionality:
+        kelvin = Q_(1.0, unit).to("K").magnitude - Q_(0.0, unit).to("K").magnitude
+        shift += 0.01 / kelvin
+    return shift, factor
 
 
 def _scale_text(
@@ -774,9 +889,11 @@ def _scale_text(
     salinity scale) differs by a shift or a factor of an input: if one
     makes the two formulations equal as closely as the proportionality
     does (``tolerance``, its largest residual), the factor may come from
-    the scale rather than a coefficient. When the object is proportional
-    to a power of an input, a factor of that input is a factor of the
-    result, which tells nothing: only its shift is tried.
+    the scale rather than a coefficient. Only shifts and factors the
+    catalog's scales can produce over the samples are tried
+    (:func:`_scale_windows`). When the object is proportional to a power of
+    an input, a factor of that input is a factor of the result, which tells
+    nothing: only its shift is tried.
     """
     candidates = [
         (i, v)
@@ -790,21 +907,23 @@ def _scale_text(
     shift = sympy.Symbol("_shift", real=True)
     for index, variable in candidates:
         x = symbols[index]
-        moves = [("a shift", x + shift, -1.0, 1.0)]
+        most, factor = _scale_windows(variable, columns[index], catalog)
+        moves = [("a shift", x + shift, -most, most)] if most else []
         if sympy.simplify(x * sympy.diff(sympy.log(right), x)).free_symbols:
-            moves.append(("a factor", x * shift, 0.99, 1.01))
+            if factor:
+                moves.append(("a factor", x * shift, 1 - factor, 1 + factor))
         else:
             blind.append(variable.identifier)
         for name, image, low, high in moves:
             moved = sympy.lambdify(
-                [*symbols, shift],
-                sympy.log(left) - sympy.log(right.xreplace({x: image})),
-                "numpy",
+                [*symbols, shift], left / right.xreplace({x: image}), "numpy"
             )
 
             def worst(value: float, moved: Any = moved) -> float:
                 with np.errstate(all="ignore"):
-                    logs = np.asarray(moved(*columns, value), dtype=float)
+                    logs = np.log(
+                        np.abs(np.asarray(moved(*columns, value), dtype=float))
+                    )
                 logs = logs[np.isfinite(logs)]
                 return float(np.abs(logs).max()) if logs.size else math.inf
 
@@ -823,15 +942,17 @@ def _scale_text(
     if found:
         return "; ".join(found + notes)
     names = ", ".join(v.identifier for _, v in candidates)
+    within = "within what the catalog's scales give"
     if not blind:
         return (
-            f"no shift nor factor of {names} makes them as close: not a matter of scale"
+            f"no shift nor factor of {names} {within} makes them as close: "
+            "not a matter of scale"
         )
     factors = ", ".join(
         v.identifier for _, v in candidates if v.identifier not in blind
     )
     tried = f"no shift of {names}" + (f" nor factor of {factors}" if factors else "")
-    return "; ".join([f"{tried} makes them as close", *notes])
+    return "; ".join([f"{tried} {within} makes them as close", *notes])
 
 
 def _golden(function: Any, low: float, high: float, steps: int = 80) -> float:
@@ -885,11 +1006,20 @@ def _proportionality(
         f"; not constant: ratio sampled at {points} points of the bounds, "
         "against the rounding of the printed coefficients"
     )
-    held, factor, detail, at = _ratio_check(
+    status, sampled, detail, at, share = _ratio_check(
         relation, subject, other, catalog, left, right, replacements, points
     )
-    if held:
-        return Verdict("held", method, factor, detail=detail)
+    if share < 1:
+        method += (
+            f"; ratio finite and non-zero on {100 * share:.4g} % of the samples "
+            "only, the others not compared"
+        )
+    if status == "unverified":
+        return Verdict("unverified", method)
+    if status == "held":
+        return Verdict("held", method, sampled, detail=detail)
+    if detail:
+        method += f"; {detail}"
     return Verdict("refuted", method, None, at, str(ratio))
 
 
@@ -1229,7 +1359,7 @@ def _unconvertible(formulation: Formulation) -> list[str]:
 
 #: Version of the verification method. Increase it when a change of the
 #: method may change a verdict: every recorded verdict is then redone.
-VERIFIER = 2
+VERIFIER = 3
 
 #: The registry of the bundled catalog, generated, never edited by hand.
 REGISTRY = "verifications.json"
@@ -1277,9 +1407,32 @@ def fingerprint(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -
         for v in (f.output, *f.inputs)
         if v.scale is not None
     )
+    # The detail names coefficients and formulations, and weighs the scales
+    # of the catalog applying to the inputs (_scale_text).
+    names = [
+        (f.key, c.identifier, c.value) for f in (subject, other) for c in f.coefficients
+    ]
+    names += [
+        (f.key, k.identifier, k.value) for f in (subject, other) for k in f.constants
+    ]
+    applying = sorted(
+        (
+            v.identifier,
+            s.key,
+            list(s.points),
+            list(s.difference),
+            *_conversion_chain(s),
+        )
+        for v in subject.inputs
+        for s in catalog.scales.values()
+        if s.applies_to(v.kind, catalog.kinds)
+    )
     content = {
         "verifier": VERIFIER,
         "budget": budget,
+        "keys": [relation.subject, relation.object],
+        "names": names,
+        "applying": applying,
         "kind": relation.kind.value,
         "accuracy": relation.accuracy,
         "at": sorted(relation.at.items()),

@@ -192,7 +192,7 @@ class ExpressionError(ValueError):
     """The source text is not a valid formula expression."""
 
 
-def parse_expression(source: str, names: Iterable[str]) -> Any:
+def parse_expression(source: str, names: Iterable[str], *, exact: bool = False) -> Any:
     """Parse a formula written in restricted Python syntax into a SymPy expression.
 
     Allowed: numbers, the declared names, the constants of
@@ -214,6 +214,11 @@ def parse_expression(source: str, names: Iterable[str]) -> Any:
     names : iterable of str
         The identifiers the expression may use (variables, coefficients
         and constants). Each becomes a real SymPy symbol with that name.
+    exact : bool, optional
+        Read decimal numbers as exact rationals (273.15 as 5463/20), for
+        symbolic proofs: written in two expressions, they then cancel
+        exactly, whatever the version of SymPy. By default they are
+        floating-point numbers, displayed as written.
 
     Returns
     -------
@@ -241,24 +246,24 @@ def parse_expression(source: str, names: Iterable[str]) -> Any:
         msg = f"invalid syntax: {exc.msg}"
         raise ExpressionError(msg) from None
     symbols = {name: sympy.Symbol(name, real=True) for name in allowed}
-    return _build(tree.body, symbols)
+    number = sympy.Rational if exact else sympy.Float
+    return _build(tree.body, symbols, number)
 
 
-def _build(node: ast.AST, symbols: Mapping[str, Any]) -> Any:
+def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
     if isinstance(node, ast.BinOp) and type(node.op) in _BINARY_OPERATORS:
-        left, right = _build(node.left, symbols), _build(node.right, symbols)
+        left = _build(node.left, symbols, number)
+        right = _build(node.right, symbols, number)
         return _BINARY_OPERATORS[type(node.op)](left, right)
     if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPERATORS:
-        return _UNARY_OPERATORS[type(node.op)](_build(node.operand, symbols))
+        return _UNARY_OPERATORS[type(node.op)](_build(node.operand, symbols, number))
     if isinstance(node, ast.Constant):
         value = node.value
         # bool is a subclass of int: refuse it explicitly.
         if isinstance(value, bool) or not isinstance(value, int | float):
             msg = f"unsupported constant: {value!r}"
             raise ExpressionError(msg)
-        return (
-            sympy.Integer(value) if isinstance(value, int) else sympy.Float(repr(value))
-        )
+        return sympy.Integer(value) if isinstance(value, int) else number(repr(value))
     if isinstance(node, ast.Name):
         if node.id in CONSTANTS:
             return CONSTANTS[node.id]
@@ -268,7 +273,7 @@ def _build(node: ast.AST, symbols: Mapping[str, Any]) -> Any:
         return symbols[node.id]
     if isinstance(node, ast.Call):
         if isinstance(node.func, ast.Name) and node.func.id == PIECEWISE:
-            return _piecewise(node, symbols)
+            return _piecewise(node, symbols, number)
         if not isinstance(node.func, ast.Name) or node.func.id not in FUNCTIONS:
             allowed = sorted(FUNCTIONS) + [PIECEWISE]
             msg = "only calls to " + ", ".join(allowed) + " are allowed"
@@ -276,7 +281,7 @@ def _build(node: ast.AST, symbols: Mapping[str, Any]) -> Any:
         if node.keywords or len(node.args) != 1:
             msg = f"{node.func.id}() takes exactly one positional argument"
             raise ExpressionError(msg)
-        return FUNCTIONS[node.func.id](_build(node.args[0], symbols))
+        return FUNCTIONS[node.func.id](_build(node.args[0], symbols, number))
     if isinstance(node, ast.Compare):
         msg = "comparisons are allowed only as the conditions of piecewise()"
         raise ExpressionError(msg)
@@ -284,7 +289,7 @@ def _build(node: ast.AST, symbols: Mapping[str, Any]) -> Any:
     raise ExpressionError(msg)
 
 
-def _piecewise(node: ast.Call, symbols: Mapping[str, Any]) -> Any:
+def _piecewise(node: ast.Call, symbols: Mapping[str, Any], number: Any) -> Any:
     """A piecewise definition, conditions kept as written."""
     if node.keywords or not node.args:
         msg = f"{PIECEWISE}() takes (expression, condition) pairs"
@@ -295,7 +300,12 @@ def _piecewise(node: ast.Call, symbols: Mapping[str, Any]) -> Any:
             msg = f"{PIECEWISE}() takes (expression, condition) pairs"
             raise ExpressionError(msg)
         expression, condition = arg.elts
-        pairs.append((_build(expression, symbols), _condition(condition, symbols)))
+        pairs.append(
+            (
+                _build(expression, symbols, number),
+                _condition(condition, symbols, number),
+            )
+        )
     return Piecewise(*pairs)
 
 
@@ -437,7 +447,7 @@ def _relations(expr: Any) -> list[Any]:
     return found
 
 
-def _condition(node: ast.expr, symbols: Mapping[str, Any]) -> Any:
+def _condition(node: ast.expr, symbols: Mapping[str, Any], number: Any) -> Any:
     """A comparison, or two chained in one direction (``a < x <= b``)."""
     if not isinstance(node, ast.Compare) or not all(
         type(op) in _COMPARISONS for op in node.ops
@@ -447,7 +457,7 @@ def _condition(node: ast.expr, symbols: Mapping[str, Any]) -> Any:
     if len(node.ops) > 2:
         msg = "a condition of piecewise() chains at most two comparisons"
         raise ExpressionError(msg)
-    terms = [_build(term, symbols) for term in (node.left, *node.comparators)]
+    terms = [_build(term, symbols, number) for term in (node.left, *node.comparators)]
     relations = [
         _COMPARISONS[type(op)](left, right, evaluate=False)
         for op, left, right in zip(node.ops, terms, terms[1:], strict=False)

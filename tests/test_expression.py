@@ -86,6 +86,23 @@ def test_decimal_coefficients_keep_their_digits() -> None:
     assert "6.1094" in str(expr)
 
 
+def test_exact_parsing_reads_decimals_as_rationals() -> None:
+    import sympy
+
+    exact = parse_expression(
+        "piecewise((1 / (t + 273.15), t < 0.5), (ln(t), t >= 0.5))", ["t"], exact=True
+    )
+    assert not exact.atoms(sympy.Float)
+    assert sympy.Rational(5463, 20) in exact.atoms(sympy.Rational)
+    # The same number written in two expressions cancels exactly.
+    t, kelvin = sympy.Symbol("t", real=True), sympy.Symbol("T", real=True)
+    shifted = parse_expression("T - 273.15", ["T"], exact=True)
+    assert (
+        parse_expression("t + 273.15", ["t"], exact=True).xreplace({t: shifted})
+        == kelvin
+    )
+
+
 @pytest.mark.parametrize(
     ("source", "message"),
     [
