@@ -55,6 +55,7 @@ from nomogram.model import (
     Coefficient,
     ConventionalScale,
     Formulation,
+    FormulationNature,
     Notation,
     Variable,
     _origin,
@@ -244,6 +245,13 @@ def _tex(expr: Any, symbols: Mapping[str, str], options: DisplayOptions) -> str:
     return _times_between_numbers(tex, options.mul_symbol)
 
 
+#: How the legend states the nature of a definition or an identity.
+_NATURES: Mapping[FormulationNature, str] = {
+    FormulationNature.DEFINITION: "A definition: true by definition.",
+    FormulationNature.IDENTITY: "An identity: an exact consequence of definitions.",
+}
+
+
 def _identifier(name: str, symbols: Mapping[str, str], options: DisplayOptions) -> str:
     return _tex(sympy.Symbol(name, real=True), symbols, options)
 
@@ -392,6 +400,12 @@ class Rendering:
                 if _unit(v.unit)
             ]
             lines += ["", f"The coefficients hold for {', '.join(held)} only."]
+        if formulation.nature is not None:
+            lines += ["", _NATURES[formulation.nature]]
+        if formulation.conditions:
+            lines += ["", f"Conditions: {formulation.conditions}"]
+        if formulation.derived:
+            lines += ["", "Derived by nomogram: no source prints this formulation."]
         derivation = formulation.derivation
         if derivation is not None and derivation.method == "composition":
             parts = " and ".join(

@@ -37,7 +37,8 @@ comparisons with other tools.
    domains, conventional scales and reference statuses follow the
    catalog invariant below. Indicators: formulations with a validity
    domain, inputs on a conventional scale with their scale recorded,
-   references checked against the source.
+   references checked against the source, formulations derived by
+   nomogram.
 3. **Open, machine-readable data.** The catalogue is TOML under
    BSD-3-Clause, in a documented and versioned format
    ([docs/catalog.md](docs/catalog.md)); the vocabularies it bundles keep

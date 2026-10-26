@@ -66,6 +66,8 @@ each matching a word.
 | `source` | a cited reference (key and authors); `equation=` asks for its equation number in the same citation |
 | `family` | the family of the entry |
 | `keyword` | a keyword of a formulation or a family |
+| `nature` | the nature of a formulation: `definition` or `identity` |
+| `provenance` | where a formulation comes from: `cited` (a source gives it) or `derived` (by nomogram, from cited formulations, with no citation of its own) |
 
 `section=` keeps the entries of one section (a pattern too):
 `formulations`, `kinds`, `references`, `constants`, `notations`,

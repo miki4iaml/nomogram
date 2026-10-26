@@ -67,6 +67,7 @@ from nomogram.model import (
     Derivation,
     DomainBasis,
     Formulation,
+    FormulationNature,
     Notation,
     Part,
     PhysicalConstant,
@@ -631,6 +632,18 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
         ),
     }
 )
+
+
+def _nature(where: str, value: Any) -> FormulationNature | None:
+    """The nature of a formulation, if it is a definition or an identity."""
+    if value is None:
+        return None
+    try:
+        return FormulationNature(value)
+    except ValueError:
+        known = ", ".join(n.value for n in FormulationNature)
+        msg = f"{where}: unknown nature {value!r} (known: {known})"
+        raise CatalogError(msg) from None
 
 
 def _named_call(node: ast.AST, names: Iterable[str]) -> TypeGuard[ast.Call]:
@@ -1464,12 +1477,18 @@ class _Builder:
                 "note",
                 "matches",
                 "keywords",
+                "nature",
+                "conditions",
             ),
         )
         output = self.variable(f"{where}.output", f["output"])
         inputs = tuple(
             self.variable(f"{where}.inputs[{i}]", v) for i, v in enumerate(f["inputs"])
         )
+        nature = _nature(f"{where}.nature", f["nature"])
+        if f["conditions"] is not None and not isinstance(f["conditions"], str):
+            msg = f"{where}.conditions: expected a string"
+            raise CatalogError(msg)
         constants = []
         for name in f["constants"] or ():
             if name not in self.constants:
@@ -1492,6 +1511,20 @@ class _Builder:
             {c.identifier for c in coefficients},
             (output,),
         )
+        if nature is not None:
+            # True by definition: nothing fitted, nowhere it stops holding.
+            if coefficients:
+                msg = f"{where}: a {nature.value} has no empirical coefficient"
+                raise CatalogError(msg)
+            if any(c.domains for c in citations):
+                msg = f"{where}: a {nature.value} holds without a stated domain"
+                raise CatalogError(msg)
+            if f["fixed_units"]:
+                msg = (
+                    f"{where}: a {nature.value} is a quantity equation: "
+                    "fixed_units = false"
+                )
+                raise CatalogError(msg)
         formulation = Formulation(
             key=key,
             label=f["label"],
@@ -1509,6 +1542,8 @@ class _Builder:
             matches=_matches(where, f["matches"]),
             family=self.owners.get(("formulations", key)),
             keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            nature=nature,
+            conditions=f["conditions"],
         )
         self.check(where, formulation)
         return formulation
@@ -3112,6 +3147,12 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
             "references checked against the source",
             sum(r.status is ReferenceStatus.VERIFIED for r in references),
             len(references),
+        ),
+        (
+            stated,
+            "formulations derived by nomogram, which no source prints",
+            sum(f.derived for f in formulations),
+            len(formulations),
         ),
         (
             shared,

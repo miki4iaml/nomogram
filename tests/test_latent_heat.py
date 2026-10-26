@@ -83,7 +83,11 @@ def test_each_latent_heat_has_its_kind_under_specific_latent_heat() -> None:
         AMBAUM,
     )
     assert CATALOG.formulations_of("SpecificLatentHeatOfSublimation") == (SUBLIMATION,)
-    assert CATALOG.formulations_of("SpecificLatentHeatOfFusion") == (MELTING,)
+    assert [f.key for f in CATALOG.formulations_of("SpecificLatentHeatOfFusion")] == [
+        MELTING.key,
+        "latent_heat_fusion_identity",
+        "ecmwf_ifs_latent_heat_fusion",
+    ]
     for name in ("Vaporization", "Sublimation", "Fusion"):
         kind = CATALOG.kinds[f"SpecificLatentHeatOf{name}"]
         assert kind.specialization_of == "SpecificLatentHeat"
@@ -102,6 +106,6 @@ def test_the_latent_heats_are_found_by_name_and_by_source() -> None:
     cited = CATALOG.search(source="ecmwf_ifs_cy49r1", equation="12.1").formulations
     assert [f.key for f in cited] == [VAPORIZATION.key]
     ambaum = {f.key for f in CATALOG.search(source="ambaum2020").formulations}
-    assert ambaum == {AMBAUM.key, MELTING.key}
+    assert ambaum == {AMBAUM.key, MELTING.key, "latent_heat_fusion_identity"}
     melting = {f.key for f in CATALOG.search("melting").formulations}
     assert MELTING.key in melting

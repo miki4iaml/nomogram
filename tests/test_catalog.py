@@ -947,6 +947,7 @@ def test_stats_counts_the_indicators_of_the_design_goals() -> None:
         "  formulations with a validity domain: 1 of 3",
         "  inputs on a conventional scale with their scale recorded: 1 of 2",
         "  references checked against the source: 1 of 2",
+        "  formulations derived by nomogram, which no source prints: 0 of 3",
         "5. Linked to shared vocabularies",
         "  quantity kinds used that are QUDT kinds or specialize one: 3 of 3",
         "  quantity kinds used with a CF standard name: 3 of 3",

@@ -100,6 +100,15 @@ url = "https://centaur.reading.ac.uk/93718/"
 status = "verified"
 note = "Published version, CC BY 4.0, read in the University of Reading repository: equations 14 and 15 (p. 4254), and the latent heat of melting written below equation 20 with the triple-point values of the caption of Figure 4 (p. 4256). Equation 18 gives the latent heat of sublimation without a value of Ls0."
 
+[references.bechtold2015]
+authors = "Bechtold, P."
+year = 2015
+title = "Atmospheric Thermodynamics"
+container = "ECMWF Meteorological Training Course Lecture Series (June 2009, last update May 2015)"
+url = "https://www.ecmwf.int/en/elibrary/16954-atmospheric-thermodynamics"
+status = "verified"
+note = "CC BY 4.0 under the ECMWF terms of use, the document carrying no rights notice of its own. Read: section 9.1, equations 39 and 40 (p. 7)."
+
 [references.metpy171]
 authors = "MetPy developers"
 year = 2025
@@ -744,3 +753,35 @@ reference = "ambaum2020"
 notation = { c_l = 'c_{\mathrm{pl}}', c_i = 'c_{\mathrm{pi}}' }
 note = "Unnumbered, in the text below equation 20 (p. 4256); L_m0, c_pl and c_pi are the triple-point values of the caption of Figure 4, T_0 that of equations 14 and 19."
 units = { L_m0 = "J-PER-KiloGM", c_l = "J-PER-KiloGM-K", c_i = "J-PER-KiloGM-K", T_0 = "K" }
+
+# The latent heat of fusion: the identity, and the form it gives from the
+# latent heats of the IFS.
+
+[formulations.latent_heat_fusion_identity]
+label = "Specific latent heat of fusion, as that of sublimation minus that of vaporization"
+nature = "identity"
+expression = "L_s - L_v"
+fixed_units = false
+conditions = "Both latent heats at the same temperature, the specific enthalpy of each phase depending on temperature only (Bechtold, equation 39)."
+output = { identifier = "L_f", kind = "SpecificLatentHeatOfFusion", unit = "J-PER-KiloGM", description = "Specific latent heat of fusion" }
+inputs = [
+  { identifier = "L_s", kind = "SpecificLatentHeatOfSublimation", unit = "J-PER-KiloGM", description = "Specific latent heat of sublimation" },
+  { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" },
+]
+keywords = ["latent heat", "melting"]
+
+[[formulations.latent_heat_fusion_identity.citations]]
+reference = "bechtold2015"
+equation = "40"
+notation = { L_f = "L_m" }
+
+[[formulations.latent_heat_fusion_identity.citations]]
+reference = "ambaum2020"
+notation = { L_f = "L_m", L_v = "L" }
+note = "Unnumbered, in the text below equation 20 (p. 4256)."
+
+[formulations.ecmwf_ifs_latent_heat_fusion]
+label = "Specific latent heat of fusion, linear in temperature, from the latent heats of the ECMWF IFS"
+composition = { outer = "latent_heat_fusion_identity", inner = { L_s = "ecmwf_ifs_latent_heat_sublimation", L_v = "ecmwf_ifs_latent_heat_vaporization" } }
+note = "The IFS prints no latent heat of fusion as a function of temperature: it writes Ldep = Lvap + Lfus (section 7.2.2, p. 118) and takes Ls - Lv, with equations 12.1 and 12.2, in equations 12.24 to 12.33."
+keywords = ["latent heat", "melting"]
