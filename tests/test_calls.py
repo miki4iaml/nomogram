@@ -699,3 +699,21 @@ def test_the_name_of_a_call_is_written_like_an_identifier() -> None:
     latex = f.render().latex
     assert r"\mathrm{ebar}\left(t_{\mathrm{d}}\right)" in latex
     assert latex_commands(latex) <= LATEX_COMMANDS
+
+
+def test_a_formulation_calling_others_may_state_its_conditions() -> None:
+    f = rh(caller("100 * e_w(t=t_d) / e_w(t=t)", extra='conditions = "Same pressure."'))
+    assert f.conditions == "Same pressure."
+    with pytest.raises(CatalogError, match="conditions: expected a string"):
+        rh(caller("100 * e_w(t=t_d) / e_w(t=t)", extra="conditions = 1"))
+
+
+def test_a_wet_bulb_temperature_is_a_point_of_evaluation() -> None:
+    wet = (
+        '{ identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", '
+        'description = "t_w" }, '
+        '{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "t" }'
+    )
+    f = rh(caller("100 * e_w(t=t_w) / e_w(t=t)", inputs=wet))
+    t = Q_(20.0, "degC")
+    assert f.evaluate(t_w=t, t=t).magnitude == pytest.approx(100)

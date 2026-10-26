@@ -225,9 +225,25 @@ and this project adheres to
   `surface_altitude`). `Altitude` also carries the close name
   `height_above_mean_sea_level`, mean sea level being what the geoid
   approximates.
+- The end of WMO-No. 8, Annex 4.B: the frost point (4.B.7), with the
+  enhancement factor as an input or from 4.B.5, and the Assmann
+  psychrometer with a wet or an ice bulb (4.B.8, 4.B.9), with its
+  condition. The relative humidity with respect to ice from the frost
+  point, which the guide gives over water only (4.B.11), is derived by
+  nomogram from 4.B.4. The QUDT kinds Temperature and WetBulbTemperature
+  (CF `wet_bulb_temperature`), and the local kinds FrostPointTemperature
+  and IceBulbTemperature, siblings of the dew point and of the wet bulb
+  rather than specializations: a frost point never feeds a dew point
+  input. A frost point, a wet- or an ice-bulb temperature may be the point
+  at which a called formulation is evaluated, as a dew point may. A
+  formulation calling others may state its conditions.
 
 ### Changed
 
+- A conventional scale applies to the specializations of the kinds it
+  lists, never to a difference (`ConventionalScale.applies_to`); the
+  temperature scales list `Temperature`, so they apply to every
+  temperature point, the frost point included.
 - The README opens with the logo and says what nomogram is: formulas as
   data, not as code, each one meaningful, checked and ready to use. Its
   examples use `import nomogram as nomo`.

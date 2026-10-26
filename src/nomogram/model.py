@@ -53,6 +53,7 @@ from nomogram.units import Q_, convert
 if TYPE_CHECKING:
     from nomogram.dimensions import CoefficientUnit
     from nomogram.display import Rendering
+    from nomogram.semantics import QuantityKind
 
 __all__ = [
     "Assumption",
@@ -367,6 +368,38 @@ class ConventionalScale:
     def is_reference(self) -> bool:
         """Whether this is the reference scale of its kinds."""
         return self.reference_scale is None
+
+    def applies_to(self, kind: str, kinds: Mapping[str, QuantityKind]) -> bool:
+        """Whether the scale applies to a kind: one of its kinds or a specialization.
+
+        A difference is never on a conventional scale, though QUDT makes a
+        temperature difference a temperature.
+
+        Parameters
+        ----------
+        kind : str
+            The name of the quantity kind.
+        kinds : mapping of str to QuantityKind
+            The kinds of the catalog, through which specializations are
+            followed (a frost point is a temperature).
+
+        Returns
+        -------
+        bool
+        """
+        start = kinds.get(kind)
+        if start is not None and start.delta:
+            return False
+        seen: set[str] = set()
+        while kind not in seen:
+            if kind in self.kinds:
+                return True
+            seen.add(kind)
+            found = kinds.get(kind)
+            if found is None or found.specialization_of is None:
+                return False
+            kind = found.specialization_of
+        return False
 
     def check_convertible(self) -> None:
         """Raise :class:`ScaleConversionError` if nomogram cannot convert.

@@ -490,7 +490,7 @@ def reference_scale(kind: str) -> ConventionalScale | None:
     from nomogram.catalog import catalog
 
     for scale in catalog().scales.values():
-        if scale.is_reference and kind in scale.kinds:
+        if scale.is_reference and scale.applies_to(kind, catalog().kinds):
             return scale
     return None
 

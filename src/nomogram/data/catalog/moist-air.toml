@@ -141,6 +141,16 @@ label = "Mass Ratio of Total Water to Dry Gas"
 specialization_of = "MassRatio"
 description = "Mass of water in all its phases, vapour and condensate, per mass of dry air: the total water mixing ratio."
 
+[kinds.FrostPointTemperature]
+label = "Frost Point Temperature"
+specialization_of = "Temperature"
+description = "Temperature at which moist air, saturated with respect to ice at the same pressure, has a saturation mixing ratio equal to its mixing ratio (WMO-No. 8, 4.A.14). The counterpart of the dew point over ice, not a dew point: it never feeds a dew point input."
+
+[kinds.IceBulbTemperature]
+label = "Ice-Bulb Temperature"
+specialization_of = "Temperature"
+description = "Temperature of the ice-covered bulb of a psychrometer: the counterpart of the wet-bulb temperature over ice."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -846,6 +856,87 @@ inputs = [
 reference = "wmo2024"
 equation = "4.B.11"
 notation = { RH = "U" }
+
+[formulations.wmo_frost_point]
+label = "Frost point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
+expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
+fixed_units = true
+note = "The guide states the range -65 to 0 degC for the frost point, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_frost_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the frost point, 4.A.14, with the Magnus form over ice 4.B.3."
+output = { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature", scale = "its90", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "f", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" },
+]
+coefficients = { A = 22.46, B = 272.62, C = 6.112 }
+
+[[formulations.wmo_frost_point.citations]]
+reference = "wmo2024"
+equation = "4.B.7"
+notation = { e = "e'" }
+
+[formulations.wmo_frost_point_moist_air]
+label = "Frost point from the vapour pressure and the pressure of moist air, WMO Guide (CIMO)"
+composition = { outer = "wmo_frost_point", inner = { f = "wmo_enhancement_factor" } }
+
+[[formulations.wmo_frost_point_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.7"
+notation = { e = "e'" }
+
+[formulations.relative_humidity_ice_from_frost_point]
+label = "Relative humidity with respect to ice, from the frost point, with the saturation vapour pressure of WMO Guide (CIMO)"
+expression = "100 * e_i(p=p, t=t_f) / e_i(p=p, t=t)"
+calls = { e_i = "wmo_es_ice_moist_air" }
+fixed_units = true
+note = "The counterpart over ice of 4.B.11, which the guide gives over water only: the definition 4.A.17, with e' the saturation vapour pressure over ice of 4.B.4 at the frost point and e'_i the same at the air temperature. The enhancement factor cancels between the two calls."
+output = { identifier = "RH_i", kind = "RelativeHumidityWithRespectToIce", unit = "PERCENT", description = "Relative humidity with respect to ice" }
+inputs = [
+  { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+
+[formulations.wmo_psychrometer_water]
+label = "Vapour pressure from an Assmann psychrometer with a wet bulb, WMO Guide (CIMO)"
+expression = "e_w(p=p, t=t_w) - A * (1 + B * t_w) * p * (t - t_w)"
+calls = { e_w = "wmo_es_water_moist_air" }
+fixed_units = true
+conditions = "An Assmann aspirated psychrometer, its bulb covered with water."
+note = "6.53e-4 (1 + 0.000944 t_w) K-1 is the psychrometer coefficient of the Assmann psychrometer; other psychrometers have their own."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+coefficients = { A = 6.53e-4, B = 0.000944 }
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometer_water.citations]]
+reference = "wmo2024"
+equation = "4.B.8"
+notation = { e = "e'" }
+
+[formulations.wmo_psychrometer_ice]
+label = "Vapour pressure from an Assmann psychrometer with an ice bulb, WMO Guide (CIMO)"
+expression = "e_i(p=p, t=t_i) - A * p * (t - t_i)"
+calls = { e_i = "wmo_es_ice_moist_air" }
+fixed_units = true
+conditions = "An Assmann aspirated psychrometer, its bulb covered with ice."
+note = "5.75e-4 K-1 is the psychrometer coefficient of the Assmann psychrometer over ice; other psychrometers have their own."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t_i", kind = "IceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+coefficients = { A = 5.75e-4 }
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometer_ice.citations]]
+reference = "wmo2024"
+equation = "4.B.9"
+notation = { e = "e'" }
 
 # Latent heats of the ECMWF IFS (CY49R1, Part IV, section 12.5, p. 246):
 # differences of specific enthalpies, linear in temperature.

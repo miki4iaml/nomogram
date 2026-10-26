@@ -187,12 +187,12 @@ matches = [
 label = "International Temperature Scale of 1990 (ITS-90)"
 symbol = "ITS-90"
 subscript = "90"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference = "preston_thomas1990"
 
 [scales.ipts68_saunders1990]
 label = "IPTS-68 through the linear conversion of Saunders (1990)"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 unit = "DEG_C"
 conversion = "x / 1.00024"
@@ -204,7 +204,7 @@ note = "t68 = 1.00024 t90, the conversion oceanographic algorithms (PSS-78, EOS-
 
 [scales.ipts48]
 label = "International Practical Temperature Scale of 1948 (IPTS-48), oceanographic conversion"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 base = "ipts68"
 unit = "DEG_C"
@@ -219,7 +219,7 @@ note = "t68 from t48, then IPTS-68 to ITS-90. Fofonoff and Bryden build the conv
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"
 symbol = "IPTS-68"
 subscript = "68"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 unit = "DEG_C"
 reference = "preston_thomas1990"
