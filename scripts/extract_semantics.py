@@ -236,6 +236,9 @@ UNITS: dict[str, str] = {
     "W-PER-M2-K4": "W/(m^2*K^4)",
     "KiloGM-PER-MOL": "kg/mol",
     "J-PER-KiloGM": "J/kg",
+    # ASHRAE (via PsychroLib): the coefficients of equations 33 and 35.
+    "KiloJ-PER-KiloGM": "kJ/kg",
+    "KiloJ-PER-KiloGM-K": "kJ/(kg*K)",
 }
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept

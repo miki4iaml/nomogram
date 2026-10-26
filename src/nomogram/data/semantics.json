@@ -553,7 +553,8 @@
     "SpecificEnergy": {
       "added_units": [],
       "applicable_units": [
-        "J-PER-KiloGM"
+        "J-PER-KiloGM",
+        "KiloJ-PER-KiloGM"
       ],
       "cf_standard_names": [],
       "delta": false,
@@ -573,7 +574,8 @@
     "SpecificHeatCapacityAtConstantPressure": {
       "added_units": [],
       "applicable_units": [
-        "J-PER-KiloGM-K"
+        "J-PER-KiloGM-K",
+        "KiloJ-PER-KiloGM-K"
       ],
       "cf_standard_names": [],
       "delta": false,
@@ -1046,6 +1048,42 @@
       "pint": "kg/mol",
       "symbol": "kg/mol",
       "ucum": "kg.mol-1",
+      "udunits": null
+    },
+    "KiloJ-PER-KiloGM": {
+      "dimension_vector": "A0E0L2I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/KiloJ-PER-KiloGM",
+      "label": "Kilojoule per Kilogram",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q21077849",
+          "verified": "2026-10-26"
+        }
+      ],
+      "multiplier": 1000.0,
+      "offset": 0.0,
+      "pint": "kJ/kg",
+      "symbol": "kJ/kg",
+      "ucum": "kJ.kg-1",
+      "udunits": null
+    },
+    "KiloJ-PER-KiloGM-K": {
+      "dimension_vector": "A0E0L2I0M0H-1T-2D0",
+      "iri": "http://qudt.org/vocab/unit/KiloJ-PER-KiloGM-K",
+      "label": "Kilojoule per Kilogram Kelvin",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q108834064",
+          "verified": "2026-10-26"
+        }
+      ],
+      "multiplier": 1000.0,
+      "offset": 0.0,
+      "pint": "kJ/(kg*K)",
+      "symbol": "kJ/(kg\u00b7K)",
+      "ucum": "kJ.kg-1.K-1",
       "udunits": null
     },
     "KiloM": {

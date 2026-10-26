@@ -72,6 +72,7 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "bechtold2015_magnus_water",
         "ambaum2020",
         "ambaum2020_constant_latent_heat",
+        "metpy171_saturation_vapour_pressure",
     }
 
 
@@ -448,6 +449,27 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ambaum2020_ice", "Delta_c"): "stated",
         ("ambaum2020_ice", "R_v"): "stated",
         ("ambaum2020_ice", "L_s0"): "added",
+        ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
+        ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
+        ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
+        (
+            "metpy171_psychrometric_vapour_pressure",
+            "e_s0__metpy171_saturation_vapour_pressure",
+        ): "stated",
+        (
+            "metpy171_psychrometric_vapour_pressure",
+            "T_0__metpy171_saturation_vapour_pressure",
+        ): "stated",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "A"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "B"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "C"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "D"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "E"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "A"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "B"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "C"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "D"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "E"): "added",
     }
 
 

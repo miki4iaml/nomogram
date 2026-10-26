@@ -260,6 +260,17 @@ and this project adheres to
   prints no latent heat of sublimation at the triple point: it is his
   L_0 + L_m0, borne out by the IAPWS sublimation curve to 0.1 % from -40
   to 0 degC. The reference moves to `core`, shared by two families.
+- Two implementations as formulations, each cross-checked against it:
+  - MetPy 1.7.1: its saturation vapour pressure over water, the form of
+    Ambaum (2020) equation 13 with MetPy's constants rather than those
+    Ambaum recommends, and its psychrometric vapour pressure, with the
+    constants of MetPy; cross-checked with its doctests;
+  - ASHRAE (2017), through PsychroLib: the mixing ratio from a wet bulb
+    above freezing (equation 33) and below, covered with ice (equation
+    35); cross-checked with PsychroLib. Equation 33 is WMO-No. 8 4.A.19
+    solved for the mixing ratio.
+
+  The units kJ/kg and kJ/(kg·K), which specific energies now take too.
 
 ### Changed
 
