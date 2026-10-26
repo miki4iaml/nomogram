@@ -175,6 +175,10 @@ and this project adheres to
 
 ### Fixed
 
+- `Catalog.uses` and `used_by` failed with an obscure error when given a
+  formulation. They now take a formulation of the catalog as well as its
+  reference `formulations.<key>` or a search entry, and refuse any other
+  object with a clear message.
 - A product of units written by pint takes the middle dot of the
   catalog symbols (`Pa·s`, as in `J/(kg·K)`), whatever its version:
   pint writes a dot operator from 0.25 and a middle dot before.
