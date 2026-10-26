@@ -388,6 +388,14 @@ def _formulation(
         )
         for c in f.citations
     )
+    # A source an assumption refers to is a source of the formulation too.
+    citations += tuple(
+        (r, words(_join(r, catalog.references[r].authors)), None)
+        for r in dict.fromkeys(
+            a.reference for a in f.assumptions if a.reference is not None
+        )
+        if r in catalog.references and r not in f.references
+    )
     return _Record(
         entry=Entry("formulations", key, f.label, f),
         text=words(text),

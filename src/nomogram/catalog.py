@@ -643,6 +643,8 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
         "FrostPointTemperature": _TEMPERATURES,
         "WetBulbTemperature": _TEMPERATURES,
         "IceBulbTemperature": _TEMPERATURES,
+        "PsychrometerWetBulbTemperature": _TEMPERATURES,
+        "PsychrometerIceBulbTemperature": _TEMPERATURES,
     }
 )
 
@@ -2884,6 +2886,8 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
             add("constants", constant)
         for domain in table.get("domains", ()):
             add("references", domain.get("reference"))
+        for assumption in table.get("assumptions", ()):
+            add("references", assumption.get("reference"))
         for citation in table.get("citations", ()):
             add("references", citation["reference"])
             add("notations", citation.get("notation"))

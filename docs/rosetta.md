@@ -85,6 +85,12 @@ unambiguous kinds.
 | absolute humidity | mass of water vapour per mass of dry air | chemical engineering, HVAC, the French term for absolute humidity on psychrometric charts | `MassRatioOfWaterVapourToDryGas`, x = m/m_d | g/kg | Çengel and Boles, *Thermodynamics*, ch. 14; French HVAC teaching material; QUDT's own description of `AbsoluteHumidity` |
 | specific humidity | mass of water vapour per mass of moist air | meteorology (CF, NOAA), ASHRAE (γ) | `SpecificHumidity`, q = m/(m + m_d) | g/kg | CF table 95; ASHRAE Handbook — Fundamentals, ch. 1 |
 | specific humidity | mass of water vapour per mass of dry air | engineering textbooks (Çengel: "absolute or specific humidity") | `MassRatioOfWaterVapourToDryGas` | g/kg | Çengel and Boles |
+| relative humidity | vapour mole fraction over the one at saturation over water, at the same pressure and temperature | WMO (CIMO), CCT | `RelativeHumidity`, U_w = x_v/x_vw (4.A.15) | % | WMO-No. 8 (2024), Annex 4.A; TEOS-10 manual |
+| relative humidity | partial pressure of water vapour over the saturation vapour pressure of pure water, e/e_s | IUPAC, textbooks, numerical weather prediction | `RelativeHumidity`, φ = p/p_sat | % | TEOS-10 manual; Bechtold (2015) |
+| relative humidity | mixing ratio over its saturation value, r/r_sat, which TEOS-10 calls the WMO definition | TEOS-10, some textbooks | `RelativeMassRatioOfVapour`, ψ = x/x_sat | % | TEOS-10 manual (3.40.2) |
+| relative humidity over ice | the same ratios with respect to ice, never a relative humidity over water | WMO (4.A.17) | `RelativeHumidityWithRespectToIce`, a sibling of `RelativeHumidity` under `RelativePartialPressure` | % | WMO-No. 8 (2024), Annex 4.A |
+| wet-bulb temperature | temperature of a parcel cooled to saturation by evaporation into it (thermodynamic) | thermodynamics, ASHRAE, CF | `WetBulbTemperature` (4.A.19) | K, °C | WMO-No. 8, Annex 4.A; QUDT; CF table 95 |
+| wet-bulb temperature | reading of the wet bulb of a psychrometer, not identical to the thermodynamic one | instruments (WMO-No. 8, 4.3.1.7) | `PsychrometerWetBulbTemperature` (local) | °C | WMO-No. 8 (2024), 4.3.1.7 and Annex 4.A |
 
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
 versus dimensionless), so mixing them is not a small numerical error.

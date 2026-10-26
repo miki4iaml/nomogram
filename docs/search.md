@@ -63,11 +63,11 @@ each matching a word.
 | `variable` | any variable, coefficient or constant of a formulation |
 | `symbol` | a symbol, as written by a notation; `notation=` restricts the notations (default: all). A coefficient of a formulation called is found by the name it is written with, and its symbols in the notations of the formulation that defines it |
 | `notation` | the notation of the symbols (of those `symbol=` matches, if given): a notation of the catalog by its key (`wmo`, `ashrae`), `default` for the identifiers themselves, or the symbols a source uses in a citation, by the source's reference key (`dickson2007`); the full key of such a notation is `<formulation>:<reference>` |
-| `source` | a cited reference (key and authors); `equation=` asks for its equation number in the same citation |
+| `source` | a cited reference (key and authors), or the source an assumption of the formulation refers to; `equation=` asks for its equation number in the same citation |
 | `family` | the family of the entry |
 | `keyword` | a keyword of a formulation or a family |
 | `nature` | the nature of a formulation: `definition` or `identity` |
-| `assumption` | an assumption of a formulation, stated by a source or noted with its status |
+| `assumption` | an assumption of a formulation, stated by a source or noted with its status, or one of the parts it is built from |
 | `provenance` | where a formulation comes from: `cited` (a source gives it) or `derived` (by nomogram, from cited formulations, with no citation of its own) |
 
 `section=` keeps the entries of one section (a pattern too):

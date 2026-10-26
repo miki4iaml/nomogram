@@ -550,6 +550,23 @@
       "scale_type": "ratio",
       "specialization_of": null
     },
+    "RelativePartialPressure": {
+      "added_units": [
+        "UNITLESS"
+      ],
+      "applicable_units": [
+        "PERCENT",
+        "UNITLESS"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/RelativePartialPressure",
+      "label": "Relative Partial Pressure",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "PressureRatio"
+    },
     "SpecificEnergy": {
       "added_units": [],
       "applicable_units": [

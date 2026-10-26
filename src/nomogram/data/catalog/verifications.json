@@ -166,6 +166,14 @@
    "status": "reproduced",
    "value": 0.49278741811860094
   },
+  "b0ed88a27e192146cda764ef7c5893bf97dd4e3e851ee1acfb04766d9c0b1deb": {
+   "at": {},
+   "detail": "factor 1.000006, the median of the sampled ratio, a relative deviation of 0.0006 %; the ratio varies by 1.1e-05, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); equivalent to the printed precision: |ln factor| = 6e-06, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); no shift of T within what the catalog's scales give makes them as close; a factor of T cannot be told from a coefficient, the object being proportional to a power of T",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; not constant: ratio sampled at 200 points of the bounds, against the rounding of the printed coefficients",
+   "relation": "bechtold2015_virtual_temperature_rounding",
+   "status": "held",
+   "value": 1.000005997250167
+  },
   "c20d7e1e7e2c89f8e5342c867004c0730e4bbd06ce9afa1a7b27b325d7d183a7": {
    "at": {
     "t": -40.0
@@ -183,14 +191,6 @@
    "relation": "bechtold2015_ashrae2017_mixing_ratio",
    "status": "proven",
    "value": 1.0000884322568715
-  },
-  "e31e2f6aa3dd16fadecacb26a3adf008cd53239b6243d61a91974cf7e03c8148": {
-   "at": {},
-   "detail": "factor 1.000006, the median of the sampled ratio, a relative deviation of 0.0006 %; the ratio varies by 1.1e-05, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); equivalent to the printed precision: |ln factor| = 6e-06, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); no shift of T within what the catalog's scales give makes them as close; a factor of T cannot be told from a coefficient, the object being proportional to a power of T",
-   "method": "symbolic ratio simplified with SymPy, exact rationals; not constant: ratio sampled at 200 points of the bounds, against the rounding of the printed coefficients",
-   "relation": "bechtold2015_virtual_temperature_rounding",
-   "status": "held",
-   "value": 1.000005997250167
   },
   "f98a8baa7be71335089786ed59228bd8e91b8dced267945698203c24dbd269cd": {
    "at": {},

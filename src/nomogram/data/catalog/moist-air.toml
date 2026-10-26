@@ -31,7 +31,7 @@ description = "Saturation vapour pressure of water vapour in moist air at a give
 [kinds.SaturationVapourPressureOverWaterInMoistAir]
 label = "Saturation Vapour Pressure over Water in Moist Air"
 specialization_of = "SaturationVapourPressureInMoistAir"
-description = "Saturation vapour pressure over a plane surface of pure liquid water, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
+description = "Saturation vapour pressure of moist air with respect to a plane surface of water containing the dissolved air of equilibrium, at a given pressure (WMO-No. 8, 4.A.9): that of pure water vapour times the enhancement factor."
 
 [kinds.SaturationVapourPressureOverIceInMoistAir]
 label = "Saturation Vapour Pressure over Ice in Moist Air"
@@ -75,8 +75,8 @@ description = "Latent heat of fusion (melting) per unit mass, at a given tempera
 
 [kinds.RelativeHumidityWithRespectToIce]
 label = "Relative Humidity with respect to Ice"
-specialization_of = "RelativeHumidity"
-description = "Relative humidity of moist air with respect to ice: the vapour mole fraction over the one the air would have if saturated with respect to a plane surface of ice at the same pressure and temperature."
+specialization_of = "RelativePartialPressure"
+description = "Relative humidity of moist air with respect to ice: the vapour mole fraction over the one the air would have if saturated with respect to a plane surface of ice at the same pressure and temperature. A sibling of the relative humidity, which QUDT defines with respect to water, as WMO-No. 8 evaluates it even below 0 degC (4.A, para. 17): it never feeds a relative humidity input."
 
 [kinds.MoleFractionOfWaterVapour]
 label = "Mole Fraction of Water Vapour"
@@ -149,7 +149,17 @@ description = "Temperature at which moist air, saturated with respect to ice at 
 [kinds.IceBulbTemperature]
 label = "Ice-Bulb Temperature"
 specialization_of = "Temperature"
-description = "Temperature of the ice-covered bulb of a psychrometer: the counterpart of the wet-bulb temperature over ice."
+description = "Thermodynamic ice-bulb temperature (WMO-No. 8, 4.A.20): the counterpart of the thermodynamic wet-bulb temperature over ice. Not the reading of a psychrometer, a quantity of its own."
+
+[kinds.PsychrometerWetBulbTemperature]
+label = "Psychrometer Wet-Bulb Temperature"
+specialization_of = "Temperature"
+description = "Temperature indicated by the wet bulb of a psychrometer. For most instruments it is not identical to the thermodynamic wet-bulb temperature (WMO-No. 8, 4.3.1.7); their relation is a matter of controlled experiment (Annex 4.A): neither feeds an input of the other."
+
+[kinds.PsychrometerIceBulbTemperature]
+label = "Psychrometer Ice-Bulb Temperature"
+specialization_of = "Temperature"
+description = "Temperature indicated by the ice-covered bulb of a psychrometer, the counterpart of its wet-bulb temperature over ice. Not the thermodynamic ice-bulb temperature (WMO-No. 8, Annex 4.A)."
 
 [kinds.PsychrometerCoefficient]
 label = "Psychrometer Coefficient"
@@ -182,7 +192,7 @@ title = "Atmospheric Thermodynamics"
 container = "ECMWF Meteorological Training Course Lecture Series (June 2009, last update May 2015)"
 url = "https://www.ecmwf.int/en/elibrary/16954-atmospheric-thermodynamics"
 status = "verified"
-note = "ECMWF training lecture notes, without a DOI and not indexed by Crossref or OpenAlex (checked 2026-10-26): a secondary source, cited for what it states. CC BY 4.0 under the ECMWF terms of use, the document carrying no rights notice of its own. Read in full: equations 1 to 59 and Table 1 (pp. 1-14). Constants as printed: R_d = 287.06 and R_v = 461.52 J kg-1 K-1 and epsilon = 0.622 (p. 1), c_pd = 7/2 R_d = 1004.7 J kg-1 K-1 (p. 3), p0 = 1000 hPa (p. 5); c_pv = 1846.1 J kg-1 K-1 (p. 6), c_l = 4218 J kg-1 K-1, L_v(T00) = 2.5008e6 J kg-1 and T00 = 273.16 K (p. 7) are the values of the ECMWF IFS."
+note = "ECMWF training lecture notes, without a DOI and not indexed by Crossref or OpenAlex (checked 2026-10-26): a secondary source, cited for what it states. CC BY 4.0 under the ECMWF terms of use, the document carrying no rights notice of its own. Read in full: equations 1 to 59 and Table 1 (pp. 1-15). Constants as printed: R_d = 287.06 and R_v = 461.52 J kg-1 K-1 and epsilon = 0.622 (p. 1), c_pd = 7/2 R_d = 1004.7 J kg-1 K-1 (p. 3), p0 = 1000 hPa (p. 5); c_pv = 1846.1 J kg-1 K-1 (p. 6), c_l = 4218 J kg-1 K-1, L_v(T00) = 2.5008e6 J kg-1 and T00 = 273.16 K (p. 7) are the values of the ECMWF IFS."
 
 [references.metpy171]
 authors = "MetPy developers"
@@ -637,7 +647,7 @@ fixed_units = false
 conditions = "e_s at the temperature T."
 assumptions = [
   { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
-  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.23 % at 300 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5).", status = "deduced" },
+  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.47 % at 1000 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5, valid around 1000 hPa).", status = "deduced" },
   { text = "e'_w = e_w within 0.5 % or less in the meteorological range of pressure and temperature (equation 4.A.11).", status = "stated-by-other", reference = "wmo2024" },
 ]
 output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Mass concentration of water vapour (absolute humidity, meteorological sense)" }
@@ -662,7 +672,7 @@ inputs = [
   { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
 ]
 assumptions = [
-  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.23 % at 300 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5).", status = "deduced" },
+  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.47 % at 1000 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5, valid around 1000 hPa).", status = "deduced" },
   { text = "e'_w = e_w within 0.5 % or less in the meteorological range of pressure and temperature (equation 4.A.11).", status = "stated-by-other", reference = "wmo2024" },
 ]
 
@@ -991,7 +1001,7 @@ note = "6.53e-4 (1 + 0.000944 t_w) K-1 is the psychrometer coefficient of the As
 output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
 inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature", scale = "its90", scale_basis = "inferred-from-date" },
-  { identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+  { identifier = "t_w", kind = "PsychrometerWetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
 ]
 coefficients = { A = 6.53e-4, B = 0.000944 }
@@ -1012,7 +1022,7 @@ note = "5.75e-4 K-1 is the psychrometer coefficient of the Assmann psychrometer 
 output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
 inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature", scale = "its90", scale_basis = "inferred-from-date" },
-  { identifier = "t_i", kind = "IceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
+  { identifier = "t_i", kind = "PsychrometerIceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
 ]
 coefficients = { A = 5.75e-4 }
@@ -1039,7 +1049,7 @@ inputs = [
   { identifier = "A", kind = "PsychrometerCoefficient", unit = "PER-K", description = "Psychrometer coefficient" },
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the air" },
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
-  { identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+  { identifier = "t_w", kind = "PsychrometerWetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
 ]
 keywords = ["humidity", "psychrometer"]
 
@@ -1059,7 +1069,7 @@ inputs = [
   { identifier = "A", kind = "PsychrometerCoefficient", unit = "PER-K", description = "Psychrometer coefficient" },
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the air" },
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
-  { identifier = "t_i", kind = "IceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
+  { identifier = "t_i", kind = "PsychrometerIceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
 ]
 keywords = ["humidity", "psychrometer"]
 
@@ -1166,10 +1176,10 @@ assumptions = ["The specific heat of ice is taken as constant, its value holding
 label = "Specific latent heat of vaporisation, linear in temperature, Ambaum (2020)"
 expression = "L_0 - Delta_c * (T - T_0)"
 fixed_units = false
-note = "Delta_c stands for c_pl - c_pv. Its value is chosen so that the vapour pressure of equation 13 fits IAPWS-95 from 0 to 100 degC; it corresponds to c_pv near 2040 J kg-1 K-1, where c_pv goes from 1888.2 at the triple point to 2077.5 J kg-1 K-1 at 100 degC (p. 4254). The latent heat itself is not assessed against reference values."
+note = "Delta_c stands for c_pl - c_pv. Its value is chosen so that the vapour pressure of equation 13 fits IAPWS-95 from 0 to 100 degC; it corresponds to c_pv near 2040 J kg-1 K-1, where c_pv goes from 1888.2 at the triple point to 2077.5 J kg-1 K-1 at 100 degC (p. 4254). The latent heat itself is not assessed against reference values. Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
 output = { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { L_0 = 2.501e6, Delta_c = 2180.0, T_0 = 273.16 }
 keywords = ["latent heat", "Kirchhoff"]
@@ -1189,10 +1199,10 @@ criterion = "c_pl - c_pv = 2180 J kg-1 K-1 'gives a very good fit across the 0-1
 label = "Specific latent heat of melting, linear in temperature, Ambaum (2020)"
 expression = "L_m0 + (c_l - c_i) * (T - T_0)"
 fixed_units = false
-note = "Written L_m = L_s - L, the latent heat of sublimation minus that of vaporisation. Figure 4 assesses the saturation ratio of equation 20, built on these values, from -40 degC to the triple point."
+note = "Written L_m = L_s - L, the latent heat of sublimation minus that of vaporisation. Figure 4 assesses the saturation ratio of equation 20, built on these values, from -40 degC to the triple point. Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
 output = { identifier = "L_m", kind = "SpecificLatentHeatOfFusion", unit = "J-PER-KiloGM", description = "Specific latent heat of melting" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { L_m0 = 0.3334e6, c_l = 4220.0, c_i = 2097.0, T_0 = 273.16 }
 keywords = ["latent heat", "Kirchhoff", "melting"]
@@ -1236,7 +1246,7 @@ composition = { outer = "latent_heat_fusion_identity", inner = { L_s = "ecmwf_if
 note = "The IFS prints no latent heat of fusion as a function of temperature: it writes Ldep = Lvap + Lfus (section 7.2.2, p. 118) and takes Ls - Lv, with equations 12.1 and 12.2, in equations 12.24 to 12.33."
 keywords = ["latent heat", "melting"]
 
-# Definitions of WMO-No. 8 (2024), Volume I, Annex 4.A (pp. 193-195).
+# Definitions of WMO-No. 8 (2024), Volume I, Annex 4.A (pp. 193-196).
 
 [formulations.wmo_vapour_pressure_definition]
 label = "Vapour pressure of moist air, from the mixing ratio and the pressure, WMO Guide (CIMO)"
@@ -1568,7 +1578,6 @@ keywords = ["virtual temperature", "humidity"]
 reference = "bechtold2015"
 equation = "25"
 notation = { a = "0.608", q = "q_v" }
-units = { a = "UNITLESS" }
 
 [formulations.bechtold2015_potential_temperature]
 label = "Potential temperature of dry air (Bechtold 2015)"
@@ -1661,7 +1670,7 @@ assumptions = ["A fictive reversible adiabatic process in which all the water va
 label = "Clausius-Clapeyron with a constant latent heat (Bechtold 2015)"
 expression = "p_vs0 * exp(L_v0 / R_v * (1 / T_0 - 1 / T))"
 fixed_units = false
-note = "The notes give no value to the constant latent heat: L_v0 is their L_v(T00) of equation 40, at the integration point. p_vs0 = 6.112 hPa is taken at T00 = 273.16 K, the triple point, where IAPWS-95 gives 6.11657 hPa."
+note = "The notes give no value to the constant latent heat: L_v0 is their L_v(T00) of equation 40, at the integration point. p_vs0 = 6.112 hPa is taken at T00 = 273.16 K, the triple point, where the pressure is 6.11657 hPa (IAPWS R14-08)."
 # The Wikidata item is the Clausius-Clapeyron relation: broader.
 matches = [
   { target = "http://www.wikidata.org/entity/Q745416", relation = "broad", verified = 2026-10-26 },
@@ -1752,15 +1761,15 @@ keywords = ["saturation", "Magnus"]
 
 [formulations.ecmwf_ifs_saturation_water.coefficients]
 e_0 = 611.21
-A = { value = 17.502, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
-B = { value = 32.19, unit = "K", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
+A = { value = 17.502, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints a3 without unit" }
+B = 32.19
 
 [[formulations.ecmwf_ifs_saturation_water.citations]]
 reference = "ecmwf_ifs_cy49r1"
 equation = "12.9"
 notation = { e_sat = 'e_{\mathrm{sat,l}}' }
-note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11."
-units = { e_0 = "PA" }
+note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is a4 = 32.19 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
+units = { e_0 = "PA", B = "K" }
 
 [formulations.ecmwf_ifs_saturation_ice]
 label = "Saturation vapour pressure over ice, Magnus form in kelvins, ECMWF IFS"
@@ -1776,15 +1785,15 @@ keywords = ["saturation", "Magnus", "ice"]
 
 [formulations.ecmwf_ifs_saturation_ice.coefficients]
 e_0 = 611.21
-A = { value = 22.587, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
-B = { value = 0.7, unit = "K", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
+A = { value = 22.587, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints a3 without unit" }
+B = 0.7
 
 [[formulations.ecmwf_ifs_saturation_ice.citations]]
 reference = "ecmwf_ifs_cy49r1"
 equation = "12.10"
 notation = { e_sat = 'e_{\mathrm{sat,i}}' }
-note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11."
-units = { e_0 = "PA" }
+note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is -a4, a4 = -0.7 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
+units = { e_0 = "PA", B = "K" }
 
 # Stated by the notes: the two forms of equation 25.
 [relations.bechtold2015_virtual_temperature_two_forms]
@@ -1876,7 +1885,7 @@ output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", descript
 inputs = [
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air (dry-bulb) temperature" },
-  { identifier = "T_w", kind = "WetBulbTemperature", unit = "K", description = "Wet-bulb temperature" },
+  { identifier = "T_w", kind = "PsychrometerWetBulbTemperature", unit = "K", description = "Wet-bulb temperature" },
 ]
 coefficients = { A = 6.21e-4 }
 keywords = ["humidity", "psychrometer"]

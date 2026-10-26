@@ -170,10 +170,14 @@ def test_the_relative_humidities_of_the_wmo_are_definitions() -> None:
     assert [c.equation for c in ice.citations] == ["4.A.17"]
     rh = ice.evaluate(e=Q_(1.0, "hPa"), e_is=Q_(1.25, "hPa")).to("percent")
     assert rh.magnitude == pytest.approx(80.0)
-    # Over ice, a kind of its own: never an alternative of the one over water.
+    # Over ice, a sibling of the relative humidity, which QUDT defines over
+    # water: never an alternative of it, found with it under their parent.
     assert ice.output.kind == "RelativeHumidityWithRespectToIce"
     assert ice not in CATALOG.formulations_of("RelativeHumidity")
     found = {f.key for f in CATALOG.search(kind="RelativeHumidity").formulations}
+    assert water.key in found
+    assert ice.key not in found
+    found = {f.key for f in CATALOG.search(kind="RelativePartialPressure").formulations}
     assert {water.key, ice.key} <= found
 
 
