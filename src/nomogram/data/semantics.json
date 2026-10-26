@@ -91,6 +91,10 @@
     "water_vapor_partial_pressure_in_air": {
       "canonical_units": "Pa",
       "pint": "Pa"
+    },
+    "wet_bulb_temperature": {
+      "canonical_units": "K",
+      "pint": "K"
     }
   },
   "quantity_kinds": {
@@ -543,6 +547,28 @@
       "scale_type": "ratio",
       "specialization_of": "MassRatio"
     },
+    "Temperature": {
+      "added_units": [],
+      "applicable_units": [
+        "DEG_C",
+        "DEG_F",
+        "K"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Temperature",
+      "label": "Temperature",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q11466",
+          "verified": "2026-10-26"
+        }
+      ],
+      "scale_type": "interval",
+      "specialization_of": null
+    },
     "TemperatureDifference": {
       "added_units": [],
       "applicable_units": [
@@ -619,6 +645,24 @@
       ],
       "scale_type": "ratio",
       "specialization_of": null
+    },
+    "WetBulbTemperature": {
+      "added_units": [],
+      "applicable_units": [
+        "DEG_C",
+        "DEG_F",
+        "K"
+      ],
+      "cf_standard_names": [
+        "wet_bulb_temperature"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/WetBulbTemperature",
+      "label": "Wet Bulb Temperature",
+      "matches": [],
+      "scale_type": "interval",
+      "specialization_of": "Temperature"
     }
   },
   "sources": {

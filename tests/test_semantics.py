@@ -101,7 +101,7 @@ SURFACE_ZERO = frozenset({"Altitude"})
 
 #: Temperature points written with or without an offset, in degC or in K
 #: (``offset_units="any"`` in the extraction).
-ANY_OFFSET = frozenset({"DewPointTemperature"})
+ANY_OFFSET = frozenset({"DewPointTemperature", "Temperature", "WetBulbTemperature"})
 
 
 @pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))

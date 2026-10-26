@@ -726,8 +726,11 @@ def _scale_text(
     to a power of an input, a factor of that input is a factor of the
     result, which tells nothing: only its shift is tried.
     """
-    scaled = {k for s in catalog.scales.values() for k in s.kinds}
-    candidates = [(i, v) for i, v in enumerate(subject.inputs) if v.kind in scaled]
+    candidates = [
+        (i, v)
+        for i, v in enumerate(subject.inputs)
+        if any(s.applies_to(v.kind, catalog.kinds) for s in catalog.scales.values())
+    ]
     if not candidates:
         return "no input with a conventional scale"
     found = []

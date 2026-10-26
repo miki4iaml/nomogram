@@ -626,12 +626,15 @@ def _substitute(
 #: Kinds whose values may be passed to an input of another kind, when a
 #: formulation calls another: the temperature of a point at which the
 #: called formulation is evaluated (a saturation vapour pressure at the
-#: dew point). Never a difference.
+#: dew or frost point, or at the wet- or ice-bulb temperature). Never a
+#: difference.
+_TEMPERATURES = frozenset({"CelsiusTemperature", "ThermodynamicTemperature"})
 _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
-        "DewPointTemperature": frozenset(
-            {"CelsiusTemperature", "ThermodynamicTemperature"}
-        ),
+        "DewPointTemperature": _TEMPERATURES,
+        "FrostPointTemperature": _TEMPERATURES,
+        "WetBulbTemperature": _TEMPERATURES,
+        "IceBulbTemperature": _TEMPERATURES,
     }
 )
 
@@ -1252,7 +1255,7 @@ class _Builder:
         if scale is None:
             msg = f"{where}: unknown scale {key!r}"
             raise CatalogError(msg)
-        if variable.kind not in scale.kinds:
+        if not scale.applies_to(variable.kind, self.kinds):
             msg = f"{where}: scale {key} does not apply to {variable.kind}"
             raise CatalogError(msg)
         if scale.unit is not None:
@@ -1895,8 +1898,12 @@ class _Builder:
                 "note",
                 "matches",
                 "keywords",
+                "conditions",
             ),
         )
+        if f["conditions"] is not None and not isinstance(f["conditions"], str):
+            msg = f"{where}.conditions: expected a string"
+            raise CatalogError(msg)
         if not isinstance(f["calls"], dict) or not f["calls"]:
             msg = f"{where}.calls: expected a table of alias to formulation"
             raise CatalogError(msg)
@@ -2050,6 +2057,7 @@ class _Builder:
             ),
             citations=citations,
             note=f["note"],
+            conditions=f["conditions"],
             matches=_matches(where, f["matches"]),
             derivation=Derivation(
                 calls[0].formulation.key,
@@ -3180,12 +3188,11 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
             found.append(loaded.kinds[str(found[-1].specialization_of)])
         return found
 
-    scaled = {k for s in loaded.scales.values() for k in s.kinds}
     on_scale = [
         v
         for f in formulations
         for v in f.inputs
-        if any(k.name in scaled for k in lineage(v.kind))
+        if any(s.applies_to(v.kind, loaded.kinds) for s in loaded.scales.values())
     ]
     references = list(loaded.references.values())
 

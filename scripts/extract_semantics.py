@@ -89,6 +89,19 @@ KINDS: dict[str, KindSpec] = {
         cf_standard_names=("dew_point_temperature",),
         offset_units="any",
     ),
+    # The parent of the dew point and of the wet-bulb temperature, under
+    # which the catalog declares the frost point and the ice-bulb
+    # temperature as their siblings: a frost point must not feed a dew
+    # point input.
+    "Temperature": KindSpec("interval", delta=False, offset_units="any"),
+    # The temperature of a wet-bulb thermometer (psychrometer), in degC in
+    # the formulas, in K for CF.
+    "WetBulbTemperature": KindSpec(
+        "interval",
+        delta=False,
+        cf_standard_names=("wet_bulb_temperature",),
+        offset_units="any",
+    ),
     "TemperatureDifference": KindSpec("ratio", delta=True),
     # CF's canonical unit for relative humidity is 1.
     "RelativeHumidity": KindSpec(
