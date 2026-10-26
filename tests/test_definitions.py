@@ -78,10 +78,6 @@ def test_a_definition_is_stated_as_such() -> None:
             ratio("coefficients = { k = 1.0 }").replace("p - e", "k * p - e"),
             "no empirical coefficient",
         ),
-        (
-            ratio().replace("fixed_units = false", "fixed_units = true"),
-            "fixed_units = false",
-        ),
         (ratio("conditions = 3"), "expected a string"),
         (
             ratio()
@@ -145,3 +141,34 @@ def test_the_indicators_count_the_formulations_derived_by_nomogram() -> None:
     line = next(x for x in stats(CATALOG).splitlines() if "derived by nomogram" in x)
     count, _ = line.rsplit(": ", 1)[1].split(" of ")
     assert int(count) >= 1
+
+
+# --- WMO-No. 8, Annex 4.A ------------------------------------------------------------
+
+
+def test_the_wmo_defines_the_vapour_pressure_of_moist_air() -> None:
+    # e' = x_v p, with x_v = r / (0.62198 + r) (4.A.5, 4.A.6).
+    f = CATALOG.formulations["wmo_vapour_pressure_definition"]
+    assert f.nature is FormulationNature.DEFINITION
+    assert [(c.reference, c.equation) for c in f.citations] == [("wmo2024", "4.A.6")]
+    e = f.evaluate(r=Q_(0.01, "kg/kg"), p=Q_(1000.0, "hPa")).to("hPa").magnitude
+    assert e == pytest.approx(0.01 * 1000.0 / (0.62198 + 0.01))
+
+
+def test_the_relative_humidities_of_the_wmo_are_definitions() -> None:
+    water = CATALOG.formulations["wmo_relative_humidity"]
+    ice = CATALOG.formulations["wmo_relative_humidity_ice"]
+    for f in (water, ice):
+        assert f.nature is FormulationNature.DEFINITION
+        assert f.fixed_units  # printed as 100 e'/e'_w, in %
+        assert f.conditions is not None
+        assert "same pressure and temperature" in f.conditions
+    assert [c.equation for c in water.citations] == ["4.B.10", "4.A.15"]
+    assert [c.equation for c in ice.citations] == ["4.A.17"]
+    rh = ice.evaluate(e=Q_(1.0, "hPa"), e_is=Q_(1.25, "hPa")).to("percent")
+    assert rh.magnitude == pytest.approx(80.0)
+    # Over ice, a kind of its own: never an alternative of the one over water.
+    assert ice.output.kind == "RelativeHumidityWithRespectToIce"
+    assert ice not in CATALOG.formulations_of("RelativeHumidity")
+    found = {f.key for f in CATALOG.search(kind="RelativeHumidity").formulations}
+    assert {water.key, ice.key} <= found

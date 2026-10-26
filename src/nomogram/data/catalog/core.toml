@@ -55,10 +55,10 @@ note = "p. 71: T68 = T - 4.4e-6 T (100 - T), built from the difference between T
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
-title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I, Annex 4.B"
+title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I"
 doi = "10.59327/WMO/CIMO/1"
 status = "verified"
-note = "Annex 4.B read (2024 edition, pp. 197-198): formulae 4.B.1 (water, -45 to 60 degC) and 4.B.3 (ice, -65 to 0 degC), written e_w(t) and e_i(t); 'sufficiently accurate for all normal meteorological applications', not suitable below -45 degC (water) and -65 degC (ice). No uncertainty is stated for them; the 0.6 % of the annex's note is the pressure dependence of the enhancement factor f(p)."
+note = "Annex 4.A read (2024 edition, pp. 193-195): definitions 4.A.1 to 4.A.21, among them e' = x_v p (4.A.6) and the relative humidities U_w and U_i (4.A.15, 4.A.17), which do not apply when the pressure is below the saturation vapour pressure of the pure phase. Annex 4.B read (pp. 197-198): formulae 4.B.1 (water, -45 to 60 degC) and 4.B.3 (ice, -65 to 0 degC), written e_w(t) and e_i(t); 'sufficiently accurate for all normal meteorological applications', not suitable below -45 degC (water) and -65 degC (ice). No uncertainty is stated for them; the 0.6 % of the annex's note is the pressure dependence of the enhancement factor f(p)."
 
 [references.wmo_etqtc2025]
 authors = "World Meteorological Organization, INFCOM SC-MINT Expert Team on Quality, Traceability and Calibration (ET-QTC)"

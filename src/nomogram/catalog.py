@@ -1573,12 +1573,6 @@ class _Builder:
             if any(c.domains for c in citations):
                 msg = f"{where}: a {nature.value} holds without a stated domain"
                 raise CatalogError(msg)
-            if f["fixed_units"]:
-                msg = (
-                    f"{where}: a {nature.value} is a quantity equation: "
-                    "fixed_units = false"
-                )
-                raise CatalogError(msg)
         formulation = Formulation(
             key=key,
             label=f["label"],
