@@ -244,7 +244,7 @@ def test_table_of_formulations() -> None:
     lines = result.to_markdown().splitlines()
     assert lines[0] == "| Formulation | Equation | Validity | References |"
     assert len(lines) == 2 + len(ice)
-    assert "$T$: 50 to 273.16 K (stated)" in lines[2]
+    assert any("$T$: 50 to 273.16 K (stated)" in line for line in lines[2:])
     assert result._repr_markdown_() == result.to_markdown()
 
 

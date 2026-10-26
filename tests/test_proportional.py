@@ -238,6 +238,20 @@ def test_what_a_proportionality_cannot_be(document: str, message: str) -> None:
         )
 
 
+def test_a_factor_names_coefficients_brought_into_the_subject_unit() -> None:
+    pascals = exponential("p", 611.0).replace('unit = "HectoPA"', 'unit = "PA"')
+    loaded = load_catalog(
+        [SOURCE + pascals + exponential("g", 6.3) + relation("p", "g")]
+    )
+    found = verify(loaded.relations["r"], loaded)
+    assert found.status == "proven"
+    assert found.value == pytest.approx(611.0 / 630.0)
+    assert found.detail is not None
+    assert "the ratio of C of p to C of g (611.0 / 6.3, HectoPA brought into PA)" in (
+        found.detail
+    )
+
+
 def test_a_given_expression_may_convert_a_unit_but_not_rename_it() -> None:
     kelvin = (
         exponential("k", 6.0)
@@ -253,5 +267,5 @@ def test_a_given_expression_may_convert_a_unit_but_not_rename_it() -> None:
     loaded = load_catalog([SOURCE + kelvin + exponential("g", 6.3) + converted])
     assert verify(loaded.relations["r"], loaded).status == "proven"
     renamed = converted.replace('"T - 273.15"', '"T"')
-    with pytest.raises(CatalogError, match="needs the same units"):
+    with pytest.raises(CatalogError, match="no factor converts these units"):
         load_catalog([SOURCE + kelvin + exponential("g", 6.3) + renamed])

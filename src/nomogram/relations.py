@@ -7,9 +7,11 @@ A relation of the catalog is a claim made by a source; :func:`verify`
 checks it and returns a :class:`Verdict`:
 
 - an **equivalence** is proved with SymPy: coefficients become exact
-  rationals, each result is brought into its output unit, the object's
-  inputs are replaced as the relation says (``given``) or by the subject
-  inputs that feed them, and the difference must simplify to zero. If
+  rationals, each result is brought into the output unit of the subject,
+  the object's inputs are replaced as the relation says (``given``) or
+  by the subject inputs that feed them, converted by a factor where
+  their units differ (hPa fed by Pa), and the difference must simplify
+  to zero. If
   it does not, a numerical counterexample refutes the claim; without
   one, the equivalence is left unproven (equivalence of transcendental
   expressions is undecidable in general). Between formulations on
@@ -68,7 +70,7 @@ from nomogram.model import (
     RelationKind,
     Variable,
 )
-from nomogram.units import Q_
+from nomogram.units import Q_, is_offset_unit
 
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
@@ -376,6 +378,35 @@ def _exact(value: float) -> Any:
     return sympy.Rational(exact.numerator, exact.denominator)
 
 
+def _unit_factor(source: str, target: str) -> Any:
+    """The exact factor bringing a value from one unit of the catalog into another.
+
+    Raises
+    ------
+    ValueError
+        When no factor does: the dimensions differ, or a unit carries an
+        offset (``DEG_C``). That conversion is affine, and its origin
+        (0 degC at 273.15 or 273.16 K) is what a relation states with
+        ``given``.
+    """
+    if source == target:
+        return sympy.Integer(1)
+    from pint.errors import DimensionalityError
+
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    start, end = units[source].pint, units[target].pint
+    if is_offset_unit(start) or is_offset_unit(end):
+        msg = f"{source} and {target} differ by an offset"
+        raise ValueError(msg)
+    try:
+        return _exact(float(Q_(1.0, start).to(end).magnitude))
+    except DimensionalityError:
+        msg = f"{source} and {target} have different dimensions"
+        raise ValueError(msg) from None
+
+
 def _rational(formulation: Formulation) -> Any:
     """The result in the output unit, with exact coefficients and constants.
 
@@ -482,20 +513,35 @@ def _difference(left: Any, right: Any) -> Any:
 def _sides(
     relation: Relation, subject: Formulation, other: Formulation
 ) -> tuple[Any, Any, dict[Any, Any]]:
-    """The subject and the object, fed by the subject, and the replacements made."""
+    """The subject and the object, fed by the subject, and the replacements made.
+
+    The object is brought into the units of the subject: its result into
+    the output unit of the subject, and each input fed by a subject input
+    in another unit receives it converted (``p`` in hPa fed by ``P`` in
+    Pa becomes ``P / 100``). The loader has checked that a factor gives
+    each of these conversions.
+    """
     names = [v.identifier for v in subject.inputs]
+    units = {v.identifier: v.unit for v in subject.inputs}
     replacements = {
         sympy.Symbol(identifier, real=True): parse_expression(source, names)
         for identifier, source in relation.given.items()
     }
     # An input of the object fed by a subject input of another identifier
     # (Q fed by P, the only pressure of the subject) takes its symbol.
-    for identifier, source in match_inputs(subject, other).items():
-        if identifier != source and identifier not in relation.given:
-            replacements[sympy.Symbol(identifier, real=True)] = sympy.Symbol(
-                source, real=True
+    feeds = match_inputs(subject, other)
+    for variable in other.inputs:
+        source = feeds.get(variable.identifier)
+        if source is None or variable.identifier in relation.given:
+            continue
+        factor = _unit_factor(units[source], variable.unit)
+        if variable.identifier != source or factor != 1:
+            replacements[sympy.Symbol(variable.identifier, real=True)] = (
+                factor * sympy.Symbol(source, real=True)
             )
-    return _rational(subject), _rational(other).xreplace(replacements), replacements
+    output = _unit_factor(other.output.unit, subject.output.unit)
+    right = output * _rational(other).xreplace(replacements)
+    return _rational(subject), right, replacements
 
 
 def _equivalence(
@@ -686,10 +732,16 @@ def _factor_text(
     """The factor, its constant deviation, and the two coefficients it is the ratio of.
 
     A sampled factor is known to the variation of the ratio (``spread``).
+    A coefficient of the object is brought into the output unit of the
+    subject (611.21 Pa is 6.1121 hPa).
     """
     text = (
         f"factor {factor:.8g}, a constant relative deviation of "
         f"{100 * abs(1 - factor):.2g} %"
+    )
+    unit = float(_unit_factor(other.output.unit, subject.output.unit))
+    converted = (
+        "" if unit == 1 else f", {other.output.unit} brought into {subject.output.unit}"
     )
 
     def values(formulation: Formulation) -> list[tuple[str, float]]:
@@ -697,11 +749,11 @@ def _factor_text(
         return pairs + [(k.identifier, k.value) for k in formulation.constants]
 
     for (a, x), (b, y) in itertools.product(values(subject), values(other)):
-        if y and abs(x / y - factor) <= max(1e-9, spread) * abs(factor):
+        if y and abs(x / (y * unit) - factor) <= max(1e-9, spread) * abs(factor):
             labels = (f"{a} of {subject.key} ({x!r})", f"{b} of {other.key} ({y!r})")
             found = (
                 f"{text}, the ratio of {a} of {subject.key} to {b} of "
-                f"{other.key} ({x!r} / {y!r})"
+                f"{other.key} ({x!r} / {y!r}{converted})"
             )
             return found, labels
     return text, ()

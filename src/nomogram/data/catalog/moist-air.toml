@@ -1710,6 +1710,82 @@ reference = "bechtold2015"
 equation = "54"
 notation = { e_s = "p_{vs}", C = "p_{vs0}", T_0 = "T_{00}" }
 
+[formulations.bechtold2015_magnus_ice]
+label = "Magnus form in kelvins over ice (Bechtold 2015)"
+expression = "C * exp(A * (T - T_0) / (T + B))"
+fixed_units = true
+note = "The form of the saturation over ice of the ECMWF IFS (12.10), with p_vs0 = 6.112 hPa rather than 611.21 Pa."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+keywords = ["saturation", "Magnus", "ice"]
+
+[formulations.bechtold2015_magnus_ice.coefficients]
+A = 22.587
+B = 0.7
+C = 6.112
+T_0 = { value = 273.16, note = "T00, the triple point temperature" }
+
+[[formulations.bechtold2015_magnus_ice.citations]]
+reference = "bechtold2015"
+equation = "54"
+notation = { e_i = "p_{vsi}", C = "p_{vs0}", T_0 = "T_{00}" }
+
+# Saturation vapour pressures of the ECMWF IFS (CY49R1, Part IV,
+# section 12.7, p. 247).
+
+[formulations.ecmwf_ifs_saturation_water]
+label = "Saturation vapour pressure over water, Magnus form in kelvins, ECMWF IFS"
+expression = "e_0 * exp(A * (T - T_0) / (T - B))"
+fixed_units = false
+note = "Empirical, used instead of integrating the Clausius-Clapeyron equation (12.8). The coefficients are those of Buck (1981) over water, written in kelvins: B = 273.16 - 240.97, and e_0 = 611.21 Pa is Buck's 6.1121 hPa, given at T_0 (12.11)."
+output = { identifier = "e_sat", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["T_0_ecmwf_ifs"]
+assumptions = [
+  { text = "T - T_0 stands for the Celsius temperature of Buck (1981), 0 degC being taken as 273.16 K, the triple point.", status = "deduced" },
+]
+keywords = ["saturation", "Magnus"]
+
+[formulations.ecmwf_ifs_saturation_water.coefficients]
+e_0 = 611.21
+A = { value = 17.502, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
+B = { value = 32.19, unit = "K", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
+
+[[formulations.ecmwf_ifs_saturation_water.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.9"
+notation = { e_sat = 'e_{\mathrm{sat,l}}' }
+note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11."
+units = { e_0 = "PA" }
+
+[formulations.ecmwf_ifs_saturation_ice]
+label = "Saturation vapour pressure over ice, Magnus form in kelvins, ECMWF IFS"
+expression = "e_0 * exp(A * (T - T_0) / (T + B))"
+fixed_units = false
+note = "Empirical, used instead of integrating the Clausius-Clapeyron equation (12.8), with the e_0 of the formula over water (12.11)."
+output = { identifier = "e_sat", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["T_0_ecmwf_ifs"]
+keywords = ["saturation", "Magnus", "ice"]
+
+[formulations.ecmwf_ifs_saturation_ice.coefficients]
+e_0 = 611.21
+A = { value = 22.587, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
+B = { value = 0.7, unit = "K", unit_basis = "added", note = "implied by T in K: the IFS prints numbers" }
+
+[[formulations.ecmwf_ifs_saturation_ice.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.10"
+notation = { e_sat = 'e_{\mathrm{sat,i}}' }
+note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11."
+units = { e_0 = "PA" }
+
 # Stated by the notes: the two forms of equation 25.
 [relations.bechtold2015_virtual_temperature_two_forms]
 kind = "equivalent"
@@ -1742,6 +1818,31 @@ given = { t = "T - 273.16" }
 bounds = { T = [233.15, 323.15] }
 scale = "ignore"
 note = "Buck (1981) with 0 degC written 273.16 K and C = 6.112 hPa rather than 6.1121; checked from -40 to 50 degC, the formulas compared as written."
+
+# Computed by nomogram: the saturation of the IFS is Buck (1981) in
+# kelvins, and the Magnus forms of Bechtold round its e_0.
+[relations.ecmwf_ifs_buck1981_magnus]
+kind = "equivalent"
+subject = "ecmwf_ifs_saturation_water"
+object = "buck1981_magnus"
+given = { t = "T - 273.16" }
+bounds = { T = [233.15, 323.15] }
+scale = "ignore"
+note = "Buck (1981) with 0 degC written 273.16 K, e_0 = 611.21 Pa being Buck's C = 6.1121 hPa; the formulas compared as written."
+
+[relations.bechtold2015_ecmwf_ifs_water]
+kind = "proportional"
+subject = "bechtold2015_magnus_water"
+object = "ecmwf_ifs_saturation_water"
+bounds = { T = [233.15, 323.15] }
+note = "The same form, with C = 6.112 hPa rather than e_0 = 611.21 Pa."
+
+[relations.bechtold2015_ecmwf_ifs_ice]
+kind = "proportional"
+subject = "bechtold2015_magnus_ice"
+object = "ecmwf_ifs_saturation_ice"
+bounds = { T = [213.15, 273.16] }
+note = "The same form, with C = 6.112 hPa rather than e_0 = 611.21 Pa."
 
 
 # MetPy 1.7.1: Ambaum (2020) equation 13 with MetPy's constants, and its
@@ -1906,3 +2007,41 @@ formulation = "ashrae2017_mixing_ratio_from_ice_bulb"
 inputs = { t = -5.0, t_i = -8.0, W_s = 0.001908549933558117 }
 value = 0.0008411843974773226
 call = "GetHumRatioFromTWetBulb(-5.0, -8.0, 101325.0)"
+
+
+[cross_checks.earthkit_meteo121]
+implementation = "earthkit-meteo"
+version = "1.2.1"
+url = "https://github.com/ecmwf/earthkit-meteo/tree/1.2.1"
+checked = 2026-10-26
+note = "Reference values of the tests of earthkit-meteo 1.2.1, computed by thermo.array.saturation_vapour_pressure with phase='water' and phase='ice': tests/thermo/array/test_thermo.py (267.16 K) and tests/data/sat_vp.csv (233.16 and 329.16 K)."
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_water"
+inputs = { T = 233.16 }
+value = 18.763914769647631
+call = "saturation_vapour_pressure(233.16, phase='water')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_water"
+inputs = { T = 267.16 }
+value = 390.92822342088988
+call = "saturation_vapour_pressure(267.16, phase='water')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_water"
+inputs = { T = 329.16 }
+value = 16577.711212965245
+call = "saturation_vapour_pressure(329.16, phase='water')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_ice"
+inputs = { T = 233.16 }
+value = 12.834072645682090
+call = "saturation_vapour_pressure(233.16, phase='ice')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_ice"
+inputs = { T = 267.16 }
+value = 368.52081496958311
+call = "saturation_vapour_pressure(267.16, phase='ice')"

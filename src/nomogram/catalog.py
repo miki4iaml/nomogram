@@ -87,6 +87,7 @@ from nomogram.model import (
     _origin,
 )
 from nomogram.relations import (
+    _unit_factor,
     match_inputs,
     record,
     replay,
@@ -2491,35 +2492,48 @@ class _Builder:
     def check_units(
         where: str, subject: Formulation, other: Formulation, given: Mapping[str, Any]
     ) -> None:
-        """An equivalence is proved on the expressions as written: same units.
+        """An equivalence is proved on the expressions in the same units.
 
-        The output, and every input of the object with the subject inputs
-        feeding it, must be in the same unit, unless a ``given`` expression
-        states the conversion with a number (``t = "T - 273.16"``,
-        ``P = "100 * p"``): ``P - e`` converts nothing.
+        The verifier brings the output of the object, and each of its
+        inputs fed by a subject input, into the units of the subject by a
+        factor (hPa fed by Pa): a unit with an offset (``DEG_C`` fed by
+        ``K``) or of another dimension has none. A ``given`` expression is
+        taken as written: it converts only with a number
+        (``t = "T - 273.16"``, ``P = "100 * p"``), and ``P - e`` converts
+        nothing.
         """
         units = {v.identifier: v.unit for v in subject.inputs}
         matched = match_inputs(subject, other)
         found = []
-        if subject.output.unit != other.output.unit:
+        try:
+            _unit_factor(other.output.unit, subject.output.unit)
+        except ValueError:
             found.append(f"output in {subject.output.unit} and {other.output.unit}")
         for variable in other.inputs:
-            if variable.identifier in given:
-                expr = parse_expression(str(given[variable.identifier]), sorted(units))
-                if any(abs(n) != 1 for n in expr.atoms(sympy.Number)):
-                    continue  # a number states the conversion (P - e has -1 only)
-                sources = sorted(s.name for s in expr.free_symbols)
-            else:
-                sources = [matched[variable.identifier]]
+            if variable.identifier not in given:
+                source = matched[variable.identifier]
+                try:
+                    _unit_factor(units[source], variable.unit)
+                except ValueError:
+                    found.append(
+                        f"{variable.identifier} in {variable.unit} fed by "
+                        f"{source} in {units[source]}"
+                    )
+                continue
+            expr = parse_expression(str(given[variable.identifier]), sorted(units))
+            if any(abs(n) != 1 for n in expr.atoms(sympy.Number)):
+                continue  # a number states the conversion (P - e has -1 only)
             found += [
                 f"{variable.identifier} in {variable.unit} fed by {s} in {units[s]}"
-                for s in sources
+                for s in sorted(s.name for s in expr.free_symbols)
                 if units[s] != variable.unit
             ]
         if found:
             msg = (
-                f"{where}: an equivalence is proved on the expressions as "
-                f"written, which needs the same units: {'; '.join(found)}"
+                f"{where}: no factor converts these units: {'; '.join(found)}; "
+                "an equivalence is proved on the expressions brought into the "
+                "same units, and an input converted with an offset states it "
+                'in given (t = "T - 273.15")'
             )
             raise CatalogError(msg)
 

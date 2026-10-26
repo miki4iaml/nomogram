@@ -11,6 +11,7 @@ import pytest
 
 from nomogram.catalog import catalog
 from nomogram.comparison import feeds
+from nomogram.relations import verify
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -192,3 +193,24 @@ def test_metpy_reproduces_its_doctests() -> None:
         p=Q_(958, "hPa"), T=Q_(298.15, "K"), T_w=Q_(285.15, "K")
     )
     assert e.to("Pa").magnitude == pytest.approx(627.52, abs=0.005)
+
+
+# --- Saturation of the ECMWF IFS -------------------------------------------------
+
+
+@pytest.mark.parametrize("kelvin", [233.15, 273.16, 303.15])
+def test_the_ifs_saturation_over_water_is_buck_1981_in_kelvins(kelvin: float) -> None:
+    ifs = F["ecmwf_ifs_saturation_water"].evaluate(T=Q_(kelvin, "K")).to("hPa")
+    buck = (
+        F["buck1981_magnus"]
+        .evaluate(t=Q_(kelvin - 273.16, "degC"), scale="ignore")
+        .to("hPa")
+    )
+    assert ifs.magnitude == pytest.approx(buck.magnitude, rel=1e-12)
+
+
+def test_the_ifs_saturation_over_water_is_proven_buck_1981() -> None:
+    # Proven on the expressions brought into the same units: Pa and hPa.
+    relation = CATALOG.relations["ecmwf_ifs_buck1981_magnus"]
+    assert relation.computed
+    assert verify(relation, CATALOG).status == "proven"

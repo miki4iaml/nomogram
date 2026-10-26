@@ -274,25 +274,82 @@ inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "PA", description = "vapour pressure" },
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "temperature" },
 ]
-coefficients = { k1 = 7760, k2 = 72, k3 = 3.75e7 }
+coefficients = { k1 = 7760, k2 = 72, k3 = 3.75e5 }
+
+[formulations.eq2_celsius]
+label = "Refractivity from dry pressure and a Celsius temperature"
+expression = "k1 * P_d / (t + 273.15) + k2 * e / (t + 273.15) + k3 * e / (t + 273.15) ** 2"
+fixed_units = true
+output = { identifier = "N", kind = "RelativeHumidity", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "P_d", kind = "Pressure", unit = "HectoPA", description = "dry pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "vapour pressure" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "temperature" },
+]
+coefficients = { k1 = 77.6, k2 = 72, k3 = 3.75e5 }
 """
+
+
+def test_units_that_a_factor_converts_are_brought_into_the_subject_units() -> None:
+    # The output in percent and e in Pa: eq2 written in other units.
+    extra = 'given = { P_d = "P - e" }'
+    document = (
+        BASE
+        + PASCALS
+        + RELATION.format(subject="eq6", object="eq2_percent", extra=extra)
+    )
+    loaded = load_catalog([document])
+    assert verify(loaded.relations["r"], loaded).status == "proven"
 
 
 @pytest.mark.parametrize(
     ("other", "message"),
     [
+        # A given expression converts only with a number: P - e converts nothing.
         ("eq2_pa", "P_d in PA fed by P in HectoPA; P_d in PA fed by e in HectoPA"),
-        ("eq2_percent", "output in UNITLESS and PERCENT; e in PA fed by e in HectoPA"),
+        # 0 degC at 273.15 or at 273.16 K is the source's choice, stated in given.
+        ("eq2_celsius", "t in DEG_C fed by T in K"),
     ],
 )
-def test_an_equivalence_needs_the_same_units(other: str, message: str) -> None:
+def test_units_that_no_factor_converts_are_refused(other: str, message: str) -> None:
     extra = 'given = { P_d = "P - e" }'
     document = (
         BASE + PASCALS + RELATION.format(subject="eq6", object=other, extra=extra)
     )
-    with pytest.raises(CatalogError, match="proved on the expressions as written"):
+    with pytest.raises(CatalogError, match="no factor converts these units"):
         load_catalog([document])
     with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
+def test_an_input_converted_with_an_offset_states_it_in_given() -> None:
+    extra = 'given = { P_d = "P - e", t = "T - 273.15" }'
+    document = (
+        BASE
+        + PASCALS
+        + RELATION.format(subject="eq6", object="eq2_celsius", extra=extra)
+    )
+    loaded = load_catalog([document])
+    assert verify(loaded.relations["r"], loaded).status == "proven"
+
+
+def test_an_output_with_an_offset_is_refused() -> None:
+    dew_point = """
+[formulations.dew_{unit}]
+label = "dew point in {unit}"
+expression = "a * e"
+fixed_units = true
+output = {{ identifier = "T_d", kind = "DewPointTemperature", unit = "{unit}", description = "out" }}
+inputs = [{{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }}]
+coefficients = {{ a = 2.0 }}
+"""
+    document = (
+        BASE
+        + dew_point.format(unit="DEG_C")
+        + dew_point.format(unit="K")
+        + RELATION.format(subject="dew_DEG_C", object="dew_K", extra="")
+    )
+    with pytest.raises(CatalogError, match="output in DEG_C and K"):
         load_catalog([document])
 
 
@@ -671,6 +728,18 @@ inputs = [{{ identifier = "P", kind = "Pressure", unit = "HectoPA", description 
     verdict = verify(loaded.relations["r"], loaded)
     assert verdict.status == "unverified"
     assert "output on old and ref" in verdict.method
+
+
+def test_unit_factors_are_exact_and_never_affine() -> None:
+    from nomogram.relations import _unit_factor
+
+    assert _unit_factor("PA", "HectoPA") == sympy.Rational(1, 100)
+    assert _unit_factor("UNITLESS", "PERCENT") == 100
+    assert _unit_factor("K", "K") == 1
+    with pytest.raises(ValueError, match="DEG_C and K differ by an offset"):
+        _unit_factor("DEG_C", "K")
+    with pytest.raises(ValueError, match="PA and K have different dimensions"):
+        _unit_factor("PA", "K")
 
 
 def test_exact_rationals_and_real_values() -> None:

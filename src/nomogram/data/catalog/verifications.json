@@ -8,6 +8,14 @@
    "status": "proven",
    "value": 0.9999836390111418
   },
+  "21506a1ce95edaddcc810550ad7bec054723cc69649473ced4de5e385527a9bb": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals; scales ignored: t on ipts68 fed by T on no scale",
+   "relation": "ecmwf_ifs_buck1981_magnus",
+   "status": "proven",
+   "value": null
+  },
   "3039eace637a2bf65c43e3e9e0ed25e5a5c16f1f4f97af3e1e60a989c02bc068": {
    "at": {},
    "detail": null,
@@ -79,6 +87,14 @@
    "relation": "ae96_aekr_so90",
    "status": "reproduced",
    "value": 0.33737678039363894
+  },
+  "73d454befa4443d88c87d8adbe6627ebf96c3b48a4421e23e6ba8f4e5efc4d7e": {
+   "at": {},
+   "detail": "factor 0.99998364, a constant relative deviation of 0.0016 %, the ratio of C of bechtold2015_magnus_water to e_0 of ecmwf_ifs_saturation_water (6.112 / 611.21, PA brought into HectoPA); no shift nor factor of T makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_ecmwf_ifs_water",
+   "status": "proven",
+   "value": 0.9999836390111418
   },
   "80e0275f170fb366bde8427e711b35ed7963c86721a9734f2cd50bcafa23cd23": {
    "at": {
@@ -155,6 +171,14 @@
    "relation": "itu_r_p453_total_pressure_form",
    "status": "proven",
    "value": null
+  },
+  "dcd3411a4719379f978d861e55f0f76ec3f0c0edad6ac7aff0db2f4d7302c05e": {
+   "at": {},
+   "detail": "factor 0.99998364, a constant relative deviation of 0.0016 %, the ratio of C of bechtold2015_magnus_ice to e_0 of ecmwf_ifs_saturation_ice (6.112 / 611.21, PA brought into HectoPA); no shift nor factor of T makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_ecmwf_ifs_ice",
+   "status": "proven",
+   "value": 0.9999836390111418
   },
   "e7e25ce9d873f75bf9accbe860bb45b9abe7c9bad664fdeb9144514d4029e443": {
    "at": {
