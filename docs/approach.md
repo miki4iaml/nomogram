@@ -178,8 +178,8 @@ pressures, layers of a standard atmosphere. A constant branch does not:
 the 0 and 1 of a mixed-phase fraction are each reached on a whole
 interval of temperatures, and the numerical inverse returns one end of
 it, within the interval searched.
-Every inverse is tested **both ways**, for all thirteen formulations
-over water (f(f⁻¹(e)) = e, below), and the ten over ice through the
+Every inverse is tested **both ways**, for every formulation over water
+(f(f⁻¹(e)) = e, below), and every formulation over ice through the
 frost point (f⁻¹(f(t)) = t):
 
 | Test | Tolerance | Why this tolerance |

@@ -19,7 +19,7 @@ correspondences checked in those versions.
 | nomogram term | QUDT | SI / VIM | pint | SymPy | CF / OM | MathModDB / Wikidata | Notes |
 |---|---|---|---|---|---|---|---|
 | quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none | CF standard name (narrower); OM `Quantity` subclasses | MathModDB class *quantity kind*; `QUDT quantity kind ID` (P1654, a string). Wikidata P8393 *QUDT quantity kind ID* | `nomogram.semantics.QuantityKind`, with nomogram's scale type and point/difference typing. Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
-| specialization | `qudt:specializationOf` | — | none | none | — | — (MathModDB's `specialized by` relates models and formulas, not kinds) | How nomogram defines kinds QUDT lacks, e.g. saturation vapour pressure over water as a specialization of `VapourPressure`. Such kinds have `origin = "nomogram"` and no IRI yet; their local names are stable, to become the end of persistent IRIs (w3id.org) once nomogram has documentation online. |
+| specialization | `qudt:specializationOf` | — | none | none | — | — (MathModDB's `specialized by` relates models and formulas, not kinds) | How nomogram defines kinds QUDT lacks, e.g. the saturation vapour pressure as a specialization of `VapourPressure`, and the one over water as a specialization of it. Such kinds have `origin = "nomogram"` and no IRI yet; their local names are stable, to become the end of persistent IRIs (w3id.org) once nomogram has documentation online. |
 | quantity | `qudt:Quantity` | quantity (VIM 1.1): a property of a phenomenon, body or substance | none | none | OM `Quantity` | MathModDB class *quantity*; Wikidata *physical quantity* (Q107715) and its items | The property itself ("the temperature of this air"), not a number. Never a class name in nomogram, to avoid the clash with pint's `Quantity`. |
 | quantity value | `qudt:QuantityValue` (`numericValue` + `unit`) | quantity value (VIM 1.19) | `pint.Quantity` (`magnitude` + `units`) | none | OM `Measure` | MathModDB `numeric value` (rare); Wikidata P1181 *numeric value* | nomogram keeps pint's name `quantity` for parameters holding a pint object, and says "quantity value" in prose when the distinction matters. |
 | unit | `qudt:Unit` | measurement unit (VIM 1.9) | `pint.Unit` | `sympy.physics.units` (not used) | CF canonical units (UDUNITS strings) | MathModDB `recommended unit of measurement` (used once); Wikidata P8111 *recommended unit of measurement*, P2968 *QUDT unit ID* | pint is the only unit engine; QUDT units are mapped to pint strings and checked by dimension. |
@@ -67,7 +67,7 @@ correspondences checked in those versions.
 | air pressure p | `Pressure` | Q39552 | `air_pressure` | `hPa` |
 | relative humidity RH | `RelativeHumidity` | Q2499617 | `relative_humidity` | `percent`, `1` |
 | vapour pressure e | `VapourPressure` | — | `water_vapor_partial_pressure_in_air` | `hPa` |
-| saturation vapour pressure e_s | nomogram kind, specialization of `VapourPressure` | — | none | `hPa` |
+| saturation vapour pressure e_s | nomogram kind, specialization of `VapourPressure` | Q2387102 (close) | none | `hPa` |
 | absolute humidity (mass concentration of water vapour) | `MassConcentrationOfWaterVapour` | Q76378808 | `mass_concentration_of_water_vapor_in_air` | `g/m³` |
 | humidity mixing ratio | `MassRatioOfWaterVapourToDryGas` | Q17232415 | `humidity_mixing_ratio` | `g/kg` |
 | specific humidity | `SpecificHumidity` | — | `specific_humidity` | `g/kg` |
@@ -153,10 +153,12 @@ silently.
    nomogram makes a unit applicable to a kind when it is declared for
    that kind or one it specializes, then keeps offset units for
    interval-scale kinds only. Without that rule, QUDT would make the
-   degree Celsius a unit of the thermodynamic temperature. The dew point
-   is the exception: QUDT has one kind for it, where the air temperature
-   has two, and CF gives it in K while empirical formulas give it in
-   degC, so `DewPointTemperature` takes both (`offset_units="any"`).
+   degree Celsius a unit of the thermodynamic temperature. The other
+   temperature points are the exception: QUDT has one kind for each,
+   where the air temperature has two, and CF gives them in K while
+   empirical formulas give them in degC, so `DewPointTemperature`,
+   `WetBulbTemperature` and their parent `Temperature` take both
+   (`offset_units="any"`).
 9. `MassRatioOfWaterVapourToDryGas` specializes no kind, so the mass
    ratio units (g/kg) do not reach it; `RelativeHumidity` and
    `SpecificHumidity` have no unit 1, CF's canonical unit for both.
