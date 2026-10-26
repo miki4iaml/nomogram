@@ -73,6 +73,7 @@ authors = "Lewis, E. L.; Perkin, R. G."
 year = 1981
 title = "The Practical Salinity Scale 1978: conversion of existing data"
 container = "Deep-Sea Research 28A, 307-328; reprinted in UNESCO Technical Papers in Marine Science 37"
+doi = "10.1016/0198-0149(81)90002-9"
 url = "https://www.vliz.be/imisdocs/publications/ocrd/270529.pdf"
 status = "verified"
 note = "p. 325: no true conversion from chlorinity to PSS-78 exists; errors of the recommended route unlikely to exceed 0.03; Knudsen salinities agree with PSS-78 within 0.001 for 25 < S < 38."
