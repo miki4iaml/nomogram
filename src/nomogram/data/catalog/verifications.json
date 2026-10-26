@@ -20,6 +20,14 @@
    "status": "reproduced",
    "value": 0.1587395510561751
   },
+  "642852ef37dc2d9b3e43685fc22604db53fa8aa8b6a60e9f63a1b29e63c532bd": {
+   "at": {},
+   "detail": "factor 0.99963993, a constant relative deviation of 0.036 %, the ratio of C of murray1967 to C of tetens1930 (6.1078 / 6.11); the ratio varies by 7.4e-08, which the rounding of A of murray1967 (17.269388) explains (up to 1.9e-07); equivalent to the printed precision: |ln factor| = 0.00036, which the rounding of C of tetens1930 (6.11) explains (up to 0.00082); no shift nor factor of T makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; not constant: ratio sampled at 200 points of the bounds, against the rounding of the printed coefficients",
+   "relation": "murray1967_tetens1930",
+   "status": "held",
+   "value": 0.9996399261893074
+  },
   "6897cfefab0059a0ea4aa77f9314df8a7645f57d20f4790243a291a31bb73cce": {
    "at": {
     "t": -40.0

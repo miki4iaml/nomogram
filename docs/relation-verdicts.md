@@ -101,6 +101,38 @@ the square root of a square is wrong for negative ones. And stating the
 **bounds** of the inputs, when the source gives them, lets the search for
 a counterexample look where the formula is used.
 
+## Proportionalities: proved, or held to the printed precision
+
+A proportionality states that the subject equals the object times a
+constant factor, once the object's inputs are fed by the subject's
+(`given`). It is proved like an equivalence, on the ratio of the two
+sides, which must simplify to a constant: *proven*, with the factor.
+
+When the ratio does not simplify, it is sampled on the bounds. A ratio
+whose variation the rounding of one printed coefficient explains (half a
+unit of its last digit, through its effect on the ratio) is *held*; the
+verdict names the finest such coefficient. Beyond, it is *refuted*, with
+the point where the ratio strays most. The verdict then says:
+
+- the factor, the constant relative deviation |1 − factor| it implies,
+  and the two coefficients it is the ratio of, when it is one;
+- whether the two formulations are even equal to the printed precision,
+  and which rounding explains the factor;
+- whether a shift or a factor of an input with a conventional scale (a
+  temperature, a salinity) makes them equal as closely as the
+  proportionality does. If so, the factor may come from the scale on
+  which one of them was read rather than from a coefficient.
+
+### A computed proportionality: Murray (1967) and Tetens (1930)
+
+Murray writes Tetens in kelvins: with `given = { t = "T - 273.16" }`, the
+ratio is not constant, but varies by 7·10⁻⁸ from −40 to 50 °C, which the
+rounding of A = 17.269388 (7.5 ln 10) explains. The factor 0.99964 is the
+ratio of their constants C, 6.1078 and 6.11, and the rounding of 6.11
+explains it: the two are equivalent to the printed precision. No shift
+nor factor of T makes them as close: the 273.16 K is a convention of the
+formula, not an error of scale. The verdict is *held*.
+
 ## Approximations: checked on points, never proved
 
 An approximation states a maximum relative deviation over a domain. It

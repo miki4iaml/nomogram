@@ -529,10 +529,11 @@ def _records(catalog: Catalog) -> list[_Record]:
         )
     for key, rel in catalog.relations.items():
         label = f"{rel.subject} {rel.kind.value} {rel.object}"
+        provenance = "computed by nomogram" if rel.computed else None
         records.append(
             _Record(
                 Entry("relations", key, label, rel),
-                words(_join(key, label, rel.note)),
+                words(_join(key, label, rel.note, provenance)),
                 {},
                 citations=_sourced(catalog, rel.citation),
             )

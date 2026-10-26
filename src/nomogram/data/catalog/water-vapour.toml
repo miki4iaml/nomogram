@@ -815,6 +815,15 @@ reference = "voemel_vp"
 # -40..50 degC, against GG46 in its triple-point form (goff1957) and SO90,
 # with the temperature of the maximum; the formulas are compared as given.
 
+# Computed by nomogram: Murray rewrote Tetens in kelvins.
+[relations.murray1967_tetens1930]
+kind = "proportional"
+subject = "murray1967"
+object = "tetens1930"
+given = { t = "T - 273.16" }
+bounds = { T = [233.15, 323.15] }
+note = "Tetens with 0 degC written 273.16 K, A = 7.5 ln 10 printed to six decimals and C given as 6.1078 rather than 6.11; checked from -40 to 50 degC."
+
 [relations.ae96_te30_gg46]
 kind = "approximates"
 subject = "tetens1930"

@@ -2359,10 +2359,16 @@ class _Builder:
         f = _fields(
             where,
             table,
-            ("kind", "subject", "object", "citation"),
-            ("accuracy", "at", "bounds", "given", "scale", "note"),
+            ("kind", "subject", "object"),
+            ("citation", "accuracy", "at", "bounds", "given", "scale", "note"),
         )
         kind = _enum(f"{where}.kind", RelationKind, f["kind"])
+        if f["citation"] is None and kind is RelationKind.APPROXIMATES:
+            msg = (
+                f"{where}: an approximation states its source; nomogram computes "
+                "only equivalences and proportionalities"
+            )
+            raise CatalogError(msg)
         ends = []
         for role in ("subject", "object"):
             if f[role] not in formulations:
@@ -2431,11 +2437,17 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             if given:
-                msg = f"{where}.given: only for an equivalence"
+                msg = f"{where}.given: only for an equivalence or a proportionality"
                 raise CatalogError(msg)
         else:
             if f["accuracy"] is not None:
                 msg = f"{where}.accuracy: only for an approximation"
+                raise CatalogError(msg)
+            if kind is RelationKind.PROPORTIONAL and set(bounds) != names:
+                msg = (
+                    f"{where}: a proportionality is checked on a domain: bound "
+                    f"every input of {subject.key}"
+                )
                 raise CatalogError(msg)
             others = {v.identifier for v in other.inputs}
             for identifier, source in given.items():
@@ -2455,7 +2467,7 @@ class _Builder:
             kind=kind,
             subject=subject.key,
             object=other.key,
-            citation=self.reference(f"{where}.citation", f["citation"]),
+            citation=self.optional_reference(f"{where}.citation", f["citation"]),
             accuracy=accuracy,
             at=MappingProxyType(at),
             bounds=bounds,
@@ -2471,8 +2483,9 @@ class _Builder:
         """An equivalence is proved on the expressions as written: same units.
 
         The output, and every input of the object with the subject inputs
-        feeding it (matched, or used by its ``given`` expression), must be
-        in the same unit; conversions in ``given`` are not supported.
+        feeding it, must be in the same unit, unless a ``given`` expression
+        states the conversion with a number (``t = "T - 273.16"``,
+        ``P = "100 * p"``): ``P - e`` converts nothing.
         """
         units = {v.identifier: v.unit for v in subject.inputs}
         matched = match_inputs(subject, other)
@@ -2482,6 +2495,8 @@ class _Builder:
         for variable in other.inputs:
             if variable.identifier in given:
                 expr = parse_expression(str(given[variable.identifier]), sorted(units))
+                if any(abs(n) != 1 for n in expr.atoms(sympy.Number)):
+                    continue  # a number states the conversion (P - e has -1 only)
                 sources = sorted(s.name for s in expr.free_symbols)
             else:
                 sources = [matched[variable.identifier]]
@@ -2764,10 +2779,10 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
     elif section == "cross_checks":
         for case in table["cases"]:
             add("formulations", case["formulation"])
-    elif section == "relations":
+    elif section == "relations":  # a computed relation has no citation
         add("formulations", table["subject"])
         add("formulations", table["object"])
-        add("references", table["citation"])
+        add("references", table.get("citation"))
     elif section == "scales":
         for kind in table["kinds"]:
             add("kinds", kind)
@@ -3279,8 +3294,14 @@ def _verdicts(write: bool) -> str:
         computed, reused = record(loaded)
         lines.append(f"registry written: {computed} computed, {reused} reused")
     for key in sorted(loaded.relations):
-        found = verdict(loaded.relations[key], loaded)
-        value = "" if found.value is None else f" {found.value:.4g} %"
+        relation = loaded.relations[key]
+        found = verdict(relation, loaded)
+        if found.value is None:
+            value = ""
+        elif relation.kind is RelationKind.PROPORTIONAL:
+            value = f" factor {found.value:.8g}"
+        else:
+            value = f" {found.value:.4g} %"
         lines.append(f"{key}: {found.status}{value}")
     for key in sorted(loaded.cross_checks):
         check = loaded.cross_checks[key]

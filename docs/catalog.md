@@ -647,14 +647,15 @@ matches = [
 ## Relations
 
 A relation records what a **source states** between two formulations of
-the same quantity kind; nomogram verifies it
-(`nomogram.relations.verify`), but never invents one. A deviation
+the same quantity kind, which nomogram verifies
+(`nomogram.relations.verify`), or, without a citation, an equivalence or
+a proportionality that nomogram computes and proves. A deviation
 nomogram computes without a source is an observation
 (`nomogram.comparison.compare`), not a relation.
 
 ```toml
 [relations.ae96_aekr_gg46]
-kind = "approximates"                 # or "equivalent"
+kind = "approximates"                 # or "equivalent", "proportional"
 subject = "alduchov_eskridge1996"
 object = "goff1957"
 citation = "alduchov_eskridge1996"    # the source that states it
@@ -675,6 +676,23 @@ note = "Table III, r_g."
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or
   *unproven*.
+- **`proportional`**: the subject equals the object times a constant
+  factor. Proved on the ratio, simplified to a constant (*proven*), or
+  sampled on `bounds`, which every input of the subject needs: *held*
+  when the rounding of a printed coefficient explains its variation,
+  *refuted* otherwise. The verdict gives the factor, the coefficients it
+  is the ratio of, whether the two are equal to the printed precision,
+  and whether a shift or a factor of a temperature or a salinity would
+  explain it (a matter of scale). An equivalence is a proportionality of
+  factor 1 (`RelationKind.broader`).
+- **Computed by nomogram**: an equivalence or a proportionality without
+  a `citation` is one nomogram computes; its verdict proves it or holds
+  it, and searching for "computed by nomogram" finds it. An approximation
+  always cites its source.
+- **`given`** may convert a unit, the expression stating the conversion
+  (`given = { t = "T - 273.16" }` feeds a Celsius temperature from a
+  kelvin one, with 0 degC at 273.16 K as Murray writes it); a bare
+  identifier in another unit is refused.
 - A claim that cannot be checked as it stands is *unverified*, with the
   reason: an equivalence between formulations on different scales under
   `scale = "convert"`, an approximation evaluable at no point of its
