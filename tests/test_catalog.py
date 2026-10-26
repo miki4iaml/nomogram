@@ -70,6 +70,8 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "goff1957",
         "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
         "bechtold2015_magnus_water",
+        "ambaum2020",
+        "ambaum2020_constant_latent_heat",
     }
 
 
@@ -432,6 +434,20 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
             "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
             "p_vs0",
         ): "stated",
+        ("ambaum2020", "e_s0"): "stated",
+        ("ambaum2020", "T_0"): "stated",
+        ("ambaum2020", "Delta_c"): "stated",
+        ("ambaum2020", "L_0"): "stated",
+        ("ambaum2020", "R_v"): "stated",
+        ("ambaum2020_constant_latent_heat", "e_s0"): "stated",
+        ("ambaum2020_constant_latent_heat", "T_0"): "stated",
+        ("ambaum2020_constant_latent_heat", "L_0"): "stated",
+        ("ambaum2020_constant_latent_heat", "R_v"): "stated",
+        ("ambaum2020_ice", "e_i0"): "stated",
+        ("ambaum2020_ice", "T_0"): "stated",
+        ("ambaum2020_ice", "Delta_c"): "stated",
+        ("ambaum2020_ice", "R_v"): "stated",
+        ("ambaum2020_ice", "L_s0"): "added",
     }
 
 

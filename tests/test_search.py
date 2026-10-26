@@ -432,7 +432,7 @@ def test_selection_behaves_as_a_sequence() -> None:
     assert "formulations.buck1996" in found  # type: ignore[comparison-overlap]
     assert found[0] in found
     assert 3 not in found  # type: ignore[comparison-overlap]
-    assert all("Buck" in f.label for f in found.formulations)
+    assert all("Buck" in f.label + (f.note or "") for f in found.formulations)
     assert repr(found).startswith(
         "Selection(6 entries: formulations.bechtold2015_magnus_water"
     )

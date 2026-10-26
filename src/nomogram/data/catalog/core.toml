@@ -68,6 +68,17 @@ url = "https://etrp.wmo.int/pluginfile.php/97653/mod_folder/content/0/Training%2
 status = "verified"
 note = "Slide 13 read: the Magnus forms of WMO-No. 8 Annex 4.B with 'uncertainty up to 0.6 %, (k = 2)' over water (-45 to +60 degC) and 'up to 1 %, (k = 2)' over ice (-65 to 0 degC), attributed to the 2023 edition of the guide. The 2024 text of that annex states no uncertainty."
 
+[references.ambaum2020]
+authors = "Ambaum, M. H. P."
+year = 2020
+title = "Accurate, simple equation for saturated vapour pressure over water and ice"
+container = "Quarterly Journal of the Royal Meteorological Society 146 (733), 4252-4258"
+doi = "10.1002/qj.3899"
+url = "https://centaur.reading.ac.uk/93718/"
+status = "verified"
+note = "Published version, CC BY 4.0, read in the University of Reading repository: R_v = 461.52 J kg-1 K-1 under equation 2 (p. 4253); equations 13 to 16 with the triple-point values of equation 14 (p. 4254); equations 17 to 19, and the latent heat of melting written below equation 20 with the triple-point values of the caption of Figure 4 (p. 4256). Equation 18 gives the latent heat of sublimation without a value of Ls0."
+
+
 [references.ashrae2017]
 authors = "ASHRAE"
 year = 2017

@@ -175,16 +175,6 @@ url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-
 status = "verified"
 note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
 
-[references.ambaum2020]
-authors = "Ambaum, M. H. P."
-year = 2020
-title = "Accurate, simple equation for saturated vapour pressure over water and ice"
-container = "Quarterly Journal of the Royal Meteorological Society 146 (733), 4252-4258"
-doi = "10.1002/qj.3899"
-url = "https://centaur.reading.ac.uk/93718/"
-status = "verified"
-note = "Published version, CC BY 4.0, read in the University of Reading repository: equations 14 and 15 (p. 4254), and the latent heat of melting written below equation 20 with the triple-point values of the caption of Figure 4 (p. 4256). Equation 18 gives the latent heat of sublimation without a value of Ls0."
-
 [references.bechtold2015]
 authors = "Bechtold, P."
 year = 2015
@@ -1603,7 +1593,7 @@ notation = { r = "r_v" }
 assumptions = ["A fictive reversible adiabatic process in which all the water vapour of the parcel condenses (section 9.3)."]
 
 [formulations.bechtold2015_saturation_vapour_pressure_constant_latent_heat]
-label = "Saturation vapour pressure over water, Clausius-Clapeyron equation integrated with a constant latent heat (Bechtold 2015)"
+label = "Clausius-Clapeyron with a constant latent heat (Bechtold 2015)"
 expression = "p_vs0 * exp(L_v0 / R_v * (1 / T_0 - 1 / T))"
 fixed_units = false
 note = "The notes give no value to the constant latent heat: L_v0 is their L_v(T00) of equation 40, at the integration point. p_vs0 = 6.112 hPa is taken at T00 = 273.16 K, the triple point, where IAPWS-95 gives 6.11657 hPa."
@@ -1627,7 +1617,7 @@ assumptions = ["The latent heat of vaporisation is constant (section 10).", "The
 units = { p_vs0 = "HectoPA" }
 
 [formulations.bechtold2015_magnus_water]
-label = "Magnus form in kelvins, Buck (1981) coefficients, over water (Bechtold 2015)"
+label = "Magnus form in kelvins (Bechtold 2015)"
 expression = "C * exp(A * (T - T_0) / (T - B))"
 fixed_units = true
 note = "Attributed to 'Thetens' by the notes; the coefficients are those of Buck (1981) over water, with B = 273.16 - 240.97 and C = 6.112 hPa rather than 6.1121. Its inversion at 1013 hPa gives 99.39 degC, where the notes write 99.5 degC (p. 10)."

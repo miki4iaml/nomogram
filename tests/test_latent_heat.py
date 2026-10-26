@@ -106,6 +106,13 @@ def test_the_latent_heats_are_found_by_name_and_by_source() -> None:
     cited = CATALOG.search(source="ecmwf_ifs_cy49r1", equation="12.1").formulations
     assert [f.key for f in cited] == [VAPORIZATION.key]
     ambaum = {f.key for f in CATALOG.search(source="ambaum2020").formulations}
-    assert ambaum == {AMBAUM.key, MELTING.key, "latent_heat_fusion_identity"}
+    assert ambaum == {
+        AMBAUM.key,
+        MELTING.key,
+        "latent_heat_fusion_identity",
+        "ambaum2020",
+        "ambaum2020_constant_latent_heat",
+        "ambaum2020_ice",
+    }
     melting = {f.key for f in CATALOG.search("melting").formulations}
     assert MELTING.key in melting
