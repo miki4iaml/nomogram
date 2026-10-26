@@ -103,6 +103,9 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- `docs/rosetta.md` maps the terms of nomogram to MathModDB and Wikidata
+  (defining formulas, symbols tied to quantities, sources, approximations),
+  with only the correspondences checked in MathModDB 2.0.0 and Wikidata.
 - Definitions and identities: a formulation may be true by definition
   or an exact consequence of definitions (`nature`), with the conditions
   under which it holds (`conditions`). The latent heat of fusion as that
