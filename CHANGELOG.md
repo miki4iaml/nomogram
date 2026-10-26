@@ -175,6 +175,10 @@ and this project adheres to
 
 ### Fixed
 
+- `Catalog.uses` and `used_by` failed with an obscure error when given a
+  formulation. They now take a formulation of the catalog as well as its
+  reference `formulations.<key>` or a search entry, and refuse any other
+  object with a clear message.
 - The closed-form inverse of a formulation in degC, solved in K, writes
   T = t + T0 with T0 = 273.15 K. It wrote t - T0 with T0 = -273.15 K:
   the values were right, the expression misleading.
