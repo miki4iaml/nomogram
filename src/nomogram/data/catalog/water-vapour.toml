@@ -818,6 +818,76 @@ reference = "sonntag1990"
 [[formulations.sonntag1990_ice.citations]]
 reference = "voemel_vp"
 
+# Ambaum (2020): the Clausius-Clapeyron equation integrated with a latent
+# heat linear in temperature, over water and over ice.
+
+[formulations.ambaum2020]
+label = "Ambaum (2020) equation over water"
+expression = "e_s0 * (T_0 / T) ** (Delta_c / R_v) * exp(L_0 / (R_v * T_0) - (L_0 - Delta_c * (T - T_0)) / (R_v * T))"
+fixed_units = false
+note = "Equation 13 with the latent heat of equation 15, L = L_0 - Delta_c (T - T_0), Delta_c standing for c_pl - c_pv: it satisfies the Clausius-Clapeyron equation exactly for that latent heat. The constants are the triple-point values Ambaum recommends (equation 14)."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { e_s0 = 611.655, T_0 = 273.16, Delta_c = 2180.0, L_0 = 2.501e6, R_v = 461.52 }
+keywords = ["saturation", "Clausius-Clapeyron"]
+
+[[formulations.ambaum2020.citations]]
+reference = "ambaum2020"
+equation = "13"
+notation = { e_s = "e", Delta_c = '\left(c_{\mathrm{pl}} - c_{\mathrm{pv}}\right)' }
+assumptions = ["Water vapour as an ideal gas, so that c_pv is constant, which is 'only approximately valid' from 0 to 100 degC (p. 4254).", "The finite volume of the liquid water is ignored (section 4, p. 4256)."]
+units = { e_s0 = "PA", T_0 = "K", Delta_c = "J-PER-KiloGM-K", L_0 = "J-PER-KiloGM", R_v = "J-PER-KiloGM-K" }
+
+[[formulations.ambaum2020.citations.domains]]
+bounds = { T = [273.15, 373.15] }
+criterion = "c_pl - c_pv = 2180 J kg-1 K-1 'gives a very good fit across the 0-100 C temperature range, in particular for temperatures below 70 C' (p. 4254): the fit of equation 13 to IAPWS-95."
+
+[formulations.ambaum2020_constant_latent_heat]
+label = "Ambaum (2020) approximation with a constant latent heat"
+expression = "e_s0 * exp(L_0 / (R_v * T_0) - L_0 / (R_v * T))"
+fixed_units = false
+note = "Equation 16: equation 13 with c_pl = c_pv, the latent heat being then constant. Ambaum calls it only accurate for small temperature ranges (p. 4254)."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { e_s0 = 611.655, T_0 = 273.16, L_0 = 2.501e6, R_v = 461.52 }
+keywords = ["saturation", "Clausius-Clapeyron"]
+
+[[formulations.ambaum2020_constant_latent_heat.citations]]
+reference = "ambaum2020"
+equation = "16"
+notation = { e_s = "e" }
+assumptions = ["The specific heats of liquid water and water vapour are taken as equal, so that the latent heat is constant (p. 4254)."]
+units = { e_s0 = "PA", T_0 = "K", L_0 = "J-PER-KiloGM", R_v = "J-PER-KiloGM-K" }
+
+[formulations.ambaum2020_ice]
+label = "Ambaum (2020) equation over ice"
+expression = "e_i0 * (T_0 / T) ** (Delta_c / R_v) * exp(L_s0 / (R_v * T_0) - (L_s0 - Delta_c * (T - T_0)) / (R_v * T))"
+fixed_units = false
+note = "Equation 17 with the latent heat of sublimation of equation 18, Delta_c standing for c_pi - c_pv. Ambaum gives no value of L_s0: it is L_0 + L_m0 = 2.501e6 + 0.3334e6 J kg-1, his latent heats of evaporation (equation 15) and of melting (caption of Figure 4), since L_m = L_s - L."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+keywords = ["saturation", "Clausius-Clapeyron", "ice"]
+
+[formulations.ambaum2020_ice.coefficients]
+e_i0 = 611.655
+T_0 = 273.16
+Delta_c = 212.0
+L_s0 = { value = 2.8344e6, unit = "J-PER-KiloGM", unit_basis = "added", note = "L_0 + L_m0, not printed by Ambaum (see the note)" }
+R_v = 461.52
+
+[[formulations.ambaum2020_ice.citations]]
+reference = "ambaum2020"
+equation = "17"
+notation = { e_i = 'e_{\mathrm{i}}', Delta_c = '\left(c_{\mathrm{pi}} - c_{\mathrm{pv}}\right)' }
+assumptions = ["The heat capacity of ice is taken as constant over the temperature range, 'quite a severe approximation' (p. 4256).", "The finite volume of the ice is ignored (section 4, p. 4256)."]
+units = { e_i0 = "PA", T_0 = "K", Delta_c = "J-PER-KiloGM-K", R_v = "J-PER-KiloGM-K" }
+
 # --- Relations stated by sources ------------------------------------------
 # Alduchov and Eskridge (1996), Table III: maximum relative errors (%) over
 # -40..50 degC, against GG46 in its triple-point form (goff1957) and SO90,

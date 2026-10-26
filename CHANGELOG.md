@@ -253,6 +253,13 @@ and this project adheres to
   specific heats (4.A.19, 4.A.21, whose printed c_p is read as c_pa). The
   QUDT kinds InverseTemperature and SpecificHeatCapacityAtConstantPressure,
   the unit K⁻¹, and the local kind PsychrometerCoefficient.
+- The saturation vapour pressure of Ambaum (2020), the Clausius-Clapeyron
+  equation integrated with a latent heat linear in temperature: over water
+  (equation 13, with the latent heat of equation 15), over ice (equation
+  17), and its constant latent heat approximation (equation 16). Ambaum
+  prints no latent heat of sublimation at the triple point: it is his
+  L_0 + L_m0, borne out by the IAPWS sublimation curve to 0.1 % from -40
+  to 0 degC. The reference moves to `core`, shared by two families.
 
 ### Changed
 

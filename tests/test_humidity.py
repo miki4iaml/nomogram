@@ -60,10 +60,11 @@ def test_every_formulation_stays_close_to_iapws_between_0_and_40_celsius() -> No
     # against three basic formulations over -40..50 degC; above 0 degC all
     # the fitted ones stay well within 0.5 % of IAPWS. Integrated with a
     # constant latent heat, Clausius-Clapeyron departs by 4 % at 40 degC.
-    constant_latent_heat = worst.pop(
-        "bechtold2015_saturation_vapour_pressure_constant_latent_heat"
-    )
-    assert 0.03 < constant_latent_heat < 0.05
+    for key in (
+        "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
+        "ambaum2020_constant_latent_heat",
+    ):
+        assert 0.03 < worst.pop(key) < 0.05, key
     assert max(worst.values()) < 0.005
     assert worst["iapws_sr1_86"] == 0.0
 
