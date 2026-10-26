@@ -67,6 +67,7 @@ each matching a word.
 | `family` | the family of the entry |
 | `keyword` | a keyword of a formulation or a family |
 | `nature` | the nature of a formulation: `definition` or `identity` |
+| `assumption` | an assumption of a formulation, stated by a source or noted with its status |
 | `provenance` | where a formulation comes from: `cited` (a source gives it) or `derived` (by nomogram, from cited formulations, with no citation of its own) |
 
 `section=` keeps the entries of one section (a pattern too):

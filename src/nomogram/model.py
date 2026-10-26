@@ -55,6 +55,8 @@ if TYPE_CHECKING:
     from nomogram.display import Rendering
 
 __all__ = [
+    "Assumption",
+    "AssumptionStatus",
     "Branch",
     "Call",
     "CheckCase",
@@ -960,6 +962,8 @@ class Citation:
         Accuracy the source claims, as stated.
     note : str or None
         Remark on this citation.
+    assumptions : tuple of str
+        Assumptions the source states for the formula, as stated.
     """
 
     reference: str
@@ -972,6 +976,40 @@ class Citation:
     )
     accuracy: str | None = None
     note: str | None = None
+    assumptions: tuple[str, ...] = ()
+
+
+class AssumptionStatus(Enum):
+    """How an assumption of a formulation is known."""
+
+    #: Stated by the source that gives the formula (in its citation).
+    STATED = "stated"
+    #: Stated by another source, about the formula (a review, a guide).
+    STATED_BY_OTHER = "stated-by-other"
+    #: Deduced from the form of the formula, its coefficients or its kinds.
+    DEDUCED = "deduced"
+    #: Suspected, not established: to be checked.
+    SUSPECTED = "suspected"
+
+
+@dataclass(frozen=True)
+class Assumption:
+    """An assumption under which a formulation holds.
+
+    Attributes
+    ----------
+    text : str
+        The assumption.
+    status : AssumptionStatus
+        How it is known.
+    reference : str or None
+        Key of the source that states it; ``None`` when deduced or
+        suspected.
+    """
+
+    text: str
+    status: AssumptionStatus
+    reference: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1149,6 +1187,10 @@ class Formulation:
     conditions : str or None
         Conditions under which it holds, as stated (the same temperature
         and pressure).
+    noted_assumptions : tuple of Assumption
+        Assumptions its sources do not state, noted with their status
+        (stated by another source, deduced, suspected); see
+        :attr:`assumptions`.
     """
 
     key: str
@@ -1172,11 +1214,22 @@ class Formulation:
     written: str | None = None
     nature: FormulationNature | None = None
     conditions: str | None = None
+    noted_assumptions: tuple[Assumption, ...] = ()
 
     @property
     def references(self) -> tuple[str, ...]:
         """Keys of the cited sources, in order, without repetition."""
         return tuple(dict.fromkeys(c.reference for c in self.citations))
+
+    @property
+    def assumptions(self) -> tuple[Assumption, ...]:
+        """Its assumptions: those its sources state, then those noted."""
+        stated = tuple(
+            Assumption(text, AssumptionStatus.STATED, c.reference)
+            for c in self.citations
+            for text in c.assumptions
+        )
+        return stated + self.noted_assumptions
 
     @property
     def derived(self) -> bool:

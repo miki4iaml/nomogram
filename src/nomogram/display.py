@@ -52,6 +52,7 @@ import sympy
 from nomogram.dimensions import DimensionError, unit_text
 from nomogram.expression import to_latex
 from nomogram.model import (
+    AssumptionStatus,
     Coefficient,
     ConventionalScale,
     Formulation,
@@ -245,6 +246,14 @@ def _tex(expr: Any, symbols: Mapping[str, str], options: DisplayOptions) -> str:
     return _times_between_numbers(tex, options.mul_symbol)
 
 
+#: How the legend says where an assumption comes from.
+_ASSUMED: Mapping[AssumptionStatus, str] = {
+    AssumptionStatus.STATED: "stated by {}",
+    AssumptionStatus.STATED_BY_OTHER: "stated by {}, not by the sources of the formula",
+    AssumptionStatus.DEDUCED: "deduced by nomogram",
+    AssumptionStatus.SUSPECTED: "suspected by nomogram, to be checked",
+}
+
 #: How the legend states the nature of a definition or an identity.
 _NATURES: Mapping[FormulationNature, str] = {
     FormulationNature.DEFINITION: "A definition: true by definition.",
@@ -404,6 +413,12 @@ class Rendering:
             lines += ["", _NATURES[formulation.nature]]
         if formulation.conditions:
             lines += ["", f"Conditions: {formulation.conditions}"]
+        if formulation.assumptions:
+            lines += ["", "Assumptions:", ""]
+            lines += [
+                f"- {a.text} ({_ASSUMED[a.status].format(a.reference)})"
+                for a in formulation.assumptions
+            ]
         if formulation.derived:
             lines += ["", "Derived by nomogram: no source prints this formulation."]
         derivation = formulation.derivation

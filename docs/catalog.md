@@ -111,7 +111,7 @@ All sections are optional; a key may be defined in one file only.
 |---|---|---|
 | `[catalog]` (one per file) | `name`, `format` | `label`, `requires`, `matches`, `keywords` |
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
-| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
@@ -373,6 +373,35 @@ equation = "40"
   `search(provenance="derived")` the formulations derived by nomogram,
   `search(provenance="cited")` those a source gives.
 
+### Assumptions
+
+A formula holds under assumptions its source does not always state: an
+ideal gas, constant specific heats, the saturation vapour pressure of
+pure water rather than of moist air, a former Kelvin temperature. They
+are written, never turned into a validity domain without a criterion:
+
+```toml
+[formulations.mass_concentration_ideal_gas]
+...
+assumptions = [
+  { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
+]
+
+[[formulations.ecmwf_ifs_latent_heat_vaporization.citations]]
+reference = "ecmwf_ifs_cy49r1"
+assumptions = ["The specific heat of liquid water is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
+```
+
+- An assumption the source states belongs to its citation, as a list of
+  texts: its status is *stated*.
+- Any other goes on the formulation, with its `status`:
+  `"stated-by-other"` (stated about the formula by another source, whose
+  `reference` is given), `"deduced"` (from the form of the formula, its
+  coefficients or its kinds) or `"suspected"` (to be checked).
+- `Formulation.assumptions` gives them all, stated first; the legend
+  lists them with their status; `search(assumption="ideal gas*")` finds
+  the formulations that assume an ideal gas.
+
 ### Formulations by branches
 
 When the pieces of a [piecewise definition](#piecewise-definitions) are
@@ -427,6 +456,8 @@ states:
 - `scales`: conventional scales the source states for inputs
   (`{ T = "its90" }`);
 - `accuracy`: the accuracy the source claims, as stated;
+- `assumptions`: the assumptions the source states for the formula,
+  as a list of texts (see [assumptions](#assumptions));
 - `note`;
 - `domains`: validity domains the source states, as
   `[[formulations.<key>.citations.domains]]` tables with `bounds` and

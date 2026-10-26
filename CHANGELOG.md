@@ -103,6 +103,12 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- Assumptions: a citation lists those its source states; a formulation
+  notes the others with their status (stated by another source, deduced,
+  suspected). The legend shows them and `search(assumption=...)` finds
+  them. First ones: the constant specific heats of the IFS and Ambaum
+  latent heats, the ideal gas and the enhancement factor left out where
+  e = RH e_s, the 0 degC at 273.16 K of Goff and Gratch and Murray.
 - Definitions and identities: a formulation may be true by definition
   or an exact consequence of definitions (`nature`), with the conditions
   under which it holds (`conditions`). The latent heat of fusion as that
@@ -185,6 +191,10 @@ and this project adheres to
 
 ### Fixed
 
+- Murray (1967), over water and over ice, is Tetens (1930) rewritten in
+  kelvins, with 0 degC written 273.16 K: its T_0 was described as the
+  triple point. Likewise, the 273.16 K of Goff and Gratch over ice is
+  their 0 degC, not the triple point.
 - `Catalog.uses` and `used_by` failed with an obscure error when given a
   formulation. They now take a formulation of the catalog as well as its
   reference `formulations.<key>` or a search entry, and refuse any other
