@@ -217,7 +217,7 @@ undone when the block ends. There is no global setting.
 
 ## Which LaTeX
 
-MathJax (JupyterLab), KaTeX (VS Code, GitHub) and matplotlib's mathtext
+MathJax (JupyterLab, GitHub), KaTeX (VS Code) and matplotlib's mathtext
 do not accept exactly the same commands. nomogram only emits a small
 subset common to the three, `nomogram.expression.LATEX_COMMANDS`, checked
 against their documentation; the tests check every formula of the
