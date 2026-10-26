@@ -117,6 +117,9 @@ and this project adheres to
   them. First ones: the constant specific heats of the IFS and Ambaum
   latent heats, the ideal gas and the enhancement factor left out where
   e = RH e_s, the 0 degC at 273.16 K of Goff and Gratch and Murray.
+- `docs/rosetta.md` maps the terms of nomogram to MathModDB and Wikidata
+  (defining formulas, symbols tied to quantities, sources, approximations),
+  with only the correspondences checked in MathModDB 2.0.0 and Wikidata.
 - Definitions and identities: a formulation may be true by definition
   or an exact consequence of definitions (`nature`), with the conditions
   under which it holds (`conditions`). The latent heat of fusion as that
