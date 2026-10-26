@@ -55,6 +55,7 @@ def test_terms_are_wildcards_matched_against_words() -> None:
         "formulations.buck1981_ice",
         "formulations.buck1996",
         "formulations.buck1996_ice",
+        "formulations.ecmwf_ifs_saturation_water",
     }
     assert refs(CATALOG.search("absolute", "humidity")) == {
         "kinds.AbsoluteHumidity",
@@ -434,9 +435,9 @@ def test_selection_behaves_as_a_sequence() -> None:
     assert 3 not in found  # type: ignore[comparison-overlap]
     assert all("Buck" in f.label + (f.note or "") for f in found.formulations)
     assert repr(found).startswith(
-        "Selection(6 entries: formulations.bechtold2015_magnus_water"
+        "Selection(7 entries: formulations.bechtold2015_magnus_water"
     )
-    assert repr(found[:2]).endswith("formulations.buck1981_magnus)")
+    assert repr(found[:2]).endswith("formulations.ecmwf_ifs_saturation_water)")
     assert found[0].ref == "formulations.bechtold2015_magnus_water"
 
 

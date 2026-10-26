@@ -73,6 +73,7 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "ambaum2020",
         "ambaum2020_constant_latent_heat",
         "metpy171_saturation_vapour_pressure",
+        "ecmwf_ifs_saturation_water",
     }
 
 
@@ -470,6 +471,12 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ashrae2017_mixing_ratio_from_ice_bulb", "C"): "added",
         ("ashrae2017_mixing_ratio_from_ice_bulb", "D"): "added",
         ("ashrae2017_mixing_ratio_from_ice_bulb", "E"): "added",
+        ("ecmwf_ifs_saturation_water", "e_0"): "stated",
+        ("ecmwf_ifs_saturation_water", "A"): "added",
+        ("ecmwf_ifs_saturation_water", "B"): "added",
+        ("ecmwf_ifs_saturation_ice", "e_0"): "stated",
+        ("ecmwf_ifs_saturation_ice", "A"): "added",
+        ("ecmwf_ifs_saturation_ice", "B"): "added",
     }
 
 

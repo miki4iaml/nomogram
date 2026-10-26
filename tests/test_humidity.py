@@ -368,11 +368,16 @@ def test_ice_formulations_against_iapws() -> None:
         ICE, IAPWS_ICE, {"ThermodynamicTemperature": grid}, outside="ignore"
     )
     deviations = comparison.relative_deviations
-    # Down to -40 degC, all but two stay within 0.2 % of IAPWS.
+    # Down to -40 degC, all but four stay within 0.2 % of IAPWS.
     rough = {"murray1967_ice", "marti_mauersberger1993"}
+    low = {"ecmwf_ifs_saturation_ice", "bechtold2015_magnus_ice"}
     for key, values in deviations.items():
-        if key not in rough:
+        if key not in rough | low:
             assert np.abs(values[1:]).max() < 0.002, key
+    # The Magnus form of the IFS sits 0.08 to 0.21 % below, down to -40 degC.
+    for key in low:
+        assert -0.0022 < deviations[key][1:].min()
+        assert deviations[key][1:].max() < -0.0008
     # Goff-Gratch, long the reference over ice, sits 0.15 to 0.27 % below.
     assert -0.0027 < deviations["goff_gratch1946_ice"].min()
     assert deviations["goff_gratch1946_ice"].max() < -0.0015

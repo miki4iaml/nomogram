@@ -687,7 +687,9 @@ note = "Table III, r_g."
   sampled on `bounds`, which every input of the subject needs: *held*
   when the rounding of a printed coefficient explains its variation,
   *refuted* otherwise. The verdict gives the factor, the coefficients it
-  is the ratio of, whether the two are equal to the printed precision,
+  is the ratio of (a coefficient of the object brought into the output
+  unit of the subject: 611.21 Pa is 6.1121 hPa), whether the two are
+  equal to the printed precision,
   and whether a shift or a factor of a temperature or a salinity would
   explain it (a matter of scale; a factor of an input the object is
   proportional to cannot tell). An equivalence is a proportionality of
@@ -696,10 +698,12 @@ note = "Table III, r_g."
   a `citation` is one nomogram computes; its verdict proves it or holds
   it, and searching for "computed by nomogram" finds it. An approximation
   always cites its source.
-- **`given`** may convert a unit, the expression stating the conversion
-  (`given = { t = "T - 273.16" }` feeds a Celsius temperature from a
-  kelvin one, with 0 degC at 273.16 K as Murray writes it); a bare
-  identifier in another unit is refused.
+- **Units**: the object is brought into the units of the subject by an
+  exact factor (a result in Pa compared with one in hPa, an input in hPa
+  fed by one in Pa). A conversion with an offset is stated in **`given`**,
+  whose expressions are taken as written: `given = { t = "T - 273.16" }`
+  feeds a Celsius temperature from a kelvin one, with 0 degC at 273.16 K
+  as Murray writes it; a bare identifier in another unit is refused.
 - A claim that cannot be checked as it stands is *unverified*, with the
   reason: an equivalence between formulations on different scales under
   `scale = "convert"`, an approximation evaluable at no point of its

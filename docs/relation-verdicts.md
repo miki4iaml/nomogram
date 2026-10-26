@@ -27,13 +27,19 @@ feed them, and the difference must simplify to zero.
 - **unverified**: the claim cannot be checked as it stands, for a
   reason the verdict's `method` gives (different scales, below).
 
-The proof compares the **expressions as written**. It means something
-only if both formulations work in the same units: loading refuses an
-equivalence whose outputs, or whose inputs and the subject inputs feeding
-them (matched, or used by `given`), are in different units. Conversions
-inside `given` are not supported: write both formulations in the same
-units. An input of the object matched by its quantity kind (`Q` fed by
-the subject's `P`, the only pressure) takes the subject's symbol. A
+The proof compares the **expressions as written**, brought into the
+same units by an exact factor: the result of the object into the output
+unit of the subject, and each input of the object fed by a subject input
+in another unit receives it converted (`p` in hPa fed by `P` in Pa
+becomes `P / 100`). Loading refuses an equivalence when no factor
+converts: units of different dimensions, or a unit with an offset
+(`DEG_C` fed by `K`). That conversion is affine, and its origin is a
+choice of the source (0 degC at 273.15 K, or at 273.16 K as Murray and
+the ECMWF IFS write it): `given` states it with a number
+(`given = { t = "T - 273.16" }`). An expression in `given` is taken as
+written, and `P - e` converts nothing. An input of the object matched by
+its quantity kind (`Q` fed by the subject's `P`, the only pressure)
+takes the subject's symbol. A
 quantity equation gives its result in the units of its inputs, then
 nomogram converts it into the output unit
 (`Formulation.output_factor`); that factor is part of the expression

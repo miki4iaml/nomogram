@@ -194,6 +194,17 @@ def test_0_608_is_the_exact_coefficient_to_the_printed_precision() -> None:
             "(0.622 / 0.621945)",
         ),
         ("bechtold2015_buck1981_magnus", 6.112 / 6.1121, "(6.112 / 6.1121)"),
+        # The e_0 of the IFS in Pa, Bechtold's C in hPa.
+        (
+            "bechtold2015_ecmwf_ifs_water",
+            6.112 / 6.1121,
+            "(6.112 / 611.21, PA brought into HectoPA)",
+        ),
+        (
+            "bechtold2015_ecmwf_ifs_ice",
+            6.112 / 6.1121,
+            "(6.112 / 611.21, PA brought into HectoPA)",
+        ),
     ],
 )
 def test_bechtold_rounds_a_coefficient(key: str, factor: float, ratio: str) -> None:

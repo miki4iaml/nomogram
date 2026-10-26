@@ -271,8 +271,22 @@ and this project adheres to
     solved for the mixing ratio.
 
   The units kJ/kg and kJ/(kg·K), which specific energies now take too.
+- The saturation vapour pressures of the ECMWF IFS over water and over
+  ice (CY49R1, Part IV, equations 12.9 and 12.10), cross-checked with
+  earthkit-meteo 1.2.1, and the Magnus form of Bechtold (2015) over ice
+  (equation 54). Computed by nomogram and proven: the IFS formula over
+  water is Buck (1981) in kelvins, 0 degC written 273.16 K, and the Magnus
+  forms of Bechtold round its e_0 (6.112 hPa rather than 611.21 Pa).
 
 ### Changed
+
+- A relation between formulations working in different units is verified
+  on the expressions brought into the units of the subject by an exact
+  factor (a result in Pa against one in hPa, an input in hPa fed by one in
+  Pa), instead of being refused when the catalog is loaded. A conversion
+  with an offset (degC fed by K) is still stated in `given`: its origin,
+  273.15 or 273.16 K, is the source's choice. A proportionality names a
+  coefficient of the object in the output unit of the subject.
 
 - A reciprocal unit is written with a negative exponent, as the SI
   Brochure writes it (K⁻¹, K⁻², hPa⁻¹), instead of 1/K.
