@@ -38,6 +38,14 @@
    "status": "reproduced",
    "value": 0.49278741811860094
   },
+  "6b867b7b02ad117eeedbbaefb7e4af7aa748406fabb6da58031d6c7a548cb7a6": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "wmo_vapour_pressure_two_forms",
+   "status": "proven",
+   "value": null
+  },
   "728d6254a3b455af6f5a01dd9c9823491049cfb2cab77708e764d5e67c224ac1": {
    "at": {
     "t": -40.0

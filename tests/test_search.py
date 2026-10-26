@@ -58,6 +58,7 @@ def test_terms_are_wildcards_matched_against_words() -> None:
     assert refs(CATALOG.search("absolute", "humidity")) == {
         "kinds.AbsoluteHumidity",
         "trade_terms.absolute_humidity",
+        "formulations.wmo_vapour_concentration_definition",
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
@@ -92,11 +93,13 @@ def test_variables_whatever_their_notation() -> None:
     expected = {
         "formulations.mass_concentration_ideal_gas",
         "formulations.itu_r_p453_vapour_pressure_from_density",
+        "formulations.wmo_vapour_concentration_definition",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern
     assert refs(CATALOG.search(variable=r"\rho_{\mathrm{v}}")) == {
-        "formulations.mass_concentration_ideal_gas"
+        "formulations.mass_concentration_ideal_gas",
+        "formulations.wmo_vapour_concentration_definition",
     }
     assert (
         "formulations.itu_r_p453_vapour_pressure"
