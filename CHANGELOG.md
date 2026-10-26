@@ -219,7 +219,12 @@ and this project adheres to
   name finds it and its formulations. The virtual, potential and
   equivalent potential temperatures and the density of moist air carry
   theirs (`virtual_temperature`, `air_potential_temperature`,
-  `air_equivalent_potential_temperature`, `air_density`).
+  `air_equivalent_potential_temperature`, `air_density`), as do the mole
+  fraction of water vapour, sea water salinity and the surface altitude
+  (`mole_fraction_of_water_vapor_in_air`, `sea_water_salinity`,
+  `surface_altitude`). `Altitude` also carries the close name
+  `height_above_mean_sea_level`, mean sea level being what the geoid
+  approximates.
 
 ### Changed
 

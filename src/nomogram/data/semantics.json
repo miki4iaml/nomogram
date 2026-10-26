@@ -32,6 +32,10 @@
       "canonical_units": "m",
       "pint": "m"
     },
+    "height_above_mean_sea_level": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
     "humidity_mixing_ratio": {
       "canonical_units": "1",
       "pint": "dimensionless"
@@ -39,6 +43,10 @@
     "mass_concentration_of_water_vapor_in_air": {
       "canonical_units": "kg m-3",
       "pint": "kg * m ** -3"
+    },
+    "mole_fraction_of_water_vapor_in_air": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
     },
     "relative_humidity": {
       "canonical_units": "1",
@@ -64,9 +72,17 @@
       "canonical_units": "g kg-1",
       "pint": "g * kg ** -1"
     },
+    "sea_water_salinity": {
+      "canonical_units": "1e-3",
+      "pint": "1e-3"
+    },
     "specific_humidity": {
       "canonical_units": "1",
       "pint": "dimensionless"
+    },
+    "surface_altitude": {
+      "canonical_units": "m",
+      "pint": "m"
     },
     "virtual_temperature": {
       "canonical_units": "K",
@@ -100,7 +116,8 @@
         "M"
       ],
       "cf_standard_names": [
-        "altitude"
+        "altitude",
+        "height_above_mean_sea_level"
       ],
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T0D0",

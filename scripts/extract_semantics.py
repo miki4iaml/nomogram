@@ -137,11 +137,13 @@ KINDS: dict[str, KindSpec] = {
     "Height": KindSpec("ratio", delta=False, cf_standard_names=("height",)),
     # Altitude: height above the geoid (CF), a reference surface fixed by
     # convention, hence an interval scale; QUDT's description leaves the
-    # reference to the context.
+    # reference to the context. CF's height above mean sea level is close:
+    # the time-mean sea surface, which the geoid approximates; ITU-R writes
+    # "above sea level" for the altitude of the surface.
     "Altitude": KindSpec(
         "interval",
         delta=False,
-        cf_standard_names=("altitude",),
+        cf_standard_names=("altitude", "height_above_mean_sea_level"),
         offset_units=False,
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
@@ -227,6 +229,9 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "air_potential_temperature",
     "air_equivalent_potential_temperature",
     "air_density",
+    "mole_fraction_of_water_vapor_in_air",
+    "sea_water_salinity",
+    "surface_altitude",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.

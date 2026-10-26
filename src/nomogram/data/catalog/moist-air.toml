@@ -82,6 +82,7 @@ description = "Relative humidity of moist air with respect to ice: the vapour mo
 label = "Mole Fraction of Water Vapour"
 specialization_of = "MoleFraction"
 description = "Number of moles of water vapour over the total number of moles of a sample of moist air."
+cf_standard_names = ["mole_fraction_of_water_vapor_in_air"]
 
 [kinds.SaturationMixingRatioOverWater]
 label = "Saturation Mixing Ratio over Water"
