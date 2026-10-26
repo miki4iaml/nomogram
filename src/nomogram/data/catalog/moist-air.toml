@@ -151,6 +151,11 @@ label = "Ice-Bulb Temperature"
 specialization_of = "Temperature"
 description = "Temperature of the ice-covered bulb of a psychrometer: the counterpart of the wet-bulb temperature over ice."
 
+[kinds.PsychrometerCoefficient]
+label = "Psychrometer Coefficient"
+specialization_of = "InverseTemperature"
+description = "The coefficient A of the psychrometric formula e' = e'_w(p, t_w) - A p (t - t_w), which depends on the design and ventilation of the psychrometer (WMO-No. 8, 4.3.1). WMO-No. 8 prefers this term to psychrometer constant, a misnomer."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -962,6 +967,98 @@ keywords = ["humidity", "psychrometer"]
 reference = "wmo2024"
 equation = "4.B.9"
 notation = { e = "e'" }
+
+# The general psychrometric formulae of WMO-No. 8 (4.3.1.1, p. 167), with
+# the psychrometer coefficient and the saturation vapour pressure at the
+# bulb temperature as inputs; 4.B.8 and 4.B.9 are those of the Assmann
+# psychrometer.
+
+[formulations.wmo_psychrometric_formula_water]
+label = "Vapour pressure from a psychrometer with a wet bulb, for a given psychrometer coefficient, WMO Guide (CIMO)"
+expression = "e_ws - A * p * (t - t_w)"
+fixed_units = true
+note = "Semi-empirical. The coefficient depends on the psychrometer: the guide gives 6.53e-4 (1 + 0.000944 t_w) K-1 for the Assmann psychrometer (4.B.8) and ranges for screen psychrometers (4.3.3.1)."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water at the wet-bulb temperature and the pressure of the air" },
+  { identifier = "A", kind = "PsychrometerCoefficient", unit = "PER-K", description = "Psychrometer coefficient" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the air" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+]
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometric_formula_water.citations]]
+reference = "wmo2024"
+equation = "4.1"
+notation = { e = "e'", e_ws = "e'_{\\mathrm{w}}(p, t_{\\mathrm{w}})" }
+
+[formulations.wmo_psychrometric_formula_ice]
+label = "Vapour pressure from a psychrometer with an ice bulb, for a given psychrometer coefficient, WMO Guide (CIMO)"
+expression = "e_is - A * p * (t - t_i)"
+fixed_units = true
+note = "Semi-empirical. The coefficient depends on the psychrometer: the guide gives 5.75e-4 K-1 for the Assmann psychrometer over ice (4.B.9)."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice at the ice-bulb temperature and the pressure of the air" },
+  { identifier = "A", kind = "PsychrometerCoefficient", unit = "PER-K", description = "Psychrometer coefficient" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the air" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_i", kind = "IceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
+]
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometric_formula_ice.citations]]
+reference = "wmo2024"
+equation = "4.2"
+notation = { e = "e'", e_is = "e'_{\\mathrm{i}}(p, t_{\\mathrm{i}})" }
+
+# The thermodynamic wet-bulb and ice-bulb temperatures of WMO-No. 8,
+# Annex 4.A, for ideal gases with constant specific heats (pp. 195-196).
+
+[formulations.wmo_wet_bulb_ideal_gas]
+label = "Air temperature from the thermodynamic wet-bulb temperature, ideal gases with constant specific heats, WMO Guide (CIMO)"
+expression = "T_w + (r_w - r) * L_v / (c_pa + r * c_pv)"
+fixed_units = false
+note = "Explicit in the air temperature: the wet-bulb temperature from the air temperature and the mixing ratio needs a solver. The exact definition is the enthalpy balance 4.A.18. Air-conditioning engineers call this temperature that of adiabatic saturation; how a psychrometer reading relates to it is a matter of experiment."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature" }
+inputs = [
+  { identifier = "T_w", kind = "WetBulbTemperature", unit = "K", description = "Thermodynamic wet-bulb temperature" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio of the air" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over water at the wet-bulb temperature and the pressure of the air" },
+  { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporization at the wet-bulb temperature" },
+  { identifier = "c_pa", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of dry air at constant pressure" },
+  { identifier = "c_pv", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of water vapour at constant pressure" },
+]
+keywords = ["humidity", "wet bulb", "adiabatic saturation"]
+
+[[formulations.wmo_wet_bulb_ideal_gas.citations]]
+reference = "wmo2024"
+equation = "4.A.19"
+assumptions = ["Air and water vapour as ideal gases with constant specific heats (Annex 4.A, paragraph 18)."]
+
+[formulations.wmo_ice_bulb_ideal_gas]
+label = "Air temperature from the thermodynamic ice-bulb temperature, ideal gases with constant specific heats, WMO Guide (CIMO)"
+expression = "T_i + (r_i - r) * L_s / (c_pa + r * c_pv)"
+fixed_units = false
+note = "Explicit in the air temperature: the ice-bulb temperature from the air temperature and the mixing ratio needs a solver. The exact definition is the enthalpy balance 4.A.20."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature" }
+inputs = [
+  { identifier = "T_i", kind = "IceBulbTemperature", unit = "K", description = "Thermodynamic ice-bulb temperature" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio of the air" },
+  { identifier = "r_i", kind = "SaturationMixingRatioOverIce", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over ice at the ice-bulb temperature and the pressure of the air" },
+  { identifier = "L_s", kind = "SpecificLatentHeatOfSublimation", unit = "J-PER-KiloGM", description = "Specific latent heat of sublimation at the ice-bulb temperature" },
+  { identifier = "c_pa", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of dry air at constant pressure" },
+  { identifier = "c_pv", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of water vapour at constant pressure" },
+]
+keywords = ["humidity", "ice bulb"]
+
+[[formulations.wmo_ice_bulb_ideal_gas.citations]]
+reference = "wmo2024"
+equation = "4.A.21"
+notation = { c_pa = "c_p" }
+note = "Printed c_p where 4.A.19 writes c_pa, the specific heat of dry air at constant pressure."
+assumptions = ["Air and water vapour as ideal gases with constant specific heats (Annex 4.A, paragraph 19)."]
 
 # Latent heats of the ECMWF IFS (CY49R1, Part IV, section 12.5, p. 246):
 # differences of specific enthalpies, linear in temperature.

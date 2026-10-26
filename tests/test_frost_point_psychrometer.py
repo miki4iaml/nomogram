@@ -5,6 +5,7 @@
 humidity with respect to ice from it, and the Assmann psychrometer."""
 
 import math
+from typing import Any
 
 import pytest
 
@@ -100,3 +101,56 @@ def test_a_temperature_scale_applies_to_every_temperature(
     its90 = CATALOG.scales["its90"]
     assert its90.applies_to(kind, CATALOG.kinds) is applies
     assert its90.applies_to("Unknown", CATALOG.kinds) is False
+
+
+# --- General psychrometric formulae and thermodynamic bulbs (WMO-No. 8) -----------
+
+
+def test_the_general_formula_with_the_assmann_coefficient_is_4b8() -> None:
+    p, t, t_w = Q_(1013.25, "hPa"), Q_(20, "degC"), Q_(15, "degC")
+    e_ws = F["wmo_es_water_moist_air"].evaluate(t=t_w, p=p)
+    a = Q_(6.53e-4 * (1 + 0.000944 * 15), "1/K")
+    general = F["wmo_psychrometric_formula_water"].evaluate(
+        e_ws=e_ws, A=a, p=p, t=t, t_w=t_w
+    )
+    assmann = F["wmo_psychrometer_water"].evaluate(t=t, t_w=t_w, p=p)
+    assert general.magnitude == pytest.approx(assmann.magnitude)
+
+
+def test_the_general_formula_over_ice_with_the_assmann_coefficient_is_4b9() -> None:
+    t, t_i = Q_(-5, "degC"), Q_(-8, "degC")
+    e_is = F["wmo_es_ice_moist_air"].evaluate(t=t_i, p=P)
+    general = F["wmo_psychrometric_formula_ice"].evaluate(
+        e_is=e_is, A=Q_(5.75e-4, "1/K"), p=P, t=t, t_i=t_i
+    )
+    assmann = F["wmo_psychrometer_ice"].evaluate(t=t, t_i=t_i, p=P)
+    assert general.magnitude == pytest.approx(assmann.magnitude)
+    assert CATALOG.kinds["PsychrometerCoefficient"].specialization_of == (
+        "InverseTemperature"
+    )
+
+
+@pytest.mark.parametrize(
+    ("key", "bulb", "saturation", "latent"),
+    [
+        ("wmo_wet_bulb_ideal_gas", "T_w", "r_w", "L_v"),
+        ("wmo_ice_bulb_ideal_gas", "T_i", "r_i", "L_s"),
+    ],
+)
+def test_the_air_temperature_from_a_thermodynamic_bulb(
+    key: str, bulb: str, saturation: str, latent: str
+) -> None:
+    f = F[key]
+    common: dict[str, Any] = {
+        bulb: Q_(270.0, "K"),
+        saturation: Q_(0.004, "kg/kg"),
+        latent: Q_(2.5e6, "J/kg"),
+        "c_pa": Q_(1005.0, "J/(kg*K)"),
+        "c_pv": Q_(1846.0, "J/(kg*K)"),
+    }
+    # Saturated air is at its bulb temperature.
+    saturated = f.evaluate(r=Q_(0.004, "kg/kg"), **common)
+    assert saturated.to("K").magnitude == pytest.approx(270.0)
+    drier = f.evaluate(r=Q_(0.002, "kg/kg"), **common).to("K").magnitude
+    assert drier == pytest.approx(270 + 0.002 * 2.5e6 / (1005 + 0.002 * 1846))
+    assert f.citations[0].assumptions
