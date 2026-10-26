@@ -281,6 +281,69 @@ def test_an_input_feeding_two_scales_is_refused() -> None:
         with_catalog(SOURCE + water + ice + document)
 
 
+def test_a_difference_is_no_argument_for_a_temperature_point() -> None:
+    # QUDT makes a temperature difference a temperature: a 10 K difference
+    # would be read as -263.15 degC.
+    generic = magnus("eg", 17.62, 243.12, -45.0, 60.0).replace(
+        'kind = "CelsiusTemperature", unit = "DEG_C"',
+        'kind = "Temperature", unit = "K"',
+    )
+    inputs = POINTS.replace(
+        '"DewPointTemperature", unit = "DEG_C"', '"TemperatureDifference", unit = "K"'
+    ).replace('"CelsiusTemperature", unit = "DEG_C"', '"Temperature", unit = "K"')
+    document = caller("100 * e_g(t=t_d) / e_g(t=t)", '{ e_g = "eg" }', inputs=inputs)
+    with pytest.raises(CatalogError, match="takes t as Temperature"):
+        load_catalog([SOURCE + generic + document])
+
+
+DEW = """
+[formulations.dew]
+label = "dew"
+expression = "B * ln(e / C) / (A - ln(e / C))"
+fixed_units = true
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "t_d" }
+inputs = [{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }]
+coefficients = { A = 17.62, B = 243.12, C = 6.112 }
+
+[[formulations.dew.citations]]
+reference = "src"
+scales = { t_d = "ipts68" }
+"""
+
+
+def mean_dew_point(extra: str = "") -> str:
+    return f"""
+[formulations.mean]
+label = "mean"
+expression = "(d(e=e_1) + d(e=e_2)) / 2"
+calls = {{ d = "dew" }}
+fixed_units = true
+output = {{ identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "t_d" }}
+inputs = [
+  {{ identifier = "e_1", kind = "VapourPressure", unit = "HectoPA", description = "e_1" }},
+  {{ identifier = "e_2", kind = "VapourPressure", unit = "HectoPA", description = "e_2" }},
+]
+
+[[formulations.mean.citations]]
+reference = "src"
+{extra}
+"""
+
+
+def test_a_result_on_another_scale_is_converted_back() -> None:
+    # The dew point is given on IPTS-68: the caller states it, and its
+    # result returns to ITS-90 as the called formulation's does.
+    with pytest.raises(CatalogError, match="state that scale for the output of mean"):
+        with_catalog(SOURCE + DEW + mean_dew_point())
+    loaded = with_catalog(SOURCE + DEW + mean_dew_point('scales = { t_d = "ipts68" }'))
+    mean = loaded.formulations["mean"]
+    assert mean.output.scale is not None
+    assert mean.output.scale.key == "ipts68"
+    e = Q_(12.0, "hPa")
+    dew = loaded.formulations["dew"].evaluate(e=e).magnitude
+    assert mean.evaluate(e_1=e, e_2=e).magnitude == pytest.approx(dew)
+
+
 def test_formulations_calling_each_other_are_refused() -> None:
     first = caller("100 * other(t_d=t_d, t=t) / 100", '{ other = "rh2" }')
     second = first.replace("formulations.rh", "formulations.rh2").replace(

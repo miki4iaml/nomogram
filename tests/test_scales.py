@@ -251,11 +251,52 @@ differences = [[0.0, 0.0], [10.0, 0.1]]
             '[scales.x]\nlabel = "X"\nkinds = ["CelsiusTemperature"]\nreference_scale = "ref"\n',
             "a derived scale needs a unit and differences",
         ),
+        # A reference scale of Temperature would be that of the Celsius
+        # temperature too, which has one.
+        (
+            '[scales.x]\nlabel = "X"\nkinds = ["Temperature"]\n',
+            "CelsiusTemperature already has a reference scale, ref",
+        ),
     ],
 )
 def test_invalid_scale_tables_are_refused(extra: str, message: str) -> None:
     with pytest.raises(CatalogError, match=message):
         load_catalog([TABLE + extra])
+
+
+def test_scales_follow_the_specializations_of_their_kinds() -> None:
+    # A reference scale of Temperature covers a derived scale of the
+    # Celsius temperature, and leaves it no reference scale of its own.
+    general = (
+        '[scales.ref]\nlabel = "Reference"\nkinds = ["Temperature"]\n'
+        '[scales.old]\nlabel = "Old"\nkinds = ["CelsiusTemperature"]\n'
+        'reference_scale = "ref"\nunit = "DEG_C"\ndifferences = [[0.0, 0.0]]\n'
+    )
+    assert load_catalog([general]).scales["old"].reference_scale == "ref"
+    second = '[scales.x]\nlabel = "X"\nkinds = ["CelsiusTemperature"]\n'
+    with pytest.raises(CatalogError, match="already has a reference scale, ref"):
+        load_catalog([general + second])
+
+
+def test_a_number_on_a_scale_of_numbers_has_no_unit() -> None:
+    # Practical Salinity is a number since 0.4: 35 is not 35 per mille.
+    def document(unit: str) -> str:
+        return (
+            '[scales.ref]\nlabel = "Reference"\nkinds = ["RelativeHumidity"]\n'
+            '[scales.n]\nlabel = "Numbers"\nkinds = ["RelativeHumidity"]\n'
+            'reference_scale = "ref"\nunit = "UNITLESS"\n'
+            "differences = [[0.0, 0.0], [40.0, 0.0]]\n"
+            '\n[formulations.f]\nlabel = "F"\nexpression = "2 * S"\n'
+            'fixed_units = true\noutput = { identifier = "y", kind = '
+            '"RelativeHumidity", unit = "UNITLESS", description = "out" }\n'
+            'inputs = [{ identifier = "S", kind = "RelativeHumidity", '
+            f'unit = "{unit}", description = "in", scale = "n", '
+            'scale_basis = "inferred-from-date" }]\n'
+        )
+
+    with pytest.raises(CatalogError, match="n gives numbers"):
+        load_catalog([document("PERCENT")])
+    assert "f" in load_catalog([document("UNITLESS")]).formulations
 
 
 def test_a_scale_needs_a_convertible_unit() -> None:

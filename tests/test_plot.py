@@ -355,6 +355,21 @@ def test_values_spanning_decades_are_plotted_on_a_logarithmic_scale(
     assert plot_values(table, yscale=yscale).get_yscale() == expected
 
 
+def test_celsius_temperatures_are_never_on_a_logarithmic_scale() -> None:
+    # Dew points from 0.13 to 29.8 degC: positive, over two decades, but
+    # points of an interval scale.
+    dew = FORMULATIONS["wmo_dew_point_moist_air"]
+    table = compare(
+        [dew],
+        dew,
+        {
+            "VapourPressure": Q_(np.linspace(6.2, 42.0, 20), "hPa"),
+            "Pressure": Q_(1013.25, "hPa"),
+        },
+    )
+    assert plot_values(table).get_yscale() == "linear"
+
+
 def test_an_unknown_yscale_is_refused(comparison: Comparison) -> None:
     with pytest.raises(ValueError, match="yscale must be auto, linear or log"):
         plot_values(comparison, yscale="symlog")  # type: ignore[arg-type]

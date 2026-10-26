@@ -1054,7 +1054,6 @@ class _Builder:
 
     def build_scales(self) -> None:
         tables = self.data["scales"]
-        reference_of: dict[str, str] = {}
         pending = dict(tables)
         # Reference scales first, then each scale after the one it converts to.
         for key, table in pending.items():
@@ -1078,11 +1077,9 @@ class _Builder:
                 raise CatalogError(msg)
             ready.sort(key=lambda k: "reference_scale" in pending[k])
             for key in ready:
-                self.scales[key] = self.scale(key, pending.pop(key), reference_of)
+                self.scales[key] = self.scale(key, pending.pop(key))
 
-    def scale(
-        self, key: str, table: Any, reference_of: dict[str, str]
-    ) -> ConventionalScale:
+    def scale(self, key: str, table: Any) -> ConventionalScale:
         where = f"scales.{key}"
         f = _fields(
             where,
@@ -1141,20 +1138,26 @@ class _Builder:
             if given:
                 msg = f"{where}: a reference scale has no conversion table ({', '.join(given)})"
                 raise CatalogError(msg)
-            for kind in kinds:
-                if kind in reference_of:
+            scale = ConventionalScale(unit=None, points=(), difference=(), **common)
+            # One reference scale per kind, specializations included: a
+            # reference scale of Temperature is that of the Celsius
+            # temperature too. Reference scales are built first: those
+            # already built are all reference scales.
+            for other in self.scales.values():
+                clash = [k for k in kinds if other.applies_to(k, self.kinds)]
+                clash += [k for k in other.kinds if scale.applies_to(k, self.kinds)]
+                if clash:
                     msg = (
-                        f"{where}: {kind} already has a reference scale, "
-                        f"{reference_of[kind]}"
+                        f"{where}: {clash[0]} already has a reference scale, "
+                        f"{other.key}"
                     )
                     raise CatalogError(msg)
-                reference_of[kind] = key
-            return ConventionalScale(unit=None, points=(), difference=(), **common)
+            return scale
         top = self.scales.get(parent)
         if top is None or not top.is_reference:
             msg = f"{where}.reference_scale: {parent!r} is not a reference scale"
             raise CatalogError(msg)
-        outside = sorted(set(kinds) - set(top.kinds))
+        outside = sorted(k for k in kinds if not top.applies_to(k, self.kinds))
         if outside:
             msg = f"{where}.kinds: {', '.join(outside)} not covered by {parent}"
             raise CatalogError(msg)
@@ -1264,6 +1267,14 @@ class _Builder:
             ours = units[variable.unit].dimension_vector
             if ours != units[scale.unit].dimension_vector:
                 msg = f"{where}: {variable.unit} cannot be converted to {scale.unit}"
+                raise CatalogError(msg)
+            # A number, such as a Practical Salinity, is no ratio: 35 is not
+            # 35 per mille.
+            if scale.unit == "UNITLESS" and variable.unit != "UNITLESS":
+                msg = (
+                    f"{where}: {key} gives numbers (unit UNITLESS, as Practical "
+                    f"Salinity is since 0.4), not values in {variable.unit}"
+                )
                 raise CatalogError(msg)
         return scale
 
@@ -1616,9 +1627,12 @@ class _Builder:
         """Whether a result of one kind may feed an input of another.
 
         The kinds of this catalog, not those of the bundled one (see
-        :func:`nomogram.comparison.feeds`).
+        :func:`nomogram.comparison.feeds`): never a difference for a point.
         """
         kind = self.kinds.get(output_kind)
+        target = self.kinds.get(input_kind)
+        if kind is not None and target is not None and kind.delta and not target.delta:
+            return False
         while kind is not None:
             if kind.name == input_kind:
                 return True
@@ -1950,12 +1964,17 @@ class _Builder:
             )
             raise CatalogError(msg)
 
-        # Each input takes the scale of the inputs it feeds.
+        # Each input takes the scale of the inputs it feeds, when that scale
+        # applies to its own kind.
         fed: dict[str, dict[Any, tuple[str, Any]]] = {}
+        own_kinds = {v.identifier: v.kind for v in inputs}
         for call in calls:
             for v in call.formulation.inputs:
-                if v.scale is not None:
-                    target = fed.setdefault(call.arguments[v.identifier], {})
+                argument = call.arguments[v.identifier]
+                if v.scale is not None and v.scale.applies_to(
+                    own_kinds[argument], self.kinds
+                ):
+                    target = fed.setdefault(argument, {})
                     target[v.scale.key] = (call.formulation.key, v)
         inherited: dict[str, str] = {}
         typed = []
@@ -2041,10 +2060,23 @@ class _Builder:
                 ),
             )
         own_names = {c.identifier for c in own_coefficients}
+        # A called formulation giving its result on another scale than the
+        # reference: the caller states that scale, so that evaluation
+        # converts the result back.
+        given = _stated_scales(stated, (output,), citations)[0]
+        for call in calls:
+            scale = call.formulation.output.scale
+            if scale is not None and not scale.is_reference and given.scale != scale:
+                msg = (
+                    f"{where}: {call.formulation.key} gives its result on "
+                    f"{scale.key}; state that scale for the output of {key}, "
+                    "so that it is converted back"
+                )
+                raise CatalogError(msg)
         formulation = Formulation(
             key=key,
             label=f["label"],
-            output=_stated_scales(stated, (output,), citations)[0],
+            output=given,
             inputs=_stated_scales(stated, tuple(typed), citations, inherited),
             coefficients=(
                 *_stated_units(stated, tuple(own_coefficients), citations),
@@ -2241,6 +2273,13 @@ class _Builder:
                     "quantity equations"
                 )
                 raise CatalogError(msg)
+        if output.scale is not None and output.scale != first.output.scale:
+            given = first.output.scale.key if first.output.scale else "none"
+            msg = (
+                f"{where}.output: on {output.scale.key}, but the branches give "
+                f"it on {given}"
+            )
+            raise CatalogError(msg)
         output = dataclasses.replace(
             output, scale=first.output.scale, scale_basis=first.output.scale_basis
         )
@@ -2635,7 +2674,11 @@ class _Builder:
             _check_pieces(where, formulation)
         try:
             _ = formulation.output_factor
-        except (pint.errors.DimensionalityError, DimensionError) as exc:
+        except (
+            pint.errors.DimensionalityError,
+            pint.errors.OffsetUnitCalculusError,
+            DimensionError,
+        ) as exc:
             msg = f"{where}: not dimensionally homogeneous: {exc}"
             raise CatalogError(msg) from None
         # Every coefficient needs a unit, declared or inferred.

@@ -333,6 +333,29 @@ and this project adheres to
 
 ### Fixed
 
+- Scales and units:
+  - an input in per mille on PSS-78, which became a scale of numbers in
+    this version, loaded and was read 1000 times too large: a scale of
+    numbers now takes inputs without unit (a personal catalog written
+    for 0.3 with `unit = "PERMILLE"` on `pss78` writes `UNITLESS`);
+  - the relative deviation of values in °C (the WMO dew and frost
+    points) depended on the Celsius origin: it is computed in kelvins;
+  - a temperature difference no longer feeds a temperature point, though
+    QUDT makes it a temperature, and no longer inherits a conventional
+    scale;
+  - a formulation called with its result on another scale than the
+    reference (IPTS-68) makes the caller state that scale, so that the
+    result is converted back, instead of returning it unconverted;
+  - a bound of a piecewise definition in another unit than its input (Pa
+    for hPa, K for °C) is refused, since conditions compare numbers;
+    arithmetic on Celsius temperatures in a quantity equation is refused
+    with a catalog error;
+  - a scale declared on the output of an entry defined by branches must
+    be the one its branches give, instead of being dropped;
+  - scales follow specializations when a derived scale is checked
+    against its reference, and a kind has one reference scale,
+    specializations included;
+  - `plot_values` never puts temperatures in °C on a logarithmic scale.
 - Verification of proportionalities (the method moves to version 3,
   and every recorded verdict is recomputed; the verdicts of the bundled
   catalog keep their status):

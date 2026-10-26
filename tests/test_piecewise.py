@@ -276,6 +276,50 @@ def test_thresholds_take_the_unit_of_their_input() -> None:
     assert units["T_ice"].reason == "T <= T_ice"
 
 
+@pytest.mark.parametrize(
+    ("kind", "unit", "bound", "message"),
+    [
+        # Compared on the numbers: 600 hPa against 50000.
+        ("Pressure", "HectoPA", '50000.0, unit = "PA"', "compares hPa with Pa"),
+        ("CelsiusTemperature", "DEG_C", '273.15, unit = "K"', "with K"),
+    ],
+)
+def test_a_bound_is_written_in_the_unit_of_its_input(
+    kind: str, unit: str, bound: str, message: str
+) -> None:
+    document = SOURCE + formulation(
+        "piecewise((p, p < p_0), (p, p >= p_0))",
+        fixed_units=False,
+        output=f'kind = "{kind}", unit = "{unit}"',
+        inputs=f'{{ identifier = "p", kind = "{kind}", unit = "{unit}", description = "p" }}',
+        extra=(
+            f"coefficients = {{ p_0 = {{ value = {bound}, "
+            'unit_basis = "added", note = "a threshold" } }'
+        ),
+    )
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
+def test_arithmetic_on_celsius_temperatures_is_refused_cleanly() -> None:
+    # The sum of two points of an interval scale means nothing.
+    document = SOURCE + formulation(
+        "p + p_0",
+        fixed_units=False,
+        output='kind = "CelsiusTemperature", unit = "DEG_C"',
+        inputs=(
+            '{ identifier = "p", kind = "CelsiusTemperature", unit = "DEG_C", '
+            'description = "p" }'
+        ),
+        extra=(
+            'coefficients = { p_0 = { value = 2.0, unit = "DEG_C", '
+            'unit_basis = "added", note = "a point" } }'
+        ),
+    )
+    with pytest.raises(CatalogError, match="Ambiguous operation with offset unit"):
+        load_catalog([document])
+
+
 def test_a_single_piece_is_enough() -> None:
     document = SOURCE + formulation(
         "piecewise((T / T_0, T < T_0))", extra="coefficients = { T_0 = 273.15 }"
@@ -894,3 +938,31 @@ def test_branches_give_values_on_one_scale(tmp_path: Path) -> None:
     )
     with pytest.raises(CatalogError, match="values on different scales"):
         catalog(extra=[path])
+
+
+@pytest.mark.parametrize(
+    ("scale", "refused"), [("knudsen1901", False), ("cox1967", True)]
+)
+def test_a_scale_declared_on_the_output_is_that_of_the_branches(
+    tmp_path: Path, scale: str, refused: bool
+) -> None:
+    path = tmp_path / "mylab.toml"
+    path.write_text(
+        '[catalog]\nname = "mylab"\nformat = 2\nrequires = ["sea-water"]\n'
+        '[references."mylab:note"]\nauthors = "Lab"\ntitle = "Note"\n'
+        'status = "verified"\n'
+        '[formulations."mylab:salinity"]\nlabel = "Salinity"\n'
+        'branches = [{ formulation = "knudsen1901_salinity", where = "Cl < 10" }, '
+        '{ formulation = "knudsen1901_salinity", where = "Cl >= 10" }]\n'
+        'output = { identifier = "S", kind = "SeaWaterSalinity", unit = "PERMILLE", '
+        f'description = "S", scale = "{scale}", scale_basis = "inferred-from-date" }}\n'
+        '[[formulations."mylab:salinity".citations]]\nreference = "mylab:note"\n',
+        encoding="utf-8",
+    )
+    if refused:
+        with pytest.raises(CatalogError, match="on cox1967, but the branches give"):
+            catalog(extra=[path])
+    else:
+        salinity = catalog(extra=[path]).formulations["mylab:salinity"]
+        assert salinity.output.scale is not None
+        assert salinity.output.scale.key == "knudsen1901"

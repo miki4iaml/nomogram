@@ -291,6 +291,9 @@ inputs = [
 - **An input takes the conventional scale of the inputs it feeds**. One
   that feeds inputs on two scales is refused, and so is one that states
   a scale other than that of the input it feeds.
+- **A result on another scale than the reference** (a dew point on
+  IPTS-68) makes the entry state that scale for its own output, in its
+  citation, so that evaluation converts the result back.
 - **`fixed_units`** is written by the entry; it is `true` as soon as a
   formulation called holds only in its declared units.
 - **Identifiers stay free.** nomogram renames for the computation:
@@ -475,9 +478,10 @@ apply.
 
 A conventional reference scale (VIM 1.29) is a quantity-value scale
 defined by formal agreement; the international temperature scales are
-the first examples. Each applies to quantity kinds (`kinds`); each kind
-has one reference scale, on which inputs are taken and results given
-(`its90` for temperatures). Another scale of the same kinds names its
+the first examples. Each applies to quantity kinds (`kinds`) and to
+their specializations, never to a difference; each kind has one
+reference scale, specializations included, on which inputs are taken and
+results given (`its90` for temperatures). Another scale of the same kinds names its
 reference (`reference_scale`) and gives the conversion as a table of
 `[reference value, reference value - value]` pairs, in a declared
 `unit`, values increasing:
@@ -543,7 +547,11 @@ note = "Derived; sources disagree (TEOS-10 A.4, Lewis and Perkin 1981)."
   output.
 - A citation may state the scale of the output too
   (`scales = { S = "knudsen1901" }`): the result is converted back to the
-  reference scale.
+  reference scale. A scale declared on the output of an entry defined by
+  branches is the one its branches give.
+- A scale of numbers (unit `UNITLESS`, Practical Salinity) takes inputs
+  without unit: S_P = 35 is no ratio, and 35 per mille would read it a
+  thousand times too large.
 
 ### Quantity kinds and units
 

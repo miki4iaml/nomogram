@@ -152,7 +152,9 @@ others stay within 4.3 %. `off_scale=False` holds every curve.
 `plot_values` plots on a logarithmic scale values that are all positive
 and span more than two decades, a saturation vapour pressure from −60 to
 110 °C for instance; `yscale="linear"` or `"log"` chooses. A deviation
-has a sign, so it stays on a linear scale.
+has a sign, and points of an interval scale (temperatures in °C) have no
+ratio: both stay on a linear scale. The relative deviation of values in
+°C is computed in kelvins, where a ratio means something.
 
 ### Signature
 
