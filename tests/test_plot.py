@@ -249,7 +249,8 @@ def test_units_are_written_as_the_si_brochure_does() -> None:
     )
     ax = plot_values(found)
     assert ax.get_xlabel() == "Temperature difference / °C"
-    assert ax.get_ylabel() == "Pa⋅s"
+    # The middle dot of the catalog symbols, whatever the version of pint.
+    assert ax.get_ylabel() == "Pa\u00b7s"
 
 
 # --- Signature -------------------------------------------------------------

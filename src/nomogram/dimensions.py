@@ -121,14 +121,17 @@ def unit_text(unit: Any) -> str:
     """A unit as text, with the symbols of the catalog where possible.
 
     A temperature difference in degrees Celsius is written °C, as the SI
-    Brochure does, not pint's Δ°C. A pure number gives an empty string.
+    Brochure does, not pint's Δ°C. A product takes the middle dot of the
+    catalog symbols (J/(kg·K)), whichever dot the version of pint writes.
+    A pure number gives an empty string.
     """
     if unit is None or unit.dimensionless and unit == ureg.dimensionless:
         return ""
     for key, definition in semantic_catalog().units.items():
         if definition.symbol and key != "UNITLESS" and _pint(key) == unit:
             return definition.symbol
-    return f"{unit:~P}".replace("Δ°C", "°C")
+    # Dot operator (pint from 0.25) to middle dot (pint 0.24, QUDT symbols).
+    return f"{unit:~P}".replace("Δ°C", "°C").replace("\u22c5", "\u00b7")
 
 
 @dataclass
