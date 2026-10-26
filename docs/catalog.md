@@ -119,7 +119,7 @@ All sections are optional; a key may be defined in one file only.
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
-| `[relations.<key>]` | `kind` (`equivalent`, `approximates`), `subject`, `object`, `citation` | `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
+| `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
 
 ### Formulations
@@ -357,7 +357,9 @@ equation = "40"
   equation, or a numerical value equation when its source prints it so
   (the relative humidity of WMO-No. 8, 100 e'/e'_w in %).
 - **`conditions`**: under which it holds, as stated (the same
-  temperature); any formulation may have them. The legend shows them.
+  temperature); a written formulation or one calling others may have
+  them, a composition or a formulation by branches does not. The legend
+  shows them.
 - **Derived by nomogram**: a composition, a formulation by branches or
   one calling others, without a citation of its own, is derived by
   nomogram from formulations that are cited. The latent heat of fusion of
@@ -575,7 +577,8 @@ with a conventional origin is on an interval scale even under a
 ratio-scale parent; it is then never a difference). Its CF standard
 names, when CF has an equivalent, come from the frozen CF subset, where
 the extraction script keeps them (`LOCAL_KIND_CF_NAMES`); a search by a
-CF name finds the kind and the formulations that use it.
+CF name finds the kind and the formulations that compute it, and
+`input=` those that take it as input.
 
 CF standard names are links to an external vocabulary, like Wikidata
 items: each carries its SKOS relation and the date it was checked, and

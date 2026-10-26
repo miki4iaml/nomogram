@@ -184,6 +184,12 @@ No safety rule is bypassed, including during project bootstrap.
   (`_references` in `nomogram.catalog`). `docs/search.md` stays up to
   date.
 - No new dependency without explicit approval.
+- The lowest supported versions of the dependencies are a goal, not a
+  constraint: when keeping one would cost complexity, readability,
+  maintainability or many more tests, propose raising it, stating why
+  (its release date; SPEC 0 drops core packages two years after their
+  release; who in the ecosystem still needs it), and record it in
+  `CHANGELOG.md`.
 - No public function without a test.
 - Every user-visible change adds an entry under `[Unreleased]` in
   `CHANGELOG.md` (Keep a Changelog format).

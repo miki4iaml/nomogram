@@ -480,3 +480,46 @@ def test_a_symbol_part_without_letters_adds_no_word() -> None:
 
     # "{}" has an empty normal form: only "m" and the whole count.
     assert _symbol_words("m {}") == frozenset({"m"})
+
+
+def test_the_examples_of_the_search_docstring_give_what_they_show() -> None:
+    import doctest
+
+    from nomogram.catalog import Catalog
+
+    runner = doctest.DocTestRunner()
+    for test in doctest.DocTestFinder().find(
+        Catalog.search, "Catalog.search", globs={"catalog": catalog}
+    ):
+        runner.run(test)
+    assert runner.summarize(verbose=False).failed == 0
+
+
+def test_formulations_written_without_a_source_are_uncited() -> None:
+    found = set(CATALOG.search(provenance="uncited").refs)
+    assert "formulations.height_above_surface" in found
+    assert not found & set(CATALOG.search(provenance="cited").refs)
+    assert not found & set(CATALOG.search(provenance="derived").refs)
+
+
+def test_the_note_of_a_constant_is_searched() -> None:
+    noted = load_catalog(
+        [
+            """
+[references.src]
+authors = "A."
+title = "T"
+status = "verified"
+
+[constants.k]
+identifier = "k"
+value = 1.0
+unit = "UNITLESS"
+description = "a constant"
+reference = "src"
+nature = "conventional"
+note = "Rounded from the Smithsonian tables."
+"""
+        ]
+    )
+    assert "constants.k" in noted.search("smithsonian", section="constants").refs

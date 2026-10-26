@@ -327,7 +327,9 @@ and this project adheres to
 - `SaturationVapourPressureOverWater` and `SaturationVapourPressureOverIce`
   specialize `SaturationVapourPressure`, itself a vapour pressure: they
   still feed any vapour pressure input, and a search of the new kind with
-  its specializations finds every saturation pressure.
+  its specializations finds every saturation pressure of pure water, over
+  water or over ice (those in moist air and over sea water are found
+  through `VapourPressure`).
 - Practical Salinity is a number, as CF (canonical unit 1) and TEOS-10
   write it: the scale `pss78` and the salinity inputs of COARE 3.6, Weiss
   and Price (1980) and Dickson et al. (2007) are unitless instead of per
@@ -344,6 +346,19 @@ and this project adheres to
 
 ### Fixed
 
+- Documentation and search:
+  - `search(provenance=...)` takes a third value, `uncited`, for the
+    formulations nomogram writes without a source (a usual approximation
+    or a definition), which neither `cited` nor `derived` reached;
+  - the note of a constant is searched;
+  - the examples of `Catalog.search` give what they show again, and a
+    test runs them;
+  - the documentation follows the code on conditions (not on
+    compositions nor branches), on relations (`proportional`, a citation
+    only required for approximations), on searching by a CF name
+    (`input=` for the formulations taking the kind), on the inverses
+    tested, and in `docs/rosetta.md` on the saturation vapour pressure
+    and the temperature points taking units with and without an offset.
 - Catalog, checked against its sources:
   - the relative humidity with respect to ice specialized the relative
     humidity, which QUDT defines with respect to water: it fed the inputs

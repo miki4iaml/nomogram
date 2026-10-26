@@ -101,8 +101,8 @@ FIELDS: Mapping[str, str] = {
     "nature": "the nature of a formulation: definition or identity",
     "assumption": "an assumption of a formulation, stated or noted",
     "provenance": (
-        "where a formulation comes from: cited (a source gives it) or derived "
-        "(by nomogram, from others)"
+        "where a formulation comes from: cited (a source gives it), derived "
+        "(by nomogram, from others) or uncited (written without a source)"
     ),
 }
 
@@ -417,7 +417,7 @@ def _formulation(
 def _provenance(formulation: Formulation) -> tuple[frozenset[str], ...]:
     if formulation.derived:
         return (words("derived"),)
-    return (words("cited"),) if formulation.citations else ()
+    return (words("cited" if formulation.citations else "uncited"),)
 
 
 def _sourced(
@@ -478,6 +478,7 @@ def _records(catalog: Catalog) -> list[_Record]:
                         k.description,
                         k.nature.value if k.nature else None,
                         k.conditions,
+                        k.note,
                         _matches_text(k.matches),
                     )
                 ),
