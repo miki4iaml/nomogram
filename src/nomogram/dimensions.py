@@ -49,12 +49,11 @@ leaves the coefficient undetermined when they do not fix its unit.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sympy
 
@@ -118,30 +117,41 @@ def _pint(key: str) -> Any:
     return ureg.Unit("delta_degC" if expression == "degC" else expression)
 
 
-#: A reciprocal unit as pint writes it (1/K, 1/K²), for a negative exponent.
-_RECIPROCAL = re.compile(r"1/([^\s/·()¹²³⁴⁵⁶⁷⁸⁹]+)([²³⁴⁵⁶⁷⁸⁹]?)")
+#: Integer exponents, as superscripts.
+_SUPERSCRIPTS = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+
+def _factor_text(name: str, exponent: float) -> str:
+    """One unit of a product with its exponent: K⁻², or ‰^1.5 when not whole."""
+    symbol = f"{ureg.Unit(name):~P}".replace("Δ°C", "°C")
+    if exponent == 1:
+        return symbol
+    if float(exponent).is_integer():
+        return symbol + str(int(exponent)).translate(_SUPERSCRIPTS)
+    return f"{symbol}^{exponent:g}"
 
 
 def unit_text(unit: Any) -> str:
     """A unit as text, with the symbols of the catalog where possible.
 
-    A temperature difference in degrees Celsius is written °C, as the SI
-    Brochure does, not pint's Δ°C. A product takes the middle dot of the
-    catalog symbols (J/(kg·K)), whichever dot the version of pint writes.
-    A reciprocal unit takes a negative exponent, as the SI Brochure writes
-    it (K⁻¹, K⁻², not 1/K). A pure number gives an empty string.
+    A unit of the catalog takes its symbol (J/(kg·K)). Another is written
+    as the SI Brochure writes products: factors joined by a middle dot,
+    those of the denominator with a negative exponent (g·K·hPa⁻¹·m⁻³,
+    K⁻¹, never a chain of solidi); an exponent that is not whole follows
+    a caret (‰^1.5). A temperature difference in degrees Celsius is
+    written °C, not pint's Δ°C. A pure number gives an empty string.
     """
     if unit is None or unit.dimensionless and unit == ureg.dimensionless:
         return ""
     for key, definition in semantic_catalog().units.items():
         if definition.symbol and key != "UNITLESS" and _pint(key) == unit:
             return definition.symbol
-    # Dot operator (pint from 0.25) to middle dot (pint 0.24, QUDT symbols).
-    text = f"{unit:~P}".replace("Δ°C", "°C").replace("\u22c5", "\u00b7")
-    found = _RECIPROCAL.fullmatch(text)
-    if found:
-        return f"{found.group(1)}⁻{found.group(2) or '¹'}"
-    return text
+    # pint types exponents as any number: they are real here.
+    items = [
+        (n, float(cast(float, p))) for n, p in ureg.Quantity(1.0, unit).unit_items()
+    ]
+    items.sort(key=lambda item: item[1] < 0)
+    return "·".join(_factor_text(name, power) for name, power in items)
 
 
 @dataclass

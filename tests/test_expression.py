@@ -7,6 +7,7 @@ import math
 
 import numpy as np
 import pytest
+import sympy
 
 from nomogram.expression import (
     CONSTANTS,
@@ -132,6 +133,33 @@ def test_everything_outside_the_whitelist_is_rejected(
 def test_overlong_source_is_rejected() -> None:
     with pytest.raises(ExpressionError, match="longer than"):
         parse_expression("x + " * MAX_SOURCE_LENGTH + "x", ["x"])
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        # SymPy would compute 9 ** 387420489 exactly, without end.
+        ("9 ** 9 ** 9 * x", "beyond 1000 digits"),
+        ("(10 ** 999) ** 999 * x", "beyond 1000 digits"),
+        ("-" * 1500 + "x", "nested too deeply"),
+        ("1e309 * x", "number too large"),
+    ],
+)
+def test_short_sources_that_would_never_end_are_rejected(
+    source: str, message: str
+) -> None:
+    with pytest.raises(ExpressionError, match=message):
+        parse_expression(source, ["x"])
+    assert parse_expression("2 ** 10 * x", ["x"]) == 1024 * sympy.Symbol("x", real=True)
+
+
+def test_functions_and_constants_cannot_be_changed() -> None:
+    from nomogram.expression import FUNCTIONS
+
+    with pytest.raises(TypeError):
+        CONSTANTS["e"] = sympy.E  # type: ignore[index]
+    with pytest.raises(TypeError):
+        FUNCTIONS["sin"] = sympy.sin  # type: ignore[index]
 
 
 @pytest.mark.parametrize("name", ["exp", "pi", "not an identifier"])

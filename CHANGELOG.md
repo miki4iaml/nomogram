@@ -333,6 +333,25 @@ and this project adheres to
 
 ### Fixed
 
+- Robustness of the loader and of the expression parser:
+  - a short expression such as `9 ** 9 ** 9` made the parser compute a
+    number of hundreds of millions of digits: a power of two numbers
+    beyond 1000 digits is refused; deep nesting and an infinite literal
+    (`1e309`) are refused with an `ExpressionError`;
+  - `FUNCTIONS` and `CONSTANTS` of `nomogram.expression` are read-only;
+  - a branch condition containing `), (` added a piece no branch gives:
+    one condition is expected;
+  - a local kind may specialize a kind of the catalog written after it,
+    in another family; a cycle of specializations is refused;
+  - a CF standard name of a local kind must have a canonical unit of the
+    kind's dimension;
+  - a constant written as decimal text beyond the float range is
+    refused; an expression that calls others may start with a space;
+  - the indicator "formulations with a validity domain" counts domains
+    reached through parts and branches at any depth (26 of 120, not 22);
+  - a unit outside the catalog is written as a product with negative
+    exponents (g·K·hPa⁻¹·m⁻³, never a chain of solidi), an exponent that
+    is not whole after a caret (‰^1.5).
 - Figures:
   - a short legend entry or the deviation axis named a later source when
     the first is personal: the formulation keeps its label; a body keeps

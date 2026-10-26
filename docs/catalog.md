@@ -115,7 +115,7 @@ All sections are optional; a key may be defined in one file only.
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
-| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset) |
+| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |

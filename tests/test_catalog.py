@@ -331,6 +331,16 @@ def test_invalid_kinds_are_refused(name: str, parent: str, message: str) -> None
         load_catalog([KIND.format(name=name, parent=parent)])
 
 
+def test_a_local_kind_may_specialize_one_written_after_it() -> None:
+    # Families load in the order of their names, not of their requirements.
+    child = KIND.format(name="Child", parent="Parent")
+    parent = KIND.format(name="Parent", parent="VapourPressure")
+    assert load_catalog([child + parent]).kinds["Child"].specialization_of == "Parent"
+    loop = KIND.format(name="A", parent="B") + KIND.format(name="B", parent="A")
+    with pytest.raises(CatalogError, match="specializations form a cycle: A, B"):
+        load_catalog([loop])
+
+
 def test_a_local_kind_may_declare_an_interval_scale() -> None:
     document = KIND.format(name="Modified", parent="DimensionlessRatio")
     kind = load_catalog([document + 'scale_type = "interval"\n']).kinds["Modified"]
@@ -356,6 +366,9 @@ def test_a_local_kind_may_carry_cf_standard_names() -> None:
     document = KIND.format(name="Local", parent="ThermodynamicTemperature")
     with pytest.raises(CatalogError, match="not in the frozen CF subset: no_such_name"):
         load_catalog([document + 'cf_standard_names = ["no_such_name"]\n'])
+    # A CF name of another dimension: a salinity for a temperature.
+    with pytest.raises(CatalogError, match="sea_water_salinity is in 1e-3, no unit"):
+        load_catalog([document + 'cf_standard_names = ["sea_water_salinity"]\n'])
 
 
 def test_table_expected() -> None:
@@ -726,6 +739,8 @@ def test_a_measured_constant_keeps_its_uncertainty_and_printed_digits() -> None:
         ('"1,5"', "measured", "", "expected a finite decimal number"),
         ('"nan"', "measured", "", "expected a finite decimal number"),
         ('" 1.5"', "measured", "", "expected a finite decimal number"),
+        # Finite as a decimal, infinite as a float.
+        ('"1e400"', "measured", "", "expected a finite decimal number"),
         ("1.0", "measured", 'conditions = ""', "expected a non-empty string"),
     ],
 )
@@ -1021,6 +1036,17 @@ output = {{ identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "K
 inputs = [{{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "in" }}]
 coefficients = {{ c = 0.6 }}
 """
+
+
+def test_a_domain_reached_two_levels_down_counts() -> None:
+    from nomogram.catalog import _reaches_domain
+
+    # The relative humidity calls the saturation in moist air, a
+    # composition whose domain is that of Sonntag (1990).
+    f = CATALOG.formulations["wmo_relative_humidity_from_dew_point"]
+    assert not f.domains
+    assert not any(p.formulation.domains for p in f.parts)
+    assert _reaches_domain(f)
 
 
 def test_stats_counts_the_indicators_of_the_design_goals() -> None:
