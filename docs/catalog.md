@@ -685,8 +685,9 @@ note = "Table III, r_g."
 - **`proportional`**: the subject equals the object times a constant
   factor. Proved on the ratio, simplified to a constant (*proven*), or
   sampled on `bounds`, which every input of the subject needs: *held*
-  when the rounding of a printed coefficient explains its variation,
-  *refuted* otherwise. The verdict gives the factor, the coefficients it
+  when moving a printed coefficient within its rounding takes its
+  variation away, *refuted* otherwise. Outputs on an interval scale (°C)
+  have no ratio: such a proportionality is refused. The verdict gives the factor, the coefficients it
   is the ratio of (a coefficient of the object brought into the output
   unit of the subject: 611.21 Pa is 6.1121 hPa), whether the two are
   equal to the printed precision,

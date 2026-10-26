@@ -101,7 +101,7 @@ from nomogram.semantics import (
     QuantityKind,
     semantic_catalog,
 )
-from nomogram.units import Q_, ScaleType
+from nomogram.units import Q_, ScaleType, is_offset_unit
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -2459,6 +2459,14 @@ class _Builder:
                 msg = (
                     f"{where}: a proportionality is checked on a domain: bound "
                     f"every input of {subject.key}"
+                )
+                raise CatalogError(msg)
+            output_unit = semantic_catalog().units[subject.output.unit].pint
+            if kind is RelationKind.PROPORTIONAL and is_offset_unit(output_unit):
+                msg = (
+                    f"{where}: a ratio of points of an interval scale "
+                    f"({subject.output.unit}) means nothing: state an "
+                    "equivalence, or write the outputs in an absolute unit"
                 )
                 raise CatalogError(msg)
             others = {v.identifier for v in other.inputs}
