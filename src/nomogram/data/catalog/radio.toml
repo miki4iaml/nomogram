@@ -41,7 +41,7 @@ description = "M = N + h/a x 10^6, the radio refractivity corrected for the curv
 label = "Surface Altitude"
 specialization_of = "Altitude"
 description = "Altitude of the surface of the Earth, the lower boundary of the atmosphere."
-cf_standard_names = ["surface_altitude"]
+cf_standard_names = [{ name = "surface_altitude", relation = "exact", verified = 2026-10-26 }]
 
 # --- Formulations -----------------------------------------------------
 

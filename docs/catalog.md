@@ -512,7 +512,7 @@ reference_scale = "reference_salinity2008"
 unit = "UNITLESS"                       # S_P is a number: S_P = 35
 conversion = "35.16504 / 35 * x / 1000" # TEOS-10 eq. 2.4.1, S_R in 1
 bounds = [2.0, 42.0]                    # the limits of PSS-78
-cf_standard_names = ["sea_water_practical_salinity"]
+cf_standard_names = [{ name = "sea_water_practical_salinity", relation = "close", verified = 2026-10-26 }]
 
 [scales.cox1967]
 label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
@@ -573,10 +573,29 @@ declared in `[kinds]` as a specialization of a QUDT kind; it takes the
 scale type of its parent unless `scale_type` says otherwise (a quantity
 with a conventional origin is on an interval scale even under a
 ratio-scale parent; it is then never a difference). Its CF standard
-names, when CF has an equivalent (`cf_standard_names = ["virtual_temperature"]`),
-come from the frozen CF subset, where the extraction script keeps them
-(`LOCAL_KIND_CF_NAMES`); a search by a CF name finds the kind and the
-formulations that use it. A missing
+names, when CF has an equivalent, come from the frozen CF subset, where
+the extraction script keeps them (`LOCAL_KIND_CF_NAMES`); a search by a
+CF name finds the kind and the formulations that use it.
+
+CF standard names are links to an external vocabulary, like Wikidata
+items: each carries its SKOS relation and the date it was checked, and
+becomes an `ExternalMatch` whose target is the name in the NERC
+Vocabulary Server (`nomogram.semantics.CF_NAMESPACE`, which publishes the
+CF table as SKOS concepts). `QuantityKind.cf_standard_names` and
+`ConventionalScale.cf_standard_names` give the names alone.
+
+```toml
+cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verified = 2026-10-26 }]
+```
+
+- `relation` is `exact`, `close`, `broad` or `narrow`, read from the
+  catalog's object to the CF name: `air_temperature` is *narrow* for the
+  thermodynamic temperature (the temperature of air only), a CF salinity
+  name is *close* for a salinity scale (it names the quantity on the
+  scale).
+- A bare name, as format 2 writes it (`cf_standard_names =
+  ["virtual_temperature"]`), is read as an exact match, checked on the
+  date the frozen CF subset was extracted. A missing
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
 

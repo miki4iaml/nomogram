@@ -96,6 +96,7 @@ from nomogram.relations import (
     verdict,
 )
 from nomogram.semantics import (
+    CF_NAMESPACE,
     ExternalMatch,
     MatchRelation,
     QuantityKind,
@@ -798,31 +799,7 @@ class _Builder:
         scale_type = parent.scale_type
         if f["scale_type"] is not None:
             scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
-        cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
-        unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
-        if unknown:
-            msg = (
-                f"{where}.cf_standard_names: not in the frozen CF subset: "
-                f"{', '.join(unknown)} "
-                "(scripts/extract_semantics.py, LOCAL_KIND_CF_NAMES)"
-            )
-            raise CatalogError(msg)
-        # A CF name fits the dimension of the kind: its canonical unit
-        # is one of the kind's.
-        units = self.semantics.units
-        for cf_name in cf_names:
-            canonical = _dimensionality(self.semantics.cf_standard_names[cf_name].pint)
-            if not any(
-                canonical == _dimensionality(units[u].pint)
-                for u in parent.applicable_units
-                if u in units
-            ):
-                msg = (
-                    f"{where}.cf_standard_names: {cf_name} is in "
-                    f"{self.semantics.cf_standard_names[cf_name].canonical_units}, "
-                    f"no unit of {parent.name}"
-                )
-                raise CatalogError(msg)
+        cf = self.cf_links(f"{where}.cf_standard_names", f["cf_standard_names"], parent)
         self.kinds[name] = QuantityKind(
             name=name,
             origin="nomogram",
@@ -832,11 +809,62 @@ class _Builder:
             specialization_of=parent.name,
             scale_type=scale_type,
             delta=parent.delta and scale_type is ScaleType.RATIO,
-            cf_standard_names=cf_names,
             applicable_units=parent.applicable_units,
             added_units=(),
-            matches=_matches(where, f["matches"]),
+            matches=_matches(where, f["matches"]) + cf,
         )
+
+    def cf_links(
+        self, where: str, items: Any, kind: QuantityKind | None = None
+    ) -> tuple[ExternalMatch, ...]:
+        """Links to CF standard names, each with its SKOS relation and date.
+
+        An item is a table (``name``, ``relation``, ``verified``), or a bare
+        name, as format 2 writes it: an exact match, checked when the frozen
+        CF subset was extracted. Every name is in that subset; the canonical
+        unit of a name given to a ``kind`` has the dimension of the kind.
+        """
+        if items is not None and not isinstance(items, list):
+            msg = f"{where}: expected a list"
+            raise CatalogError(msg)
+        frozen = self.semantics.cf_standard_names
+        found = []
+        for i, item in enumerate(items or ()):
+            w = f"{where}[{i}]"
+            if isinstance(item, str):
+                name, relation, verified = (
+                    item,
+                    MatchRelation.EXACT,
+                    self.semantics.extracted,
+                )
+            else:
+                f = _fields(w, item, ("name", "relation", "verified"))
+                if not isinstance(f["verified"], datetime.date):
+                    msg = f"{w}.verified: expected a date (YYYY-MM-DD)"
+                    raise CatalogError(msg)
+                name = f["name"]
+                relation = _enum(f"{w}.relation", MatchRelation, f["relation"])
+                verified = f["verified"]
+            if name not in frozen:
+                msg = (
+                    f"{w}: not in the frozen CF subset: {name} "
+                    "(scripts/extract_semantics.py)"
+                )
+                raise CatalogError(msg)
+            canonical = _dimensionality(frozen[name].pint)
+            units = self.semantics.units
+            if kind is not None and not any(
+                canonical == _dimensionality(units[u].pint)
+                for u in kind.applicable_units
+                if u in units
+            ):
+                msg = (
+                    f"{w}: {name} is in {frozen[name].canonical_units}, "
+                    f"no unit of {kind.name}"
+                )
+                raise CatalogError(msg)
+            found.append(ExternalMatch(f"{CF_NAMESPACE}{name}/", relation, verified))
+        return tuple(found)
 
     def build_references(self) -> None:
         for key, table in self.data["references"].items():
@@ -1157,14 +1185,7 @@ class _Builder:
             msg = f"{where}.convertible: expected true or false"
             raise CatalogError(msg)
         convertible = f["convertible"] is None or f["convertible"]
-        cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
-        unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
-        if unknown:
-            msg = (
-                f"{where}.cf_standard_names: not in the frozen CF subset: "
-                f"{', '.join(unknown)} (scripts/extract_semantics.py, SCALE_CF_NAMES)"
-            )
-            raise CatalogError(msg)
+        cf = self.cf_links(f"{where}.cf_standard_names", f["cf_standard_names"])
         conversion_fields = ("unit", "differences", "conversion", "base", "bounds")
         common = {
             "key": key,
@@ -1174,7 +1195,7 @@ class _Builder:
             "reference": self.optional_reference(f"{where}.reference", f["reference"]),
             "symbol": f["symbol"],
             "subscript": f["subscript"],
-            "cf_standard_names": cf_names,
+            "matches": cf,
             "note": f["note"],
         }
         if parent is None:

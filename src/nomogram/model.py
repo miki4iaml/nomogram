@@ -47,7 +47,7 @@ from nomogram.expression import (
     compile_numeric,
     parse_expression,
 )
-from nomogram.semantics import ExternalMatch, semantic_catalog
+from nomogram.semantics import ExternalMatch, _cf_names, semantic_catalog
 from nomogram.units import Q_, convert
 
 if TYPE_CHECKING:
@@ -339,9 +339,10 @@ class ConventionalScale:
         ``False`` when the conversion needs data nomogram does not hold
         (Absolute Salinity needs the anomaly of its location): values on
         such a scale are taken as given, ``scale="ignore"``.
-    cf_standard_names : tuple of str
-        CF standard names of quantities on this scale
-        (``sea_water_practical_salinity``).
+    matches : tuple of ExternalMatch
+        Links to the CF standard names of quantities on this scale
+        (``sea_water_practical_salinity``), each with its SKOS relation and
+        the date it was checked.
     note : str or None
         Remark: disagreements between sources on the conversion, its
         domain...
@@ -361,8 +362,13 @@ class ConventionalScale:
     conversion: str | None = None
     bounds: tuple[float, float] | None = None
     convertible: bool = True
-    cf_standard_names: tuple[str, ...] = ()
+    matches: tuple[ExternalMatch, ...] = ()
     note: str | None = None
+
+    @property
+    def cf_standard_names(self) -> tuple[str, ...]:
+        """The CF standard names the scale is linked to (see ``matches``)."""
+        return _cf_names(self.matches)
 
     @property
     def is_reference(self) -> bool:

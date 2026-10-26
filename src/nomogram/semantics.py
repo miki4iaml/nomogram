@@ -33,6 +33,7 @@ from typing import Any
 from nomogram.units import ScaleType
 
 __all__ = [
+    "CF_NAMESPACE",
     "CFStandardName",
     "ExternalMatch",
     "MatchRelation",
@@ -41,6 +42,21 @@ __all__ = [
     "UnitDefinition",
     "semantic_catalog",
 ]
+
+#: Namespace of the CF standard names in the NERC Vocabulary Server, which
+#: publishes the CF table as SKOS concepts: the target of a link to a CF
+#: standard name is this namespace, the name and a slash.
+CF_NAMESPACE = "http://vocab.nerc.ac.uk/standard_name/"
+
+
+def _cf_names(matches: tuple[ExternalMatch, ...]) -> tuple[str, ...]:
+    """The CF standard names among links, in order."""
+    return tuple(
+        m.target.removeprefix(CF_NAMESPACE).rstrip("/")
+        for m in matches
+        if m.target.startswith(CF_NAMESPACE)
+    )
+
 
 _DIMENSION_VECTOR = re.compile(
     r"^A(-?\d+)E(-?\d+)L(-?\d+)I(-?\d+)M(-?\d+)H(-?\d+)T(-?\d+)D([01])$"
@@ -131,14 +147,14 @@ class QuantityKind:
         Whether values are differences rather than points (nomogram's
         addition; QUDT records it as ``isDeltaQuantity`` on a quantity in
         its context, not on kinds).
-    cf_standard_names : tuple of str
-        CF standard names for this kind.
     applicable_units : tuple of str
         QUDT local names of the units that apply.
     added_units : tuple of str
         The applicable units QUDT does not declare, added by nomogram.
     matches : tuple of ExternalMatch
-        Links to external vocabularies.
+        Links to external vocabularies: a Wikidata item, CF standard
+        names (in :data:`CF_NAMESPACE`), each with its SKOS relation and
+        the date it was checked.
     """
 
     name: str
@@ -149,10 +165,14 @@ class QuantityKind:
     specialization_of: str | None
     scale_type: ScaleType
     delta: bool
-    cf_standard_names: tuple[str, ...]
     applicable_units: tuple[str, ...]
     added_units: tuple[str, ...]
     matches: tuple[ExternalMatch, ...]
+
+    @property
+    def cf_standard_names(self) -> tuple[str, ...]:
+        """The CF standard names the kind is linked to (see ``matches``)."""
+        return _cf_names(self.matches)
 
     @property
     def dimensions(self) -> Mapping[str, int]:
@@ -280,7 +300,6 @@ def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
         specialization_of=data["specialization_of"],
         scale_type=ScaleType(data["scale_type"]),
         delta=data["delta"],
-        cf_standard_names=tuple(data["cf_standard_names"]),
         applicable_units=tuple(data["applicable_units"]),
         added_units=tuple(data["added_units"]),
         matches=_matches(data["matches"]),
