@@ -56,6 +56,8 @@ from nomogram.expression import (
     parse_expression,
 )
 from nomogram.model import (
+    Assumption,
+    AssumptionStatus,
     Branch,
     Call,
     CheckCase,
@@ -632,6 +634,18 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
         ),
     }
 )
+
+
+def _texts(where: str, items: Any) -> tuple[str, ...]:
+    """A list of non-empty strings."""
+    if items is None:
+        return ()
+    if not isinstance(items, list) or not all(
+        isinstance(t, str) and t.strip() for t in items
+    ):
+        msg = f"{where}: expected a list of non-empty strings"
+        raise CatalogError(msg)
+    return tuple(items)
 
 
 def _nature(where: str, value: Any) -> FormulationNature | None:
@@ -1399,6 +1413,7 @@ class _Builder:
                     "scales",
                     "accuracy",
                     "note",
+                    "assumptions",
                 ),
             )
             reference = self.reference(f"{w}.reference", f["reference"])
@@ -1436,9 +1451,47 @@ class _Builder:
                     scales=MappingProxyType(scales),
                     accuracy=f["accuracy"],
                     note=f["note"],
+                    assumptions=_texts(f"{w}.assumptions", f["assumptions"]),
                 )
             )
         return tuple(result)
+
+    def assumptions(self, where: str, items: Any) -> tuple[Assumption, ...]:
+        """Assumptions noted on a formulation, those its sources do not state."""
+        if items is None:
+            return ()
+        if not isinstance(items, list):
+            msg = f"{where}: expected a list of {{ text, status }} tables"
+            raise CatalogError(msg)
+        found = []
+        for i, item in enumerate(items):
+            w = f"{where}[{i}]"
+            f = _fields(w, item, ("text", "status"), ("reference",))
+            (text,) = _texts(f"{w}.text", [f["text"]])
+            try:
+                status = AssumptionStatus(f["status"])
+            except ValueError:
+                status = None
+            if status is None or status is AssumptionStatus.STATED:
+                known = ", ".join(
+                    s.value
+                    for s in AssumptionStatus
+                    if s is not AssumptionStatus.STATED
+                )
+                msg = (
+                    f"{w}.status: expected one of {known}; an assumption the "
+                    "source states goes in its citation"
+                )
+                raise CatalogError(msg)
+            reference = self.optional_reference(f"{w}.reference", f["reference"])
+            if (reference is None) == (status is AssumptionStatus.STATED_BY_OTHER):
+                msg = (
+                    f"{w}: a reference is given for, and only for, an assumption "
+                    "stated by another source"
+                )
+                raise CatalogError(msg)
+            found.append(Assumption(text, status, reference))
+        return tuple(found)
 
     def citation_notation(
         self, where: str, value: Any, formulation: str, reference: str, names: set[str]
@@ -1479,6 +1532,7 @@ class _Builder:
                 "keywords",
                 "nature",
                 "conditions",
+                "assumptions",
             ),
         )
         output = self.variable(f"{where}.output", f["output"])
@@ -1544,6 +1598,9 @@ class _Builder:
             keywords=_keywords(f"{where}.keywords", f["keywords"]),
             nature=nature,
             conditions=f["conditions"],
+            noted_assumptions=self.assumptions(
+                f"{where}.assumptions", f["assumptions"]
+            ),
         )
         self.check(where, formulation)
         return formulation
