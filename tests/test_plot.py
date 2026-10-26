@@ -209,7 +209,7 @@ def test_labels_follow_the_detail_option(comparison: Comparison) -> None:
     assert "Magnus form in kelvins (Bechtold 2015)" in legend(ax)
     # Short: symbols and units, a formulation by its first citation, in
     # two columns beyond ten curves.
-    with display_options(label_detail="short"):
+    with display_options(axis_detail="short", legend_detail="short"):
         ax = plot_deviations(comparison)
         values = plot_values(comparison)
     assert ax.get_xlabel() == "$t_{90}$/°C"
@@ -223,17 +223,28 @@ def test_labels_follow_the_detail_option(comparison: Comparison) -> None:
     assert "Sonntag (1990) formulation over water (SO90)" in legend(ax)
     # Full: a second line, the scale of an axis, the reference's label and
     # the first citation of each formulation.
-    with display_options(label_detail="full"):
+    with display_options(axis_detail="full", legend_detail="full"):
         ax = plot_deviations(comparison)
-    assert ax.get_xlabel() == (
+        values = plot_values(comparison)
+    # A pressure has no conventional scale: no second line.
+    assert values.get_ylabel() == (
+        r"Saturation vapour pressure over water $e_{\mathrm{s}}$/Pa"
+    )
+    full_x = (
         "Celsius temperature $t_{90}$/°C\n"
         "on the International Temperature Scale of 1990 (ITS-90)"
     )
+    assert ax.get_xlabel() == full_x
     assert ax.get_ylabel().endswith(f"$\\delta$/%\n{IAPWS.label}")
     assert "Magnus form in kelvins (Bechtold 2015)\nBechtold (2015), eq. 54" in (
         legend(ax)
     )
     assert ax.get_legend()._ncols == 1
+    # The axes and the legend are set apart: full axes, a short legend.
+    with display_options(axis_detail="full", legend_detail="short"):
+        ax = plot_deviations(comparison)
+    assert ax.get_xlabel() == full_x
+    assert "Bechtold (2015), eq. 54" in legend(ax)
 
 
 def test_authors_are_cited_as_texts_cite_them() -> None:
@@ -272,7 +283,7 @@ reference = "elsewhere"
         [elsewhere], elsewhere, {"ThermodynamicTemperature": Q_([1.0, 2.0], "K")}
     )
     for detail in ("short", "full"):
-        with display_options(label_detail=detail):
+        with display_options(legend_detail=detail):
             assert legend(plot_values(found)) == ["Twice"]
 
 
@@ -492,7 +503,7 @@ def test_the_signature_covers_no_text(
     # The figure of the README example, at the default size and at its own.
     temperatures = Q_(np.linspace(-60, 110, 341), "degC")
     table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
-    with display_options(label_detail=detail):
+    with display_options(axis_detail=detail, legend_detail=detail):
         ax = plot_deviations(table)
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
     if size is not None:

@@ -13,8 +13,9 @@ curves: the domains are visible on the plot.
 
 Axis labels mark the reference scale of a kind (ITS-90 for temperatures)
 only when the comparison converted the values to it (``scale="convert"``,
-the default of :func:`nomogram.comparison.compare`). How much the labels
-say follows the display option ``label_detail``: short, standard or full
+the default of :func:`nomogram.comparison.compare`). How much the axes
+and the legend say follows the display options ``axis_detail`` and
+``legend_detail``, each short, standard or full
 (:class:`nomogram.display.DisplayOptions`).
 
 A curve whose deviation stands far above those of the others is drawn off
@@ -120,12 +121,12 @@ def _axis_text(
     scale: ConventionalScale | None,
     second: str | None = None,
 ) -> str:
-    """An axis label at the detail of the display options.
+    """An axis label at the ``axis_detail`` of the display options.
 
     Short, the name is left out when a symbol says it; full, a second line
     names the scale, or says what ``second`` gives instead.
     """
-    detail = get_display_options().label_detail
+    detail = get_display_options().axis_detail
     if detail == "short" and tex:
         name = None
     label = axis_label(name, tex, unit, scale=scale)
@@ -214,13 +215,13 @@ def _sources(comparison: Comparison, key: str) -> list[str]:
 
 
 def _names(comparison: Comparison, keys: Iterable[str]) -> dict[str, str]:
-    """The legend entries of formulations, at the detail of the display options.
+    """The legend entries of formulations, at the ``legend_detail`` in force.
 
     Short, the first citation (``Bechtold (2015), eq. 54``), unless two
     formulations of the plot would share it: they keep their label. Full,
     the label, then the first citation on a second line.
     """
-    detail = get_display_options().label_detail
+    detail = get_display_options().legend_detail
     labels = {key: _label(comparison, key) for key in keys}
     if detail == "standard":
         return labels
@@ -243,7 +244,7 @@ def _legend(ax: Any) -> None:
     Longer labels in two columns would be wider than the axes.
     """
     entries = len(ax.get_legend_handles_labels()[1])
-    short = get_display_options().label_detail == "short"
+    short = get_display_options().legend_detail == "short"
     ax.legend(fontsize="small", ncols=2 if short and entries > _LEGEND_COLUMN else 1)
 
 

@@ -126,13 +126,16 @@ class DisplayOptions:
         the SI Brochure writes them (``t₉₀/°C``, default); name, symbol,
         unit in brackets and scale in braces (``t [°C] {ITS-90}``); or
         name, symbol and unit only (``t [°C]``).
-    label_detail : {"short", "standard", "full"}
-        How much the labels of a plot say (:mod:`nomogram.plot`): the
-        symbol and unit on the axes, the author and year of each
-        formulation in the legend (``"short"``); the name of each
-        quantity and the label of each formulation (``"standard"``,
-        default); the same with a second line, the scale of an axis and
-        the sources of each formulation (``"full"``).
+    axis_detail : {"short", "standard", "full"}
+        How much the axes of a plot say (:mod:`nomogram.plot`): the symbol
+        and unit (``"short"``); the name of the quantity too
+        (``"standard"``, default); and a second line, the scale of the
+        values or the reference of a deviation (``"full"``).
+    legend_detail : {"short", "standard", "full"}
+        How much the legend of a plot says: the first citation of each
+        formulation, author, year and equation (``"short"``); its label
+        (``"standard"``, default); its label, then its first citation on
+        a second line (``"full"``).
     """
 
     mul_symbol: MulSymbol = "times"
@@ -140,7 +143,8 @@ class DisplayOptions:
     upright: bool = True
     values: bool = False
     axis_labels: AxisLabels = "si"
-    label_detail: LabelDetail = "standard"
+    axis_detail: LabelDetail = "standard"
+    legend_detail: LabelDetail = "standard"
 
     #: SymPy's own rendering: juxtaposition, default symbols; numbers are
     #: still joined by ×.
@@ -159,12 +163,13 @@ class DisplayOptions:
         if self.axis_labels not in _AXIS_LABELS:
             msg = f"axis_labels must be one of {_AXIS_LABELS}, not {self.axis_labels!r}"
             raise ValueError(msg)
-        if self.label_detail not in _LABEL_DETAILS:
-            msg = (
-                f"label_detail must be one of {_LABEL_DETAILS}, "
-                f"not {self.label_detail!r}"
-            )
-            raise ValueError(msg)
+        for name in ("axis_detail", "legend_detail"):
+            if getattr(self, name) not in _LABEL_DETAILS:
+                msg = (
+                    f"{name} must be one of {_LABEL_DETAILS}, "
+                    f"not {getattr(self, name)!r}"
+                )
+                raise ValueError(msg)
 
 
 DisplayOptions.SYMPY = DisplayOptions(mul_symbol=None, upright=False)

@@ -277,13 +277,13 @@ and this project adheres to
   (equation 54). Computed by nomogram and proven: the IFS formula over
   water is Buck (1981) in kelvins, 0 degC written 273.16 K, and the Magnus
   forms of Bechtold round its e_0 (6.112 hPa rather than 611.21 Pa).
-- The display option `label_detail` sets how much the labels of a plot
-  say: `"short"` gives the symbol and unit on the axes and, in the
-  legend, the first citation of each formulation (`Bechtold (2015), eq.
-  54`), in two columns beyond ten curves; `"standard"` (default) the
-  names and labels; `"full"` adds a second line, with the scale of an
-  axis, the full label of the reference and the first citation of each
-  formulation.
+- The display options `axis_detail` and `legend_detail` set,
+  independently, how much the axes and the legend of a plot say:
+  `"short"` gives the symbol and unit on an axis, and the first citation
+  of each formulation in the legend (`Bechtold (2015), eq. 54`), in two
+  columns beyond ten curves; `"standard"` (default) the names and
+  labels; `"full"` adds a second line: the scale of an axis, the full
+  label of the reference, the first citation of each formulation.
 
 ### Changed
 

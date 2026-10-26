@@ -103,10 +103,12 @@ show where units come from.
 
 ### How much plot labels say
 
-The option `label_detail` sets how much the labels of a plot say, from a
-figure that needs room for its curves to one that must stand alone:
+Two options set how much a plot says, from a figure that needs room for
+its curves to one that must stand alone: `axis_detail` for both axes,
+`legend_detail` for the legend. Each is `"short"`, `"standard"` (default)
+or `"full"`, independently of the other:
 
-| `label_detail` | x axis | Deviation axis | Legend entry |
+| Detail | x axis (`axis_detail`) | Deviation axis (`axis_detail`) | Legend entry (`legend_detail`) |
 |---|---|---|---|
 | `"short"` | t₉₀/°C | δ/% | Bechtold (2015), eq. 54 |
 | `"standard"` (default) | Celsius temperature t₉₀/°C | Relative deviation from IAPWS (1992) δ/% | Magnus form in kelvins (Bechtold 2015) |
@@ -132,7 +134,7 @@ table = nomo.comparison.compare(
     c.formulations["iapws_sr1_86"],
     {"ThermodynamicTemperature": Q_(np.linspace(-60, 110, 341), "degC")},
 )
-with display_options(label_detail="short"):
+with display_options(axis_detail="full", legend_detail="short"):
     ax = nomo.plot.plot_deviations(table)  # extra viz
 ```
 
