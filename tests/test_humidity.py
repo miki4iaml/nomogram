@@ -58,7 +58,12 @@ def test_every_formulation_stays_close_to_iapws_between_0_and_40_celsius() -> No
     worst = comparison.max_abs_deviation()
     # Alduchov and Eskridge (1996, Table III) give at most 3.214 % (Tetens)
     # against three basic formulations over -40..50 degC; above 0 degC all
-    # stay well within 0.5 % of IAPWS.
+    # the fitted ones stay well within 0.5 % of IAPWS. Integrated with a
+    # constant latent heat, Clausius-Clapeyron departs by 4 % at 40 degC.
+    constant_latent_heat = worst.pop(
+        "bechtold2015_saturation_vapour_pressure_constant_latent_heat"
+    )
+    assert 0.03 < constant_latent_heat < 0.05
     assert max(worst.values()) < 0.005
     assert worst["iapws_sr1_86"] == 0.0
 
@@ -124,10 +129,17 @@ def test_the_wmo_training_unit_is_linked_to_both_magnus_forms() -> None:
     ]
 
 
-#: Wikidata items of formulations, checked on 2026-10-24: the Goff-Gratch
-#: item covers the equations over water and over ice, the Buck item the
-#: group of his correlations; the Tetens item is the equation over water.
+#: Wikidata items of formulations, checked on 2026-10-24 (Bechtold's on
+#: 2026-10-26): the Goff-Gratch item covers the equations over water and
+#: over ice, the Buck item the group of his correlations, which Bechtold
+#: restates; the Tetens item is the equation over water, and the
+#: Clausius-Clapeyron item the relation that Bechtold integrates.
 FORMULATION_ITEMS = {
+    "bechtold2015_magnus_water": ("Q4787919", MatchRelation.BROAD),
+    "bechtold2015_saturation_vapour_pressure_constant_latent_heat": (
+        "Q745416",
+        MatchRelation.BROAD,
+    ),
     "goff_gratch1946": ("Q3433288", MatchRelation.BROAD),
     "goff_gratch1946_ice": ("Q3433288", MatchRelation.BROAD),
     "buck1981_magnus": ("Q4787919", MatchRelation.BROAD),

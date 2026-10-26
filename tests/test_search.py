@@ -49,6 +49,7 @@ def test_words_split_identifiers_and_keep_them_whole() -> None:
 
 def test_terms_are_wildcards_matched_against_words() -> None:
     assert refs(CATALOG.search("buck*", section="formulations")) == {
+        "formulations.bechtold2015_magnus_water",
         "formulations.buck1981",
         "formulations.buck1981_magnus",
         "formulations.buck1981_ice",
@@ -94,6 +95,7 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.mass_concentration_ideal_gas",
         "formulations.itu_r_p453_vapour_pressure_from_density",
         "formulations.wmo_vapour_concentration_definition",
+        "formulations.bechtold2015_virtual_temperature_definition",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern
@@ -413,10 +415,12 @@ def test_selection_behaves_as_a_sequence() -> None:
     assert "formulations.buck1996" in found  # type: ignore[comparison-overlap]
     assert found[0] in found
     assert 3 not in found  # type: ignore[comparison-overlap]
-    assert all(f.key.startswith("buck") for f in found.formulations)
-    assert repr(found).startswith("Selection(5 entries: formulations.buck1981_magnus")
-    assert repr(found[:2]).endswith("formulations.buck1981)")
-    assert found[0].ref == "formulations.buck1981_magnus"
+    assert all("Buck" in f.label for f in found.formulations)
+    assert repr(found).startswith(
+        "Selection(6 entries: formulations.bechtold2015_magnus_water"
+    )
+    assert repr(found[:2]).endswith("formulations.buck1981_magnus)")
+    assert found[0].ref == "formulations.bechtold2015_magnus_water"
 
 
 def test_selection_displays_as_a_table() -> None:

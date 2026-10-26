@@ -121,7 +121,10 @@ the point where the ratio strays most. The verdict then says:
 - whether a shift or a factor of an input with a conventional scale (a
   temperature, a salinity) makes them equal as closely as the
   proportionality does. If so, the factor may come from the scale on
-  which one of them was read rather than from a coefficient.
+  which one of them was read rather than from a coefficient. When the
+  object is proportional to a power of that input (the virtual
+  temperature to T), a factor of the input is a factor of the result: it
+  cannot be told from a coefficient, and only the shift is tried.
 
 ### A computed proportionality: Murray (1967) and Tetens (1930)
 

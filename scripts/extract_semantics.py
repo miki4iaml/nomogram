@@ -164,6 +164,11 @@ KINDS: dict[str, KindSpec] = {
     "Volume": KindSpec("ratio", delta=False),
     "AmountOfSubstance": KindSpec("ratio", delta=False),
     "MoleFraction": KindSpec("ratio", delta=False),
+    # Bechtold (2015): the density of moist air, which defines the virtual
+    # temperature, and the total water mixing ratio of the equivalent
+    # potential temperature, specialized in the catalog.
+    "Density": KindSpec("ratio", delta=False),
+    "MassRatio": KindSpec("ratio", delta=False),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.

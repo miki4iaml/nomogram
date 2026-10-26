@@ -3,8 +3,9 @@
 #
 # Moist air: humidity quantities computed from the vapour pressure
 # (mass concentration, mixing ratio, specific humidity), the saturation
-# vapour pressure in moist air (enhancement factor), and the constants of
-# moist air thermodynamics.
+# vapour pressure in moist air (enhancement factor), the temperatures of
+# atmospheric thermodynamics (virtual, potential, equivalent potential),
+# and the constants of moist air thermodynamics.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -92,6 +93,49 @@ label = "Saturation Mixing Ratio over Ice"
 specialization_of = "MassRatioOfWaterVapourToDryGas"
 description = "Mixing ratio of moist air saturated with respect to a plane surface of the associated solid phase, at the same temperature and pressure."
 
+[kinds.VirtualTemperature]
+label = "Virtual Temperature"
+specialization_of = "ThermodynamicTemperature"
+description = "Temperature dry air would need to have the density of a sample of moist air at the same pressure."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q761179", relation = "exact", verified = 2026-10-26 },
+]
+
+[kinds.PotentialTemperature]
+label = "Potential Temperature"
+specialization_of = "ThermodynamicTemperature"
+description = "Temperature a parcel of air would reach if brought adiabatically to a reference pressure, usually 1000 hPa."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q760765", relation = "exact", verified = 2026-10-26 },
+]
+
+[kinds.VirtualPotentialTemperature]
+label = "Virtual Potential Temperature"
+specialization_of = "PotentialTemperature"
+description = "Potential temperature of the virtual temperature: the effect of water vapour on the density is kept, not its effect on the heat capacity."
+
+[kinds.EquivalentPotentialTemperature]
+label = "Equivalent Potential Temperature"
+specialization_of = "PotentialTemperature"
+description = "Temperature a parcel of air would reach if all its water vapour condensed, the latent heat warming it, and it were brought adiabatically to the reference pressure."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q3055058", relation = "exact", verified = 2026-10-26 },
+]
+
+[kinds.DensityOfMoistAir]
+label = "Density of Moist Air"
+specialization_of = "Density"
+description = "Mass of moist air, dry air and water vapour, per unit volume."
+# The Wikidata item is the density of the Earth's atmosphere.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1511415", relation = "close", verified = 2026-10-26 },
+]
+
+[kinds.MassRatioOfTotalWaterToDryGas]
+label = "Mass Ratio of Total Water to Dry Gas"
+specialization_of = "MassRatio"
+description = "Mass of water in all its phases, vapour and condensate, per mass of dry air: the total water mixing ratio."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -127,7 +171,7 @@ title = "Atmospheric Thermodynamics"
 container = "ECMWF Meteorological Training Course Lecture Series (June 2009, last update May 2015)"
 url = "https://www.ecmwf.int/en/elibrary/16954-atmospheric-thermodynamics"
 status = "verified"
-note = "CC BY 4.0 under the ECMWF terms of use, the document carrying no rights notice of its own. Read: section 9.1, equations 39 and 40 (p. 7)."
+note = "ECMWF training lecture notes, without a DOI and not indexed by Crossref or OpenAlex (checked 2026-10-26): a secondary source, cited for what it states. CC BY 4.0 under the ECMWF terms of use, the document carrying no rights notice of its own. Read in full: equations 1 to 59 and Table 1 (pp. 1-14). Constants as printed: R_d = 287.06 and R_v = 461.52 J kg-1 K-1 and epsilon = 0.622 (p. 1), c_pd = 7/2 R_d = 1004.7 J kg-1 K-1 (p. 3), p0 = 1000 hPa (p. 5); c_pv = 1846.1 J kg-1 K-1 (p. 6), c_l = 4218 J kg-1 K-1, L_v(T00) = 2.5008e6 J kg-1 and T00 = 273.16 K (p. 7) are the values of the ECMWF IFS."
 
 [references.metpy171]
 authors = "MetPy developers"
@@ -409,6 +453,59 @@ nature = "conventional"
 definition = "R_d / R_v"
 constants = ["R_d_ecmwf_ifs", "R_v_ecmwf_ifs"]
 
+# Constants of Bechtold (2015), where the notes round the IFS values
+# (pp. 1, 3 and 5); they print the IFS values of c_pv, c_l, L_v(T00) and
+# T00, used as such.
+[constants.R_d_bechtold2015]
+identifier = "R_d"
+value = 287.06
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of dry air"
+reference = "bechtold2015"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-26 },
+]
+
+[constants.R_v_bechtold2015]
+identifier = "R_v"
+value = 461.52
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "bechtold2015"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-26 },
+]
+
+[constants.epsilon_bechtold2015]
+identifier = "epsilon"
+value = 0.622
+unit = "UNITLESS"
+description = "Ratio of the specific gas constants of dry air and water vapour, R_d / R_v"
+reference = "bechtold2015"
+nature = "conventional"
+definition = "R_d / R_v"
+constants = ["R_d_bechtold2015", "R_v_bechtold2015"]
+
+[constants.c_pd_bechtold2015]
+identifier = "c_pd"
+value = 1004.7
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant pressure"
+reference = "bechtold2015"
+nature = "conventional"
+definition = "7 / 2 * R_d"
+constants = ["R_d_bechtold2015"]
+
+[constants.p_0_bechtold2015]
+identifier = "p_0"
+value = 1000
+unit = "HectoPA"
+description = "Reference pressure of the potential temperatures"
+reference = "bechtold2015"
+nature = "conventional"
+
 # --- Ambiguous trade terms --------------------------------------------
 
 [trade_terms.absolute_humidity]
@@ -488,6 +585,7 @@ reference = "psychrolib"
 
 [formulations.specific_humidity_from_mixing_ratio]
 label = "Specific humidity from mixing ratio"
+nature = "identity"
 expression = "r / (1 + r)"
 fixed_units = false
 note = "From the definitions (mass of water vapour per mass of moist air, per mass of dry air); ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 9b, through PsychroLib."
@@ -501,6 +599,28 @@ reference = "ashrae2017"
 
 [[formulations.specific_humidity_from_mixing_ratio.citations]]
 reference = "psychrolib"
+
+[[formulations.specific_humidity_from_mixing_ratio.citations]]
+reference = "bechtold2015"
+equation = "22"
+notation = { q = "q_v", r = "r_v" }
+
+[formulations.mixing_ratio_from_specific_humidity]
+label = "Mixing ratio from specific humidity"
+nature = "identity"
+expression = "q / (1 - q)"
+fixed_units = false
+note = "From the definitions: mass of water vapour per mass of dry air, and per mass of moist air."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+keywords = ["humidity"]
+
+[[formulations.mixing_ratio_from_specific_humidity.citations]]
+reference = "bechtold2015"
+equation = "22"
+notation = { q = "q_v" }
 
 # Saturation vapour pressure in moist air: the enhancement factor times
 # that of pure water vapour. ITU-R P.453 equation 9 is this product with
@@ -1045,3 +1165,286 @@ subject = "wmo_vapour_pressure_definition"
 object = "wmo_vapour_pressure_from_mole_fraction"
 given = { x_v = "r / (0.62198 + r)" }
 note = "4.A.6 writes both: x_v p, with x_v = r / (0.62198 + r) (4.A.5)."
+
+# Atmospheric thermodynamics of Bechtold (2015), ECMWF training notes:
+# humidity variables, virtual and potential temperatures, saturation.
+
+[formulations.bechtold2015_specific_humidity_from_vapour_pressure]
+label = "Specific humidity from vapour pressure (Bechtold 2015)"
+expression = "epsilon * e / (p - (1 - epsilon) * e)"
+fixed_units = false
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["humidity"]
+
+[[formulations.bechtold2015_specific_humidity_from_vapour_pressure.citations]]
+reference = "bechtold2015"
+note = "Table 1 (p. 4)."
+assumptions = ["Dry air and water vapour as ideal gases, the vapour pressure being their partial pressure (equations 4 and 6)."]
+
+[formulations.bechtold2015_mixing_ratio_from_vapour_pressure]
+label = "Humidity mixing ratio from vapour pressure (Bechtold 2015)"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["humidity"]
+
+[[formulations.bechtold2015_mixing_ratio_from_vapour_pressure.citations]]
+reference = "bechtold2015"
+note = "Table 1 (p. 4)."
+assumptions = ["Dry air and water vapour as ideal gases, the vapour pressure being their partial pressure (equations 4 and 6)."]
+
+[formulations.bechtold2015_virtual_temperature_definition]
+label = "Virtual temperature, from the density and pressure of moist air (Bechtold 2015)"
+nature = "definition"
+expression = "p / (rho * R_d)"
+fixed_units = false
+note = "The temperature dry air would need to have the density of the moist air at the same pressure."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+  { identifier = "rho", kind = "DensityOfMoistAir", unit = "KiloGM-PER-M3", description = "Density of moist air" },
+]
+constants = ["R_d_bechtold2015"]
+keywords = ["virtual temperature", "density"]
+
+[[formulations.bechtold2015_virtual_temperature_definition.citations]]
+reference = "bechtold2015"
+equation = "23"
+
+[formulations.bechtold2015_virtual_temperature]
+label = "Virtual temperature from the temperature and the specific humidity (Bechtold 2015)"
+expression = "T * (1 + (1 - epsilon) / epsilon * q)"
+fixed_units = false
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["virtual temperature", "humidity"]
+
+[[formulations.bechtold2015_virtual_temperature.citations]]
+reference = "bechtold2015"
+equation = "25"
+notation = { q = "q_v" }
+assumptions = ["Dry air and water vapour as ideal gases, the gas constant of moist air being their mass-weighted mean, q R_v + (1 - q) R_d (equations 4, 20 and 24)."]
+
+[formulations.bechtold2015_virtual_temperature_mixing_ratio]
+label = "Virtual temperature from the temperature and the mixing ratio (Bechtold 2015)"
+expression = "T * (1 + (1 - epsilon) * r / (epsilon * (1 + r)))"
+fixed_units = false
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["virtual temperature", "humidity"]
+
+[[formulations.bechtold2015_virtual_temperature_mixing_ratio.citations]]
+reference = "bechtold2015"
+equation = "25"
+notation = { r = "r_v" }
+assumptions = ["Dry air and water vapour as ideal gases, the gas constant of moist air being their mass-weighted mean, q R_v + (1 - q) R_d (equations 4, 20 and 24)."]
+
+[formulations.bechtold2015_virtual_temperature_rounded]
+label = "Virtual temperature from the temperature and the specific humidity, coefficient 0.608 (Bechtold 2015)"
+expression = "T * (1 + a * q)"
+fixed_units = false
+note = "The coefficient rounds (1 - epsilon) / epsilon = 0.6077, with epsilon = 0.622; the notes write this form as an approximation of the exact one."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+coefficients = { a = 0.608 }
+keywords = ["virtual temperature", "humidity"]
+
+[[formulations.bechtold2015_virtual_temperature_rounded.citations]]
+reference = "bechtold2015"
+equation = "25"
+notation = { a = "0.608", q = "q_v" }
+units = { a = "UNITLESS" }
+
+[formulations.bechtold2015_potential_temperature]
+label = "Potential temperature of dry air (Bechtold 2015)"
+expression = "T * (p_0 / p) ** (R_d / c_pd)"
+fixed_units = false
+note = "The exponent kappa = R_d / c_pd is 2/7, c_pd being 7/2 R_d for dry air as a diatomic ideal gas."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015"]
+assumptions = [
+  { text = "c_pd is constant over the transformation, which integrates equation 27.", status = "deduced" },
+]
+keywords = ["potential temperature", "adiabatic"]
+
+[[formulations.bechtold2015_potential_temperature.citations]]
+reference = "bechtold2015"
+equation = "28"
+assumptions = ["An isentropic transformation of dry air, without phase change (section 8.1)."]
+
+[formulations.bechtold2015_potential_temperature_moist_air]
+label = "Potential temperature of moist air, without phase change (Bechtold 2015)"
+expression = "T * (p_0 / p) ** ((R_d + r * R_v) / (c_pd + r * c_pv))"
+fixed_units = false
+note = "Written theta_m: the notes keep theta_v for the virtual potential temperature, in which water vapour acts through the virtual temperature only, not through the exponent."
+output = { identifier = "theta_m", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of moist air" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+]
+constants = ["R_d_bechtold2015", "R_v_bechtold2015", "c_pd_bechtold2015", "c_pv_ecmwf_ifs", "p_0_bechtold2015"]
+assumptions = [
+  { text = "The mixing ratio and the specific heats are constant over the transformation, which integrates equation 34.", status = "deduced" },
+]
+keywords = ["potential temperature", "adiabatic", "humidity"]
+
+[[formulations.bechtold2015_potential_temperature_moist_air.citations]]
+reference = "bechtold2015"
+equation = "35"
+notation = { r = "r_v" }
+assumptions = ["A system that exchanges no mass or heat with its environment, without phase change (section 8.3)."]
+
+[formulations.bechtold2015_virtual_potential_temperature]
+label = "Virtual potential temperature (Bechtold 2015)"
+expression = "T_v * (p_0 / p) ** (R_d / c_pd)"
+fixed_units = false
+output = { identifier = "theta_v", kind = "VirtualPotentialTemperature", unit = "K", description = "Virtual potential temperature" }
+inputs = [
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015"]
+keywords = ["potential temperature", "virtual temperature"]
+
+[[formulations.bechtold2015_virtual_potential_temperature.citations]]
+reference = "bechtold2015"
+equation = "36"
+note = "Printed T_v (p / p_0)^kappa: p and p_0 are swapped against equation 28, of which the text makes it the counterpart for the virtual temperature."
+
+[formulations.bechtold2015_equivalent_potential_temperature]
+label = "Equivalent potential temperature, reversible (Bechtold 2015)"
+expression = "T * (p_0 / p) ** (R_d / (c_pd + r_w * c_l)) * exp(L_v * r / ((c_pd + r_w * c_l) * T))"
+fixed_units = false
+conditions = "Strictly, T in the exponential is the temperature at the isentropic condensation level; the actual temperature is very often used (section 9.3)."
+note = "c_pd + r_w c_l is the heat capacity of moist air containing liquid water, often replaced by c_pd, as for a pseudo-adiabat (section 9.3)."
+output = { identifier = "theta_e", kind = "EquivalentPotentialTemperature", unit = "K", description = "Equivalent potential temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+  { identifier = "r_w", kind = "MassRatioOfTotalWaterToDryGas", unit = "KiloGM-PER-KiloGM", description = "Total water mixing ratio" },
+  { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "c_l_ecmwf_ifs", "p_0_bechtold2015"]
+assumptions = [
+  { text = "Integrating equation 44 into this form leaves the term r R_v out of the exponent R_d / c_p, and holds T constant in the latent heat term.", status = "deduced" },
+]
+keywords = ["potential temperature", "equivalent potential temperature", "latent heat"]
+
+[[formulations.bechtold2015_equivalent_potential_temperature.citations]]
+reference = "bechtold2015"
+equation = "46"
+notation = { r = "r_v" }
+assumptions = ["A fictive reversible adiabatic process in which all the water vapour of the parcel condenses (section 9.3)."]
+
+[formulations.bechtold2015_saturation_vapour_pressure_constant_latent_heat]
+label = "Saturation vapour pressure over water, Clausius-Clapeyron equation integrated with a constant latent heat (Bechtold 2015)"
+expression = "p_vs0 * exp(L_v0 / R_v * (1 / T_0 - 1 / T))"
+fixed_units = false
+note = "The notes give no value to the constant latent heat: L_v0 is their L_v(T00) of equation 40, at the integration point. p_vs0 = 6.112 hPa is taken at T00 = 273.16 K, the triple point, where IAPWS-95 gives 6.11657 hPa."
+# The Wikidata item is the Clausius-Clapeyron relation: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q745416", relation = "broad", verified = 2026-10-26 },
+]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { p_vs0 = 6.112 }
+constants = ["L_v0_ecmwf_ifs", "R_v_bechtold2015", "T_0_ecmwf_ifs"]
+keywords = ["saturation", "Clausius-Clapeyron"]
+
+[[formulations.bechtold2015_saturation_vapour_pressure_constant_latent_heat.citations]]
+reference = "bechtold2015"
+equation = "53"
+notation = { e_s = "p_{vs}", p_vs0 = "p_{vs0}", L_v0 = "L_v", T_0 = "T_{00}" }
+assumptions = ["The latent heat of vaporisation is constant (section 10).", "The specific volume of liquid water is neglected against that of water vapour, an ideal gas (equation 52)."]
+units = { p_vs0 = "HectoPA" }
+
+[formulations.bechtold2015_magnus_water]
+label = "Magnus form in kelvins, Buck (1981) coefficients, over water (Bechtold 2015)"
+expression = "C * exp(A * (T - T_0) / (T - B))"
+fixed_units = true
+note = "Attributed to 'Thetens' by the notes; the coefficients are those of Buck (1981) over water, with B = 273.16 - 240.97 and C = 6.112 hPa rather than 6.1121. Its inversion at 1013 hPa gives 99.39 degC, where the notes write 99.5 degC (p. 10)."
+# The Wikidata item is the group of Buck's correlations: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q4787919", relation = "broad", verified = 2026-10-26 },
+]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+assumptions = [
+  { text = "0 degC is taken as 273.16 K (T_0, the triple point): T - T_0 stands for the Celsius temperature of Buck, which lowers e_s by 0.05 to 0.11 % from -40 to 50 degC.", status = "deduced" },
+]
+keywords = ["saturation", "Magnus"]
+
+[formulations.bechtold2015_magnus_water.coefficients]
+A = 17.502
+B = 32.19
+C = 6.112
+T_0 = { value = 273.16, note = "T00, the triple point temperature" }
+
+[[formulations.bechtold2015_magnus_water.citations]]
+reference = "bechtold2015"
+equation = "54"
+notation = { e_s = "p_{vs}", C = "p_{vs0}", T_0 = "T_{00}" }
+
+# Stated by the notes: the two forms of equation 25.
+[relations.bechtold2015_virtual_temperature_two_forms]
+kind = "equivalent"
+subject = "bechtold2015_virtual_temperature_mixing_ratio"
+object = "bechtold2015_virtual_temperature"
+citation = "bechtold2015"
+given = { q = "r / (1 + r)" }
+note = "Equation 25 writes both forms."
+
+# Computed by nomogram.
+[relations.bechtold2015_virtual_temperature_rounding]
+kind = "proportional"
+subject = "bechtold2015_virtual_temperature_rounded"
+object = "bechtold2015_virtual_temperature"
+bounds = { T = [200.0, 320.0], q = [0.0, 0.04] }
+note = "0.608 rounds (1 - epsilon) / epsilon = 0.6077, with epsilon = 0.622."
+
+[relations.bechtold2015_ashrae2017_mixing_ratio]
+kind = "proportional"
+subject = "bechtold2015_mixing_ratio_from_vapour_pressure"
+object = "mixing_ratio_from_vapour_pressure"
+bounds = { e = [1.0, 12000.0], p = [30000.0, 110000.0] }
+note = "The same form, with epsilon = 0.622 rather than 0.621945."
+
+[relations.bechtold2015_buck1981_magnus]
+kind = "proportional"
+subject = "bechtold2015_magnus_water"
+object = "buck1981_magnus"
+given = { t = "T - 273.16" }
+bounds = { T = [233.15, 323.15] }
+scale = "ignore"
+note = "Buck (1981) with 0 degC written 273.16 K and C = 6.112 hPa rather than 6.1121; checked from -40 to 50 degC, the formulas compared as written."

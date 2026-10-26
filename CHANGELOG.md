@@ -126,9 +126,11 @@ and this project adheres to
   printed precision of the coefficients, and says what the factor is the
   ratio of, whether the two are equal to the printed precision, and
   whether a shift or a factor of a temperature or a salinity would explain
-  it. An equivalence or a proportionality without a citation is computed
-  by nomogram. A `given` expression may convert a unit. Murray (1967) is
-  Tetens (1930) in kelvins, to the printed precision.
+  it (a factor is left aside for an input the object is proportional to,
+  where it cannot tell). An equivalence or a proportionality without a
+  citation is computed by nomogram. A `given` expression may convert a
+  unit. Murray (1967) is Tetens (1930) in kelvins, to the printed
+  precision.
 - Assumptions: a citation lists those its source states; a formulation
   notes the others with their status (stated by another source, deduced,
   suspected). The legend shows them and `search(assumption=...)` finds
@@ -194,6 +196,24 @@ and this project adheres to
     heats of dry air, water vapour, liquid water and ice, and the latent
     heats of vaporisation and sublimation at the triple point, each
     derived constant with its definition.
+- Atmospheric thermodynamics of Bechtold (2015), the ECMWF training
+  notes: the virtual temperature, defined from the density of moist air
+  (23) and computed from the specific humidity or the mixing ratio (25,
+  the two forms proven equivalent) or with the coefficient 0.608, equal to
+  (1 - epsilon) / epsilon to the printed precision; the potential
+  temperature of dry air (28) and of moist air (35), the virtual potential
+  temperature (36, printed with p and p0 swapped) and the reversible
+  equivalent potential temperature (46), with their stated and deduced
+  assumptions; the specific humidity and the mixing ratio from the vapour
+  pressure (Table 1) and the mixing ratio from the specific humidity (22);
+  the saturation vapour pressure over water from Clausius-Clapeyron with a
+  constant latent heat (53), and the Magnus form in kelvins (54), Buck
+  (1981) with C = 6.112 hPa, proven proportional to it. The local quantity
+  kinds VirtualTemperature, PotentialTemperature,
+  VirtualPotentialTemperature, EquivalentPotentialTemperature,
+  DensityOfMoistAir and MassRatioOfTotalWaterToDryGas, linked to Wikidata
+  where an item exists, and the QUDT kinds Density and MassRatio. The
+  conversion q = r / (1 + r) is marked as an identity.
 
 ### Changed
 
@@ -220,6 +240,10 @@ and this project adheres to
 
 ### Fixed
 
+- The closed-form inverse of a quantity equation in kelvins, asked in
+  degC (`dew_point`), subtracted a unitless 273.15 from a result in
+  kelvins, which gave wrong values. A quantity equation now keeps the
+  unit of the solved variable, which pint converts.
 - Murray (1967), over water and over ice, is Tetens (1930) rewritten in
   kelvins, with 0 degC written 273.16 K: its T_0 was described as the
   triple point. Likewise, the 273.16 K of Goff and Gratch over ice is
