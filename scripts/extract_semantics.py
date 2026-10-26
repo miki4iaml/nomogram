@@ -103,6 +103,14 @@ KINDS: dict[str, KindSpec] = {
         offset_units="any",
     ),
     "TemperatureDifference": KindSpec("ratio", delta=True),
+    # ISO 80000 psi = x / x_sat, the mixing ratio over its saturation value:
+    # the "relative humidity" r / r_sat of some textbooks (TEOS-10 3.40.2).
+    # QUDT 3.5.2 gives it no unit; a ratio, it takes 1 and %.
+    "RelativeMassRatioOfVapour": KindSpec(
+        "ratio",
+        delta=False,
+        added_units=("UNITLESS", "PERCENT"),
+    ),
     # CF's canonical unit for relative humidity is 1.
     "RelativeHumidity": KindSpec(
         "ratio",
