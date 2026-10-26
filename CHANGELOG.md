@@ -103,6 +103,19 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- The other formulas of WMO-No. 8, Annex 4.A that need no solver: the
+  mixing ratio, specific humidity and vapour concentration from masses
+  and a volume (4.A.1 to 4.A.3), the mole fraction of water vapour from
+  amounts of substance and from the mixing ratio (4.A.4, 4.A.5), the
+  vapour pressure from the mole fraction (4.A.6, proven equivalent to its
+  form in the mixing ratio), the saturation vapour pressures of moist air
+  from the saturation mixing ratios (4.A.9, 4.A.10), and the relative
+  humidity from the mixing ratios (4.A.16), which is not 100 r / r_w. The
+  WMO's bound of 0.5 % on e'_w = e_w (4.A.11) is an assumption stated by
+  another source where e = RH e_s. The QUDT quantity kinds Mass, Volume,
+  AmountOfSubstance and MoleFraction, and the local ones
+  MoleFractionOfWaterVapour, SaturationMixingRatioOverWater and
+  SaturationMixingRatioOverIce.
 - Three definitions of WMO-No. 8, Annex 4.A: the vapour pressure of
   moist air e' = r p / (0.62198 + r) (4.A.6), and the relative humidities
   with respect to water and to ice (4.A.15, 4.A.17), with their conditions;

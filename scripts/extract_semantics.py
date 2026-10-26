@@ -157,6 +157,13 @@ KINDS: dict[str, KindSpec] = {
     # molality of dissolved species (Dickson et al. 2007).
     "OsmoticCoefficient": KindSpec("ratio", delta=False),
     "MolalityOfSolute": KindSpec("ratio", delta=False),
+    # The definitions of WMO-No. 8, Annex 4.A: the mixing ratio, specific
+    # humidity and vapour concentration from masses and a volume, the mole
+    # fraction of water vapour from amounts of substance.
+    "Mass": KindSpec("ratio", delta=False),
+    "Volume": KindSpec("ratio", delta=False),
+    "AmountOfSubstance": KindSpec("ratio", delta=False),
+    "MoleFraction": KindSpec("ratio", delta=False),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -181,6 +188,11 @@ UNITS: dict[str, str] = {
     "MOL-PER-KiloGM": "mol/kg",
     "M": "m",
     "KiloM": "km",
+    "KiloGM": "kg",
+    "GM": "g",
+    "M3": "m^3",
+    "L": "L",
+    "MOL": "mol",
     # Units of physical constants.
     "J-PER-K": "J/K",
     "J-SEC": "J*s",

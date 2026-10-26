@@ -77,6 +77,21 @@ label = "Relative Humidity with respect to Ice"
 specialization_of = "RelativeHumidity"
 description = "Relative humidity of moist air with respect to ice: the vapour mole fraction over the one the air would have if saturated with respect to a plane surface of ice at the same pressure and temperature."
 
+[kinds.MoleFractionOfWaterVapour]
+label = "Mole Fraction of Water Vapour"
+specialization_of = "MoleFraction"
+description = "Number of moles of water vapour over the total number of moles of a sample of moist air."
+
+[kinds.SaturationMixingRatioOverWater]
+label = "Saturation Mixing Ratio over Water"
+specialization_of = "MassRatioOfWaterVapourToDryGas"
+description = "Mixing ratio of moist air saturated with respect to a plane surface of the associated liquid phase, at the same temperature and pressure."
+
+[kinds.SaturationMixingRatioOverIce]
+label = "Saturation Mixing Ratio over Ice"
+specialization_of = "MassRatioOfWaterVapourToDryGas"
+description = "Mixing ratio of moist air saturated with respect to a plane surface of the associated solid phase, at the same temperature and pressure."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -425,6 +440,7 @@ conditions = "e_s at the temperature T."
 assumptions = [
   { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
   { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.23 % at 300 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5).", status = "deduced" },
+  { text = "e'_w = e_w within 0.5 % or less in the meteorological range of pressure and temperature (equation 4.A.11).", status = "stated-by-other", reference = "wmo2024" },
 ]
 output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Mass concentration of water vapour (absolute humidity, meteorological sense)" }
 inputs = [
@@ -449,6 +465,7 @@ inputs = [
 ]
 assumptions = [
   { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.23 % at 300 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5).", status = "deduced" },
+  { text = "e'_w = e_w within 0.5 % or less in the meteorological range of pressure and temperature (equation 4.A.11).", status = "stated-by-other", reference = "wmo2024" },
 ]
 
 [formulations.mixing_ratio_from_vapour_pressure]
@@ -641,6 +658,7 @@ label = "Relative humidity with respect to water, WMO Guide (CIMO)"
 nature = "definition"
 expression = "100 * e / e_ws"
 fixed_units = true
+note = "Below 0 degC too, relative humidity is evaluated with respect to water (Annex 4.A, paragraph 17)."
 conditions = "e' and e'_w at the same pressure and temperature; not applicable when the pressure is below the saturation vapour pressure of pure water at that temperature (note to 4.A.15 and 4.A.17)."
 output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
 inputs = [
@@ -663,7 +681,7 @@ note = "The definition: 100 times the vapour mole fraction over that of moist ai
 label = "Dew point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
 expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
 fixed_units = true
-note = "The guide states the range -45 to 60 degC for the dew point over water, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_dew_point_moist_air takes it from 4.B.5."
+note = "The guide states the range -45 to 60 degC for the dew point over water, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_dew_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the dew point, 4.A.13, with the Magnus form 4.B.1."
 output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
@@ -862,3 +880,168 @@ keywords = ["humidity"]
 reference = "wmo2024"
 equation = "4.A.17"
 notation = { RH_i = "U_i", e = "e'", e_is = "e'_{\\mathrm{i}}" }
+
+# The other definitions of WMO-No. 8 (2024), Volume I, Annex 4.A: masses,
+# moles and saturation (pp. 193-195).
+
+[formulations.wmo_mixing_ratio_definition]
+label = "Mixing ratio of moist air, from the masses of water vapour and dry air, WMO Guide (CIMO)"
+nature = "definition"
+expression = "m_v / m_a"
+fixed_units = false
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" }
+inputs = [
+  { identifier = "m_v", kind = "Mass", unit = "KiloGM", description = "Mass of water vapour" },
+  { identifier = "m_a", kind = "Mass", unit = "KiloGM", description = "Mass of dry air with which the water vapour is associated" },
+]
+keywords = ["humidity"]
+
+[[formulations.wmo_mixing_ratio_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.1"
+
+[formulations.wmo_specific_humidity_definition]
+label = "Specific humidity of moist air, from the masses of water vapour and dry air, WMO Guide (CIMO)"
+nature = "definition"
+expression = "m_v / (m_v + m_a)"
+fixed_units = false
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity (mass concentration, moisture content)" }
+inputs = [
+  { identifier = "m_v", kind = "Mass", unit = "KiloGM", description = "Mass of water vapour" },
+  { identifier = "m_a", kind = "Mass", unit = "KiloGM", description = "Mass of dry air" },
+]
+keywords = ["humidity"]
+
+[[formulations.wmo_specific_humidity_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.2"
+
+[formulations.wmo_vapour_concentration_definition]
+label = "Vapour concentration of moist air, from the mass of water vapour and the volume, WMO Guide (CIMO)"
+nature = "definition"
+expression = "m_v / V"
+fixed_units = false
+output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Vapour concentration (density of water vapour in the mixture, absolute humidity)" }
+inputs = [
+  { identifier = "m_v", kind = "Mass", unit = "KiloGM", description = "Mass of water vapour" },
+  { identifier = "V", kind = "Volume", unit = "M3", description = "Volume occupied by the mixture" },
+]
+keywords = ["humidity", "absolute humidity"]
+
+[[formulations.wmo_vapour_concentration_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.3"
+
+[formulations.wmo_mole_fraction_definition]
+label = "Mole fraction of water vapour in moist air, from the amounts of water vapour and dry air, WMO Guide (CIMO)"
+nature = "definition"
+expression = "n_v / (n_a + n_v)"
+fixed_units = false
+output = { identifier = "x_v", kind = "MoleFractionOfWaterVapour", unit = "UNITLESS", description = "Mole fraction of water vapour" }
+inputs = [
+  { identifier = "n_v", kind = "AmountOfSubstance", unit = "MOL", description = "Amount of water vapour" },
+  { identifier = "n_a", kind = "AmountOfSubstance", unit = "MOL", description = "Amount of dry air" },
+]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_mole_fraction_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.4"
+
+[formulations.wmo_mole_fraction_from_mixing_ratio]
+label = "Mole fraction of water vapour in moist air, from the mixing ratio, WMO Guide (CIMO)"
+nature = "identity"
+expression = "r / (epsilon + r)"
+fixed_units = false
+conditions = "n = m / M for water vapour and dry air, the ratio of their molar masses being 0.62198."
+output = { identifier = "x_v", kind = "MoleFractionOfWaterVapour", unit = "UNITLESS", description = "Mole fraction of water vapour" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_mole_fraction_from_mixing_ratio.citations]]
+reference = "wmo2024"
+equation = "4.A.5"
+
+[formulations.wmo_vapour_pressure_from_mole_fraction]
+label = "Vapour pressure of moist air, from the mole fraction of water vapour and the pressure, WMO Guide (CIMO)"
+nature = "definition"
+expression = "x_v * p"
+fixed_units = false
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "x_v", kind = "MoleFractionOfWaterVapour", unit = "UNITLESS", description = "Mole fraction of water vapour" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_vapour_pressure_from_mole_fraction.citations]]
+reference = "wmo2024"
+equation = "4.A.6"
+notation = { e = "e'" }
+
+[formulations.wmo_saturation_vapour_pressure_water_definition]
+label = "Saturation vapour pressure over water in moist air, from the saturation mixing ratio, WMO Guide (CIMO)"
+nature = "definition"
+expression = "r_w * p / (epsilon + r_w)"
+fixed_units = false
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+inputs = [
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to water" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "saturation"]
+
+[[formulations.wmo_saturation_vapour_pressure_water_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.9"
+notation = { e_ws = "e'_{\\mathrm{w}}" }
+
+[formulations.wmo_saturation_vapour_pressure_ice_definition]
+label = "Saturation vapour pressure over ice in moist air, from the saturation mixing ratio, WMO Guide (CIMO)"
+nature = "definition"
+expression = "r_i * p / (epsilon + r_i)"
+fixed_units = false
+output = { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air" }
+inputs = [
+  { identifier = "r_i", kind = "SaturationMixingRatioOverIce", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to ice" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "saturation"]
+
+[[formulations.wmo_saturation_vapour_pressure_ice_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.10"
+notation = { e_is = "e'_{\\mathrm{i}}" }
+
+[formulations.wmo_relative_humidity_from_mixing_ratios]
+label = "Relative humidity with respect to water, from the mixing ratio and the saturation mixing ratio, WMO Guide (CIMO)"
+nature = "identity"
+expression = "100 * r * (epsilon + r_w) / (r_w * (epsilon + r))"
+fixed_units = true
+conditions = "r_w at the pressure and temperature of the moist air."
+note = "Not 100 r / r_w, the form TEOS-10 attributes to the WMO: the two differ unless r = r_w."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to water" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity"]
+
+[[formulations.wmo_relative_humidity_from_mixing_ratios.citations]]
+reference = "wmo2024"
+equation = "4.A.16"
+notation = { RH = "U_w" }
+
+# Computed by nomogram: the two forms of 4.A.6.
+[relations.wmo_vapour_pressure_two_forms]
+kind = "equivalent"
+subject = "wmo_vapour_pressure_definition"
+object = "wmo_vapour_pressure_from_mole_fraction"
+given = { x_v = "r / (0.62198 + r)" }
+note = "4.A.6 writes both: x_v p, with x_v = r / (0.62198 + r) (4.A.5)."

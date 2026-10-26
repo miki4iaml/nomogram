@@ -123,8 +123,11 @@ def test_the_legend_says_what_nomogram_derived() -> None:
 
 
 def test_definitions_and_derived_formulations_are_found() -> None:
-    identities = CATALOG.search(nature="identity").formulations
-    assert [f.key for f in identities] == [IDENTITY.key]
+    identities = {f.key for f in CATALOG.search(nature="identity").formulations}
+    assert IDENTITY.key in identities
+    assert all(
+        CATALOG.formulations[k].nature is FormulationNature.IDENTITY for k in identities
+    )
     derived = {f.key for f in CATALOG.search(provenance="derived").formulations}
     assert DERIVED.key in derived
     assert IDENTITY.key not in derived
@@ -172,3 +175,62 @@ def test_the_relative_humidities_of_the_wmo_are_definitions() -> None:
     assert ice not in CATALOG.formulations_of("RelativeHumidity")
     found = {f.key for f in CATALOG.search(kind="RelativeHumidity").formulations}
     assert {water.key, ice.key} <= found
+
+
+def test_the_other_definitions_of_annex_4a() -> None:
+    def value(key: str, **inputs: object) -> float:
+        result = CATALOG.formulations[key].evaluate(**inputs)  # type: ignore[arg-type]
+        return float(result.magnitude)
+
+    m_v, m_a = Q_(0.01, "kg"), Q_(1.0, "kg")
+    assert value("wmo_mixing_ratio_definition", m_v=m_v, m_a=m_a) == pytest.approx(0.01)
+    assert value("wmo_specific_humidity_definition", m_v=m_v, m_a=m_a) == (
+        pytest.approx(0.01 / 1.01)
+    )
+    assert value(
+        "wmo_vapour_concentration_definition", m_v=m_v, V=Q_(2.0, "m^3")
+    ) == pytest.approx(0.005)
+    n = Q_(1.0, "mol")
+    assert value("wmo_mole_fraction_definition", n_v=n, n_a=3 * n) == (
+        pytest.approx(0.25)
+    )
+    r = Q_(0.01, "kg/kg")
+    x_v = value("wmo_mole_fraction_from_mixing_ratio", r=r)
+    assert x_v == pytest.approx(0.01 / 0.63198)
+    assert value(
+        "wmo_saturation_vapour_pressure_water_definition",
+        r_w=Q_(0.015, "kg/kg"),
+        p=Q_(1000.0, "hPa"),
+    ) == pytest.approx(15.0 / 0.63698)
+    natures = {
+        CATALOG.formulations[k].nature
+        for k in (
+            "wmo_mole_fraction_from_mixing_ratio",
+            "wmo_relative_humidity_from_mixing_ratios",
+        )
+    }
+    assert natures == {FormulationNature.IDENTITY}
+
+
+def test_the_wmo_relative_humidity_is_not_100_r_over_r_w() -> None:
+    # 4.A.16: 100 r (0.62198 + r_w) / (r_w (0.62198 + r)), not 100 r / r_w.
+    f = CATALOG.formulations["wmo_relative_humidity_from_mixing_ratios"]
+    rh = f.evaluate(r=Q_(0.01, "kg/kg"), r_w=Q_(0.015, "kg/kg")).to("percent")
+    expected = 100 * 0.01 * (0.62198 + 0.015) / (0.015 * (0.62198 + 0.01))
+    assert rh.magnitude == pytest.approx(expected)
+    assert rh.magnitude != pytest.approx(100 * 0.01 / 0.015, rel=1e-3)
+
+
+def test_the_two_forms_of_4a6_are_proven_equivalent() -> None:
+    from nomogram.relations import verify
+
+    relation = CATALOG.relations["wmo_vapour_pressure_two_forms"]
+    assert relation.computed
+    assert verify(relation, CATALOG).status == "proven"
+
+
+def test_the_wmo_states_how_far_e_w_may_stand_for_e_prime_w() -> None:
+    found = CATALOG.formulations["vapour_pressure_from_relative_humidity"].assumptions
+    stated = [a for a in found if a.reference == "wmo2024"]
+    assert len(stated) == 1
+    assert "within 0.5 %" in stated[0].text
