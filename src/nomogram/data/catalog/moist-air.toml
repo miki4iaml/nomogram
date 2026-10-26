@@ -72,6 +72,11 @@ label = "Specific Latent Heat of Fusion"
 specialization_of = "SpecificLatentHeat"
 description = "Latent heat of fusion (melting) per unit mass, at a given temperature: the difference of the specific enthalpies of the liquid and of the solid."
 
+[kinds.RelativeHumidityWithRespectToIce]
+label = "Relative Humidity with respect to Ice"
+specialization_of = "RelativeHumidity"
+description = "Relative humidity of moist air with respect to ice: the vapour mole fraction over the one the air would have if saturated with respect to a plane surface of ice at the same pressure and temperature."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -370,6 +375,14 @@ description = "Triple point temperature of water, at which the IFS gives the spe
 reference = "ecmwf_ifs_cy49r1"
 nature = "conventional"
 
+[constants.epsilon_wmo2024]
+identifier = "epsilon"
+value = 0.62198
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, as WMO-No. 8 writes it in the mole fraction of water vapour"
+reference = "wmo2024"
+nature = "conventional"
+
 # Printed in section 7.5.2 (p. 136), with the relative humidity.
 [constants.epsilon_ecmwf_ifs]
 identifier = "epsilon"
@@ -625,8 +638,10 @@ notation = { e_is = "e'_{\\mathrm{i}}" }
 
 [formulations.wmo_relative_humidity]
 label = "Relative humidity with respect to water, WMO Guide (CIMO)"
+nature = "definition"
 expression = "100 * e / e_ws"
 fixed_units = true
+conditions = "e' and e'_w at the same pressure and temperature; not applicable when the pressure is below the saturation vapour pressure of pure water at that temperature (note to 4.A.15 and 4.A.17)."
 output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
@@ -637,6 +652,12 @@ inputs = [
 reference = "wmo2024"
 equation = "4.B.10"
 notation = { RH = "U", e = "e'", e_ws = "e'_{\\mathrm{w}}" }
+
+[[formulations.wmo_relative_humidity.citations]]
+reference = "wmo2024"
+equation = "4.A.15"
+notation = { RH = "U_w", e = "e'", e_ws = "e'_{\\mathrm{w}}" }
+note = "The definition: 100 times the vapour mole fraction over that of moist air saturated with respect to water, at the same pressure and temperature."
 
 [formulations.wmo_dew_point]
 label = "Dew point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
@@ -802,3 +823,42 @@ label = "Specific latent heat of fusion, linear in temperature, from the latent 
 composition = { outer = "latent_heat_fusion_identity", inner = { L_s = "ecmwf_ifs_latent_heat_sublimation", L_v = "ecmwf_ifs_latent_heat_vaporization" } }
 note = "The IFS prints no latent heat of fusion as a function of temperature: it writes Ldep = Lvap + Lfus (section 7.2.2, p. 118) and takes Ls - Lv, with equations 12.1 and 12.2, in equations 12.24 to 12.33."
 keywords = ["latent heat", "melting"]
+
+# Definitions of WMO-No. 8 (2024), Volume I, Annex 4.A (pp. 193-195).
+
+[formulations.wmo_vapour_pressure_definition]
+label = "Vapour pressure of moist air, from the mixing ratio and the pressure, WMO Guide (CIMO)"
+nature = "definition"
+expression = "r * p / (epsilon + r)"
+fixed_units = false
+note = "Defined as x_v p, the mole fraction of water vapour times the total pressure, with x_v = r / (0.62198 + r) (4.A.5). The WMO calls the relative humidity that follows formally similar to the one based on Dalton's law of partial pressures (4.A.15)."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_vapour_pressure_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.6"
+notation = { e = "e'" }
+
+[formulations.wmo_relative_humidity_ice]
+label = "Relative humidity with respect to ice, WMO Guide (CIMO)"
+nature = "definition"
+expression = "100 * e / e_is"
+fixed_units = true
+conditions = "e' and e'_i at the same pressure and temperature; not applicable when the pressure is below the saturation vapour pressure of ice at that temperature (note to 4.A.15 and 4.A.17)."
+output = { identifier = "RH_i", kind = "RelativeHumidityWithRespectToIce", unit = "PERCENT", description = "Relative humidity with respect to ice" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air, at the same pressure and temperature" },
+]
+keywords = ["humidity"]
+
+[[formulations.wmo_relative_humidity_ice.citations]]
+reference = "wmo2024"
+equation = "4.A.17"
+notation = { RH_i = "U_i", e = "e'", e_is = "e'_{\\mathrm{i}}" }

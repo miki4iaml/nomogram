@@ -349,8 +349,9 @@ equation = "40"
 
 - **`nature`**: `"definition"` or `"identity"`; absent for a formula a
   source fits or models. A definition or an identity has no empirical
-  coefficient, no domain stated by a source, and is a quantity equation
-  (`fixed_units = false`).
+  coefficient and no domain stated by a source. It is a quantity
+  equation, or a numerical value equation when its source prints it so
+  (the relative humidity of WMO-No. 8, 100 e'/e'_w in %).
 - **`conditions`**: under which it holds, as stated (the same
   temperature); any formulation may have them. The legend shows them.
 - **Derived by nomogram**: a composition, a formulation by branches or
