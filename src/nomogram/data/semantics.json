@@ -143,6 +143,27 @@
       "scale_type": "interval",
       "specialization_of": "Temperature"
     },
+    "Density": {
+      "added_units": [],
+      "applicable_units": [
+        "GM-PER-M3",
+        "KiloGM-PER-M3"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Density",
+      "label": "Density",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q29539",
+          "verified": "2026-10-26"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "DewPointTemperature": {
       "added_units": [],
       "applicable_units": [
@@ -267,6 +288,27 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q899138",
+          "verified": "2026-10-26"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "MassRatio": {
+      "added_units": [],
+      "applicable_units": [
+        "GM-PER-KiloGM",
+        "KiloGM-PER-KiloGM"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/MassRatio",
+      "label": "Mass Ratio",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q1563068",
           "verified": "2026-10-26"
         }
       ],

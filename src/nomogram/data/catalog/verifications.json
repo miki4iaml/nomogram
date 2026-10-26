@@ -1,5 +1,21 @@
 {
  "verdicts": {
+  "0690b8c1c57312b015413aabc834b5c5b538ca28586638def33be974abbf6aa2": {
+   "at": {},
+   "detail": "factor 0.99998364, a constant relative deviation of 0.0016 %, the ratio of C of bechtold2015_magnus_water to C of buck1981_magnus (6.112 / 6.1121); no shift nor factor of T makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; scales ignored: t on ipts68 fed by T on no scale",
+   "relation": "bechtold2015_buck1981_magnus",
+   "status": "proven",
+   "value": 0.9999836390111418
+  },
+  "3039eace637a2bf65c43e3e9e0ed25e5a5c16f1f4f97af3e1e60a989c02bc068": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_virtual_temperature_two_forms",
+   "status": "proven",
+   "value": null
+  },
   "4891291da7eaadf0a2d561d6b8612f9112b6ede07fd7985bdab27b8be68ab816": {
    "at": {
     "T": 233.15
@@ -45,6 +61,14 @@
    "relation": "wmo_vapour_pressure_two_forms",
    "status": "proven",
    "value": null
+  },
+  "6ed8b95176894f0bcd60557f0099cee99d09a5e6dac72b820fe1cd20ddec5fd8": {
+   "at": {},
+   "detail": "factor 1.000006, a constant relative deviation of 0.0006 %; the ratio varies by 1.1e-05, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); equivalent to the printed precision: |ln factor| = 6e-06, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); no shift of T makes them as close; a factor of T cannot be told from a coefficient, the object being proportional to a power of T",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; not constant: ratio sampled at 200 points of the bounds, against the rounding of the printed coefficients",
+   "relation": "bechtold2015_virtual_temperature_rounding",
+   "status": "held",
+   "value": 1.0000059972501667
   },
   "728d6254a3b455af6f5a01dd9c9823491049cfb2cab77708e764d5e67c224ac1": {
    "at": {
@@ -105,6 +129,14 @@
    "relation": "ae96_bu81_so90",
    "status": "reproduced",
    "value": 1.411977361987371
+  },
+  "cdec9017e0768374dbb4b01cf4c4a3084f3d59316f9ed9f026e908e914cdd59a": {
+   "at": {},
+   "detail": "factor 1.0000884, a constant relative deviation of 0.0088 %, the ratio of epsilon of bechtold2015_mixing_ratio_from_vapour_pressure to epsilon of mixing_ratio_from_vapour_pressure (0.622 / 0.621945); no input with a conventional scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_ashrae2017_mixing_ratio",
+   "status": "proven",
+   "value": 1.0000884322568715
   },
   "ce14ec8a55a695177e344a3566f77223cb29252e26b2c7b2067e7cc9250158eb": {
    "at": {

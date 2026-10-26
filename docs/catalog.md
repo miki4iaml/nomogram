@@ -684,7 +684,8 @@ note = "Table III, r_g."
   *refuted* otherwise. The verdict gives the factor, the coefficients it
   is the ratio of, whether the two are equal to the printed precision,
   and whether a shift or a factor of a temperature or a salinity would
-  explain it (a matter of scale). An equivalence is a proportionality of
+  explain it (a matter of scale; a factor of an input the object is
+  proportional to cannot tell). An equivalence is a proportionality of
   factor 1 (`RelationKind.broader`).
 - **Computed by nomogram**: an equivalence or a proportionality without
   a `citation` is one nomogram computes; its verdict proves it or holds

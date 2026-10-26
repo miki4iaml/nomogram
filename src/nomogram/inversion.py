@@ -623,7 +623,8 @@ def invert(
         Identifier of its input x, which becomes the output.
     output : Variable
         The new output (x's identifier, kind and unit; K and degC are
-        interchangeable for temperatures).
+        interchangeable for the temperature of a numerical value
+        equation, while a quantity equation keeps the unit of x).
     input : Variable
         The new input, in the unit of the formulation's output.
     key, label : str, optional
@@ -653,6 +654,8 @@ def invert(
     source_input = formulation.inputs[0]
     output = replace(
         output,
+        # A quantity equation gives x in its own unit, which pint converts.
+        unit=output.unit if formulation.fixed_units else source_input.unit,
         scale=source_input.scale,
         scale_basis=source_input.scale_basis,
     )
@@ -723,7 +726,8 @@ def dew_point(
     -------
     Formulation or NumericalInverse
         t_d = g(e), with e a vapour pressure (in the unit of e_s) and t_d
-        a dew point temperature in degC.
+        a dew point temperature in degC, or in the unit of the
+        temperature for a quantity equation.
     """
     temperature = formulation.inputs[0]
     if search is None and _bounds(formulation, temperature.identifier) is None:

@@ -119,6 +119,36 @@ def test_a_strict_proportionality_may_be_a_matter_of_scale() -> None:
     assert "may come from the scale of t" in found.detail
 
 
+def test_a_factor_of_an_input_the_object_is_proportional_to_tells_nothing() -> None:
+    # C T and C' T: a factor of T is a factor of the result, any one.
+    def linear(key: str, c: float) -> str:
+        return f"""
+[formulations.{key}]
+label = "{key}"
+expression = "C * T"
+fixed_units = true
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }}
+inputs = [{{ identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "T" }}]
+coefficients = {{ C = {c} }}
+
+[[formulations.{key}.citations]]
+reference = "src"
+"""
+
+    loaded = with_catalog(
+        SOURCE
+        + linear("f", 2.0)
+        + linear("g", 2.1)
+        + relation("f", "g").replace("t = [-40.0, 50.0]", "T = [233.15, 323.15]")
+    )
+    found = verify(loaded.relations["r"], loaded)
+    assert found.status == "proven"
+    assert found.detail is not None
+    assert "no shift of T makes them as close" in found.detail
+    assert "a factor of T cannot be told from a coefficient" in found.detail
+    assert "may come from the scale" not in found.detail
+
+
 def test_without_a_scaled_input_scale_is_not_examined() -> None:
     loaded = load_catalog(
         [SOURCE + exponential("f", 6.0) + exponential("g", 6.3) + relation("f", "g")]

@@ -62,6 +62,21 @@ def test_round_trip_through_the_dew_point(formulation: Formulation) -> None:
     assert back.to("degC").magnitude == pytest.approx([0.5, 20.0, 40.0], abs=1e-6)
 
 
+def test_a_quantity_equation_keeps_the_unit_of_its_temperature() -> None:
+    # Clausius-Clapeyron with a constant latent heat: T in K, and no
+    # 273.15 offset coefficient, which only a numerical value equation needs.
+    source = FORMULATIONS[
+        "bechtold2015_saturation_vapour_pressure_constant_latent_heat"
+    ]
+    inverse = dew_point(source)
+    assert isinstance(inverse, Formulation)
+    assert not inverse.fixed_units
+    assert inverse.output.unit == "K"
+    assert "T_celsius_zero" not in inverse.expression
+    found = inverse.evaluate(e=Q_(6.112, "hPa"))
+    assert found.to("K").magnitude == pytest.approx(273.16)
+
+
 def test_iapws_inverse_reproduces_table_1_of_the_release() -> None:
     # 101325 Pa at 373.1243 K (IAPWS SR1-86(1992), Table 1).
     inverse = dew_point(FORMULATIONS["iapws_sr1_86"])

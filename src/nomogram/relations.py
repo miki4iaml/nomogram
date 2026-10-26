@@ -722,20 +722,25 @@ def _scale_text(
     salinity scale) differs by a shift or a factor of an input: if one
     makes the two formulations equal as closely as the proportionality
     does (``tolerance``, its largest residual), the factor may come from
-    the scale rather than a coefficient.
+    the scale rather than a coefficient. When the object is proportional
+    to a power of an input, a factor of that input is a factor of the
+    result, which tells nothing: only its shift is tried.
     """
     scaled = {k for s in catalog.scales.values() for k in s.kinds}
     candidates = [(i, v) for i, v in enumerate(subject.inputs) if v.kind in scaled]
     if not candidates:
         return "no input with a conventional scale"
     found = []
+    blind = []
     shift = sympy.Symbol("_shift", real=True)
     for index, variable in candidates:
         x = symbols[index]
-        for name, image, low, high in (
-            ("a shift", x + shift, -1.0, 1.0),
-            ("a factor", x * shift, 0.99, 1.01),
-        ):
+        moves = [("a shift", x + shift, -1.0, 1.0)]
+        if sympy.simplify(x * sympy.diff(sympy.log(right), x)).free_symbols:
+            moves.append(("a factor", x * shift, 0.99, 1.01))
+        else:
+            blind.append(variable.identifier)
+        for name, image, low, high in moves:
             moved = sympy.lambdify(
                 [*symbols, shift],
                 sympy.log(left) - sympy.log(right.xreplace({x: image})),
@@ -755,10 +760,23 @@ def _scale_text(
                     f"({best:.6g}): the factor may come from the scale of "
                     f"{variable.identifier}, not a coefficient"
                 )
+    notes = [
+        f"a factor of {name} cannot be told from a coefficient, the object "
+        f"being proportional to a power of {name}"
+        for name in blind
+    ]
     if found:
-        return "; ".join(found)
+        return "; ".join(found + notes)
     names = ", ".join(v.identifier for _, v in candidates)
-    return f"no shift nor factor of {names} makes them as close: not a matter of scale"
+    if not blind:
+        return (
+            f"no shift nor factor of {names} makes them as close: not a matter of scale"
+        )
+    factors = ", ".join(
+        v.identifier for _, v in candidates if v.identifier not in blind
+    )
+    tried = f"no shift of {names}" + (f" nor factor of {factors}" if factors else "")
+    return "; ".join([f"{tried} makes them as close", *notes])
 
 
 def _golden(function: Any, low: float, high: float, steps: int = 80) -> float:
