@@ -1351,7 +1351,8 @@ class Formulation:
         its dimensional homogeneity; a piecewise definition is evaluated
         once per branch (pint quantities do not go through numpy's choice
         of branch), and both sides of each comparison of its conditions
-        are compared.
+        must be in the same unit, since the comparison is made on the
+        numbers.
 
         Raises
         ------
@@ -1360,7 +1361,8 @@ class Formulation:
             a comparison joins two dimensions.
         DimensionError
             If the branches of a piecewise definition give values in
-            different units.
+            different units, or a comparison joins two units of one
+            dimension (a bound in Pa for an input in hPa).
         """
         if self.fixed_units:
             return 1.0
@@ -1383,7 +1385,13 @@ class Formulation:
             return Q_(compile_numeric(expr, self.names)(*values)).units
 
         for relation in _relations(self.sympy_expression):
-            Q_(1.0, unit_of(relation.lhs)).to(unit_of(relation.rhs))
+            left, right = unit_of(relation.lhs), unit_of(relation.rhs)
+            if Q_(1.0, left).to(right).magnitude != 1.0:
+                msg = (
+                    f"{self.key}: {relation} compares {left:~P} with {right:~P}: "
+                    "write a bound in the unit of its input"
+                )
+                raise DimensionError(msg)
         target = units[self.output.unit].pint
         factors = {
             float(Q_(1.0, unit_of(variant)).to(target).magnitude)

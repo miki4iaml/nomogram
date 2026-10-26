@@ -29,6 +29,7 @@ from typing import Any, Protocol
 import numpy as np
 
 from nomogram.model import Basis, Outside, ScaleConversion, Variable
+from nomogram.units import is_offset_unit
 
 __all__ = ["Comparison", "Composition", "Evaluable", "compare", "compose", "feeds"]
 
@@ -69,12 +70,16 @@ def feeds(output_kind: str, input_kind: str) -> bool:
     It may when the kinds are the same, or when the result's kind
     specializes the input's (QUDT ``specializationOf``, directly or not):
     a saturation vapour pressure is a vapour pressure. Never the other
-    way round.
+    way round, and never a difference for a point, though QUDT makes a
+    temperature difference a temperature.
     """
     from nomogram.catalog import catalog
 
     kinds = catalog().kinds
     kind = kinds.get(output_kind)
+    target = kinds.get(input_kind)
+    if kind is not None and target is not None and kind.delta and not target.delta:
+        return False
     seen = set()
     while kind is not None and kind.name not in seen:
         if kind.name == input_kind:
@@ -114,6 +119,9 @@ class Comparison:
     relative_deviations : mapping of str to numpy.ndarray
         ``value / reference - 1`` for each formulation; NaN where either is
         outside its validity domain (with the default ``outside="nan"``).
+        Values in a unit with an offset (a dew point in °C, a point of an
+        interval scale) are divided in its absolute unit (K), where a
+        ratio means something.
     formulations : mapping of str to Formulation or Composition
         The formulations compared, by key (labels, output variable).
     scale : {"convert", "ignore"}
@@ -192,11 +200,17 @@ def compare(
         )
         unit = unit or result.units
         values[formulation.key] = result.to(unit)
-    base = np.asarray(values[reference.key].magnitude, dtype=float)
+    # A ratio of points of an interval scale (degC) depends on its origin:
+    # divide in the absolute unit (K).
+    absolute = {
+        key: value.to_base_units() if is_offset_unit(value.units) else value
+        for key, value in values.items()
+    }
+    base = np.asarray(absolute[reference.key].magnitude, dtype=float)
     with np.errstate(invalid="ignore", divide="ignore"):
         deviations = {
             key: np.asarray(value.magnitude, dtype=float) / base - 1.0
-            for key, value in values.items()
+            for key, value in absolute.items()
         }
     compared = {f.key: f for f in candidates}
     return Comparison(

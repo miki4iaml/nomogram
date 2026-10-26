@@ -425,7 +425,12 @@ def plot_values(
             else _style(index)
         )
         ax.plot(x, values, label=names[key], **style)
-    ax.set_yscale(_values_scale(curves.values()) if yscale == "auto" else yscale)
+    chosen: str = yscale
+    if yscale == "auto":
+        # Points of an interval scale (degC) have no ratio: never logarithmic.
+        offset = is_offset_unit(comparison.values[comparison.reference].units)
+        chosen = "linear" if offset else _values_scale(curves.values())
+    ax.set_yscale(chosen)
     reference = comparison.formulations.get(comparison.reference)
     unit = unit_text(comparison.values[comparison.reference].units)
     if reference is not None:
