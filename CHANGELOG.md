@@ -214,6 +214,12 @@ and this project adheres to
   DensityOfMoistAir and MassRatioOfTotalWaterToDryGas, linked to Wikidata
   where an item exists, and the QUDT kinds Density and MassRatio. The
   conversion q = r / (1 + r) is marked as an identity.
+- A quantity kind declared by the catalog may carry CF standard names,
+  from the frozen CF subset, like a conventional scale; a search by the
+  name finds it and its formulations. The virtual, potential and
+  equivalent potential temperatures and the density of moist air carry
+  theirs (`virtual_temperature`, `air_potential_temperature`,
+  `air_equivalent_potential_temperature`, `air_density`).
 
 ### Changed
 

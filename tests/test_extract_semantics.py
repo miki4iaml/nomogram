@@ -43,6 +43,7 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
         },
     )
     monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ())
+    monkeypatch.setattr(extract_semantics, "LOCAL_KIND_CF_NAMES", ())
     monkeypatch.setattr(
         extract_semantics,
         "UNITS",
@@ -247,6 +248,18 @@ def test_cf_names_of_scales_are_extracted(monkeypatch: pytest.MonkeyPatch) -> No
     )
     monkeypatch.setattr(extract_semantics, "KINDS", kinds)
     monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ("air_temperature",))
+    names = run()["cf_standard_names"]
+    assert isinstance(names, dict)
+    assert "air_temperature" in names
+
+
+def test_cf_names_of_local_kinds_are_extracted(monkeypatch: pytest.MonkeyPatch) -> None:
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = kinds["ThermodynamicTemperature"]._replace(
+        cf_standard_names=()
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    monkeypatch.setattr(extract_semantics, "LOCAL_KIND_CF_NAMES", ("air_temperature",))
     names = run()["cf_standard_names"]
     assert isinstance(names, dict)
     assert "air_temperature" in names

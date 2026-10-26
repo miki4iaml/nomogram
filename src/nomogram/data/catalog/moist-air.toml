@@ -97,6 +97,7 @@ description = "Mixing ratio of moist air saturated with respect to a plane surfa
 label = "Virtual Temperature"
 specialization_of = "ThermodynamicTemperature"
 description = "Temperature dry air would need to have the density of a sample of moist air at the same pressure."
+cf_standard_names = ["virtual_temperature"]
 matches = [
   { target = "http://www.wikidata.org/entity/Q761179", relation = "exact", verified = 2026-10-26 },
 ]
@@ -105,6 +106,7 @@ matches = [
 label = "Potential Temperature"
 specialization_of = "ThermodynamicTemperature"
 description = "Temperature a parcel of air would reach if brought adiabatically to a reference pressure, usually 1000 hPa."
+cf_standard_names = ["air_potential_temperature"]
 matches = [
   { target = "http://www.wikidata.org/entity/Q760765", relation = "exact", verified = 2026-10-26 },
 ]
@@ -118,6 +120,7 @@ description = "Potential temperature of the virtual temperature: the effect of w
 label = "Equivalent Potential Temperature"
 specialization_of = "PotentialTemperature"
 description = "Temperature a parcel of air would reach if all its water vapour condensed, the latent heat warming it, and it were brought adiabatically to the reference pressure."
+cf_standard_names = ["air_equivalent_potential_temperature"]
 matches = [
   { target = "http://www.wikidata.org/entity/Q3055058", relation = "exact", verified = 2026-10-26 },
 ]
@@ -126,6 +129,7 @@ matches = [
 label = "Density of Moist Air"
 specialization_of = "Density"
 description = "Mass of moist air, dry air and water vapour, per unit volume."
+cf_standard_names = ["air_density"]
 # The Wikidata item is the density of the Earth's atmosphere.
 matches = [
   { target = "http://www.wikidata.org/entity/Q1511415", relation = "close", verified = 2026-10-26 },
