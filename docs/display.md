@@ -101,6 +101,57 @@ that a reader comparing with the source knows they are nomogram's). For a formul
 gives the units its coefficients hold for. Tables and plot labels never
 show where units come from.
 
+### How much plot labels say
+
+The option `label_detail` sets how much the labels of a plot say, from a
+figure that needs room for its curves to one that must stand alone:
+
+| `label_detail` | x axis | Deviation axis | Legend entry |
+|---|---|---|---|
+| `"short"` | t₉₀/°C | δ/% | Bechtold (2015), eq. 54 |
+| `"standard"` (default) | Celsius temperature t₉₀/°C | Relative deviation from IAPWS (1992) δ/% | Magnus form in kelvins (Bechtold 2015) |
+| `"full"` | the same, then *on the International Temperature Scale of 1990 (ITS-90)* | the same, then the label of the reference | the label, then *Bechtold (2015), eq. 54* |
+
+- A short entry is the first citation of the formulation: its authors,
+  the year and the equation when the catalog records it. Two formulations
+  of the plot that would share it keep their labels (Buck (1981) gives
+  two). A legend of more than ten short entries takes two columns.
+- A full label takes a second line: the scale of an axis spelled out,
+  the full label of the reference, the first citation of a formulation.
+  It suits a plot of a few curves.
+- An axis keeps its name, even short, when it has no symbol.
+
+```python
+import numpy as np
+
+import nomogram as nomo
+from nomogram.units import Q_
+
+table = nomo.comparison.compare(
+    c.formulations_of("SaturationVapourPressureOverWater"),
+    c.formulations["iapws_sr1_86"],
+    {"ThermodynamicTemperature": Q_(np.linspace(-60, 110, 341), "degC")},
+)
+with display_options(label_detail="short"):
+    ax = nomo.plot.plot_deviations(table)  # extra viz
+```
+
+### Scales of the plots
+
+`plot_deviations` draws off scale a curve whose largest deviation
+exceeds those of all the others by more than three times: the y axis
+holds the others, the curve still leaves through it, and its legend
+entry says how far it goes (*off scale, up to 26.7 %*). The largest
+deviations, sorted, are split at their largest such jump in the upper
+half, so at least half of the curves stay on scale. In the figure of the
+README, the two forms with a constant latent heat reach 27 %, and the
+others stay within 4.3 %. `off_scale=False` holds every curve.
+
+`plot_values` plots on a logarithmic scale values that are all positive
+and span more than two decades, a saturation vapour pressure from −60 to
+110 °C for instance; `yscale="linear"` or `"log"` chooses. A deviation
+has a sign, so it stays on a linear scale.
+
 ### Signature
 
 The figures that `plot_values` and `plot_deviations` create are signed

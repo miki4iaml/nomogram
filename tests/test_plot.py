@@ -21,7 +21,7 @@ from matplotlib.mathtext import MathTextParser
 from matplotlib.offsetbox import AnchoredOffsetbox, AnnotationBbox
 
 from nomogram import _logo
-from nomogram.catalog import catalog
+from nomogram.catalog import catalog, load_catalog
 from nomogram.comparison import Comparison, compare
 from nomogram.display import (
     DisplayOptions,
@@ -198,6 +198,157 @@ def test_axes_follow_the_display_options(comparison: Comparison) -> None:
     assert ax.get_ylabel().endswith(r"$\delta$ [%]")
 
 
+def legend(ax: Any) -> list[str]:
+    return [t.get_text() for t in ax.get_legend().get_texts()]
+
+
+def test_labels_follow_the_detail_option(comparison: Comparison) -> None:
+    # Standard: the name of each quantity, the reference by its source.
+    ax = plot_deviations(comparison)
+    assert ax.get_ylabel() == r"Relative deviation from IAPWS (1992) $\delta$/%"
+    assert "Magnus form in kelvins (Bechtold 2015)" in legend(ax)
+    # Short: symbols and units, a formulation by its first citation, in
+    # two columns beyond ten curves.
+    with display_options(label_detail="short"):
+        ax = plot_deviations(comparison)
+        values = plot_values(comparison)
+    assert ax.get_xlabel() == "$t_{90}$/°C"
+    assert ax.get_ylabel() == r"$\delta$/%"
+    assert values.get_ylabel() == r"$e_{\mathrm{s}}$/Pa"
+    assert "Bechtold (2015), eq. 54" in legend(ax)
+    assert "IAPWS (1992)" in legend(values)
+    assert ax.get_legend()._ncols == 2
+    # Two formulations citing first Sonntag (1990) keep their labels.
+    assert "Magnus form, Sonntag (1990) coefficients" in legend(ax)
+    assert "Sonntag (1990) formulation over water (SO90)" in legend(ax)
+    # Full: a second line, the scale of an axis, the reference's label and
+    # the first citation of each formulation.
+    with display_options(label_detail="full"):
+        ax = plot_deviations(comparison)
+    assert ax.get_xlabel() == (
+        "Celsius temperature $t_{90}$/°C\n"
+        "on the International Temperature Scale of 1990 (ITS-90)"
+    )
+    assert ax.get_ylabel().endswith(f"$\\delta$/%\n{IAPWS.label}")
+    assert "Magnus form in kelvins (Bechtold 2015)\nBechtold (2015), eq. 54" in (
+        legend(ax)
+    )
+    assert ax.get_legend()._ncols == 1
+
+
+def test_authors_are_cited_as_texts_cite_them() -> None:
+    from nomogram.plot import _authors
+
+    assert _authors("Buck, A. L.") == "Buck"
+    assert _authors("Wagner, W.; Pruß, A.") == "Wagner and Pruß"
+    assert _authors("Dickson, A. G.; Sabine, C. L.; Christian, J. R. (eds.)") == (
+        "Dickson et al."
+    )
+    assert _authors("IAPWS") == "IAPWS"
+
+
+def test_without_a_known_source_a_formulation_keeps_its_label() -> None:
+    elsewhere = load_catalog(
+        [
+            """
+[references.elsewhere]
+authors = "Nobody, N."
+title = "Not in the bundled catalog"
+status = "verified"
+
+[formulations.twice]
+label = "Twice"
+expression = "2 * T"
+fixed_units = true
+output = { identifier = "q", kind = "Pressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "in" }]
+
+[[formulations.twice.citations]]
+reference = "elsewhere"
+"""
+        ]
+    ).formulations["twice"]
+    found = compare(
+        [elsewhere], elsewhere, {"ThermodynamicTemperature": Q_([1.0, 2.0], "K")}
+    )
+    for detail in ("short", "full"):
+        with display_options(label_detail=detail):
+            assert legend(plot_values(found)) == ["Twice"]
+
+
+def test_curves_far_above_the_others_go_off_scale() -> None:
+    # The figure of the README: the two forms with a constant latent heat
+    # reach 27 %, the others stay within 4.3 %.
+    temperatures = Q_(np.linspace(-60, 110, 341), "degC")
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
+    ax = plot_deviations(table)
+    off = [label for label in legend(ax) if "off scale" in label]
+    assert off == [
+        (
+            "Clausius-Clapeyron with a constant latent heat (Bechtold 2015) "
+            "(off scale, up to 26.7 %)"
+        ),
+        (
+            "Ambaum (2020) approximation with a constant latent heat "
+            "(off scale, up to 26.9 %)"
+        ),
+    ]
+    low, high = ax.get_ylim()
+    assert -3.0 < low < -2.5
+    assert 4.3 < high < 4.6
+    # Still drawn, beyond the axis.
+    assert np.nanmax(ax.lines[0].get_ydata()) > 26
+    assert plot_deviations(table, off_scale=False).get_ylim()[1] > 26
+
+
+def test_an_off_scale_curve_says_how_far_down_it_goes() -> None:
+    x = Q_(np.array([1.0, 2.0]), "K")
+    deviations = {
+        "r": np.zeros(2),
+        "a": np.array([0.001, np.nan]),
+        "b": np.array([0.002, 0.001]),
+        "c": np.array([-0.5, 0.0]),
+        "d": np.full(2, np.nan),
+    }
+    found = Comparison(
+        "r",
+        {"ThermodynamicTemperature": x},
+        {k: Q_(np.ones(2), "Pa") for k in deviations},
+        deviations,
+    )
+    ax = plot_deviations(found)
+    assert "c (off scale, down to -50 %)" in legend(ax)
+    # The axis holds a and b, and zero; d is nowhere finite.
+    assert ax.get_ylim() == pytest.approx((-0.01, 0.21))
+    # Curves of comparable sizes never go off scale.
+    level = {**deviations, "c": np.array([-0.005, 0.0])}
+    found = Comparison("r", found.inputs, found.values, level)
+    assert not [t for t in legend(plot_deviations(found)) if "off scale" in t]
+
+
+@pytest.mark.parametrize(
+    ("grid", "yscale", "expected"),
+    [
+        # From 1.9 Pa to 180 kPa: logarithmic.
+        (np.linspace(-60, 110, 18), "auto", "log"),
+        # From 2.3 to 4.2 kPa: linear.
+        (np.linspace(20, 30, 5), "auto", "linear"),
+        (np.linspace(-60, 110, 18), "linear", "linear"),
+        (np.linspace(20, 30, 5), "log", "log"),
+    ],
+)
+def test_values_spanning_decades_are_plotted_on_a_logarithmic_scale(
+    grid: Any, yscale: Any, expected: str
+) -> None:
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": Q_(grid, "degC")})
+    assert plot_values(table, yscale=yscale).get_yscale() == expected
+
+
+def test_an_unknown_yscale_is_refused(comparison: Comparison) -> None:
+    with pytest.raises(ValueError, match="yscale must be auto, linear or log"):
+        plot_values(comparison, yscale="symlog")  # type: ignore[arg-type]
+
+
 @pytest.mark.parametrize(
     ("unit", "values", "expected"),
     [
@@ -325,12 +476,24 @@ def test_a_signed_figure_is_saved(
     assert path.stat().st_size > 0
 
 
-@pytest.mark.parametrize("size", [None, (11.0, 6.5)])
-def test_the_signature_covers_no_text(size: tuple[float, float] | None) -> None:
+@pytest.mark.parametrize(
+    ("detail", "size"),
+    [
+        ("standard", None),
+        ("standard", (11.0, 6.5)),
+        ("short", None),
+        # A second line under the x axis, beside the signature.
+        ("full", (11.0, 6.5)),
+    ],
+)
+def test_the_signature_covers_no_text(
+    detail: Any, size: tuple[float, float] | None
+) -> None:
     # The figure of the README example, at the default size and at its own.
     temperatures = Q_(np.linspace(-60, 110, 341), "degC")
     table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
-    ax = plot_deviations(table)
+    with display_options(label_detail=detail):
+        ax = plot_deviations(table)
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
     if size is not None:
         ax.figure.set_size_inches(*size)
