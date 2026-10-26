@@ -1,5 +1,17 @@
 {
   "cf_standard_names": {
+    "air_density": {
+      "canonical_units": "kg m-3",
+      "pint": "kg * m ** -3"
+    },
+    "air_equivalent_potential_temperature": {
+      "canonical_units": "K",
+      "pint": "K"
+    },
+    "air_potential_temperature": {
+      "canonical_units": "K",
+      "pint": "K"
+    },
     "air_pressure": {
       "canonical_units": "Pa",
       "pint": "Pa"
@@ -55,6 +67,10 @@
     "specific_humidity": {
       "canonical_units": "1",
       "pint": "dimensionless"
+    },
+    "virtual_temperature": {
+      "canonical_units": "K",
+      "pint": "K"
     },
     "water_vapor_partial_pressure_in_air": {
       "canonical_units": "Pa",

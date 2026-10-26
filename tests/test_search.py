@@ -90,6 +90,16 @@ def test_a_cf_name_finds_temperatures_on_either_scale() -> None:
     assert kinds == {"kinds.CelsiusTemperature", "kinds.ThermodynamicTemperature"}
 
 
+def test_a_cf_name_finds_a_kind_defined_by_nomogram() -> None:
+    assert refs(CATALOG.search("virtual_temperature", section="kinds")) == {
+        "kinds.VirtualTemperature"
+    }
+    found = CATALOG.search(output="virtual_temperature").refs
+    assert "formulations.bechtold2015_virtual_temperature" in found
+    found = CATALOG.search(input="air_density").refs
+    assert found == ("formulations.bechtold2015_virtual_temperature_definition",)
+
+
 def test_variables_whatever_their_notation() -> None:
     expected = {
         "formulations.mass_concentration_ideal_gas",

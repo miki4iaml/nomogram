@@ -219,6 +219,16 @@ SCALE_CF_NAMES: tuple[str, ...] = (
     "sea_water_absolute_salinity",
 )
 
+#: CF standard names of the quantity kinds the catalog declares (catalog
+#: `[kinds]`), kept in the frozen subset so that the catalog can check
+#: them.
+LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
+    "virtual_temperature",
+    "air_potential_temperature",
+    "air_equivalent_potential_temperature",
+    "air_density",
+)
+
 #: Symbols nomogram displays instead of QUDT's, with the reason.
 SYMBOLS: dict[str, str] = {
     # QUDT writes "PPM"; the SI Brochure (9th ed., 5.4.7) and ITU-R P.453
@@ -444,7 +454,7 @@ def extract(
     units = extract_units(units_graph, date)
     kinds = extract_kinds(kinds_graph, units, unit_kinds(units_graph), date)
     cf_names = {n for spec in KINDS.values() for n in spec.cf_standard_names}
-    cf_names |= set(SCALE_CF_NAMES)
+    cf_names |= set(SCALE_CF_NAMES) | set(LOCAL_KIND_CF_NAMES)
     cf_version, cf = extract_cf(cf_path, cf_names)
     return {
         "sources": {

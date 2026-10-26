@@ -320,6 +320,17 @@ def test_a_local_kind_may_declare_an_interval_scale() -> None:
         load_catalog([document + 'scale_type = "ordinal"\n'])
 
 
+def test_a_local_kind_may_carry_cf_standard_names() -> None:
+    assert CATALOG.kinds["VirtualTemperature"].cf_standard_names == (
+        "virtual_temperature",
+    )
+    assert CATALOG.kinds["DensityOfMoistAir"].cf_standard_names == ("air_density",)
+    assert CATALOG.kinds["VirtualPotentialTemperature"].cf_standard_names == ()
+    document = KIND.format(name="Local", parent="ThermodynamicTemperature")
+    with pytest.raises(CatalogError, match="not in the frozen CF subset: no_such_name"):
+        load_catalog([document + 'cf_standard_names = ["no_such_name"]\n'])
+
+
 def test_table_expected() -> None:
     with pytest.raises(CatalogError, match="expected a table"):
         load_catalog(["[formulations]\nf = 1\n"])

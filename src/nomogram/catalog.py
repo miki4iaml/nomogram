@@ -752,7 +752,7 @@ class _Builder:
                 where,
                 table,
                 ("label", "specialization_of"),
-                ("description", "matches", "scale_type"),
+                ("description", "matches", "scale_type", "cf_standard_names"),
             )
             if name in self.kinds:
                 msg = f"{where}: already a QUDT kind"
@@ -766,6 +766,15 @@ class _Builder:
             scale_type = parent.scale_type
             if f["scale_type"] is not None:
                 scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
+            cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
+            unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
+            if unknown:
+                msg = (
+                    f"{where}.cf_standard_names: not in the frozen CF subset: "
+                    f"{', '.join(unknown)} "
+                    "(scripts/extract_semantics.py, LOCAL_KIND_CF_NAMES)"
+                )
+                raise CatalogError(msg)
             self.kinds[name] = QuantityKind(
                 name=name,
                 origin="nomogram",
@@ -775,7 +784,7 @@ class _Builder:
                 specialization_of=parent.name,
                 scale_type=scale_type,
                 delta=parent.delta and scale_type is ScaleType.RATIO,
-                cf_standard_names=(),
+                cf_standard_names=cf_names,
                 applicable_units=parent.applicable_units,
                 added_units=(),
                 matches=_matches(where, f["matches"]),
