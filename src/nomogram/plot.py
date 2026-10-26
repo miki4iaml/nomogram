@@ -30,6 +30,7 @@ never signed, so that plots stay reusable in a layout of one's own.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Literal
@@ -57,8 +58,17 @@ SIGNATURE_HEIGHT = 16.0
 #: factor, those of all the curves left on scale.
 _OFF_SCALE_RATIO = 3.0
 
-#: Entries beyond which a legend of short labels takes two columns.
+#: Entries beyond which a legend of short labels takes two columns, and
+#: the longest of them, in characters.
 _LEGEND_COLUMN = 10
+_SHORT_ENTRY = 30
+
+#: Largest deviations smaller than this share of the largest of all are
+#: rounding: they count as zero when curves go off scale.
+_NEGLIGIBLE = 1e-9
+
+#: A personal author, "Surname, I.": initials follow the comma.
+_INITIALS = re.compile(r",\s*[A-ZÀ-Þ][.-]")
 
 
 def _pyplot() -> Any:
@@ -73,7 +83,9 @@ def _pyplot() -> Any:
 def _axes(ax: Any) -> Any:
     if ax is not None:
         return ax
-    _, created = _pyplot().subplots()
+    # The tight layout makes room for labels of two lines, whatever size
+    # the figure is given later.
+    _, created = _pyplot().subplots(layout="tight")
     return created
 
 
@@ -105,9 +117,18 @@ def _abscissa(
             shown = "ThermodynamicTemperature"
         else:
             name, shown = "Temperature", ""
+    tex = _symbol_of(comparison, shown, notation)
+    if tex and tex[0] in "tT" and kind not in TEMPERATURE_POINTS:
+        # Another temperature point (a dew point) follows the values too:
+        # t_d in degC, T_d in K (ISO 80000-5).
+        absolute = not is_offset_unit(quantity.units)
+        if quantity.units == ureg.degC:
+            tex = "t" + tex[1:]
+        elif absolute and quantity.dimensionality == ureg.kelvin.dimensionality:
+            tex = "T" + tex[1:]
     label = _axis_text(
         name or _kind_name(shown),
-        _symbol_of(comparison, shown, notation),
+        tex,
         unit_text(quantity.units),
         _scale(comparison, kind if not shown else shown),
     )
@@ -187,31 +208,41 @@ def _label(comparison: Comparison, key: str) -> str:
 
 
 def _authors(text: str) -> str:
-    """The authors as a text cites them: Buck; Wagner and Pruß; Dickson et al."""
-    names = [author.split(",")[0].strip() for author in text.split(";")]
+    """The authors as a text cites them: Buck; Wagner and Pruß; Dickson et al.
+
+    A personal author keeps the surname ("Buck, A. L." is Buck); a body
+    keeps its whole name ("IOC, SCOR and IAPSO").
+    """
+    names = [
+        author.split(",")[0].strip() if _INITIALS.search(author) else author.strip()
+        for author in text.split(";")
+    ]
     return f"{names[0]} et al." if len(names) > 2 else " and ".join(names)
 
 
-def _sources(comparison: Comparison, key: str) -> list[str]:
-    """The citations of a formulation: authors, year, equation."""
+def _cited(comparison: Comparison, key: str) -> str | None:
+    """The first citation of a formulation: authors, year, equation.
+
+    ``None`` when the formulation cites nothing, or a reference the bundled
+    catalog does not hold (a personal one): a later citation would name
+    another source.
+    """
     from nomogram.catalog import catalog
 
-    references = catalog().references
-    citations: Iterable[Citation] = getattr(
-        comparison.formulations.get(key), "citations", ()
+    citations: tuple[Citation, ...] = tuple(
+        getattr(comparison.formulations.get(key), "citations", ())
     )
-    found = []
-    for citation in citations:
-        reference = references.get(citation.reference)
-        if reference is None:
-            continue
-        text = _authors(reference.authors)
-        if reference.year is not None:
-            text += f" ({reference.year})"
-        if citation.equation:
-            text += f", eq. {citation.equation}"
-        found.append(text)
-    return found
+    if not citations:
+        return None
+    reference = catalog().references.get(citations[0].reference)
+    if reference is None:
+        return None
+    text = _authors(reference.authors)
+    if reference.year is not None:
+        text += f" ({reference.year})"
+    if citations[0].equation:
+        text += f", eq. {citations[0].equation}"
+    return text
 
 
 def _names(comparison: Comparison, keys: Iterable[str]) -> dict[str, str]:
@@ -225,13 +256,13 @@ def _names(comparison: Comparison, keys: Iterable[str]) -> dict[str, str]:
     labels = {key: _label(comparison, key) for key in keys}
     if detail == "standard":
         return labels
-    sources = {key: _sources(comparison, key) for key in labels}
+    cited = {key: _cited(comparison, key) for key in labels}
     if detail == "full":
         return {
-            key: f"{label}\n{sources[key][0]}" if sources[key] else label
+            key: f"{label}\n{cited[key]}" if cited[key] else label
             for key, label in labels.items()
         }
-    short = {key: (sources[key] or [labels[key]])[0] for key in labels}
+    short = {key: cited[key] or labels[key] for key in labels}
     counts = Counter(short.values())
     return {
         key: short[key] if counts[short[key]] == 1 else labels[key] for key in labels
@@ -241,11 +272,18 @@ def _names(comparison: Comparison, keys: Iterable[str]) -> dict[str, str]:
 def _legend(ax: Any) -> None:
     """The legend: two columns of short labels when they are many.
 
-    Longer labels in two columns would be wider than the axes.
+    Only when every entry is short: a label kept on a collision, or a note
+    that a curve is off scale, would make two columns wider than the axes.
+    No legend without a curve (a formulation compared with itself alone).
     """
-    entries = len(ax.get_legend_handles_labels()[1])
-    short = get_display_options().legend_detail == "short"
-    ax.legend(fontsize="small", ncols=2 if short and entries > _LEGEND_COLUMN else 1)
+    labels = ax.get_legend_handles_labels()[1]
+    if not labels:
+        return
+    short = get_display_options().legend_detail == "short" and all(
+        len(label) <= _SHORT_ENTRY for label in labels
+    )
+    columns = 2 if short and len(labels) > _LEGEND_COLUMN else 1
+    ax.legend(fontsize="small", ncols=columns)
 
 
 def _off_scale(curves: Mapping[str, Any]) -> dict[str, float]:
@@ -255,7 +293,8 @@ def _off_scale(curves: Mapping[str, Any]) -> dict[str, float]:
     split where one exceeds the previous by more than three times, in the
     upper half: the curves above the largest such split go off scale, so
     that they do not flatten the others. At least half of the curves stay
-    on scale.
+    on scale. A curve equal to the reference to rounding (a largest
+    deviation below a billionth of the largest of all) splits nothing.
     """
     peaks = {}
     for key, values in curves.items():
@@ -264,10 +303,11 @@ def _off_scale(curves: Mapping[str, Any]) -> dict[str, float]:
             peaks[key] = float(finite[np.argmax(np.abs(finite))])
     order = sorted(peaks, key=lambda key: abs(peaks[key]))
     sizes = [abs(peaks[key]) for key in order]
+    floor = _NEGLIGIBLE * max(sizes, default=0.0)
     splits = [
         (sizes[i + 1] / sizes[i], i)
         for i in range((len(sizes) + 1) // 2 - 1, len(sizes) - 1)
-        if sizes[i] > 0
+        if sizes[i] > floor
     ]
     ratio, index = max(splits, default=(0.0, 0))
     if ratio <= _OFF_SCALE_RATIO:
@@ -296,14 +336,16 @@ def plot_deviations(
     input_kind: str | None = None,
     ax: Any = None,
     signature: bool = True,
-    off_scale: bool = True,
+    off_scale: bool | None = None,
 ) -> Any:
     """Plot the relative deviation of each formulation from the reference, in %.
 
     A curve whose largest deviation exceeds those of all the others by more
     than three times is drawn off scale: the y axis holds the others, the
     curve leaves it, and its legend entry says how far it goes. At least
-    half of the curves stay on scale.
+    half of the curves stay on scale. On axes given through ``ax``, which
+    may hold other curves, the limits are left to the caller unless
+    ``off_scale`` is true.
 
     Parameters
     ----------
@@ -317,9 +359,10 @@ def plot_deviations(
     signature : bool
         Sign the figure with the logo (:func:`sign`) when the function
         creates it; a figure given through ``ax`` is never signed.
-    off_scale : bool
+    off_scale : bool, optional
         Draw off scale the curves standing far above the others; ``False``
-        holds every curve on the y axis.
+        holds every curve on the y axis. By default, only on axes the
+        function creates.
 
     Returns
     -------
@@ -341,7 +384,7 @@ def plot_deviations(
         for key, deviation in comparison.relative_deviations.items()
         if key != comparison.reference
     }
-    off = _off_scale(curves) if off_scale else {}
+    off = _off_scale(curves) if (created if off_scale is None else off_scale) else {}
     names = _names(comparison, curves)
     for index, (key, values) in enumerate(curves.items()):
         label = _off_scale_label(names[key], off[key]) if key in off else names[key]
@@ -356,8 +399,8 @@ def plot_deviations(
         ax.set_ylim(low - margin, high + margin)
     ax.set_xlabel(x_label)
     label = _label(comparison, comparison.reference)
-    cited = _sources(comparison, comparison.reference)
-    name = f"Relative deviation from {cited[0] if cited else label}"
+    cited = _cited(comparison, comparison.reference)
+    name = f"Relative deviation from {cited or label}"
     ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
     _legend(ax)
     if created and signature:
@@ -392,7 +435,8 @@ def plot_values(
         creates it; a figure given through ``ax`` is never signed.
     yscale : {"auto", "linear", "log"}
         Scale of the y axis; ``"auto"`` is logarithmic when every value is
-        positive and they span more than two decades, linear otherwise.
+        positive and they span more than two decades, linear otherwise, and
+        leaves the scale of axes given through ``ax`` as it is.
 
     Returns
     -------
@@ -425,12 +469,12 @@ def plot_values(
             else _style(index)
         )
         ax.plot(x, values, label=names[key], **style)
-    chosen: str = yscale
-    if yscale == "auto":
+    if yscale != "auto":
+        ax.set_yscale(yscale)
+    elif created:
         # Points of an interval scale (degC) have no ratio: never logarithmic.
         offset = is_offset_unit(comparison.values[comparison.reference].units)
-        chosen = "linear" if offset else _values_scale(curves.values())
-    ax.set_yscale(chosen)
+        ax.set_yscale("linear" if offset else _values_scale(curves.values()))
     reference = comparison.formulations.get(comparison.reference)
     unit = unit_text(comparison.values[comparison.reference].units)
     if reference is not None:
@@ -458,7 +502,8 @@ def sign(figure: Any, *, axes: Any = None, height: float = SIGNATURE_HEIGHT) -> 
     The logo is drawn with matplotlib artists, ``height`` points high
     whatever the size of the figure, and stays vector in SVG and PDF. Its
     colours follow the background of the figure, light or dark. It takes
-    no part in the layout, and no setting of matplotlib is changed.
+    no part in the layout, but a figure saved with ``bbox_inches="tight"``
+    keeps it whole; no setting of matplotlib is changed.
 
     Parameters
     ----------
@@ -517,7 +562,6 @@ def sign(figure: Any, *, axes: Any = None, height: float = SIGNATURE_HEIGHT) -> 
             frameon=False,
             pad=0.0,
         )
-    box.set_in_layout(False)
     figure.add_artist(box)
     return box
 

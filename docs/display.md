@@ -78,7 +78,8 @@ formulation took the values as given, on the scale it was fitted on.
 The mark joins a subscript of the symbol, braced or not (`T_d` gives
 T_d,90). A temperature axis follows the values plotted: in °C a Celsius
 temperature t, in K or °R a thermodynamic temperature T, in °F simply a
-temperature. Names are in sentence case, as the SI and ISO 80000 write
+temperature; another temperature point takes the letter of its unit too
+(a dew point t_d in °C, T_d in K). Names are in sentence case, as the SI and ISO 80000 write
 them ("Celsius temperature"); units take the catalog's symbols (a
 temperature difference in °C, never Δ°C).
 
@@ -114,10 +115,13 @@ or `"full"`, independently of the other:
 | `"standard"` (default) | Celsius temperature t₉₀/°C | Relative deviation from IAPWS (1992) δ/% | Magnus form in kelvins (Bechtold 2015) |
 | `"full"` | the same, then *on the International Temperature Scale of 1990 (ITS-90)* | the same, then the label of the reference | the label, then *Bechtold (2015), eq. 54* |
 
-- A short entry is the first citation of the formulation: its authors,
-  the year and the equation when the catalog records it. Two formulations
-  of the plot that would share it keep their labels (Buck (1981) gives
-  two). A legend of more than ten short entries takes two columns.
+- A short entry is the first citation of the formulation: its authors
+  (a body keeps its whole name, *IOC, SCOR and IAPSO*), the year and the
+  equation when the catalog records it. A formulation keeps its label
+  when it cites nothing, when its first source is not in the bundled
+  catalog (a personal one), or when another formulation of the plot
+  would share the entry (Buck (1981) gives two). A legend of more than
+  ten short entries, none longer than 30 characters, takes two columns.
 - A full label takes a second line: the scale of an axis spelled out,
   the full label of the reference, the first citation of a formulation.
   It suits a plot of a few curves.
@@ -147,7 +151,10 @@ entry says how far it goes (*off scale, up to 26.7 %*). The largest
 deviations, sorted, are split at their largest such jump in the upper
 half, so at least half of the curves stay on scale. In the figure of the
 README, the two forms with a constant latent heat reach 27 %, and the
-others stay within 4.3 %. `off_scale=False` holds every curve.
+others stay within 4.3 %. `off_scale=False` holds every curve. On axes
+given through `ax`, which may hold curves of one's own, the limits are
+left as they are unless `off_scale=True`; `plot_values` likewise leaves
+their scale unless `yscale` names one.
 
 `plot_values` plots on a logarithmic scale values that are all positive
 and span more than two decades, a saturation vapour pressure from −60 to
@@ -158,10 +165,12 @@ ratio: both stay on a linear scale. The relative deviation of values in
 
 ### Signature
 
-The figures that `plot_values` and `plot_deviations` create are signed
-with the logo, at the right edge, on the line of the x-axis label: the
-signature follows that label and stays below the tick labels whatever
-the layout. `signature=False` leaves it out, and a figure given through
+The figures that `plot_values` and `plot_deviations` create take the
+tight layout of matplotlib, which makes room for labels of two lines
+whatever size the figure is given later, and are signed with the logo,
+at the right edge, on the line of the x-axis label: the signature
+follows that label and stays below the tick labels whatever the layout.
+A figure saved with `bbox_inches="tight"` keeps it whole. `signature=False` leaves it out, and a figure given through
 `ax` is never signed, so that a plot keeps its place in a layout of one's
 own. `sign` signs any figure, and returns the signature: an artist, which
 `remove()` takes off. Its colours follow the background of the figure,
