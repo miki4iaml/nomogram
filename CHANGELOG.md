@@ -103,6 +103,16 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- Definitions and identities: a formulation may be true by definition
+  or an exact consequence of definitions (`nature`), with the conditions
+  under which it holds (`conditions`). The latent heat of fusion as that
+  of sublimation minus that of vaporization is the first, cited to
+  Bechtold (2015, equation 40) and Ambaum (2020).
+- Formulations derived by nomogram: a composition, branches or calls
+  without a citation of their own are derived (`Formulation.derived`),
+  said so in the legend, counted by the indicators, and found by
+  `search(provenance="derived")`. The latent heat of fusion of the ECMWF
+  IFS, which the IFS does not print, is derived from its latent heats.
 - The specific latent heats of vaporization and of melting of Ambaum
   (2020), linear in temperature, with the units and the 0-100 degC
   range the article states, and the quantity kind

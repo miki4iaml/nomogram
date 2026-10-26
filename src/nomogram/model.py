@@ -66,6 +66,7 @@ __all__ = [
     "Derivation",
     "DomainBasis",
     "Formulation",
+    "FormulationNature",
     "Notation",
     "OutOfDomainError",
     "Part",
@@ -806,6 +807,17 @@ class ConstantNature(Enum):
     MEASURED = "measured"
 
 
+class FormulationNature(Enum):
+    """What makes a formulation hold, when no fit nor model does."""
+
+    #: True by definition (the definition of a quantity, cited to a text
+    #: that defines it): it holds without a validity domain.
+    DEFINITION = "definition"
+    #: An exact consequence of definitions (the latent heat of fusion as
+    #: that of sublimation minus that of vaporization).
+    IDENTITY = "identity"
+
+
 @dataclass(frozen=True)
 class PhysicalConstant:
     """A constant with a metrological status, and its source.
@@ -1131,6 +1143,12 @@ class Formulation:
         expression as written.
     written : str or None
         The expression as written, with its calls; ``None`` without calls.
+    nature : FormulationNature or None
+        For a definition or an identity, which; ``None`` for a formula a
+        source gives (a fit, a model).
+    conditions : str or None
+        Conditions under which it holds, as stated (the same temperature
+        and pressure).
     """
 
     key: str
@@ -1152,11 +1170,23 @@ class Formulation:
     branches: tuple[Branch, ...] = ()
     calls: tuple[Call, ...] = ()
     written: str | None = None
+    nature: FormulationNature | None = None
+    conditions: str | None = None
 
     @property
     def references(self) -> tuple[str, ...]:
         """Keys of the cited sources, in order, without repetition."""
         return tuple(dict.fromkeys(c.reference for c in self.citations))
+
+    @property
+    def derived(self) -> bool:
+        """Whether nomogram derived it from others, no source printing it.
+
+        A composition, a formulation by branches or one calling others,
+        without a citation of its own, or an inversion: its provenance is
+        its :attr:`derivation`, never a citation.
+        """
+        return self.derivation is not None and not self.citations
 
     @property
     def domains(self) -> tuple[ValidityDomain, ...]:

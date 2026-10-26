@@ -98,6 +98,11 @@ FIELDS: Mapping[str, str] = {
     "equation": "the equation number of a citation, with source= in the same citation",
     "family": "the family the entry belongs to",
     "keyword": "a keyword of a formulation or a family",
+    "nature": "the nature of a formulation: definition or identity",
+    "provenance": (
+        "where a formulation comes from: cited (a source gives it) or derived "
+        "(by nomogram, from others)"
+    ),
 }
 
 # Greek letters by character, after case folding; variants and the micro
@@ -344,6 +349,8 @@ def _formulation(
         _kind_text(catalog, f.output.kind),
         *(_join(r.key, r.authors, r.title, r.year) for r in references),
         _matches_text(f.matches),
+        f.nature.value if f.nature is not None else None,
+        f.conditions,
     )
     inputs = tuple(_variable_words(catalog, f, v) for v in f.inputs)
     output = _variable_words(catalog, f, f.output)
@@ -387,11 +394,19 @@ def _formulation(
             "input": inputs,
             "variable": (output, *inputs, *others),
             "keyword": tuple(words(k) for k in f.keywords),
+            "nature": (words(f.nature.value),) if f.nature is not None else (),
+            "provenance": _provenance(f),
         },
         kinds=(f.output.kind,),
         citations=citations,
         symbols=symbols,
     )
+
+
+def _provenance(formulation: Formulation) -> tuple[frozenset[str], ...]:
+    if formulation.derived:
+        return (words("derived"),)
+    return (words("cited"),) if formulation.citations else ()
 
 
 def _sourced(

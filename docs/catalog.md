@@ -111,7 +111,7 @@ All sections are optional; a key may be defined in one file only.
 |---|---|---|
 | `[catalog]` (one per file) | `name`, `format` | `label`, `requires`, `matches`, `keywords` |
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
-| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
@@ -326,6 +326,52 @@ inputs = [
   inputs in `search(input=...)` (a search for a dew point input finds
   it), and the coefficients it calls in `search(symbol=...)`, by the name
   they are written with.
+
+### Definitions, identities and derived formulations
+
+A formulation may be a definition, true by definition, or an identity,
+an exact consequence of definitions, rather than a fit or a model. It
+says so with `nature`, and is cited, as any formulation, to a text that
+prints it:
+
+```toml
+[formulations.latent_heat_fusion_identity]
+label = "Specific latent heat of fusion, as that of sublimation minus that of vaporization"
+nature = "identity"
+expression = "L_s - L_v"
+fixed_units = false
+conditions = "Both latent heats at the same temperature, the specific enthalpy of each phase depending on temperature only (Bechtold, equation 39)."
+...
+[[formulations.latent_heat_fusion_identity.citations]]
+reference = "bechtold2015"
+equation = "40"
+```
+
+- **`nature`**: `"definition"` or `"identity"`; absent for a formula a
+  source fits or models. A definition or an identity has no empirical
+  coefficient, no domain stated by a source, and is a quantity equation
+  (`fixed_units = false`).
+- **`conditions`**: under which it holds, as stated (the same
+  temperature); any formulation may have them. The legend shows them.
+- **Derived by nomogram**: a composition, a formulation by branches or
+  one calling others, without a citation of its own, is derived by
+  nomogram from formulations that are cited. The latent heat of fusion of
+  the IFS, which the IFS does not print, is the identity above composed
+  with its latent heats of sublimation and vaporization:
+
+  ```toml
+  [formulations.ecmwf_ifs_latent_heat_fusion]
+  label = "Specific latent heat of fusion, linear in temperature, from the latent heats of the ECMWF IFS"
+  composition = { outer = "latent_heat_fusion_identity", inner = { L_s = "ecmwf_ifs_latent_heat_sublimation", L_v = "ecmwf_ifs_latent_heat_vaporization" } }
+  ```
+
+  Its provenance is its derivation, never a citation:
+  `Formulation.derived` is true, the legend says that no source prints
+  it, and the indicators count such formulations. Cite a printed source
+  whenever one gives the formula; derive only when none does.
+- `search(nature="identity")` finds the identities,
+  `search(provenance="derived")` the formulations derived by nomogram,
+  `search(provenance="cited")` those a source gives.
 
 ### Formulations by branches
 
