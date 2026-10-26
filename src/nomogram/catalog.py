@@ -56,6 +56,8 @@ from nomogram.expression import (
     parse_expression,
 )
 from nomogram.model import (
+    Assumption,
+    AssumptionStatus,
     Branch,
     Call,
     CheckCase,
@@ -632,6 +634,18 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
         ),
     }
 )
+
+
+def _texts(where: str, items: Any) -> tuple[str, ...]:
+    """A list of non-empty strings."""
+    if items is None:
+        return ()
+    if not isinstance(items, list) or not all(
+        isinstance(t, str) and t.strip() for t in items
+    ):
+        msg = f"{where}: expected a list of non-empty strings"
+        raise CatalogError(msg)
+    return tuple(items)
 
 
 def _nature(where: str, value: Any) -> FormulationNature | None:
@@ -1399,6 +1413,7 @@ class _Builder:
                     "scales",
                     "accuracy",
                     "note",
+                    "assumptions",
                 ),
             )
             reference = self.reference(f"{w}.reference", f["reference"])
@@ -1436,9 +1451,47 @@ class _Builder:
                     scales=MappingProxyType(scales),
                     accuracy=f["accuracy"],
                     note=f["note"],
+                    assumptions=_texts(f"{w}.assumptions", f["assumptions"]),
                 )
             )
         return tuple(result)
+
+    def assumptions(self, where: str, items: Any) -> tuple[Assumption, ...]:
+        """Assumptions noted on a formulation, those its sources do not state."""
+        if items is None:
+            return ()
+        if not isinstance(items, list):
+            msg = f"{where}: expected a list of {{ text, status }} tables"
+            raise CatalogError(msg)
+        found = []
+        for i, item in enumerate(items):
+            w = f"{where}[{i}]"
+            f = _fields(w, item, ("text", "status"), ("reference",))
+            (text,) = _texts(f"{w}.text", [f["text"]])
+            try:
+                status = AssumptionStatus(f["status"])
+            except ValueError:
+                status = None
+            if status is None or status is AssumptionStatus.STATED:
+                known = ", ".join(
+                    s.value
+                    for s in AssumptionStatus
+                    if s is not AssumptionStatus.STATED
+                )
+                msg = (
+                    f"{w}.status: expected one of {known}; an assumption the "
+                    "source states goes in its citation"
+                )
+                raise CatalogError(msg)
+            reference = self.optional_reference(f"{w}.reference", f["reference"])
+            if (reference is None) == (status is AssumptionStatus.STATED_BY_OTHER):
+                msg = (
+                    f"{w}: a reference is given for, and only for, an assumption "
+                    "stated by another source"
+                )
+                raise CatalogError(msg)
+            found.append(Assumption(text, status, reference))
+        return tuple(found)
 
     def citation_notation(
         self, where: str, value: Any, formulation: str, reference: str, names: set[str]
@@ -1479,6 +1532,7 @@ class _Builder:
                 "keywords",
                 "nature",
                 "conditions",
+                "assumptions",
             ),
         )
         output = self.variable(f"{where}.output", f["output"])
@@ -1544,6 +1598,9 @@ class _Builder:
             keywords=_keywords(f"{where}.keywords", f["keywords"]),
             nature=nature,
             conditions=f["conditions"],
+            noted_assumptions=self.assumptions(
+                f"{where}.assumptions", f["assumptions"]
+            ),
         )
         self.check(where, formulation)
         return formulation
@@ -2302,10 +2359,16 @@ class _Builder:
         f = _fields(
             where,
             table,
-            ("kind", "subject", "object", "citation"),
-            ("accuracy", "at", "bounds", "given", "scale", "note"),
+            ("kind", "subject", "object"),
+            ("citation", "accuracy", "at", "bounds", "given", "scale", "note"),
         )
         kind = _enum(f"{where}.kind", RelationKind, f["kind"])
+        if f["citation"] is None and kind is RelationKind.APPROXIMATES:
+            msg = (
+                f"{where}: an approximation states its source; nomogram computes "
+                "only equivalences and proportionalities"
+            )
+            raise CatalogError(msg)
         ends = []
         for role in ("subject", "object"):
             if f[role] not in formulations:
@@ -2374,11 +2437,17 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             if given:
-                msg = f"{where}.given: only for an equivalence"
+                msg = f"{where}.given: only for an equivalence or a proportionality"
                 raise CatalogError(msg)
         else:
             if f["accuracy"] is not None:
                 msg = f"{where}.accuracy: only for an approximation"
+                raise CatalogError(msg)
+            if kind is RelationKind.PROPORTIONAL and set(bounds) != names:
+                msg = (
+                    f"{where}: a proportionality is checked on a domain: bound "
+                    f"every input of {subject.key}"
+                )
                 raise CatalogError(msg)
             others = {v.identifier for v in other.inputs}
             for identifier, source in given.items():
@@ -2398,7 +2467,7 @@ class _Builder:
             kind=kind,
             subject=subject.key,
             object=other.key,
-            citation=self.reference(f"{where}.citation", f["citation"]),
+            citation=self.optional_reference(f"{where}.citation", f["citation"]),
             accuracy=accuracy,
             at=MappingProxyType(at),
             bounds=bounds,
@@ -2414,8 +2483,9 @@ class _Builder:
         """An equivalence is proved on the expressions as written: same units.
 
         The output, and every input of the object with the subject inputs
-        feeding it (matched, or used by its ``given`` expression), must be
-        in the same unit; conversions in ``given`` are not supported.
+        feeding it, must be in the same unit, unless a ``given`` expression
+        states the conversion with a number (``t = "T - 273.16"``,
+        ``P = "100 * p"``): ``P - e`` converts nothing.
         """
         units = {v.identifier: v.unit for v in subject.inputs}
         matched = match_inputs(subject, other)
@@ -2425,6 +2495,8 @@ class _Builder:
         for variable in other.inputs:
             if variable.identifier in given:
                 expr = parse_expression(str(given[variable.identifier]), sorted(units))
+                if any(abs(n) != 1 for n in expr.atoms(sympy.Number)):
+                    continue  # a number states the conversion (P - e has -1 only)
                 sources = sorted(s.name for s in expr.free_symbols)
             else:
                 sources = [matched[variable.identifier]]
@@ -2707,10 +2779,10 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
     elif section == "cross_checks":
         for case in table["cases"]:
             add("formulations", case["formulation"])
-    elif section == "relations":
+    elif section == "relations":  # a computed relation has no citation
         add("formulations", table["subject"])
         add("formulations", table["object"])
-        add("references", table["citation"])
+        add("references", table.get("citation"))
     elif section == "scales":
         for kind in table["kinds"]:
             add("kinds", kind)
@@ -3222,8 +3294,14 @@ def _verdicts(write: bool) -> str:
         computed, reused = record(loaded)
         lines.append(f"registry written: {computed} computed, {reused} reused")
     for key in sorted(loaded.relations):
-        found = verdict(loaded.relations[key], loaded)
-        value = "" if found.value is None else f" {found.value:.4g} %"
+        relation = loaded.relations[key]
+        found = verdict(relation, loaded)
+        if found.value is None:
+            value = ""
+        elif relation.kind is RelationKind.PROPORTIONAL:
+            value = f" factor {found.value:.8g}"
+        else:
+            value = f" {found.value:.4g} %"
         lines.append(f"{key}: {found.status}{value}")
     for key in sorted(loaded.cross_checks):
         check = loaded.cross_checks[key]

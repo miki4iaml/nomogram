@@ -55,6 +55,8 @@ if TYPE_CHECKING:
     from nomogram.display import Rendering
 
 __all__ = [
+    "Assumption",
+    "AssumptionStatus",
     "Branch",
     "Call",
     "CheckCase",
@@ -572,21 +574,38 @@ class ScaleConversionError(ValueError):
 
 
 class RelationKind(Enum):
-    """What a relation between two formulations states."""
+    """What a relation between two formulations states.
+
+    An equivalence is the narrowest: a proportionality of factor 1. An
+    approximation is on another axis, a bounded deviation; a
+    proportionality of factor k implies a constant relative deviation
+    of |1 - k|.
+    """
 
     #: The subject equals the object, possibly given substitutions.
     EQUIVALENT = "equivalent"
     #: The subject approximates the object within a stated deviation.
     APPROXIMATES = "approximates"
+    #: The subject equals the object times a constant factor, possibly
+    #: given substitutions (Murray 1967 and Tetens 1930, whose constants
+    #: C differ).
+    PROPORTIONAL = "proportional"
+
+    @property
+    def broader(self) -> RelationKind | None:
+        """The looser kind it implies: an equivalence is a proportionality."""
+        return RelationKind.PROPORTIONAL if self is RelationKind.EQUIVALENT else None
 
 
 @dataclass(frozen=True)
 class Relation:
-    """A relation between two formulations, as a source states it.
+    """A relation between two formulations, as a source states it or nomogram proves it.
 
-    A relation is a claim, cited: nomogram verifies it
-    (:func:`nomogram.relations.verify`) but never invents one. Deviations
-    nomogram computes are observations (:func:`nomogram.comparison.compare`).
+    A relation is a claim, cited, which nomogram verifies
+    (:func:`nomogram.relations.verify`); or, without a citation, an
+    equivalence or a proportionality nomogram computes and proves, exactly
+    or to the printed precision of the coefficients. Deviations nomogram
+    computes are observations (:func:`nomogram.comparison.compare`).
 
     Attributes
     ----------
@@ -596,8 +615,9 @@ class Relation:
         Equivalence or approximation.
     subject, object : str
         Keys of the two formulations.
-    citation : str
-        Key of the source that states the relation.
+    citation : str or None
+        Key of the source that states the relation; ``None`` for a
+        relation computed by nomogram (see :attr:`computed`).
     accuracy : float or None
         For an approximation, the maximum relative deviation the source
         states, in percent.
@@ -608,8 +628,9 @@ class Relation:
         Domain over which the source states it, by input identifier of the
         subject, in the input's unit.
     given : mapping of str to str
-        For an equivalence, inputs of the object expressed with those of
-        the subject (``{"P_d": "P - e"}``).
+        For an equivalence or a proportionality, inputs of the object
+        expressed with those of the subject (``{"P_d": "P - e"}``); the
+        expression may convert a unit (``{"t": "T - 273.16"}``).
     scale : {"convert", "ignore"}
         How the formulations are evaluated for the claim: with conversion
         of conventional scales, or as given, each on its own scale.
@@ -621,7 +642,7 @@ class Relation:
     kind: RelationKind
     subject: str
     object: str
-    citation: str
+    citation: str | None
     accuracy: float | None = None
     at: Mapping[str, float] = field(default_factory=lambda: MappingProxyType({}))
     bounds: Mapping[str, tuple[float, float]] = field(
@@ -630,6 +651,11 @@ class Relation:
     given: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     scale: ScaleConversion = "convert"
     note: str | None = None
+
+    @property
+    def computed(self) -> bool:
+        """Whether nomogram computes it, no source stating it."""
+        return self.citation is None
 
 
 @dataclass(frozen=True)
@@ -960,6 +986,8 @@ class Citation:
         Accuracy the source claims, as stated.
     note : str or None
         Remark on this citation.
+    assumptions : tuple of str
+        Assumptions the source states for the formula, as stated.
     """
 
     reference: str
@@ -972,6 +1000,40 @@ class Citation:
     )
     accuracy: str | None = None
     note: str | None = None
+    assumptions: tuple[str, ...] = ()
+
+
+class AssumptionStatus(Enum):
+    """How an assumption of a formulation is known."""
+
+    #: Stated by the source that gives the formula (in its citation).
+    STATED = "stated"
+    #: Stated by another source, about the formula (a review, a guide).
+    STATED_BY_OTHER = "stated-by-other"
+    #: Deduced from the form of the formula, its coefficients or its kinds.
+    DEDUCED = "deduced"
+    #: Suspected, not established: to be checked.
+    SUSPECTED = "suspected"
+
+
+@dataclass(frozen=True)
+class Assumption:
+    """An assumption under which a formulation holds.
+
+    Attributes
+    ----------
+    text : str
+        The assumption.
+    status : AssumptionStatus
+        How it is known.
+    reference : str or None
+        Key of the source that states it; ``None`` when deduced or
+        suspected.
+    """
+
+    text: str
+    status: AssumptionStatus
+    reference: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1149,6 +1211,10 @@ class Formulation:
     conditions : str or None
         Conditions under which it holds, as stated (the same temperature
         and pressure).
+    noted_assumptions : tuple of Assumption
+        Assumptions its sources do not state, noted with their status
+        (stated by another source, deduced, suspected); see
+        :attr:`assumptions`.
     """
 
     key: str
@@ -1172,11 +1238,22 @@ class Formulation:
     written: str | None = None
     nature: FormulationNature | None = None
     conditions: str | None = None
+    noted_assumptions: tuple[Assumption, ...] = ()
 
     @property
     def references(self) -> tuple[str, ...]:
         """Keys of the cited sources, in order, without repetition."""
         return tuple(dict.fromkeys(c.reference for c in self.citations))
+
+    @property
+    def assumptions(self) -> tuple[Assumption, ...]:
+        """Its assumptions: those its sources state, then those noted."""
+        stated = tuple(
+            Assumption(text, AssumptionStatus.STATED, c.reference)
+            for c in self.citations
+            for text in c.assumptions
+        )
+        return stated + self.noted_assumptions
 
     @property
     def derived(self) -> bool:

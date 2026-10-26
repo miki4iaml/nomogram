@@ -103,6 +103,20 @@ and this project adheres to
   with the triple point temperature T_0 of the IFS and the quantity kind
   `SpecificLatentHeat` (that of QUDT, ahead of its release), specialized
   for vaporization and sublimation.
+- Proportionalities: a relation may state that a formulation equals
+  another times a constant factor. nomogram proves it, or holds it to the
+  printed precision of the coefficients, and says what the factor is the
+  ratio of, whether the two are equal to the printed precision, and
+  whether a shift or a factor of a temperature or a salinity would explain
+  it. An equivalence or a proportionality without a citation is computed
+  by nomogram. A `given` expression may convert a unit. Murray (1967) is
+  Tetens (1930) in kelvins, to the printed precision.
+- Assumptions: a citation lists those its source states; a formulation
+  notes the others with their status (stated by another source, deduced,
+  suspected). The legend shows them and `search(assumption=...)` finds
+  them. First ones: the constant specific heats of the IFS and Ambaum
+  latent heats, the ideal gas and the enhancement factor left out where
+  e = RH e_s, the 0 degC at 273.16 K of Goff and Gratch and Murray.
 - `docs/rosetta.md` maps the terms of nomogram to MathModDB and Wikidata
   (defining formulas, symbols tied to quantities, sources, approximations),
   with only the correspondences checked in MathModDB 2.0.0 and Wikidata.
@@ -188,6 +202,10 @@ and this project adheres to
 
 ### Fixed
 
+- Murray (1967), over water and over ice, is Tetens (1930) rewritten in
+  kelvins, with 0 degC written 273.16 K: its T_0 was described as the
+  triple point. Likewise, the 273.16 K of Goff and Gratch over ice is
+  their 0 degC, not the triple point.
 - `Catalog.uses` and `used_by` failed with an obscure error when given a
   formulation. They now take a formulation of the catalog as well as its
   reference `formulations.<key>` or a search entry, and refuse any other

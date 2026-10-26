@@ -99,6 +99,7 @@ FIELDS: Mapping[str, str] = {
     "family": "the family the entry belongs to",
     "keyword": "a keyword of a formulation or a family",
     "nature": "the nature of a formulation: definition or identity",
+    "assumption": "an assumption of a formulation, stated or noted",
     "provenance": (
         "where a formulation comes from: cited (a source gives it) or derived "
         "(by nomogram, from others)"
@@ -351,6 +352,7 @@ def _formulation(
         _matches_text(f.matches),
         f.nature.value if f.nature is not None else None,
         f.conditions,
+        *(a.text for a in f.assumptions),
     )
     inputs = tuple(_variable_words(catalog, f, v) for v in f.inputs)
     output = _variable_words(catalog, f, f.output)
@@ -395,6 +397,7 @@ def _formulation(
             "variable": (output, *inputs, *others),
             "keyword": tuple(words(k) for k in f.keywords),
             "nature": (words(f.nature.value),) if f.nature is not None else (),
+            "assumption": tuple(words(a.text) for a in f.assumptions),
             "provenance": _provenance(f),
         },
         kinds=(f.output.kind,),
@@ -526,10 +529,11 @@ def _records(catalog: Catalog) -> list[_Record]:
         )
     for key, rel in catalog.relations.items():
         label = f"{rel.subject} {rel.kind.value} {rel.object}"
+        provenance = "computed by nomogram" if rel.computed else None
         records.append(
             _Record(
                 Entry("relations", key, label, rel),
-                words(_join(key, label, rel.note)),
+                words(_join(key, label, rel.note, provenance)),
                 {},
                 citations=_sourced(catalog, rel.citation),
             )

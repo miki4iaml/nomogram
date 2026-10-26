@@ -111,7 +111,7 @@ All sections are optional; a key may be defined in one file only.
 |---|---|---|
 | `[catalog]` (one per file) | `name`, `format` | `label`, `requires`, `matches`, `keywords` |
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
-| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
@@ -373,6 +373,35 @@ equation = "40"
   `search(provenance="derived")` the formulations derived by nomogram,
   `search(provenance="cited")` those a source gives.
 
+### Assumptions
+
+A formula holds under assumptions its source does not always state: an
+ideal gas, constant specific heats, the saturation vapour pressure of
+pure water rather than of moist air, a former Kelvin temperature. They
+are written, never turned into a validity domain without a criterion:
+
+```toml
+[formulations.mass_concentration_ideal_gas]
+...
+assumptions = [
+  { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
+]
+
+[[formulations.ecmwf_ifs_latent_heat_vaporization.citations]]
+reference = "ecmwf_ifs_cy49r1"
+assumptions = ["The specific heat of liquid water is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
+```
+
+- An assumption the source states belongs to its citation, as a list of
+  texts: its status is *stated*.
+- Any other goes on the formulation, with its `status`:
+  `"stated-by-other"` (stated about the formula by another source, whose
+  `reference` is given), `"deduced"` (from the form of the formula, its
+  coefficients or its kinds) or `"suspected"` (to be checked).
+- `Formulation.assumptions` gives them all, stated first; the legend
+  lists them with their status; `search(assumption="ideal gas*")` finds
+  the formulations that assume an ideal gas.
+
 ### Formulations by branches
 
 When the pieces of a [piecewise definition](#piecewise-definitions) are
@@ -427,6 +456,8 @@ states:
 - `scales`: conventional scales the source states for inputs
   (`{ T = "its90" }`);
 - `accuracy`: the accuracy the source claims, as stated;
+- `assumptions`: the assumptions the source states for the formula,
+  as a list of texts (see [assumptions](#assumptions));
 - `note`;
 - `domains`: validity domains the source states, as
   `[[formulations.<key>.citations.domains]]` tables with `bounds` and
@@ -616,14 +647,15 @@ matches = [
 ## Relations
 
 A relation records what a **source states** between two formulations of
-the same quantity kind; nomogram verifies it
-(`nomogram.relations.verify`), but never invents one. A deviation
+the same quantity kind, which nomogram verifies
+(`nomogram.relations.verify`), or, without a citation, an equivalence or
+a proportionality that nomogram computes and proves. A deviation
 nomogram computes without a source is an observation
 (`nomogram.comparison.compare`), not a relation.
 
 ```toml
 [relations.ae96_aekr_gg46]
-kind = "approximates"                 # or "equivalent"
+kind = "approximates"                 # or "equivalent", "proportional"
 subject = "alduchov_eskridge1996"
 object = "goff1957"
 citation = "alduchov_eskridge1996"    # the source that states it
@@ -644,6 +676,23 @@ note = "Table III, r_g."
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or
   *unproven*.
+- **`proportional`**: the subject equals the object times a constant
+  factor. Proved on the ratio, simplified to a constant (*proven*), or
+  sampled on `bounds`, which every input of the subject needs: *held*
+  when the rounding of a printed coefficient explains its variation,
+  *refuted* otherwise. The verdict gives the factor, the coefficients it
+  is the ratio of, whether the two are equal to the printed precision,
+  and whether a shift or a factor of a temperature or a salinity would
+  explain it (a matter of scale). An equivalence is a proportionality of
+  factor 1 (`RelationKind.broader`).
+- **Computed by nomogram**: an equivalence or a proportionality without
+  a `citation` is one nomogram computes; its verdict proves it or holds
+  it, and searching for "computed by nomogram" finds it. An approximation
+  always cites its source.
+- **`given`** may convert a unit, the expression stating the conversion
+  (`given = { t = "T - 273.16" }` feeds a Celsius temperature from a
+  kelvin one, with 0 degC at 273.16 K as Murray writes it); a bare
+  identifier in another unit is refused.
 - A claim that cannot be checked as it stands is *unverified*, with the
   reason: an equivalence between formulations on different scales under
   `scale = "convert"`, an approximation evaluable at no point of its

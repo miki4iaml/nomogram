@@ -408,7 +408,11 @@ sources = ["cengel_boles"]
 label = "Mass concentration of water vapour, ideal gas law"
 expression = "RH * e_s / (R_v * T)"
 fixed_units = false
-note = "Water vapour treated as an ideal gas; e_s must be taken at the temperature T."
+conditions = "e_s at the temperature T."
+assumptions = [
+  { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
+  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.23 % at 300 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5).", status = "deduced" },
+]
 output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Mass concentration of water vapour (absolute humidity, meteorological sense)" }
 inputs = [
   { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
@@ -429,6 +433,9 @@ output = { identifier = "e", kind = "VapourPressure", unit = "PA", description =
 inputs = [
   { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
   { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]
+assumptions = [
+  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.23 % at 300 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5).", status = "deduced" },
 ]
 
 [formulations.mixing_ratio_from_vapour_pressure]
@@ -688,12 +695,16 @@ inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 constants = ["L_v0_ecmwf_ifs", "c_pv_ecmwf_ifs", "c_l_ecmwf_ifs", "T_0_ecmwf_ifs"]
+assumptions = [
+  { text = "The specific heat of water vapour is constant (c_pv = 4 R_v).", status = "deduced" },
+]
 keywords = ["latent heat", "Kirchhoff"]
 
 [[formulations.ecmwf_ifs_latent_heat_vaporization.citations]]
 reference = "ecmwf_ifs_cy49r1"
 equation = "12.1"
 notation = { L_v0 = 'L_{\mathrm{v}}(T_0)' }
+assumptions = ["The specific heat of liquid water is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
 
 [formulations.ecmwf_ifs_latent_heat_sublimation]
 label = "Specific latent heat of sublimation, linear in temperature, ECMWF IFS"
@@ -705,12 +716,16 @@ inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 constants = ["L_s0_ecmwf_ifs", "c_pv_ecmwf_ifs", "c_s_ecmwf_ifs", "T_0_ecmwf_ifs"]
+assumptions = [
+  { text = "The specific heat of water vapour is constant (c_pv = 4 R_v).", status = "deduced" },
+]
 keywords = ["latent heat", "Kirchhoff"]
 
 [[formulations.ecmwf_ifs_latent_heat_sublimation.citations]]
 reference = "ecmwf_ifs_cy49r1"
 equation = "12.2"
 notation = { L_s0 = 'L_{\mathrm{s}}(T_0)' }
+assumptions = ["The specific heat of ice is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
 
 # Latent heats of Ambaum (2020), specific heats taken as constant.
 
@@ -730,6 +745,7 @@ keywords = ["latent heat", "Kirchhoff"]
 reference = "ambaum2020"
 equation = "15"
 notation = { L_v = "L", Delta_c = '\left(c_{\mathrm{pl}} - c_{\mathrm{pv}}\right)' }
+assumptions = ["Water vapour as an ideal gas, so that c_pv is constant, which is 'only approximately valid' from 0 to 100 degC (p. 4254)."]
 units = { L_0 = "J-PER-KiloGM", Delta_c = "J-PER-KiloGM-K", T_0 = "K" }
 
 [[formulations.ambaum2020_latent_heat_vaporization.citations.domains]]
@@ -751,6 +767,7 @@ keywords = ["latent heat", "Kirchhoff", "melting"]
 [[formulations.ambaum2020_latent_heat_fusion.citations]]
 reference = "ambaum2020"
 notation = { c_l = 'c_{\mathrm{pl}}', c_i = 'c_{\mathrm{pi}}' }
+assumptions = ["The heat capacities of liquid water and ice are taken as constant, at their triple-point values (p. 4256)."]
 note = "Unnumbered, in the text below equation 20 (p. 4256); L_m0, c_pl and c_pi are the triple-point values of the caption of Figure 4, T_0 that of equations 14 and 19."
 units = { L_m0 = "J-PER-KiloGM", c_l = "J-PER-KiloGM-K", c_i = "J-PER-KiloGM-K", T_0 = "K" }
 

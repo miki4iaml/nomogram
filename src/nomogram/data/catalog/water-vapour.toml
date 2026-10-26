@@ -440,17 +440,20 @@ reference = "voemel_vp"
 label = "Magnus-Tetens form, Murray (1967)"
 expression = "C * exp(A * (T - T_0) / (T - B))"
 fixed_units = true
-note = "Written in kelvin with an offset of 273.16 K (the triple point), not 273.15 K: at the triple point it gives C exactly."
+note = "Tetens (1930) rewritten in kelvins: A = 7.5 ln 10 and B = 273.16 - 237.3, so that T - T_0 is the Celsius temperature of Tetens. C = 6.1078 hPa is the value at T_0, that of Goff and Gratch (1946) at 0 degC; T_0 is not the triple point."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+assumptions = [
+  { text = "0 degC is taken as 273.16 K (T_0), as by Goff and Gratch (1946), whose steam point is 373.16 K; the triple point being 273.16 K since 1954, 0 degC is now 273.15 K.", status = "deduced" },
 ]
 
 [formulations.murray1967.coefficients]
 A = 17.269388
 B = 35.86
 C = 6.1078
-T_0 = { value = 273.16, note = "Triple point of water" }
+T_0 = { value = 273.16, note = "0 degC, written 273.16 K (see the assumptions)" }
 
 [[formulations.murray1967.citations]]
 reference = "murray1967"
@@ -491,6 +494,9 @@ matches = [
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+assumptions = [
+  { text = "0 degC is taken as 273.16 K and the steam point as 373.16 K, a Kelvin temperature of before 1954; the triple point being 273.16 K since 1954, 0 degC is now 273.15 K.", status = "deduced" },
 ]
 
 [formulations.goff_gratch1946.coefficients]
@@ -594,13 +600,16 @@ output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = 
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
 ]
+assumptions = [
+  { text = "0 degC is taken as 273.16 K and the steam point as 373.16 K, a Kelvin temperature of before 1954; the triple point being 273.16 K since 1954, 0 degC is now 273.15 K.", status = "deduced" },
+]
 
 [formulations.goff_gratch1946_ice.coefficients]
 c1 = -9.09718
 c2 = -3.56654
 c3 = 0.876793
 T_0 = 273.16
-e_i0 = { value = 6.1071, unit = "HectoPA", unit_basis = "added", note = "Saturation pressure over ice at the triple point. Unit added: Vömel gives the bare number, and inside log10 the expression cannot tell a pressure in hPa from a pure number." }
+e_i0 = { value = 6.1071, unit = "HectoPA", unit_basis = "added", note = "Saturation pressure over ice at T_0 = 273.16 K, 0 degC on the scale of the formula, not the triple point. Unit added: Vömel gives the bare number, and inside log10 the expression cannot tell a pressure in hPa from a pure number." }
 
 [[formulations.goff_gratch1946_ice.citations]]
 reference = "goff_gratch1946"
@@ -695,6 +704,9 @@ note = "As quoted by Vömel. Departs from the IAPWS equation by about -1.9 % at 
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+assumptions = [
+  { text = "0 degC is taken as 273.16 K (T_0), as by Goff and Gratch (1946), whose steam point is 373.16 K; the triple point being 273.16 K since 1954, 0 degC is now 273.15 K.", status = "deduced" },
 ]
 
 [formulations.murray1967_ice.coefficients]
@@ -802,6 +814,15 @@ reference = "voemel_vp"
 # Alduchov and Eskridge (1996), Table III: maximum relative errors (%) over
 # -40..50 degC, against GG46 in its triple-point form (goff1957) and SO90,
 # with the temperature of the maximum; the formulas are compared as given.
+
+# Computed by nomogram: Murray rewrote Tetens in kelvins.
+[relations.murray1967_tetens1930]
+kind = "proportional"
+subject = "murray1967"
+object = "tetens1930"
+given = { t = "T - 273.16" }
+bounds = { T = [233.15, 323.15] }
+note = "Tetens with 0 degC written 273.16 K, A = 7.5 ln 10 printed to six decimals and C given as 6.1078 rather than 6.11; checked from -40 to 50 degC."
 
 [relations.ae96_te30_gg46]
 kind = "approximates"
