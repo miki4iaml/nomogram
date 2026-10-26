@@ -333,6 +333,21 @@ and this project adheres to
 
 ### Fixed
 
+- Figures:
+  - a short legend entry or the deviation axis named a later source when
+    the first is personal: the formulation keeps its label; a body keeps
+    its whole name (IOC, SCOR and IAPSO, not IOC);
+  - the figures `plot_values` and `plot_deviations` create take the
+    tight layout, so labels of two lines stay on them;
+  - a legend takes two columns only when all its short entries are short
+    (none kept on a collision, none off scale);
+  - on axes given through `ax`, the off-scale limits and the automatic
+    logarithmic scale are left to the caller, who may have drawn there;
+  - a curve equal to the reference to rounding no longer sends another
+    off scale;
+  - a dew point plotted in kelvins is T_d, not t_d;
+  - a figure saved with `bbox_inches="tight"` keeps the whole signature;
+  - a deviation plot without a curve draws no empty legend.
 - Scales and units:
   - an input in per mille on PSS-78, which became a scale of numbers in
     this version, loaded and was read 1000 times too large: a scale of

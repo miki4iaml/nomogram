@@ -217,10 +217,11 @@ def test_labels_follow_the_detail_option(comparison: Comparison) -> None:
     assert values.get_ylabel() == r"$e_{\mathrm{s}}$/Pa"
     assert "Bechtold (2015), eq. 54" in legend(ax)
     assert "IAPWS (1992)" in legend(values)
-    assert ax.get_legend()._ncols == 2
-    # Two formulations citing first Sonntag (1990) keep their labels.
+    # Two formulations citing first Sonntag (1990) keep their labels, too
+    # long for two columns.
     assert "Magnus form, Sonntag (1990) coefficients" in legend(ax)
     assert "Sonntag (1990) formulation over water (SO90)" in legend(ax)
+    assert ax.get_legend()._ncols == 1
     # Full: a second line, the scale of an axis, the reference's label and
     # the first citation of each formulation.
     with display_options(axis_detail="full", legend_detail="full"):
@@ -276,6 +277,15 @@ inputs = [{ identifier = "T", kind = "ThermodynamicTemperature", unit = "K", des
 
 [[formulations.twice.citations]]
 reference = "elsewhere"
+
+# A key the bundled catalog holds too: never cited in place of the first.
+[references.buck1981]
+authors = "Someone, S."
+title = "Not Buck"
+status = "verified"
+
+[[formulations.twice.citations]]
+reference = "buck1981"
 """
         ]
     ).formulations["twice"]
@@ -285,6 +295,138 @@ reference = "elsewhere"
     for detail in ("short", "full"):
         with display_options(legend_detail=detail):
             assert legend(plot_values(found)) == ["Twice"]
+    assert (
+        plot_deviations(found).get_ylabel().startswith("Relative deviation from Twice")
+    )
+
+
+def test_a_body_keeps_its_whole_name() -> None:
+    from nomogram.plot import _authors
+
+    assert _authors("IOC, SCOR and IAPSO") == "IOC, SCOR and IAPSO"
+    assert _authors("Feistel, R.; IOC, SCOR and IAPSO") == (
+        "Feistel and IOC, SCOR and IAPSO"
+    )
+
+
+def test_two_columns_only_for_short_entries() -> None:
+    from nomogram.plot import _legend
+
+    def columns(labels: list[str]) -> int:
+        _, ax = plt.subplots()
+        for label in labels:
+            ax.plot([0, 1], [0, 1], label=label)
+        with display_options(legend_detail="short"):
+            _legend(ax)
+        found: Any = ax.get_legend()
+        return int(found._ncols)
+
+    short = [f"Author{i} (2000)" for i in range(11)]
+    assert columns(short) == 2
+    assert columns([*short[:10], "A label kept on a collision, too long"]) == 1
+    assert columns(short[:10]) == 1
+
+
+def test_a_dew_point_in_kelvins_takes_a_capital_t() -> None:
+    dew = load_catalog(
+        [
+            """
+[references.src]
+authors = "A."
+title = "T"
+status = "verified"
+
+[formulations.from_dew]
+label = "From a dew point"
+expression = "2 * t_d"
+fixed_units = true
+output = { identifier = "q", kind = "Pressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.from_dew.citations]]
+reference = "src"
+"""
+        ]
+    ).formulations["from_dew"]
+    # In degF, neither: the symbol is left as the formulation writes it.
+    for unit, values, letter in (
+        ("K", [270.0, 280.0], "T"),
+        ("degC", [-3.0, 7.0], "t"),
+        ("degF", [27.0, 45.0], "t"),
+    ):
+        found = compare([dew], dew, {"DewPointTemperature": Q_(values, unit)})
+        label = plot_values(found).get_xlabel()
+        assert f"${letter}_" in label, label
+
+
+def test_a_source_without_a_year_is_cited_by_its_authors() -> None:
+    from types import SimpleNamespace
+
+    from nomogram.model import Citation
+    from nomogram.plot import _cited
+
+    undated = next(r for r in CATALOG.references.values() if r.year is None)
+    cites = SimpleNamespace(citations=(Citation(reference=undated.key),))
+    found = Comparison("x", {}, {}, {}, {"x": cites})
+    assert _cited(found, "x") == undated.authors.split(",")[0].strip()
+
+
+def test_the_axes_of_a_caller_keep_their_limits_and_scale() -> None:
+    # Off-scale limits and a logarithmic scale would hide or squeeze what
+    # the caller drew there.
+    temperatures = Q_(np.linspace(-60, 110, 69), "degC")
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
+    _, ax = plt.subplots()
+    plot_deviations(table, ax=ax)
+    assert ax.get_ylim()[1] > 26
+    assert not [t for t in legend(ax) if "off scale" in t]
+    _, ax = plt.subplots()
+    assert plot_deviations(table, ax=ax, off_scale=True).get_ylim()[1] < 5
+    _, ax = plt.subplots()
+    assert plot_values(table, ax=ax).get_yscale() == "linear"
+    assert plot_values(table, ax=ax, yscale="log").get_yscale() == "log"
+
+
+def test_a_curve_equal_to_the_reference_to_rounding_splits_nothing() -> None:
+    x = Q_(np.array([1.0, 2.0]), "K")
+    deviations = {
+        "r": np.zeros(2),
+        "a": np.array([2e-18, 0.0]),
+        "b": np.array([0.005, 0.0]),
+    }
+    found = Comparison(
+        "r",
+        {"ThermodynamicTemperature": x},
+        {k: Q_(np.ones(2), "Pa") for k in deviations},
+        deviations,
+    )
+    assert not [t for t in legend(plot_deviations(found)) if "off scale" in t]
+
+
+def test_labels_of_two_lines_stay_on_the_figure(comparison: Comparison) -> None:
+    with display_options(axis_detail="full"):
+        ax = plot_deviations(comparison)
+    figure = ax.figure
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    canvas = figure.bbox
+    for text in (ax.xaxis.label, ax.yaxis.label):
+        box = text.get_window_extent(renderer)
+        assert canvas.x0 <= box.x0, text.get_text()
+        assert box.x1 <= canvas.x1, text.get_text()
+        assert canvas.y0 <= box.y0, text.get_text()
+        assert box.y1 <= canvas.y1, text.get_text()
+
+
+def test_a_tight_bounding_box_keeps_the_signature(comparison: Comparison) -> None:
+    ax = plot_deviations(comparison)
+    figure = ax.figure
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    (mark,) = signatures(figure)
+    tight = figure.get_tightbbox(renderer)
+    logo = mark.get_window_extent(renderer)
+    assert logo.x1 / figure.dpi <= tight.x1 + 1e-6
 
 
 def test_curves_far_above_the_others_go_off_scale() -> None:
@@ -476,9 +618,8 @@ def test_sign_draws_the_whole_logo_and_changes_no_setting() -> None:
     before = dict(matplotlib.rcParams)
     mark = sign(plt.figure(), height=30.0)
     assert dict(matplotlib.rcParams) == before
-    # Without axes, at the bottom right corner; no part in the layout.
+    # Without axes, at the bottom right corner.
     assert isinstance(mark, AnchoredOffsetbox)
-    assert not mark.get_in_layout()
     shapes, width, height = _logo.logo()
     assert len(drawing(mark).get_children()) == len(shapes)
     assert drawing(mark).height == 30.0
