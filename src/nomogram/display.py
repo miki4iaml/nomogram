@@ -591,7 +591,7 @@ def axis_label(
     Notes
     -----
     A compound unit goes in parentheses in the quotient (``(g/m³)``,
-    ``(Pa⋅s)``); a number has no unit (``[1]`` in the explicit style);
+    ``(Pa·s)``); a number has no unit (``[1]`` in the explicit style);
     the scale subscript joins an existing subscript; without a name, the
     slash stands apart (``Height / km``); with neither name nor symbol,
     the unit stands alone (``[Pa]`` in the explicit and simple styles).
