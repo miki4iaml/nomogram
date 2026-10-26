@@ -23,10 +23,12 @@ belongs to a notation. See ``docs/rosetta.md`` for the vocabulary.
 from __future__ import annotations
 
 import ast
+import math
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
+from types import MappingProxyType
 from typing import Any
 
 import sympy
@@ -50,18 +52,18 @@ __all__ = [
 ]
 
 #: Functions allowed in a formula, by the name used in the source text.
-FUNCTIONS: Mapping[str, Callable[[Any], Any]] = {
-    "exp": sympy.exp,
-    "ln": sympy.log,
-    "log10": log10,
-    "sqrt": sympy.sqrt,
-}
+FUNCTIONS: Mapping[str, Callable[[Any], Any]] = MappingProxyType(
+    {
+        "exp": sympy.exp,
+        "ln": sympy.log,
+        "log10": log10,
+        "sqrt": sympy.sqrt,
+    }
+)
 
 #: Mathematical constants allowed in a formula, by name. Their names are
 #: reserved: no identifier may take them.
-CONSTANTS: Mapping[str, Any] = {
-    "pi": sympy.pi,
-}
+CONSTANTS: Mapping[str, Any] = MappingProxyType({"pi": sympy.pi})
 
 #: Name of the piecewise definition, ``piecewise((expr, condition), ...)``;
 #: reserved like the functions.
@@ -98,6 +100,10 @@ _COMPARISONS: Mapping[type[ast.cmpop], Any] = {
 
 #: Longest accepted source text, to bound parsing work.
 MAX_SOURCE_LENGTH = 2000
+
+#: Most decimal digits of a power of two numbers, which SymPy computes
+#: exactly when the formula is read: 9 ** 9 ** 9 would never end.
+_MAX_POWER_DIGITS = 1000
 
 _GREEK = (
     "alpha",
@@ -179,13 +185,24 @@ _BINARY_OPERATORS: Mapping[type[ast.operator], Callable[[Any, Any], Any]] = {
     ast.Sub: lambda a, b: a - b,
     ast.Mult: lambda a, b: a * b,
     ast.Div: lambda a, b: a / b,
-    ast.Pow: lambda a, b: a**b,
+    ast.Pow: lambda a, b: _power(a, b),
 }
 
 _UNARY_OPERATORS: Mapping[type[ast.unaryop], Callable[[Any], Any]] = {
     ast.USub: lambda a: -a,
     ast.UAdd: lambda a: a,
 }
+
+
+def _power(base: Any, exponent: Any) -> Any:
+    """A power, refused when two numbers would give too many digits."""
+    numbers = isinstance(base, sympy.Number) and isinstance(exponent, sympy.Number)
+    if numbers and abs(base) not in (0, 1):
+        digits = abs(float(exponent)) * abs(float(sympy.log(abs(base), 10)))
+        if digits > _MAX_POWER_DIGITS:
+            msg = f"power of two numbers beyond {_MAX_POWER_DIGITS} digits"
+            raise ExpressionError(msg)
+    return base**exponent
 
 
 class ExpressionError(ValueError):
@@ -240,14 +257,17 @@ def parse_expression(source: str, names: Iterable[str], *, exact: bool = False) 
         if not name.isidentifier() or reserved:
             msg = f"invalid or reserved name: {name!r}"
             raise ExpressionError(msg)
+    symbols = {name: sympy.Symbol(name, real=True) for name in allowed}
+    number = sympy.Rational if exact else sympy.Float
     try:
         tree = ast.parse(source.strip(), mode="eval")
+        return _build(tree.body, symbols, number)
     except SyntaxError as exc:
         msg = f"invalid syntax: {exc.msg}"
         raise ExpressionError(msg) from None
-    symbols = {name: sympy.Symbol(name, real=True) for name in allowed}
-    number = sympy.Rational if exact else sympy.Float
-    return _build(tree.body, symbols, number)
+    except RecursionError:
+        msg = "expression nested too deeply"
+        raise ExpressionError(msg) from None
 
 
 def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
@@ -262,6 +282,9 @@ def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
         # bool is a subclass of int: refuse it explicitly.
         if isinstance(value, bool) or not isinstance(value, int | float):
             msg = f"unsupported constant: {value!r}"
+            raise ExpressionError(msg)
+        if not math.isfinite(value):
+            msg = f"number too large: {value!r}"
             raise ExpressionError(msg)
         return sympy.Integer(value) if isinstance(value, int) else number(repr(value))
     if isinstance(node, ast.Name):

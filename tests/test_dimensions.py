@@ -130,9 +130,26 @@ coefficients = { a = 2.0 }
 """
 
 
+@pytest.mark.parametrize(
+    ("unit", "text"),
+    [
+        # Products as the SI Brochure writes them: never two solidi.
+        ("g * K / hPa / m ** 3", "g·K·hPa⁻¹·m⁻³"),
+        ("1 / delta_degC ** 2 / hPa", "°C⁻²·hPa⁻¹"),
+        # An exponent that is not whole, after a caret.
+        ("mmHg / permille ** 1.5", "mmHg·‰^-1.5"),
+        ("K ** -0.5", "K^-0.5"),
+        # A unit of the catalog keeps its symbol.
+        ("J / (kg * K)", "J/(kg·K)"),
+    ],
+)
+def test_units_are_written_as_products(unit: str, text: str) -> None:
+    assert unit_text(ureg.Unit(unit)) == text
+
+
 def test_pi_is_a_pure_number_in_unit_inference() -> None:
     f = load_catalog([PI]).formulations["f"]
-    assert unit_text(f.coefficient_units["a"].unit) == "hPa/°C"
+    assert unit_text(f.coefficient_units["a"].unit) == "hPa·°C⁻¹"
     assert f.evaluate(t=Q_(1, "degC")).to("hPa").magnitude == pytest.approx(2 * math.pi)
 
 

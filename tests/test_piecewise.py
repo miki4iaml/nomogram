@@ -822,6 +822,14 @@ def test_one_formulation_may_serve_two_branches() -> None:
             ),
             "undeclared name",
         ),
+        # A condition pasted into the definition would add a piece.
+        (
+            branched(
+                '{ formulation = "ice", where = "t < 0), (1, t > 100" }, '
+                '{ formulation = "water", where = "t >= 0" }'
+            ),
+            "expected one condition",
+        ),
         (
             branched(
                 '{ formulation = "ice", where = "t < 5" }, '

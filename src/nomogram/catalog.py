@@ -101,7 +101,7 @@ from nomogram.semantics import (
     QuantityKind,
     semantic_catalog,
 )
-from nomogram.units import Q_, ScaleType, is_offset_unit
+from nomogram.units import Q_, ScaleType, is_offset_unit, ureg
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -380,6 +380,11 @@ def _number(where: str, value: Any) -> float:
     return float(value)
 
 
+def _dimensionality(expression: str) -> Any:
+    """The dimension of a unit expression, a scaling factor left aside (CF 1e-3)."""
+    return (Q_(1.0) * ureg.parse_expression(expression)).dimensionality
+
+
 def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
     """A finite number, written as a number or as decimal text.
 
@@ -393,10 +398,12 @@ def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
         number = Decimal(value.strip())
     except InvalidOperation:
         number = None
-    if number is None or not number.is_finite() or value != value.strip():
+    # Decimal("1e400") is finite, its float is not.
+    found = float(number) if number is not None and number.is_finite() else math.inf
+    if not math.isfinite(found) or value != value.strip():
         msg = f"{where}: expected a finite decimal number, not {value!r}"
         raise CatalogError(msg)
-    return float(number), value
+    return found, value
 
 
 def _check_pieces(where: str, formulation: Formulation) -> None:
@@ -750,49 +757,84 @@ class _Builder:
         return str(name)
 
     def build_kinds(self) -> None:
-        for name, table in self.data["kinds"].items():
-            where = f"kinds.{name}"
-            f = _fields(
-                where,
-                table,
-                ("label", "specialization_of"),
-                ("description", "matches", "scale_type", "cf_standard_names"),
-            )
-            if name in self.kinds:
-                msg = f"{where}: already a QUDT kind"
-                raise CatalogError(msg)
-            parent = self.kinds.get(f["specialization_of"])
-            if parent is None:
-                msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
-                raise CatalogError(msg)
-            # A kind may be on an interval scale under a ratio-scale parent:
-            # the modified refractivity M has a conventional origin.
-            scale_type = parent.scale_type
-            if f["scale_type"] is not None:
-                scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
-            cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
-            unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
-            if unknown:
+        # A kind may specialize another kind of the catalog, whatever the
+        # order of the families: each is built after its parent.
+        pending = dict(self.data["kinds"])
+        while pending:
+            ready = [
+                name
+                for name, table in pending.items()
+                if not isinstance(table, dict)
+                or table.get("specialization_of") not in pending
+            ]
+            if not ready:
                 msg = (
-                    f"{where}.cf_standard_names: not in the frozen CF subset: "
-                    f"{', '.join(unknown)} "
-                    "(scripts/extract_semantics.py, LOCAL_KIND_CF_NAMES)"
+                    f"kinds: specializations form a cycle: {', '.join(sorted(pending))}"
                 )
                 raise CatalogError(msg)
-            self.kinds[name] = QuantityKind(
-                name=name,
-                origin="nomogram",
-                iri=None,
-                label=f["label"],
-                dimension_vector=parent.dimension_vector,
-                specialization_of=parent.name,
-                scale_type=scale_type,
-                delta=parent.delta and scale_type is ScaleType.RATIO,
-                cf_standard_names=cf_names,
-                applicable_units=parent.applicable_units,
-                added_units=(),
-                matches=_matches(where, f["matches"]),
+            for name in ready:
+                self.kind_entry(name, pending.pop(name))
+
+    def kind_entry(self, name: str, table: Any) -> None:
+        """A kind of the catalog, specializing a QUDT kind or another one."""
+        where = f"kinds.{name}"
+        f = _fields(
+            where,
+            table,
+            ("label", "specialization_of"),
+            ("description", "matches", "scale_type", "cf_standard_names"),
+        )
+        if name in self.kinds:
+            msg = f"{where}: already a QUDT kind"
+            raise CatalogError(msg)
+        parent = self.kinds.get(f["specialization_of"])
+        if parent is None:
+            msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
+            raise CatalogError(msg)
+        # A kind may be on an interval scale under a ratio-scale parent:
+        # the modified refractivity M has a conventional origin.
+        scale_type = parent.scale_type
+        if f["scale_type"] is not None:
+            scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
+        cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
+        unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
+        if unknown:
+            msg = (
+                f"{where}.cf_standard_names: not in the frozen CF subset: "
+                f"{', '.join(unknown)} "
+                "(scripts/extract_semantics.py, LOCAL_KIND_CF_NAMES)"
             )
+            raise CatalogError(msg)
+        # A CF name fits the dimension of the kind: its canonical unit
+        # is one of the kind's.
+        units = self.semantics.units
+        for cf_name in cf_names:
+            canonical = _dimensionality(self.semantics.cf_standard_names[cf_name].pint)
+            if not any(
+                canonical == _dimensionality(units[u].pint)
+                for u in parent.applicable_units
+                if u in units
+            ):
+                msg = (
+                    f"{where}.cf_standard_names: {cf_name} is in "
+                    f"{self.semantics.cf_standard_names[cf_name].canonical_units}, "
+                    f"no unit of {parent.name}"
+                )
+                raise CatalogError(msg)
+        self.kinds[name] = QuantityKind(
+            name=name,
+            origin="nomogram",
+            iri=None,
+            label=f["label"],
+            dimension_vector=parent.dimension_vector,
+            specialization_of=parent.name,
+            scale_type=scale_type,
+            delta=parent.delta and scale_type is ScaleType.RATIO,
+            cf_standard_names=cf_names,
+            applicable_units=parent.applicable_units,
+            added_units=(),
+            matches=_matches(where, f["matches"]),
+        )
 
     def build_references(self) -> None:
         for key, table in self.data["references"].items():
@@ -2135,7 +2177,7 @@ class _Builder:
         inside = sorted(
             {
                 cast("ast.Name", n.func).id  # found by name
-                for node in ast.walk(ast.parse(expression, mode="eval"))
+                for node in ast.walk(ast.parse(expression.strip(), mode="eval"))
                 if _named_call(node, {PIECEWISE})
                 for n in ast.walk(node)
                 if _named_call(n, aliases)
@@ -2331,11 +2373,17 @@ class _Builder:
 
         known_names = [*inputs, *owner, *constants]
         for index, (_, condition) in enumerate(branches):
+            w = f"{where}.branches[{index}].where"
             try:
-                parse_expression(f"{PIECEWISE}((0, {condition}))", known_names)
+                parsed = parse_expression(f"{PIECEWISE}((0, {condition}))", known_names)
             except (ExpressionError, TypeError) as exc:
-                msg = f"{where}.branches[{index}].where: {exc}"
+                msg = f"{w}: {exc}"
                 raise CatalogError(msg) from None
+            # The condition is pasted into the definition: "t < 0), (1, t > 5"
+            # would add a piece no branch gives.
+            if len(parsed.args) != 1:
+                msg = f"{w}: expected one condition, not {condition!r}"
+                raise CatalogError(msg)
         pieces = ", ".join(f"({p.expression}, {c})" for p, c in branches)
         names = {output.identifier} | set(known_names)
         variables = tuple(inputs.values())
@@ -3277,10 +3325,7 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
         (
             stated,
             "formulations with a validity domain",
-            sum(
-                bool(f.domains) or any(p.formulation.domains for p in f.parts)
-                for f in formulations
-            ),
+            sum(_reaches_domain(f) for f in formulations),
             len(formulations),
         ),
         (
@@ -3332,6 +3377,17 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
             len(references),
         ),
     ]
+
+
+def _reaches_domain(formulation: Formulation) -> bool:
+    """Whether a validity domain applies to a formulation, its own or a part's.
+
+    The reach of evaluation: parts (compositions, calls) and branches, at
+    any depth.
+    """
+    pieces = [p.formulation for p in formulation.parts]
+    pieces += [b.formulation for b in formulation.branches]
+    return bool(formulation.domains) or any(_reaches_domain(p) for p in pieces)
 
 
 def stats(loaded: Catalog | None = None) -> str:

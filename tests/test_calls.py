@@ -258,6 +258,11 @@ def test_calling_a_fixed_units_formulation_needs_fixed_units() -> None:
         rh(caller("100 * e_w(t=t_d) / e_w(t=t)", fixed=False))
 
 
+def test_an_expression_may_start_with_a_space() -> None:
+    # As in a formulation that calls none.
+    assert rh(caller(" 100 * e_w(t=t_d) / e_w(t=t)")).calls
+
+
 def test_double_underscores_are_kept_for_qualified_names() -> None:
     inputs = POINTS.replace('"t_d"', '"t__d"')
     with pytest.raises(CatalogError, match="'__' is kept"):
