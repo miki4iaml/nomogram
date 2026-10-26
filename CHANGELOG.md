@@ -237,6 +237,15 @@ and this project adheres to
   input. A frost point, a wet- or an ice-bulb temperature may be the point
   at which a called formulation is evaluated, as a dew point may. A
   formulation calling others may state its conditions.
+- The trade term "relative humidity" and its three meanings: the ratio of
+  mole fractions (CCT, WMO-No. 8 4.A.15), the ratio of the partial
+  pressure to the saturation vapour pressure of pure water (IUPAC,
+  textbooks), both of kind `RelativeHumidity`, and the ratio of the mixing
+  ratio to its saturation value, of the QUDT kind
+  `RelativeMassRatioOfVapour` (ISO 80000), which TEOS-10 calls the WMO
+  definition (3.40.2) and which WMO-No. 8 (2024) does not use. That ratio
+  is a formulation of its own, distinct from the WMO relative humidity in
+  mixing ratios (4.A.16).
 
 ### Changed
 

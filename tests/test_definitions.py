@@ -234,3 +234,21 @@ def test_the_wmo_states_how_far_e_w_may_stand_for_e_prime_w() -> None:
     stated = [a for a in found if a.reference == "wmo2024"]
     assert len(stated) == 1
     assert "within 0.5 %" in stated[0].text
+
+
+def test_the_mixing_ratio_over_its_saturation_value_is_not_the_wmo_relative_humidity() -> (
+    None
+):
+    # TEOS-10 calls r / r_sat the WMO relative humidity; WMO-No. 8 (4.A.16)
+    # writes the mole fraction ratio in mixing ratios, which differs.
+    ratio = CATALOG.formulations["teos10_relative_mass_ratio_of_vapour"]
+    wmo = CATALOG.formulations["wmo_relative_humidity_from_mixing_ratios"]
+    r, r_w = Q_(0.010, "kg/kg"), Q_(0.020, "kg/kg")
+    assert ratio.output.kind == "RelativeMassRatioOfVapour"
+    assert ratio.evaluate(r=r, r_w=r_w).magnitude == pytest.approx(0.5)
+    expected = 100 * 0.010 * (0.62198 + 0.020) / (0.020 * (0.62198 + 0.010))
+    assert wmo.evaluate(r=r, r_w=r_w).magnitude == pytest.approx(expected)
+    assert expected > 50.7
+    # At saturation both give saturation.
+    assert ratio.evaluate(r=r_w, r_w=r_w).magnitude == pytest.approx(1)
+    assert wmo.evaluate(r=r_w, r_w=r_w).magnitude == pytest.approx(100)

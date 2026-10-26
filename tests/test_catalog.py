@@ -95,6 +95,23 @@ def test_trade_term_points_to_unambiguous_kinds() -> None:
     assert term.meanings[0].sources == ("ams_glossary",)
 
 
+def test_relative_humidity_has_three_meanings() -> None:
+    term = CATALOG.trade_terms["relative_humidity"]
+    assert [m.kind for m in term.meanings] == [
+        "RelativeHumidity",
+        "RelativeHumidity",
+        "RelativeMassRatioOfVapour",
+    ]
+    assert [m.sources for m in term.meanings] == [
+        ("wmo2024", "teos10_manual"),
+        ("teos10_manual", "bechtold2015"),
+        ("teos10_manual",),
+    ]
+    assert "relative_humidity" in [
+        e.key for e in CATALOG.search("relative humidity", section="trade_terms")
+    ]
+
+
 def test_minimal_valid_document() -> None:
     loaded = load_catalog([VALID])
     formulation = loaded.formulations["f"]

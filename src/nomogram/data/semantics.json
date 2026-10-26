@@ -507,6 +507,29 @@
       "scale_type": "ratio",
       "specialization_of": "RelativePartialPressure"
     },
+    "RelativeMassRatioOfVapour": {
+      "added_units": [
+        "PERCENT"
+      ],
+      "applicable_units": [
+        "PERCENT",
+        "UNITLESS"
+      ],
+      "cf_standard_names": [],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/RelativeMassRatioOfVapour",
+      "label": "Relative Mass Ratio of Vapour",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q76379414",
+          "verified": "2026-10-26"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "SpecificEnergy": {
       "added_units": [],
       "applicable_units": [

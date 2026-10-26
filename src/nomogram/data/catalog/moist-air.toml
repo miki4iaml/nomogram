@@ -543,6 +543,31 @@ kind = "MassRatioOfWaterVapourToDryGas"
 definition = "Mass of water vapour per mass of dry air."
 sources = ["cengel_boles"]
 
+[trade_terms.relative_humidity]
+term = "relative humidity"
+language = "en"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2499617", relation = "close", verified = 2026-10-26 },
+]
+
+[[trade_terms.relative_humidity.meanings]]
+community = "metrology (CCT), WMO"
+kind = "RelativeHumidity"
+definition = "Ratio of the mole fraction of water vapour to the one moist air would have if saturated with respect to water or ice, at the same pressure and temperature (WMO-No. 8, 4.A.15 and 4.A.17)."
+sources = ["wmo2024", "teos10_manual"]
+
+[[trade_terms.relative_humidity.meanings]]
+community = "chemistry (IUPAC), meteorology textbooks"
+kind = "RelativeHumidity"
+definition = "Ratio of the partial pressure of water vapour to the saturation vapour pressure of pure water at the same temperature, e / e_s."
+sources = ["teos10_manual", "bechtold2015"]
+
+[[trade_terms.relative_humidity.meanings]]
+community = "cloud physics textbooks, as TEOS-10 cites them"
+kind = "RelativeMassRatioOfVapour"
+definition = "Ratio of the mixing ratio to the saturation mixing ratio, r / r_sat, which TEOS-10 calls the WMO definition. WMO-No. 8 (2024) defines the relative humidity by mole fractions and writes it exactly in mixing ratios (4.A.16), which is not r / r_sat."
+sources = ["teos10_manual"]
+
 # --- Formulations -----------------------------------------------------
 
 [formulations.mass_concentration_ideal_gas]
@@ -1254,6 +1279,26 @@ keywords = ["humidity"]
 reference = "wmo2024"
 equation = "4.A.16"
 notation = { RH = "U_w" }
+
+# The ratio r / r_sat, which TEOS-10 calls the WMO relative humidity.
+[formulations.teos10_relative_mass_ratio_of_vapour]
+label = "Mixing ratio over the saturation mixing ratio, r / r_sat (TEOS-10, RH_WMO)"
+nature = "definition"
+expression = "r / r_w"
+fixed_units = false
+note = "TEOS-10 attributes this definition to the WMO, after Pruppacher and Klett (1997) and Jacobson (2005), and notes that it nears the mole fraction definition for small r. WMO-No. 8 (2024) defines the relative humidity by mole fractions (4.A.15) and writes it in mixing ratios as wmo_relative_humidity_from_mixing_ratios (4.A.16), which this ratio is not."
+output = { identifier = "psi", kind = "RelativeMassRatioOfVapour", unit = "UNITLESS", description = "Mixing ratio over the saturation mixing ratio" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio, at the same pressure and temperature" },
+]
+keywords = ["humidity", "relative humidity"]
+
+[[formulations.teos10_relative_mass_ratio_of_vapour.citations]]
+reference = "teos10_manual"
+equation = "3.40.2"
+notation = { psi = 'RH_{\mathrm{WMO}}', r_w = 'r^{\mathrm{sat}}' }
+note = "TEOS-10 takes r_sat with respect to liquid water above the freezing point of pure water, and to ice below."
 
 # Computed by nomogram: the two forms of 4.A.6.
 [relations.wmo_vapour_pressure_two_forms]
