@@ -187,10 +187,10 @@ note = "ECMWF training lecture notes, without a DOI and not indexed by Crossref 
 [references.metpy171]
 authors = "MetPy developers"
 year = 2025
-title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py)"
-url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/constants/default.py"
+title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py) and metpy.calc.thermo"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1/src/metpy"
 status = "verified"
-note = "epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol (0.6219569); MetPy 0.12 used 18.01528 and 28.9644 g/mol. Released 2025-08-29."
+note = "Read in the source: constants/default.py (epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol, 0.6219569; MetPy 0.12 used 18.01528 and 28.9644 g/mol; R, Rv = R / Mw, Cp_v = gamma Rv / (gamma - 1) with gamma = 1.330, Cp_l, Lv, sat_pressure_0c, T0); calc/thermo.py (water_latent_heat_vaporization, saturation_vapor_pressure with phase='liquid', psychrometric_vapor_pressure_wet). Released 2025-08-29."
 
 [references.iapws95]
 authors = "IAPWS"
@@ -242,6 +242,71 @@ identifier = "epsilon"
 value = 0.6219569
 unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+# The constants of MetPy behind its saturation vapour pressure; R_v and
+# c_pv are computed by MetPy, the values here from their definitions.
+[constants.R_metpy]
+identifier = "R"
+value = 8.314462618
+unit = "J-PER-MOL-K"
+description = "Molar gas constant of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.M_w_metpy]
+identifier = "M_w"
+value = 0.018015268
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of water of MetPy (18.015268 g/mol)"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.R_v_metpy]
+identifier = "R_v"
+value = "461.52312"
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour of MetPy"
+reference = "metpy171"
+nature = "conventional"
+definition = "R / M_w"
+constants = ["R_metpy", "M_w_metpy"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-26 },
+]
+
+[constants.gamma_v_metpy]
+identifier = "gamma_v"
+value = 1.330
+unit = "UNITLESS"
+description = "Ratio of the specific heats of water vapour of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.c_pv_metpy]
+identifier = "c_pv"
+value = "1860.0780"
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of water vapour at constant pressure of MetPy"
+reference = "metpy171"
+nature = "conventional"
+definition = "gamma_v * R_v / (gamma_v - 1)"
+constants = ["gamma_v_metpy", "R_v_metpy"]
+
+[constants.c_l_metpy]
+identifier = "c_l"
+value = 4219.4
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of liquid water of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.L_v0_metpy]
+identifier = "L_v0"
+value = 2.50084e6
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of vaporization of MetPy, at its reference temperature 273.16 K"
 reference = "metpy171"
 nature = "conventional"
 
@@ -1677,3 +1742,167 @@ given = { t = "T - 273.16" }
 bounds = { T = [233.15, 323.15] }
 scale = "ignore"
 note = "Buck (1981) with 0 degC written 273.16 K and C = 6.112 hPa rather than 6.1121; checked from -40 to 50 degC, the formulas compared as written."
+
+
+# MetPy 1.7.1: Ambaum (2020) equation 13 with MetPy's constants, and its
+# psychrometric vapour pressure.
+
+[formulations.metpy171_saturation_vapour_pressure]
+label = "Saturation vapour pressure over water of MetPy, Ambaum (2020) equation 13 with MetPy constants"
+expression = "e_s0 * (T_0 / T) ** ((c_l - c_pv) / R_v) * exp((L_v0 / T_0 - (L_v0 - (c_l - c_pv) * (T - T_0)) / T) / R_v)"
+fixed_units = false
+note = "The form of Ambaum (2020) equation 13, with the latent heat L_v0 - (c_l - c_pv)(T - T_0), but MetPy's constants rather than those Ambaum recommends (equation 14): e_s0 = 6.112 hPa against 611.655 Pa, c_l - c_pv = 2359 J kg-1 K-1 against 2180, L_v0 = 2.50084e6 J kg-1 against 2.501e6."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { e_s0 = 6.112, T_0 = 273.16 }
+constants = ["L_v0_metpy", "c_l_metpy", "c_pv_metpy", "R_v_metpy"]
+keywords = ["saturation", "Clausius-Clapeyron"]
+
+[[formulations.metpy171_saturation_vapour_pressure.citations]]
+reference = "metpy171"
+note = "saturation_vapor_pressure with phase='liquid' and water_latent_heat_vaporization, in metpy.calc.thermo; e_s0 is sat_pressure_0c, 6.112 millibar."
+units = { e_s0 = "HectoPA", T_0 = "K" }
+
+[formulations.metpy171_psychrometric_vapour_pressure]
+label = "Vapour pressure from a psychrometer with a wet bulb, MetPy default coefficient"
+expression = "e_s(T=T_w) - A * p * (T - T_w)"
+calls = { e_s = "metpy171_saturation_vapour_pressure" }
+fixed_units = false
+note = "The psychrometric formula of WMO-No. 8 (4.1) with MetPy's default psychrometer coefficient, 6.21e-4 K-1, which MetPy attributes to Fan (1987), and the saturation vapour pressure of pure water, without enhancement factor, at the wet-bulb temperature."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air (dry-bulb) temperature" },
+  { identifier = "T_w", kind = "WetBulbTemperature", unit = "K", description = "Wet-bulb temperature" },
+]
+coefficients = { A = 6.21e-4 }
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.metpy171_psychrometric_vapour_pressure.citations]]
+reference = "metpy171"
+note = "psychrometric_vapor_pressure_wet in metpy.calc.thermo, with psychrometer_coefficient left at its default."
+units = { A = "PER-K" }
+
+# The mixing ratio from the wet-bulb temperature, ASHRAE Handbook -
+# Fundamentals (2017), chapter 1, equations 33 and 35, as PsychroLib codes
+# them (GetHumRatioFromTWetBulb, SI branch).
+
+[formulations.ashrae2017_mixing_ratio_from_wet_bulb]
+label = "Humidity mixing ratio from a wet bulb above freezing (ASHRAE 2017)"
+expression = "((A - B * t_w) * W_s - C * (t - t_w)) / (A + D * t - E * t_w)"
+fixed_units = true
+note = "In kJ kg-1 and kJ kg-1 K-1, A is the latent heat of vaporization at 0 degC, C and D the specific heats of dry air and water vapour, E that of liquid water, and B = E - D. It is WMO-No. 8 4.A.19 solved for the mixing ratio, with these values and the latent heat A - B t_w (algebra by nomogram). PsychroLib applies it for a wet bulb at or above 0 degC, and equation 35 below."
+output = { identifier = "W", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+  { identifier = "W_s", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio at the wet-bulb temperature and the pressure of the air" },
+]
+keywords = ["humidity", "psychrometrics", "wet bulb"]
+
+[formulations.ashrae2017_mixing_ratio_from_wet_bulb.coefficients]
+A = { value = 2501.0, unit = "KiloJ-PER-KiloGM", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+B = { value = 2.326, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+C = { value = 1.006, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+D = { value = 1.86, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+E = { value = 4.186, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+
+[[formulations.ashrae2017_mixing_ratio_from_wet_bulb.citations]]
+reference = "ashrae2017"
+equation = "33"
+notation = { W_s = "W_s^*", t_w = "t^*" }
+
+[[formulations.ashrae2017_mixing_ratio_from_wet_bulb.citations]]
+reference = "psychrolib"
+note = "GetHumRatioFromTWetBulb, SI branch for TWetBulb >= 0 degC."
+
+[formulations.ashrae2017_mixing_ratio_from_ice_bulb]
+label = "Humidity mixing ratio from a wet bulb below freezing, covered with ice (ASHRAE 2017)"
+expression = "((A - B * t_i) * W_s - C * (t - t_i)) / (A + D * t - E * t_i)"
+fixed_units = true
+note = "In kJ kg-1 and kJ kg-1 K-1, A is the latent heat of sublimation at 0 degC, C and D the specific heats of dry air and water vapour, E that of ice, and B = E - D. PsychroLib applies it for a wet bulb below 0 degC."
+output = { identifier = "W", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_i", kind = "IceBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature below freezing, the bulb covered with ice" },
+  { identifier = "W_s", kind = "SaturationMixingRatioOverIce", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over ice at the bulb temperature and the pressure of the air" },
+]
+keywords = ["humidity", "psychrometrics", "ice bulb"]
+
+[formulations.ashrae2017_mixing_ratio_from_ice_bulb.coefficients]
+A = { value = 2830.0, unit = "KiloJ-PER-KiloGM", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+B = { value = 0.24, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+C = { value = 1.006, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+D = { value = 1.86, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+E = { value = 2.1, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+
+[[formulations.ashrae2017_mixing_ratio_from_ice_bulb.citations]]
+reference = "ashrae2017"
+equation = "35"
+notation = { W_s = "W_s^*", t_i = "t^*" }
+
+[[formulations.ashrae2017_mixing_ratio_from_ice_bulb.citations]]
+reference = "psychrolib"
+note = "GetHumRatioFromTWetBulb, SI branch for TWetBulb < 0 degC."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.metpy171]
+implementation = "MetPy"
+version = "1.7.1"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1"
+checked = 2026-10-26
+note = "Values of the doctests of MetPy 1.7.1, which its continuous integration runs: saturation_vapor_pressure and psychrometric_vapor_pressure_wet, both printed in their docstring."
+
+[[cross_checks.metpy171.cases]]
+formulation = "metpy171_saturation_vapour_pressure"
+inputs = { T = 298.15 }
+value = 31.623456
+call = "saturation_vapor_pressure(25 * units.degC, phase='liquid').to('hPa')"
+rtol = 1e-7
+
+[[cross_checks.metpy171.cases]]
+formulation = "metpy171_psychrometric_vapour_pressure"
+inputs = { p = 958.0, T = 298.15, T_w = 285.15 }
+value = 6.2752
+call = "psychrometric_vapor_pressure_wet(958 * units.hPa, 25 * units.degC, 12 * units.degC), printed 627.52 pascal"
+rtol = 1e-5
+
+[cross_checks.psychrolib_wet_bulb]
+implementation = "PsychroLib"
+version = "commit 3066345dc8cf91bf59134147cf917f982c1fce13"
+url = "https://github.com/psychrometrics/psychrolib"
+checked = 2026-10-26
+note = "GetHumRatioFromTWetBulb in SI units, with W_s from GetSatHumRatio at the wet-bulb temperature and the same pressure (Pa). Computed with the source of the commit, kept in the local reference store."
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_wet_bulb"
+inputs = { t = 25.0, t_w = 20.0, W_s = 0.01469505164977836 }
+value = 0.012598004031751205
+call = "GetHumRatioFromTWetBulb(25.0, 20.0, 101325.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_wet_bulb"
+inputs = { t = 30.0, t_w = 15.0, W_s = 0.010647455293969347 }
+value = 0.004477847312164244
+call = "GetHumRatioFromTWetBulb(30.0, 15.0, 101325.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_wet_bulb"
+inputs = { t = 10.0, t_w = 5.0, W_s = 0.006088341207066817 }
+value = 0.004052609568544834
+call = "GetHumRatioFromTWetBulb(10.0, 5.0, 90000.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_ice_bulb"
+inputs = { t = 5.0, t_i = -2.0, W_s = 0.00319412791645178 }
+value = 0.0007029770300539598
+call = "GetHumRatioFromTWetBulb(5.0, -2.0, 101325.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_ice_bulb"
+inputs = { t = -5.0, t_i = -8.0, W_s = 0.001908549933558117 }
+value = 0.0008411843974773226
+call = "GetHumRatioFromTWetBulb(-5.0, -8.0, 101325.0)"

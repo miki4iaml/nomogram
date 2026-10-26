@@ -154,3 +154,41 @@ def test_the_air_temperature_from_a_thermodynamic_bulb(
     drier = f.evaluate(r=Q_(0.002, "kg/kg"), **common).to("K").magnitude
     assert drier == pytest.approx(270 + 0.002 * 2.5e6 / (1005 + 0.002 * 1846))
     assert f.citations[0].assumptions
+
+
+# --- ASHRAE (via PsychroLib) and MetPy ------------------------------------------
+
+
+def test_ashrae_equation_33_is_wmo_4a19_solved_for_the_mixing_ratio() -> None:
+    # With c_pa = 1.006, c_pv = 1.86 kJ/(kg K) and L_v(t_w) = 2501 - 2.326 t_w
+    # kJ/kg, the air temperature of 4.A.19 gives back the dry bulb.
+    t, t_w, w_s = 30.0, 15.0, 0.010647455293969347
+    w = F["ashrae2017_mixing_ratio_from_wet_bulb"].evaluate(
+        t=Q_(t, "degC"), t_w=Q_(t_w, "degC"), W_s=Q_(w_s, "kg/kg")
+    )
+    air = F["wmo_wet_bulb_ideal_gas"].evaluate(
+        T_w=Q_(t_w + 273.15, "K"),
+        r=w,
+        r_w=Q_(w_s, "kg/kg"),
+        L_v=Q_((2501 - 2.326 * t_w) * 1e3, "J/kg"),
+        c_pa=Q_(1006.0, "J/(kg*K)"),
+        c_pv=Q_(1860.0, "J/(kg*K)"),
+    )
+    assert air.to("degC").magnitude == pytest.approx(t)
+
+
+def test_ashrae_at_saturation_the_mixing_ratio_is_its_saturation_value() -> None:
+    t = Q_(12.0, "degC")
+    w = F["ashrae2017_mixing_ratio_from_wet_bulb"].evaluate(
+        t=t, t_w=t, W_s=Q_(0.0088, "kg/kg")
+    )
+    assert w.magnitude == pytest.approx(0.0088)
+
+
+def test_metpy_reproduces_its_doctests() -> None:
+    e_s = F["metpy171_saturation_vapour_pressure"].evaluate(T=Q_(298.15, "K"))
+    assert e_s.to("hPa").magnitude == pytest.approx(31.623456, rel=1e-7)
+    e = F["metpy171_psychrometric_vapour_pressure"].evaluate(
+        p=Q_(958, "hPa"), T=Q_(298.15, "K"), T_w=Q_(285.15, "K")
+    )
+    assert e.to("Pa").magnitude == pytest.approx(627.52, abs=0.005)

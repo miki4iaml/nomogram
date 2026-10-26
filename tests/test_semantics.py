@@ -150,7 +150,7 @@ def test_a_dew_point_is_given_in_degc_or_in_k() -> None:
 
 def test_specific_energy_is_in_joules_per_kilogram() -> None:
     kind = CATALOG.quantity_kinds["SpecificEnergy"]
-    assert kind.applicable_units == ("J-PER-KiloGM",)
+    assert kind.applicable_units == ("J-PER-KiloGM", "KiloJ-PER-KiloGM")
     assert not kind.added_units
 
 
