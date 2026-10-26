@@ -326,6 +326,12 @@ def test_a_local_kind_may_carry_cf_standard_names() -> None:
     )
     assert CATALOG.kinds["DensityOfMoistAir"].cf_standard_names == ("air_density",)
     assert CATALOG.kinds["VirtualPotentialTemperature"].cf_standard_names == ()
+    for kind, name in [
+        ("MoleFractionOfWaterVapour", "mole_fraction_of_water_vapor_in_air"),
+        ("SeaWaterSalinity", "sea_water_salinity"),
+        ("SurfaceAltitude", "surface_altitude"),
+    ]:
+        assert CATALOG.kinds[kind].cf_standard_names == (name,)
     document = KIND.format(name="Local", parent="ThermodynamicTemperature")
     with pytest.raises(CatalogError, match="not in the frozen CF subset: no_such_name"):
         load_catalog([document + 'cf_standard_names = ["no_such_name"]\n'])

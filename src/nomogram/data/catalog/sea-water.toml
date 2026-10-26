@@ -19,7 +19,8 @@ keywords = ["oceanography", "salinity", "sea water", "vapour pressure", "salinit
 [kinds.SeaWaterSalinity]
 label = "Sea Water Salinity"
 specialization_of = "MassFraction"
-description = "Mass fraction of dissolved material in sea water, estimated on a conventional scale (Knudsen, Cox, PSS-78, Reference or Absolute Salinity; CF: sea_water_salinity and its precise forms)."
+description = "Mass fraction of dissolved material in sea water, estimated on a conventional scale (Knudsen, Cox, PSS-78, Reference or Absolute Salinity), each scale with its own CF standard name."
+cf_standard_names = ["sea_water_salinity"]
 
 [kinds.Chlorinity]
 label = "Chlorinity"

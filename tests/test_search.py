@@ -98,6 +98,10 @@ def test_a_cf_name_finds_a_kind_defined_by_nomogram() -> None:
     assert "formulations.bechtold2015_virtual_temperature" in found
     found = CATALOG.search(input="air_density").refs
     assert found == ("formulations.bechtold2015_virtual_temperature_definition",)
+    # Close rather than exact: mean sea level, which the geoid approximates.
+    assert refs(CATALOG.search("height_above_mean_sea_level", section="kinds")) == {
+        "kinds.Altitude"
+    }
 
 
 def test_variables_whatever_their_notation() -> None:
