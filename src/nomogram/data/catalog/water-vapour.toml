@@ -825,10 +825,10 @@ reference = "voemel_vp"
 label = "Ambaum (2020) equation over water"
 expression = "e_s0 * (T_0 / T) ** (Delta_c / R_v) * exp(L_0 / (R_v * T_0) - (L_0 - Delta_c * (T - T_0)) / (R_v * T))"
 fixed_units = false
-note = "Equation 13 with the latent heat of equation 15, L = L_0 - Delta_c (T - T_0), Delta_c standing for c_pl - c_pv: it satisfies the Clausius-Clapeyron equation exactly for that latent heat. The constants are the triple-point values Ambaum recommends (equation 14)."
+note = "Equation 13 with the latent heat of equation 15, L = L_0 - Delta_c (T - T_0), Delta_c standing for c_pl - c_pv: it satisfies the Clausius-Clapeyron equation exactly for that latent heat. The constants are the triple-point values Ambaum recommends (equation 14). Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { e_s0 = 611.655, T_0 = 273.16, Delta_c = 2180.0, L_0 = 2.501e6, R_v = 461.52 }
 keywords = ["saturation", "Clausius-Clapeyron"]
@@ -848,10 +848,10 @@ criterion = "c_pl - c_pv = 2180 J kg-1 K-1 'gives a very good fit across the 0-1
 label = "Ambaum (2020) approximation with a constant latent heat"
 expression = "e_s0 * exp(L_0 / (R_v * T_0) - L_0 / (R_v * T))"
 fixed_units = false
-note = "Equation 16: equation 13 with c_pl = c_pv, the latent heat being then constant. Ambaum calls it only accurate for small temperature ranges (p. 4254)."
+note = "Equation 16: equation 13 with c_pl = c_pv, the latent heat being then constant. Ambaum calls it only accurate for small temperature ranges (p. 4254). Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { e_s0 = 611.655, T_0 = 273.16, L_0 = 2.501e6, R_v = 461.52 }
 keywords = ["saturation", "Clausius-Clapeyron"]
@@ -867,10 +867,10 @@ units = { e_s0 = "PA", T_0 = "K", L_0 = "J-PER-KiloGM", R_v = "J-PER-KiloGM-K" }
 label = "Ambaum (2020) equation over ice"
 expression = "e_i0 * (T_0 / T) ** (Delta_c / R_v) * exp(L_s0 / (R_v * T_0) - (L_s0 - Delta_c * (T - T_0)) / (R_v * T))"
 fixed_units = false
-note = "Equation 17 with the latent heat of sublimation of equation 18, Delta_c standing for c_pi - c_pv. Ambaum gives no value of L_s0: it is L_0 + L_m0 = 2.501e6 + 0.3334e6 J kg-1, his latent heats of evaporation (equation 15) and of melting (caption of Figure 4), since L_m = L_s - L."
+note = "Equation 17 with the latent heat of sublimation of equation 18, Delta_c standing for c_pi - c_pv. Ambaum gives no value of L_s0: it is L_0 + L_m0 = 2.501e6 + 0.3334e6 J kg-1, his latent heats of evaporation (equation 15) and of melting (caption of Figure 4), since L_m = L_s - L. Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 keywords = ["saturation", "Clausius-Clapeyron", "ice"]
 

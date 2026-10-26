@@ -1280,13 +1280,23 @@ class Formulation:
 
     @property
     def assumptions(self) -> tuple[Assumption, ...]:
-        """Its assumptions: those its sources state, then those noted."""
-        stated = tuple(
+        """Its assumptions: those its sources state, those noted, then those of its parts.
+
+        A composition, a formulation by branches or one calling others
+        holds under the assumptions of what it is built from, at any depth;
+        each assumption is given once.
+        """
+        found = [
             Assumption(text, AssumptionStatus.STATED, c.reference)
             for c in self.citations
             for text in c.assumptions
-        )
-        return stated + self.noted_assumptions
+        ]
+        found += self.noted_assumptions
+        for part in self.parts:
+            found += part.formulation.assumptions
+        for branch in self.branches:
+            found += branch.formulation.assumptions
+        return tuple(dict.fromkeys(found))
 
     @property
     def derived(self) -> bool:

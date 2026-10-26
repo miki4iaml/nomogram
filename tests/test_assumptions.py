@@ -158,12 +158,13 @@ def values_note(formulation: Formulation, identifier: str) -> str:
 
 
 def test_leaving_out_the_enhancement_factor_lowers_e_as_stated() -> None:
-    # 1/f - 1 with the enhancement factor of WMO-No. 8 (4.B.5).
+    # 1/f - 1 with the enhancement factor of WMO-No. 8 (4.B.5), which holds
+    # around 1000 hPa only.
     f = CATALOG.formulations["wmo_enhancement_factor"]
     low, high = (
-        1 / float(f.evaluate(p=Q_(p, "hPa")).magnitude) - 1 for p in (300.0, 1100.0)
+        1 / float(f.evaluate(p=Q_(p, "hPa")).magnitude) - 1 for p in (1000.0, 1100.0)
     )
-    assert (round(low * 100, 2), round(high * 100, 2)) == (-0.23, -0.5)
+    assert (round(low * 100, 2), round(high * 100, 2)) == (-0.47, -0.5)
     found = {
         f.key for f in CATALOG.search(assumption="enhancement factor").formulations
     }
@@ -171,6 +172,28 @@ def test_leaving_out_the_enhancement_factor_lowers_e_as_stated() -> None:
         "mass_concentration_ideal_gas",
         "vapour_pressure_from_relative_humidity",
     }
-    assert "0.23 % at 300 hPa and 0.50 % at 1100 hPa" in (
+    assert "0.47 % at 1000 hPa and 0.50 % at 1100 hPa" in (
         CATALOG.formulations["mass_concentration_ideal_gas"].assumptions[1].text
     )
+
+
+def test_a_composition_holds_under_the_assumptions_of_its_parts() -> None:
+    # L_f = L_s - L_v from two IFS latent heats, each with constant specific
+    # heats: the difference assumes them too.
+    fusion = CATALOG.formulations["ecmwf_ifs_latent_heat_fusion"]
+    assert not fusion.citations
+    texts = [a.text for a in fusion.assumptions]
+    assert len(texts) == len(set(texts)) == 3
+    assert any("specific heat of ice" in t for t in texts)
+    found = CATALOG.search(assumption="specific heat of ice").refs
+    assert "formulations.ecmwf_ifs_latent_heat_fusion" in found
+
+
+def test_the_source_of_an_assumption_is_linked_and_searched() -> None:
+    # 4.A.11 of WMO-No. 8, stated by another source than the one cited.
+    key = "formulations.mass_concentration_ideal_gas"
+    f = CATALOG.formulations["mass_concentration_ideal_gas"]
+    assert "wmo2024" not in f.references
+    assert "references.wmo2024" in CATALOG.uses(key).refs
+    assert key in CATALOG.used_by("references.wmo2024").refs
+    assert key in CATALOG.search(source="wmo2024").refs

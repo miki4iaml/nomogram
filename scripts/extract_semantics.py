@@ -111,6 +111,16 @@ KINDS: dict[str, KindSpec] = {
         delta=False,
         added_units=("UNITLESS", "PERCENT"),
     ),
+    # p / p_sat over either phase, the parent of the relative humidity (with
+    # respect to water, as QUDT defines it) under which the catalog declares
+    # the relative humidity with respect to ice as its sibling: one must
+    # not feed an input of the other. QUDT 3.5.2 gives it no unit; a ratio,
+    # it takes 1 and %.
+    "RelativePartialPressure": KindSpec(
+        "ratio",
+        delta=False,
+        added_units=("UNITLESS", "PERCENT"),
+    ),
     # CF's canonical unit for relative humidity is 1.
     "RelativeHumidity": KindSpec(
         "ratio",

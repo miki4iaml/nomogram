@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from nomogram.catalog import catalog
-from nomogram.comparison import feeds
+from nomogram.comparison import compose, feeds
 from nomogram.relations import verify
 from nomogram.units import Q_
 
@@ -82,6 +82,50 @@ def test_a_frost_point_is_a_temperature_but_not_a_dew_point() -> None:
     assert CATALOG.kinds["WetBulbTemperature"].cf_standard_names == (
         "wet_bulb_temperature",
     )
+
+
+def test_a_psychrometer_reading_is_no_thermodynamic_bulb_temperature() -> None:
+    # WMO-No. 8, 4.3.1.7: the reading of most instruments is not the
+    # thermodynamic wet-bulb temperature of Annex 4.A.
+    for reading, thermodynamic in (
+        ("PsychrometerWetBulbTemperature", "WetBulbTemperature"),
+        ("PsychrometerIceBulbTemperature", "IceBulbTemperature"),
+    ):
+        assert not feeds(reading, thermodynamic)
+        assert not feeds(thermodynamic, reading)
+        assert feeds(reading, "Temperature")
+    kinds = {
+        key: next(v.kind for v in F[key].inputs if "Bulb" in v.kind)
+        for key in (
+            "wmo_psychrometer_water",
+            "wmo_psychrometric_formula_ice",
+            "metpy171_psychrometric_vapour_pressure",
+            "wmo_wet_bulb_ideal_gas",
+            "wmo_ice_bulb_ideal_gas",
+            "ashrae2017_mixing_ratio_from_wet_bulb",
+        )
+    }
+    assert kinds == {
+        "wmo_psychrometer_water": "PsychrometerWetBulbTemperature",
+        "wmo_psychrometric_formula_ice": "PsychrometerIceBulbTemperature",
+        "metpy171_psychrometric_vapour_pressure": "PsychrometerWetBulbTemperature",
+        "wmo_wet_bulb_ideal_gas": "WetBulbTemperature",
+        "wmo_ice_bulb_ideal_gas": "IceBulbTemperature",
+        "ashrae2017_mixing_ratio_from_wet_bulb": "WetBulbTemperature",
+    }
+
+
+def test_a_relative_humidity_over_ice_feeds_no_relative_humidity() -> None:
+    # WMO-No. 8 evaluates the relative humidity over water, even below
+    # 0 degC (4.A, para. 17); QUDT defines it so.
+    assert not feeds("RelativeHumidityWithRespectToIce", "RelativeHumidity")
+    assert feeds("RelativeHumidityWithRespectToIce", "RelativePartialPressure")
+    assert feeds("RelativeHumidity", "RelativePartialPressure")
+    with pytest.raises(ValueError, match="RelativeHumidityWithRespectToIce"):
+        compose(
+            F["vapour_pressure_from_relative_humidity"],
+            {"RH": F["wmo_relative_humidity_ice"]},
+        )
 
 
 @pytest.mark.parametrize(

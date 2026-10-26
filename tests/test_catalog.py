@@ -444,7 +444,6 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ambaum2020_latent_heat_fusion", "c_l"): "stated",
         ("ambaum2020_latent_heat_fusion", "c_i"): "stated",
         ("ambaum2020_latent_heat_fusion", "T_0"): "stated",
-        ("bechtold2015_virtual_temperature_rounded", "a"): "stated",
         (
             "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
             "p_vs0",
@@ -486,10 +485,10 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ashrae2017_mixing_ratio_from_ice_bulb", "E"): "added",
         ("ecmwf_ifs_saturation_water", "e_0"): "stated",
         ("ecmwf_ifs_saturation_water", "A"): "added",
-        ("ecmwf_ifs_saturation_water", "B"): "added",
+        ("ecmwf_ifs_saturation_water", "B"): "stated",
         ("ecmwf_ifs_saturation_ice", "e_0"): "stated",
         ("ecmwf_ifs_saturation_ice", "A"): "added",
-        ("ecmwf_ifs_saturation_ice", "B"): "added",
+        ("ecmwf_ifs_saturation_ice", "B"): "stated",
     }
 
 

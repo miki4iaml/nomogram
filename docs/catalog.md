@@ -403,9 +403,12 @@ assumptions = ["The specific heat of liquid water is taken as constant, its valu
   `"stated-by-other"` (stated about the formula by another source, whose
   `reference` is given), `"deduced"` (from the form of the formula, its
   coefficients or its kinds) or `"suspected"` (to be checked).
-- `Formulation.assumptions` gives them all, stated first; the legend
-  lists them with their status; `search(assumption="ideal gas*")` finds
-  the formulations that assume an ideal gas.
+- `Formulation.assumptions` gives them all, stated first, then those of
+  the parts and branches of a formulation built from others, which holds
+  under them too, each once; the legend lists them with their status;
+  `search(assumption="ideal gas*")` finds the formulations that assume an
+  ideal gas. The source an assumption refers to is linked to the
+  formulation (`uses`, `used_by`) and found by `search(source=...)`.
 
 ### Formulations by branches
 

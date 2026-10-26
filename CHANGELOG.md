@@ -333,6 +333,34 @@ and this project adheres to
 
 ### Fixed
 
+- Catalog, checked against its sources:
+  - the relative humidity with respect to ice specialized the relative
+    humidity, which QUDT defines with respect to water: it fed the inputs
+    paired with the saturation over water (+21 % on e at -20 degC). It is
+    now their sibling under the QUDT kind `RelativePartialPressure`
+    (p/p_sat over either phase), added to the bundled subset;
+  - the readings of a psychrometer, which WMO-No. 8 says are not the
+    thermodynamic wet-bulb and ice-bulb temperatures, have kinds of their
+    own, `PsychrometerWetBulbTemperature` and
+    `PsychrometerIceBulbTemperature` (4.B.8, 4.B.9, 4.1, 4.2 and MetPy);
+    `WetBulbTemperature` and `IceBulbTemperature` are the thermodynamic
+    ones (4.A.19, 4.A.21, ASHRAE);
+  - the effect of the enhancement factor is quoted around 1000 hPa, where
+    4.B.5 holds, not at 300 hPa;
+  - the unit K of B in the IFS saturation formulas is printed by the IFS
+    (a4, section 7.2.1): stated, not added; the unit of Bechtold's 0.608,
+    printed bare, is inferred, not stated;
+  - the temperatures of Ambaum (2020) are on ITS-90 from the article
+    itself (p. 4255), not from its date;
+  - page ranges and wordings of notes (WMO-No. 8, Bechtold, the
+    triple-point pressure of IAPWS R14-08, saturation over water with
+    dissolved air);
+  - a formulation built from others holds under the assumptions of its
+    parts and branches, which its legend lists and `search(assumption=)`
+    finds; the source an assumption refers to is linked and found by
+    `search(source=)`;
+  - `docs/rosetta.md` lists the meanings of "relative humidity" and of
+    "wet-bulb temperature".
 - Robustness of the loader and of the expression parser:
   - a short expression such as `9 ** 9 ** 9` made the parser compute a
     number of hundreds of millions of digits: a power of two numbers
