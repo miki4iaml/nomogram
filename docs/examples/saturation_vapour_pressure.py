@@ -35,7 +35,6 @@ def main(output: str) -> None:
     ax = nomo.plot.plot_deviations(table)
 
     # Formatting only.
-    ax.set_ylim(-1.0, 1.0)
     ax.grid(alpha=0.3)
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
     ax.figure.set_size_inches(11, 6.5)

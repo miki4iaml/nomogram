@@ -126,6 +126,8 @@ def test_block_options_stay_in_their_thread() -> None:
         ({"mul_symbol": "star"}, ValueError),
         ({"decimal_separator": "space"}, ValueError),
         ({"axis_labels": "fancy"}, ValueError),
+        ({"axis_detail": "verbose"}, ValueError),
+        ({"legend_detail": "verbose"}, ValueError),
         ({"colour": "red"}, TypeError),
     ],
 )
