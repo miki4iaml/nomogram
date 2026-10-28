@@ -46,7 +46,11 @@ label = symbol(magnus.output, wmo)  # "$e_{\mathrm{w}}$/hPa"
 
 `nomogram.plot.plot_values` labels its y axis with the name of the
 output kind, this symbol (in the notation given) and the unit, in the
-style below.
+style below. `nomogram.plot.plot_profile` draws the same values as a
+vertical profile: the input, a vertical coordinate, along y, the values
+along x; a pressure goes downwards on a logarithmic axis labelled with
+plain numbers (100, 200, 300, 500, 1000), a height upwards
+([vertical.md](vertical.md)).
 
 ### Axis labels
 

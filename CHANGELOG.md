@@ -64,6 +64,10 @@ and this project adheres to
   operational code uses. The FULL-POS documentation prints an inverted
   logarithm in two of these equations; the citations record it and the
   corrected form, given by Trenberth et al.
+- `nomogram.plot.plot_profile`: a vertical profile, the values of each
+  formulation along x against the vertical coordinate along y; a pressure
+  goes downwards on a logarithmic axis labelled with plain numbers, a
+  height upwards. With the option sets, as the other plots.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.

@@ -30,7 +30,7 @@ from nomogram.display import (
     reference_scale,
 )
 from nomogram.expression import LATEX_COMMANDS
-from nomogram.plot import plot_deviations, plot_values, sign
+from nomogram.plot import plot_deviations, plot_profile, plot_values, sign
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -766,3 +766,40 @@ def test_the_signature_covers_no_text(
         if t.get_text() and box.overlaps(t.get_window_extent(renderer))
     ]
     assert covered == []
+
+
+def test_a_profile_puts_the_vertical_coordinate_along_y() -> None:
+    temperature = FORMULATIONS["itu_r_p835_temperature"]
+    heights = Q_(np.array([0.0, 11.0, 20.0, 32.0]), "km")
+    table = compare([temperature], temperature, {"GeopotentialHeight": heights})
+    ax = plot_profile(table)
+    (curve,) = ax.lines
+    assert list(curve.get_ydata()) == [0.0, 11.0, 20.0, 32.0]
+    assert list(curve.get_xdata()) == pytest.approx([288.15, 216.65, 216.65, 228.65])
+    assert ax.get_ylabel().startswith("Geopotential height")
+    assert "temperature" in ax.get_xlabel()
+    # A height goes upwards, on a linear axis.
+    assert ax.get_yscale() == "linear"
+    low, high = ax.get_ylim()
+    assert low < high
+    assert signatures(ax.figure)
+
+
+def test_a_pressure_profile_goes_down_on_a_logarithmic_axis() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    pressures = Q_(np.array([1000.0, 850.0, 500.0, 200.0]), "hPa")
+    table = compare([altitude], altitude, {"Pressure": pressures})
+    with display_options(DisplayOptions.DOCUMENTATION):
+        ax = plot_profile(table, title="Pressure altitude")
+    assert ax.get_yscale() == "log"
+    top, bottom = ax.get_ylim()
+    assert top > bottom  # inverted: the pressure decreases upwards
+    assert ax.get_title() == "Pressure altitude"
+    ax.figure.canvas.draw()
+    labels = {t.get_text() for t in ax.get_yticklabels() if t.get_text()}
+    assert {"200", "300", "500"} <= labels
+    # On axes of one's own, the scale is left as it is.
+    _, own = plt.subplots()
+    assert plot_profile(table, ax=own, options=DisplayOptions.SYMPY).get_yscale() == (
+        "linear"
+    )

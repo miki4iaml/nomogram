@@ -154,6 +154,24 @@ at_500_hPa = altitude.evaluate(P=Q_(500, "hPa")).to("m")  # 5574.44 m
 The formula of the NWS, with rounded constants, gives 5572.10 m at
 500 hPa: 2.3 m lower.
 
+`nomogram.plot.plot_profile` draws such a profile, the vertical
+coordinate along y (a pressure downwards on a logarithmic axis, a height
+upwards):
+
+```python
+import numpy as np
+
+import nomogram as nomo
+
+reference = catalog().formulations["itu_r_p835_temperature"]
+heights = Q_(np.linspace(0, 84.852, 400), "km")
+profile = nomo.comparison.compare(
+    [reference], reference, {"GeopotentialHeight": heights}
+)
+documentation = nomo.display.DisplayOptions.DOCUMENTATION
+ax = nomo.plot.plot_profile(profile, options=documentation)  # extra viz
+```
+
 ## Interpolation between two levels
 
 Each interpolation scheme is a formulation, cited by every source that
