@@ -240,8 +240,12 @@ def test_interpolation_schemes_on_the_reference_atmosphere() -> None:
     temperature = FORMULATIONS["itu_r_p835_temperature"]
     levels = {p: height.evaluate(P=Q_(p, "hPa")).to("m") for p in (850, 700, 500)}
     t = {p: temperature.evaluate(H=h) for p, h in levels.items()}
-    pressures = {"p": Q_(700, "hPa"), "p_1": Q_(850, "hPa"), "p_2": Q_(500, "hPa")}
-    two_levels = {"T_1": t[850], "T_2": t[500]}
+    pressures: dict[str, Any] = {
+        "p": Q_(700, "hPa"),
+        "p_1": Q_(850, "hPa"),
+        "p_2": Q_(500, "hPa"),
+    }
+    two_levels: dict[str, Any] = {"T_1": t[850], "T_2": t[500]}
     truth = t[700].magnitude
     in_ln_p = FORMULATIONS["log_pressure_interpolation_temperature"]
     in_p = FORMULATIONS["pressure_interpolation_temperature"]
