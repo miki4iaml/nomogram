@@ -148,11 +148,16 @@ comparisons with other tools.
 3. Before tagging, check locally: `uv build` then
    `uvx --from twine twine check --strict dist/*`.
 4. Signed tag `vx.y.z` on `main`, then publish a GitHub release from
-   it. The release workflow (`.github/workflows/release.yml`) checks
-   that the tag matches the project version, builds once, attests the
-   build provenance and the CycloneDX SBOM, and publishes exactly those
-   files to PyPI through Trusted Publishing (OIDC, no stored token),
-   after approval of the protected `pypi` environment.
+   it, its notes the `CHANGELOG.md` section of the version, with links
+   made absolute: `python scripts/absolute_links.py rewrite --repo
+   miki4iaml/nomogram --ref vx.y.z notes.md`. The release workflow
+   (`.github/workflows/release.yml`) checks that the tag matches the
+   project version, makes the links of the README absolute at the tag
+   (PyPI shows it outside the repository), builds once, checks that no
+   relative link is left, attests the build provenance and the CycloneDX
+   SBOM, and publishes exactly those files to PyPI through Trusted
+   Publishing (OIDC, no stored token), after approval of the protected
+   `pypi` environment.
 5. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
 
 Rehearsal: run the release workflow manually (`workflow_dispatch`). It
