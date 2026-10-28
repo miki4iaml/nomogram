@@ -52,8 +52,9 @@ and this project adheres to
 - Interpolation between two levels, each scheme a formulation cited by
   every source that uses it: the wind linear in ln p (FULL-POS, MetPy,
   earthkit-meteo); the temperature linear in ln p (MetPy,
-  earthkit-meteo, NMC after Ziv and Alpert 1994), linear in p (FULL-POS, ECMWF option) and linear in
-  altitude; the specific humidity and the relative humidity linear in p
+  earthkit-meteo, NMC after Ziv and Alpert 1994, and between the
+  significant levels of a radiosonde report, WMO-No. 306), linear in p
+  (FULL-POS, ECMWF option) and linear in altitude; the specific humidity and the relative humidity linear in p
   (FULL-POS); the geopotential height linear in ln p. `docs/vertical.md`
   compares them on the ITU-R reference atmosphere.
 - The water vapour of the ITU-R reference atmosphere (P.835-7, 6 and 8),
@@ -109,6 +110,12 @@ and this project adheres to
   relative humidity that follows: within 0.03 point of the reference
   atmosphere's at 700 hPa, where the chords in q are 12 to 13 points too
   humid.
+- The pressure of an isentropic level between two pressure levels, in
+  closed form, by four of the relations between temperature and pressure
+  Ziv and Alpert (1994) compare: the potential temperature linear in p or
+  in p^kappa, the temperature linear in height or in p^kappa; the fifth,
+  the temperature linear in ln p, is MetPy's potential temperature between
+  two levels. A misprint of their equation 15 is recorded and corrected.
 - `nomogram.comparison.partial` fixes some inputs of a formulation, as
   `functools.partial` fixes arguments: the two levels of an
   interpolation scheme, so that schemes compare along the target

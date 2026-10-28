@@ -206,10 +206,16 @@ The height is linear in ln p only in an isothermal layer (the hypsometric
 equation); FULL-POS interpolates instead a departure from a standard
 atmosphere, whose own height is computed exactly.
 
-Radiosondes report their significant levels so that the temperature is
-linear in ln p between them (WMO Manual on Codes, as Ziv and Alpert 1994
-recall): between two such levels, the scheme in ln p is the sounding
-itself.
+A radiosonde reported in TEMP gives significant levels chosen so that
+they alone reconstruct the profiles (WMO-No. 306, Volume I.1, Regulation
+35.3.1.3): the temperature interpolated linearly on a T-log P diagram,
+that is in ln p, stays within 1 °C of the observed one (2 °C above the
+first significant level above 300 hPa or the first tropopause), and the
+relative humidity interpolated linearly within 15 points, the coordinate
+not stated. Between two such levels, the scheme in ln p is the sounding
+itself, to that tolerance. WMO-No. 8 (2024, Volume I, 12.9) asks now for
+profiles at 100 m resolution in BUFR, which makes the selection of
+significant levels redundant.
 
 ## Humidity between two levels
 
@@ -370,6 +376,26 @@ temperature against the pressure. On the surface MetPy places at p, the
 specific humidity is `metpy171_isentropic_specific_humidity`: the
 isentropic curve above is MetPy's, drawn against the pressure rather
 than the potential temperature.
+
+Four of their relations give the pressure of the level in closed form;
+the source gives no value of R, c_p and g, those of Bechtold (2015) are
+taken. Between 850 and 500 hPa of the ITU-R reference atmosphere, the
+isentropic level of its 700 hPa (297.38 K) is placed at:
+
+| Relation between temperature and pressure | Formulation | Pressure | Error |
+|---|---|---|---|
+| (a) θ linear in p | `potential_temperature_interpolation_pressure` | 723.99 hPa | +24.0 hPa |
+| (b) θ linear in p^κ | `ziv_alpert1994_isentropic_pressure_exner` | 708.62 hPa | +8.6 hPa |
+| (c) T linear in ln p, by iteration (NMC, MetPy) | `metpy171_potential_temperature_between_levels` | 708.39 hPa | +8.4 hPa |
+| (d) T linear in height | `ziv_alpert1994_isentropic_pressure_constant_lapse_rate` | 699.85 hPa | −0.15 hPa |
+| (e) T linear in p^κ | `ziv_alpert1994_isentropic_pressure_temperature_exner` | 695.62 hPa | −4.4 hPa |
+
+The reference atmosphere has a constant lapse rate in this layer: (d) is
+its own profile, within the g of 9.81 m s⁻² it takes. Ziv and Alpert's
+equation 15, for (e), prints (p_u − p_d)⁻¹ where their equation 14 gives
+(p_u^κ − p_d^κ)⁻¹; the citation records it. Their stability factor
+∂θ/∂p, in K/Pa, waits for a quantity kind: QUDT ties that unit to
+`PressureBasedTemperature` only.
 
 ### Mixed layer
 
