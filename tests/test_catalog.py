@@ -492,6 +492,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ambaum2020_ice", "Delta_c"): "stated",
         ("ambaum2020_ice", "R_v"): "stated",
         ("ambaum2020_ice", "L_s0"): "added",
+        # The kilometre of R = a / (b_1 - b_2 sin^2 phi), from WMO's figure.
+        ("wmo_effective_radius_mahoney", "a"): "added",
+        ("wmo_geopotential_height_wgs84", "a"): "added",
         ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
         ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",

@@ -58,6 +58,10 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = MappingProxyType(
         "ln": sympy.log,
         "log10": log10,
         "sqrt": sympy.sqrt,
+        # Of an angle in radians (the latitude of a normal gravity formula);
+        # the catalog refuses an angle in degrees in their argument.
+        "sin": sympy.sin,
+        "cos": sympy.cos,
     }
 )
 
@@ -159,6 +163,8 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\exp",
         r"\ln",
         r"\log",
+        r"\sin",
+        r"\cos",
         r"\frac",
         r"\sqrt",
         r"\left",
