@@ -277,6 +277,11 @@ and this project adheres to
   (equation 54). Computed by nomogram and proven: the IFS formula over
   water is Buck (1981) in kelvins, 0 degC written 273.16 K, and the Magnus
   forms of Bechtold round its e_0 (6.112 hPa rather than 611.21 Pa).
+- `plot_deviations` and `plot_values` take properties of the axes as
+  keyword arguments (`ylim=(-1, 1)`, `title`...), set once the curves are
+  drawn; limits given to `plot_deviations` make the curves beyond them off
+  scale, each legend entry saying how far it goes. The example of the
+  README zooms in on 1 %, with full axes and a short legend.
 - The display options `axis_detail` and `legend_detail` set,
   independently, how much the axes and the legend of a plot say:
   `"short"` gives the symbol and unit on an axis, and the first citation

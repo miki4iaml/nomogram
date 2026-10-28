@@ -315,6 +315,22 @@ def _off_scale(curves: Mapping[str, Any]) -> dict[str, float]:
     return {key: peaks[key] for key in order[index + 1 :]}
 
 
+def _beyond(curves: Mapping[str, Any], low: Any, high: Any) -> dict[str, float]:
+    """The curves leaving given y limits, with their extreme value beyond them.
+
+    An end given as ``None`` does not bound.
+    """
+    bottom = -np.inf if low is None else low
+    top = np.inf if high is None else high
+    found = {}
+    for key, values in curves.items():
+        finite = values[np.isfinite(values)]
+        outside = finite[(finite < bottom) | (finite > top)]
+        if outside.size:
+            found[key] = float(outside[np.argmax(np.abs(outside))])
+    return found
+
+
 def _off_scale_label(label: str, peak: float) -> str:
     """The legend entry of a curve off scale: how far it goes, on its first line."""
     head, newline, tail = label.partition("\n")
@@ -337,6 +353,7 @@ def plot_deviations(
     ax: Any = None,
     signature: bool = True,
     off_scale: bool | None = None,
+    **axes: Any,
 ) -> Any:
     """Plot the relative deviation of each formulation from the reference, in %.
 
@@ -345,7 +362,8 @@ def plot_deviations(
     curve leaves it, and its legend entry says how far it goes. At least
     half of the curves stay on scale. On axes given through ``ax``, which
     may hold other curves, the limits are left to the caller unless
-    ``off_scale`` is true.
+    ``off_scale`` is true. Limits given (``ylim=(-1, 1)``) replace those
+    chosen: the curves leaving them are off scale.
 
     Parameters
     ----------
@@ -363,6 +381,11 @@ def plot_deviations(
         Draw off scale the curves standing far above the others; ``False``
         holds every curve on the y axis. By default, only on axes the
         function creates.
+    **axes
+        Properties of the axes, set once the curves are drawn
+        (:meth:`matplotlib.axes.Axes.set`): ``ylim=(-1, 1)`` zooms in, each
+        curve beyond saying in the legend how far it goes; ``xlim``,
+        ``title``...
 
     Returns
     -------
@@ -384,13 +407,19 @@ def plot_deviations(
         for key, deviation in comparison.relative_deviations.items()
         if key != comparison.reference
     }
-    off = _off_scale(curves) if (created if off_scale is None else off_scale) else {}
+    limits = axes.get("ylim")
+    if limits is not None:
+        off = _beyond(curves, *limits)
+    elif created if off_scale is None else off_scale:
+        off = _off_scale(curves)
+    else:
+        off = {}
     names = _names(comparison, curves)
     for index, (key, values) in enumerate(curves.items()):
         label = _off_scale_label(names[key], off[key]) if key in off else names[key]
         ax.plot(x, values, label=label, **_style(index))
     ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
-    if off:
+    if off and limits is None:
         kept = np.concatenate(
             [v[np.isfinite(v)] for k, v in curves.items() if k not in off]
         )
@@ -402,6 +431,7 @@ def plot_deviations(
     cited = _cited(comparison, comparison.reference)
     name = f"Relative deviation from {cited or label}"
     ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
+    ax.set(**axes)
     _legend(ax)
     if created and signature:
         sign(ax.figure, axes=ax)
@@ -416,6 +446,7 @@ def plot_values(
     ax: Any = None,
     signature: bool = True,
     yscale: Literal["auto", "linear", "log"] = "auto",
+    **axes: Any,
 ) -> Any:
     """Plot the values of each formulation, the reference included.
 
@@ -437,6 +468,9 @@ def plot_values(
         Scale of the y axis; ``"auto"`` is logarithmic when every value is
         positive and they span more than two decades, linear otherwise, and
         leaves the scale of axes given through ``ax`` as it is.
+    **axes
+        Properties of the axes, set once the curves are drawn
+        (:meth:`matplotlib.axes.Axes.set`): ``ylim``, ``xlim``, ``title``...
 
     Returns
     -------
@@ -490,6 +524,7 @@ def plot_values(
     else:
         ax.set_ylabel(axis_label(None, None, unit))
     ax.set_xlabel(x_label)
+    ax.set(**axes)
     _legend(ax)
     if created and signature:
         sign(ax.figure, axes=ax)

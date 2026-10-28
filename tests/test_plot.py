@@ -387,6 +387,27 @@ def test_the_axes_of_a_caller_keep_their_limits_and_scale() -> None:
     assert plot_values(table, ax=ax, yscale="log").get_yscale() == "log"
 
 
+def test_limits_given_zoom_in_and_say_which_curves_leave() -> None:
+    # The figure of the README, zoomed in on 1 %: Bolton (1980) reaches
+    # 4.25 %, Goff (1957) stays within.
+    temperatures = Q_(np.linspace(-60, 110, 69), "degC")
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
+    ax = plot_deviations(table, ylim=(-1.0, 1.0), title="Zoomed in")
+    assert ax.get_ylim() == (-1.0, 1.0)
+    assert ax.get_title() == "Zoomed in"
+    entries = legend(ax)
+    bolton = next(e for e in entries if e.startswith("Magnus form, Bolton"))
+    assert "(off scale, up to 4.2" in bolton
+    assert not [e for e in entries if e.startswith("Goff (1957)") and "off scale" in e]
+    # An end left free does not bound: only the curves above 1 % leave.
+    ax = plot_deviations(table, ylim=(None, 1.0))
+    assert not [e for e in legend(ax) if "down to" in e]
+    assert [e for e in legend(ax) if "up to" in e]
+    values = plot_values(table, ylim=(1.0, 5000.0), xlabel="t")
+    assert values.get_ylim() == (1.0, 5000.0)
+    assert values.get_xlabel() == "t"
+
+
 def test_a_curve_equal_to_the_reference_to_rounding_splits_nothing() -> None:
     x = Q_(np.array([1.0, 2.0]), "K")
     deviations = {
