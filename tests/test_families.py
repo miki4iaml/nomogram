@@ -87,7 +87,7 @@ BASE = (
 )
 USER = header("user", '"base"') + (
     '[constants.k]\nidentifier = "k"\nvalue = 2.0\nunit = "K"\n'
-    'description = "d"\nreference = "src"\n'
+    'description = "d"\nreference = "src"\nnature = "conventional"\n'
 )
 
 
@@ -95,6 +95,18 @@ def test_a_family_uses_what_it_requires() -> None:
     loaded = load_catalog([BASE, USER])
     assert loaded.constants["k"].reference == "src"
     assert set(loaded.families) == {"base", "user"}
+
+
+def test_a_derived_constant_requires_the_family_of_its_components() -> None:
+    derived = header("derived") + (
+        '[constants.k2]\nidentifier = "k2"\nvalue = 4.0\nunit = "K"\n'
+        'description = "d"\nreference = "src"\ndefinition = "2 * k"\n'
+        'constants = ["k"]\n'
+    )
+    with pytest.raises(CatalogError, match="constants.k2 uses constants.k from"):
+        load_catalog([BASE, USER, derived.replace("[]", '["base"]')])
+    requiring = derived.replace("requires = []", 'requires = ["user"]')
+    assert load_catalog([BASE, USER, requiring]).constants["k2"].components == ("k",)
 
 
 @pytest.mark.parametrize(

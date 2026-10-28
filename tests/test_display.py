@@ -126,6 +126,8 @@ def test_block_options_stay_in_their_thread() -> None:
         ({"mul_symbol": "star"}, ValueError),
         ({"decimal_separator": "space"}, ValueError),
         ({"axis_labels": "fancy"}, ValueError),
+        ({"axis_detail": "verbose"}, ValueError),
+        ({"legend_detail": "verbose"}, ValueError),
         ({"colour": "red"}, TypeError),
     ],
 )
@@ -193,7 +195,7 @@ def test_markdown_explains_each_symbol_with_its_unit() -> None:
     assert "- $e_{\\mathrm{st}} = 1013.246$ hPa (unit added by nomogram)" in gg
     sonntag = FORMULATIONS["sonntag1990"].render().markdown.splitlines()
     assert (
-        r"- $a_{3} = 1.673952 \times 10^{-5}$ 1/K² (unit inferred by nomogram)"
+        r"- $a_{3} = 1.673952 \times 10^{-5}$ K⁻² (unit inferred by nomogram)"
         in sonntag
     )
     with_values = MAGNUS.render(values=True).markdown
@@ -244,7 +246,7 @@ def test_table_of_formulations() -> None:
     lines = result.to_markdown().splitlines()
     assert lines[0] == "| Formulation | Equation | Validity | References |"
     assert len(lines) == 2 + len(ice)
-    assert "$T$: 50 to 273.16 K (stated)" in lines[2]
+    assert any("$T$: 50 to 273.16 K (stated)" in line for line in lines[2:])
     assert result._repr_markdown_() == result.to_markdown()
 
 

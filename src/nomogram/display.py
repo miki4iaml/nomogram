@@ -52,11 +52,14 @@ import sympy
 from nomogram.dimensions import DimensionError, unit_text
 from nomogram.expression import to_latex
 from nomogram.model import (
+    AssumptionStatus,
     Coefficient,
     ConventionalScale,
     Formulation,
+    FormulationNature,
     Notation,
     Variable,
+    _origin,
 )
 from nomogram.semantics import semantic_catalog
 
@@ -77,10 +80,12 @@ __all__ = [
 MulSymbol = Literal["times", "dot", "ldot"] | None
 DecimalSeparator = Literal["period", "comma"]
 AxisLabels = Literal["si", "explicit", "simple"]
+LabelDetail = Literal["short", "standard", "full"]
 
 _MUL_SYMBOLS = ("times", "dot", "ldot", None)
 _DECIMAL_SEPARATORS = ("period", "comma")
 _AXIS_LABELS = ("si", "explicit", "simple")
+_LABEL_DETAILS = ("short", "standard", "full")
 
 #: How the origin of a coefficient unit reads in a legend.
 _ORIGINS: Mapping[str, str] = {
@@ -121,6 +126,19 @@ class DisplayOptions:
         the SI Brochure writes them (``t₉₀/°C``, default); name, symbol,
         unit in brackets and scale in braces (``t [°C] {ITS-90}``); or
         name, symbol and unit only (``t [°C]``).
+    axis_detail : {"short", "standard", "full"}
+        How much the axes of a plot say (:mod:`nomogram.plot`): the symbol
+        and unit (``"short"``); the name of the quantity too
+        (``"standard"``, default); and a second line, the scale of the
+        values or the reference of a deviation (``"full"``).
+    legend_detail : {"short", "standard", "full"}
+        How much the legend of a plot says: the first citation of each
+        formulation, author, year and equation (``"short"``); its label
+        (``"standard"``, default); its label, then its first citation on
+        a second line (``"full"``).
+    off_scale_notes : bool
+        Whether the legend entry of a curve drawn off scale says how far it
+        goes (:func:`nomogram.plot.plot_deviations`).
     """
 
     mul_symbol: MulSymbol = "times"
@@ -128,10 +146,16 @@ class DisplayOptions:
     upright: bool = True
     values: bool = False
     axis_labels: AxisLabels = "si"
+    axis_detail: LabelDetail = "standard"
+    legend_detail: LabelDetail = "standard"
+    off_scale_notes: bool = True
 
     #: SymPy's own rendering: juxtaposition, default symbols; numbers are
     #: still joined by ×.
     SYMPY: ClassVar[DisplayOptions]
+    #: The figures of nomogram's documentation: full axes, short legend
+    #: entries, no off-scale notes, so that a figure stands alone uncrowded.
+    DOCUMENTATION: ClassVar[DisplayOptions]
 
     def __post_init__(self) -> None:
         if self.mul_symbol not in _MUL_SYMBOLS:
@@ -146,9 +170,19 @@ class DisplayOptions:
         if self.axis_labels not in _AXIS_LABELS:
             msg = f"axis_labels must be one of {_AXIS_LABELS}, not {self.axis_labels!r}"
             raise ValueError(msg)
+        for name in ("axis_detail", "legend_detail"):
+            if getattr(self, name) not in _LABEL_DETAILS:
+                msg = (
+                    f"{name} must be one of {_LABEL_DETAILS}, "
+                    f"not {getattr(self, name)!r}"
+                )
+                raise ValueError(msg)
 
 
 DisplayOptions.SYMPY = DisplayOptions(mul_symbol=None, upright=False)
+DisplayOptions.DOCUMENTATION = DisplayOptions(
+    axis_detail="full", legend_detail="short", off_scale_notes=False
+)
 
 _DEFAULT = DisplayOptions()
 _OPTIONS: ContextVar[DisplayOptions] = ContextVar(
@@ -243,6 +277,21 @@ def _tex(expr: Any, symbols: Mapping[str, str], options: DisplayOptions) -> str:
     return _times_between_numbers(tex, options.mul_symbol)
 
 
+#: How the legend says where an assumption comes from.
+_ASSUMED: Mapping[AssumptionStatus, str] = {
+    AssumptionStatus.STATED: "stated by {}",
+    AssumptionStatus.STATED_BY_OTHER: "stated by {}, not by the sources of the formula",
+    AssumptionStatus.DEDUCED: "deduced by nomogram",
+    AssumptionStatus.SUSPECTED: "suspected by nomogram, to be checked",
+}
+
+#: How the legend states the nature of a definition or an identity.
+_NATURES: Mapping[FormulationNature, str] = {
+    FormulationNature.DEFINITION: "A definition: true by definition.",
+    FormulationNature.IDENTITY: "An identity: an exact consequence of definitions.",
+}
+
+
 def _identifier(name: str, symbols: Mapping[str, str], options: DisplayOptions) -> str:
     return _tex(sympy.Symbol(name, real=True), symbols, options)
 
@@ -335,7 +384,7 @@ class Rendering:
         """The equation in LaTeX, without dollar signs."""
         formulation = self.formulation
         left = _identifier(formulation.output.identifier, self._symbols, self.options)
-        right = _tex(formulation.sympy_expression, self._symbols, self.options)
+        right = _tex(formulation.written_expression, self._symbols, self.options)
         return f"{left} = {right}"
 
     @property
@@ -367,12 +416,19 @@ class Rendering:
             lines.append(f"- ${label}$: {meaning}")
         if not options.values:
             for coefficient in formulation.coefficients:
-                label = _identifier(coefficient.identifier, symbols, options)
+                # A coefficient of a formulation called, renamed for the
+                # computation, shows the name it is written with, and where.
+                owner, name = _origin(formulation, coefficient.identifier)
+                renamed = name != coefficient.identifier
+                label = _identifier(name, {} if renamed else symbols, options)
                 value = f"${label} = {_number(coefficient.value, options)}$"
                 unit = _coefficient_unit(formulation, coefficient)
-                lines.append(f"- {value} {unit}" if unit else f"- {value}")
+                line = f"- {value} {unit}" if unit else f"- {value}"
+                lines.append(f"{line}, of {owner}" if renamed else line)
         for constant in formulation.constants:
-            label = _identifier(constant.identifier, symbols, options)
+            _, name = _origin(formulation, constant.identifier)
+            renamed = name != constant.identifier
+            label = _identifier(name, {} if renamed else symbols, options)
             value = f"${label} = {_number(constant.value, options)}$"
             lines.append(
                 f"- {_with_unit(value, constant.unit)}: {constant.description}"
@@ -384,12 +440,35 @@ class Rendering:
                 if _unit(v.unit)
             ]
             lines += ["", f"The coefficients hold for {', '.join(held)} only."]
+        if formulation.nature is not None:
+            lines += ["", _NATURES[formulation.nature]]
+        if formulation.conditions:
+            lines += ["", f"Conditions: {formulation.conditions}"]
+        if formulation.assumptions:
+            lines += ["", "Assumptions:", ""]
+            lines += [
+                f"- {a.text} ({_ASSUMED[a.status].format(a.reference)})"
+                for a in formulation.assumptions
+            ]
+        if formulation.derived:
+            lines += ["", "Derived by nomogram: no source prints this formulation."]
         derivation = formulation.derivation
         if derivation is not None and derivation.method == "composition":
             parts = " and ".join(
                 f"{key} ({identifier})" for identifier, key in derivation.parts.items()
             )
             lines += ["", f"Composed of {parts} in {derivation.source}."]
+        if derivation is not None and derivation.method == "branches":
+            pieces = "; ".join(
+                f"{key} where {condition}"
+                for condition, key in derivation.parts.items()
+            )
+            lines += ["", f"Defined by pieces: {pieces}."]
+        if derivation is not None and derivation.method == "calls":
+            calls = "; ".join(
+                f"{call} with {key}" for call, key in derivation.parts.items()
+            )
+            lines += ["", f"Calls {calls}."]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:
@@ -442,7 +521,7 @@ def reference_scale(kind: str) -> ConventionalScale | None:
     from nomogram.catalog import catalog
 
     for scale in catalog().scales.values():
-        if scale.is_reference and kind in scale.kinds:
+        if scale.is_reference and scale.applies_to(kind, catalog().kinds):
             return scale
     return None
 
@@ -572,7 +651,7 @@ def axis_label(
     Notes
     -----
     A compound unit goes in parentheses in the quotient (``(g/m³)``,
-    ``(Pa⋅s)``); a number has no unit (``[1]`` in the explicit style);
+    ``(Pa·s)``); a number has no unit (``[1]`` in the explicit style);
     the scale subscript joins an existing subscript; without a name, the
     slash stands apart (``Height / km``); with neither name nor symbol,
     the unit stands alone (``[Pa]`` in the explicit and simple styles).

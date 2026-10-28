@@ -1,4 +1,9 @@
-# nomogram
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-dark.svg">
+    <img alt="nomogram" src="docs/images/banner-light.svg" width="480">
+  </picture>
+</p>
 
 [English](README.md) | **Français**
 
@@ -13,9 +18,20 @@
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-fe5196)](https://www.conventionalcommits.org/en/v1.0.0/)
 
-Référentiel de formules scientifiques : notations alternatives selon
-les auteurs et les conventions, unités des paramètres (y compris
-empiriques), domaines de validité, rendu LaTeX et calcul formel.
+**Les formules comme données, pas comme code.**
+
+nomogram ne code pas de fonctions en dur : il catalogue des formules,
+chacune
+
+- **signifiante** : kinds et unités de QUDT, liens vers CF et Wikidata,
+  sa source, son domaine de validité quand il est indiqué ;
+- **vérifiée** : dimensions et unités au chargement, équivalences
+  prouvées symboliquement, valeurs recoupées avec des références ;
+- **prête à l'emploi** : calculer, composer, inverser, tracer, et
+  comparer à ses alternatives.
+
+Conçu pour la confiance, pas pour la vitesse : montrer qu'un calcul est
+juste, et d'où il vient.
 
 En Python pur, fondé sur SymPy, numpy et pint ; il fonctionne sur un
 poste déconnecté (aucun moteur en ligne).
@@ -43,26 +59,29 @@ Python 3.12 ou plus récent. Les tracés demandent l'extra `viz`
 ## Exemple
 
 Toutes les formulations de la pression de vapeur saturante du catalogue
-comparées à la référence IAPWS ; les courbes s'arrêtent là où une
-formulation sort de son domaine de validité déclaré
+comparées à la référence IAPWS, de 0 à 60 °C et à 1 % près ; les courbes s'arrêtent là où
+une formulation sort de son domaine de validité déclaré, et la figure prend
+le jeu d'options de la documentation de nomogram
 ([script](docs/examples/saturation_vapour_pressure.py)) :
 
 ```python
 import numpy as np
-from nomogram.catalog import catalog
-from nomogram.comparison import compare
-from nomogram.plot import plot_deviations  # extra viz
+import nomogram as nomo
 from nomogram.units import Q_
 
-formulations = catalog().formulations_of("SaturationVapourPressureOverWater")
-reference = catalog().formulations["iapws_sr1_86"]
+catalog = nomo.catalog.catalog()
+formulations = catalog.formulations_of("SaturationVapourPressureOverWater")
+reference = catalog.formulations["iapws_sr1_86"]
 temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 
-table = compare(formulations, reference, {"ThermodynamicTemperature": temperatures})
-plot_deviations(table)
+table = nomo.comparison.compare(
+    formulations, reference, {"ThermodynamicTemperature": temperatures}
+)
+with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
+    nomo.plot.plot_deviations(table, xlim=(0, 60), ylim=(-1.0, 1.0))  # extra viz
 ```
 
-![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.3.0/docs/images/saturation-vapour-pressure.png)
+![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.4.0/docs/images/saturation-vapour-pressure.png)
 
 ## Utilisation
 
@@ -73,9 +92,9 @@ composent aussi, par exemple l'humidité absolue à partir de n'importe
 quelle formulation de la pression de vapeur saturante :
 
 ```python
-from nomogram.comparison import compose
-
-ha = compose(catalog().formulations["mass_concentration_ideal_gas"], {"e_s": reference})
+ha = nomo.comparison.compose(
+    catalog.formulations["mass_concentration_ideal_gas"], {"e_s": reference}
+)
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17,29
 ```
 
@@ -83,8 +102,8 @@ Les formulations se retrouvent par mots, jokers et champs, quelle que
 soit leur notation ([Finding formulations](docs/search.md), en anglais) :
 
 ```python
-catalog().search(variable="rho*")                    # ρ dans toutes les notations
-catalog().search(kind="VapourPressure", source="buck*")
+catalog.search(variable="rho*")                    # ρ dans toutes les notations
+catalog.search(kind="VapourPressure", source="buck*")
 ```
 
 Chaque formulation garde ses unités, son domaine de validité, son
@@ -95,7 +114,8 @@ qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
 anglais) montre l'affichage des formules dans un notebook, en Markdown et
 sur un graphique. [Sea water](docs/sea-water.md) (en anglais) présente les
 échelles de salinité et la pression de vapeur de l'eau de mer, et ce que
-son abaissement de 2 % change à la surface de la mer.
+son abaissement de 2 % change à la surface de la mer. [Le logo](docs/logo.md)
+(en anglais) est un vrai nomogramme.
 
 ## Contribuer
 
@@ -105,6 +125,27 @@ catalogue, nouvelles formules et code sont tous bienvenus : voir
 (version anglaise de référence : [CONTRIBUTING.md](.github/CONTRIBUTING.md))
 et le [guide du catalogue](docs/catalog.md) (en anglais).
 
+## Sources des données
+
+Les unités de nomogram viennent de QUDT, comme ses natures de grandeur,
+sauf celles que QUDT ne définit pas : nomogram les définit comme
+spécialisations de natures de grandeur QUDT. nomogram relie certaines
+natures de grandeur à des noms standard CF, repris avec leurs unités
+canoniques de la table des noms standard CF. Le paquet embarque un
+sous-ensemble de chaque source :
+
+- QUDT — Quantities, Units, Dimensions and Types, par QUDT.org
+  (<https://qudt.org>), version 3.5.2, sous licence
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ;
+- la [table des noms standard CF](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
+  version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) ;
+- les codes UCUM des unités, tels que QUDT les donne : © Regenstrief
+  Institute, Inc., [licence UCUM](https://ucum.org/license).
+
+Ce que nomogram sélectionne, modifie et ajoute est détaillé dans
+[NOTICE.md](src/nomogram/data/NOTICE.md) (en anglais).
+
 ## Licence
 
-[BSD-3-Clause](LICENSE).
+Code : [BSD-3-Clause](LICENSE). Données embarquées : voir
+[Sources des données](#sources-des-données).

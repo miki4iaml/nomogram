@@ -31,9 +31,12 @@ The patterns file itself must never be published:
 The script never succeeds without checking:
 
 - text file not UTF-8 or unreadable: failure;
-- binary file (contains a null byte): search in its raw bytes, which
-  covers plain-text metadata but not compressed contents (docx,
-  compressed PDF…);
+- PDF: search in its raw bytes and in its metadata, decompressed when
+  it sits in a compressed metadata or object stream, strings decoded;
+  the content of pages is not searched; a metadata stream that cannot be
+  decoded: failure;
+- other binary file (contains a null byte): search in its raw bytes,
+  which covers plain-text metadata but not compressed contents (docx…);
 - file path: checked like its contents;
 - environment variable set but one of its files missing, unreadable or
   invalid, or a patterns file inside the repository: failure (a
@@ -57,6 +60,7 @@ descriptions, issues, comments).
 import os
 import re
 import sys
+import zlib
 from pathlib import Path
 
 GENERIC_PATTERNS = (
@@ -291,6 +295,72 @@ def message_lines(text: str) -> list[str]:
     return [line if not line.startswith("#") else "" for line in lines]
 
 
+_PDF_STREAM = re.compile(rb"obj\s*(<<.*?>>)\s*stream(?:\r\n|\n|\r)", re.DOTALL)
+_PDF_LITERAL = re.compile(rb"\((?:\\.|[^\\()])*\)", re.DOTALL)
+_PDF_HEX = re.compile(rb"<([0-9A-Fa-f\s]+)>")
+_PDF_ESCAPES = {b"n": b"\n", b"r": b"\r", b"t": b"\t", b"b": b"\b", b"f": b"\f"}
+
+
+def _pdf_string(raw: bytes) -> str:
+    """A PDF string as text: UTF-16 with its byte order mark, else Latin-1."""
+    if raw.startswith(b"\xfe\xff"):
+        return raw[2:].decode("utf-16-be", errors="replace")
+    return raw.decode("latin-1")
+
+
+def _pdf_literal(body: bytes) -> bytes:
+    """The bytes of a literal string, escapes resolved."""
+    return re.sub(
+        rb"\\([0-7]{1,3}|.)",
+        lambda m: (
+            bytes([int(m.group(1), 8) & 0xFF])
+            if m.group(1)[:1].isdigit()
+            else _PDF_ESCAPES.get(m.group(1), m.group(1))
+        ),
+        body,
+        flags=re.DOTALL,
+    )
+
+
+def pdf_metadata_texts(data: bytes) -> list[str] | None:
+    """The metadata of a PDF as texts, compressed metadata included.
+
+    The document information and XMP metadata may sit in streams
+    compressed with Flate (metadata streams, object streams): those are
+    decompressed, the content of pages is not. Strings are decoded
+    (UTF-16 with its byte order mark). ``None`` when a metadata stream
+    cannot be decoded: the file is then not checked.
+    """
+    chunks = [data]
+    for match in _PDF_STREAM.finditer(data):
+        header = match.group(1)
+        if b"/Metadata" not in header and b"/ObjStm" not in header:
+            continue
+        end = data.find(b"endstream", match.end())
+        body = data[match.end() : end if end >= 0 else len(data)]
+        if b"/Filter" not in header:
+            chunks.append(body)
+        elif re.search(rb"/Filter\s*/FlateDecode\b", header):
+            try:
+                chunks.append(zlib.decompress(body.rstrip(b"\r\n")))
+            except zlib.error:
+                return None
+        else:
+            return None
+    texts = [chunk.decode("latin-1") for chunk in chunks]
+    for chunk in chunks:
+        texts += [
+            _pdf_string(_pdf_literal(m.group()[1:-1]))
+            for m in _PDF_LITERAL.finditer(chunk)
+        ]
+        for m in _PDF_HEX.finditer(chunk):
+            digits = re.sub(rb"\s", b"", m.group(1))
+            texts.append(
+                _pdf_string(bytes.fromhex((digits + b"0" * (len(digits) % 2)).decode()))
+            )
+    return texts
+
+
 def check_file(
     name: str, patterns: list[re.Pattern[str]], *, commit_msg: bool = False
 ) -> list[str]:
@@ -307,6 +377,16 @@ def check_file(
 
     if CANARY.encode("ascii") in data:
         findings.append(f"{shown}: {CANARY_FINDING}")
+
+    if data.startswith(b"%PDF-"):
+        # A PDF keeps its metadata (the authors of a reference): only the
+        # patterns apply, to its compressed metadata as well.
+        texts = pdf_metadata_texts(data)
+        if texts is None:
+            return [*findings, f"{shown}: PDF metadata not decoded, not checked"]
+        if any(matches(text, patterns) for text in texts):
+            findings.append(f"{shown}: PDF: {FINDING}")
+        return findings
 
     if b"\0" in data and not data.startswith((b"\xff\xfe", b"\xfe\xff")):
         raw = (data.decode("latin-1"), data.decode("utf-8", errors="replace"))

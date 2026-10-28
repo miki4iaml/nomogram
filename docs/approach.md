@@ -164,8 +164,22 @@ point t_d = f⁻¹(e):
   approximation and the exact inverse of the reference possible.
 
 Inverting a formulation over ice gives the frost point the same way.
-Every inverse is tested **both ways**, for all thirteen formulations
-over water (f(f⁻¹(e)) = e, below), and the ten over ice through the
+
+A piecewise definition (over ice below 0 degC, over water above) is
+inverted branch by branch, with a clear limit: **each branch must be
+strictly monotonic on its interval**. nomogram checks it on samples,
+solves each branch, and takes the image of each interval as the
+condition of its inverse branch (e < 6.112 hPa, then e ≥ 6.112 hPa); a
+gap between two images, where no temperature gives the vapour pressure,
+has no inverse (NaN). A branch that is not strictly monotonic, has no
+closed form, or whose image overlaps another's makes the whole inverse
+numerical. Most formulas of the field meet the condition: saturation
+pressures, layers of a standard atmosphere. A constant branch does not:
+the 0 and 1 of a mixed-phase fraction are each reached on a whole
+interval of temperatures, and the numerical inverse returns one end of
+it, within the interval searched.
+Every inverse is tested **both ways**, for every formulation over water
+(f(f⁻¹(e)) = e, below), and every formulation over ice through the
 frost point (f⁻¹(f(t)) = t):
 
 | Test | Tolerance | Why this tolerance |

@@ -16,9 +16,7 @@ import sys
 import matplotlib as mpl
 import numpy as np
 
-from nomogram.catalog import catalog
-from nomogram.comparison import compare
-from nomogram.plot import plot_deviations
+import nomogram as nomo
 from nomogram.units import Q_
 
 mpl.use("Agg")  # render to a file, without a display
@@ -26,20 +24,25 @@ mpl.use("Agg")  # render to a file, without a display
 
 def main(output: str) -> None:
     """Write the comparison plot to ``output``."""
-    formulations = catalog().formulations_of("SaturationVapourPressureOverWater")
-    reference = catalog().formulations["iapws_sr1_86"]
+    catalog = nomo.catalog.catalog()
+    formulations = catalog.formulations_of("SaturationVapourPressureOverWater")
+    reference = catalog.formulations["iapws_sr1_86"]
     temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 
-    table = compare(formulations, reference, {"ThermodynamicTemperature": temperatures})
-    ax = plot_deviations(table)
+    table = nomo.comparison.compare(
+        formulations, reference, {"ThermodynamicTemperature": temperatures}
+    )
+    with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
+        ax = nomo.plot.plot_deviations(table, xlim=(0, 60), ylim=(-1.0, 1.0))
 
-    # Formatting only.
-    ax.set_ylim(-1.0, 1.0)
+    # Formatting only: the legend in the lower left corner, in two columns.
     ax.grid(alpha=0.3)
+    ax.legend(fontsize="small", loc="lower left", ncols=2)
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
-    ax.figure.set_size_inches(11, 6.5)
+    ax.figure.set_size_inches(11, 8.5)
     ax.figure.tight_layout()
-    ax.figure.savefig(output, dpi=90)
+    # No metadata in the image (the image metadata hook refuses it).
+    ax.figure.savefig(output, dpi=90, metadata={"Software": None})
 
 
 if __name__ == "__main__":

@@ -18,6 +18,13 @@ origin. When there is none, or when the unknown appears more than
 result is a :class:`NumericalInverse`, solved by vectorised bisection
 over a search interval.
 
+A piecewise definition is inverted branch by branch, **provided each
+branch is strictly monotonic on its interval** (nomogram checks it on
+samples; a constant branch is not):
+each branch then needs a closed form, and the images of the intervals,
+which become the conditions of the inverse, must not overlap. Otherwise
+the inverse is numerical.
+
 Values stay on the reference scales of their kinds at both ends (ITS-90
 for temperatures, Reference Salinity for salinities): the inverse takes
 its input on the scale of the source's output, and converts its result
@@ -27,12 +34,18 @@ back from the scale of the source's input.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from itertools import pairwise
 from types import MappingProxyType
 from typing import Any, Literal
 
 import numpy as np
 
-from nomogram.expression import compile_numeric, parse_expression
+from nomogram.expression import (
+    PIECEWISE,
+    _pieces,
+    compile_numeric,
+    parse_expression,
+)
 from nomogram.model import (
     Basis,
     Coefficient,
@@ -45,6 +58,7 @@ from nomogram.model import (
     ValidityDomain,
     ValidityWarning,
     Variable,
+    _check_given,
     _check_options,
     _flag_beyond,
 )
@@ -68,8 +82,8 @@ SYMBOLIC_MAX_OCCURRENCES = 3
 #: validity domain, in degC: a search interval, not a validity domain.
 DEW_POINT_SEARCH_CELSIUS = (-100.0, 100.0)
 
-#: Name of the offset coefficient added when the result changes from K to
-#: degC (t = T - T0, SI Brochure, section 2.3.1).
+#: Name of the offset coefficient, 273.15 K, added when the result changes
+#: from K to degC or back (t = T - T0, SI Brochure, section 2.3.1).
 _OFFSET = "T_celsius_zero"
 
 Method = Literal["auto", "symbolic", "numerical"]
@@ -121,9 +135,13 @@ def _check(
         raise InversionError(msg)
 
 
-def _forward(formulation: Formulation) -> Any:
-    """The formulation's numeric function of its single input, in its units."""
-    function = compile_numeric(formulation.sympy_expression, formulation.names)
+def _forward(formulation: Formulation, expr: Any = None) -> Any:
+    """The formulation's numeric function of its single input, in its units.
+
+    ``expr`` replaces the formulation's expression (a branch of it).
+    """
+    source = formulation.sympy_expression if expr is None else expr
+    function = compile_numeric(source, formulation.names)
     fixed = [c.value for c in formulation.coefficients] + [
         k.value for k in formulation.constants
     ]
@@ -131,7 +149,10 @@ def _forward(formulation: Formulation) -> Any:
 
     def forward(x: Any) -> Any:
         with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
-            return np.asarray(function(x, *fixed), dtype=float) * factor
+            result = np.asarray(function(x, *fixed), dtype=float) * factor
+        # A constant (a branch of a piecewise definition) gives one number
+        # whatever the shape of x.
+        return np.broadcast_to(result, np.shape(x))
 
     return forward
 
@@ -160,20 +181,25 @@ def _offset(source_unit: str, target_unit: str) -> float:
     raise InversionError(msg)
 
 
-def _symbolic(
+def _closed_form(
     formulation: Formulation,
+    expr: Any,
     solve_for: str,
     output: Variable,
     input: Variable,
-    key: str,
-    label: str,
     samples: Any,
-) -> Formulation | None:
+) -> tuple[str, list[Coefficient]] | None:
+    """A closed-form inverse of ``expr``, as source text, checked on samples.
+
+    Returns the source and the coefficients it uses (those of the
+    formulation, plus the offset when the result changes from K to degC
+    or back).
+    """
     import sympy
 
     x = sympy.Symbol(solve_for, real=True)
     y = sympy.Symbol(input.identifier, positive=True)
-    lhs = sympy.expand_log(sympy.log(formulation.sympy_expression), force=True)
+    lhs = sympy.expand_log(sympy.log(expr), force=True)
     if lhs.count(x) > SYMBOLIC_MAX_OCCURRENCES:
         return None
     # ln f(x) = k + g(x): solve g(x) = z, then z = ln(y) - k, combined
@@ -192,7 +218,7 @@ def _symbolic(
         coefficients.append(
             Coefficient(
                 _OFFSET,
-                -shift,
+                abs(shift),
                 "K",
                 "t = T - T0 (SI Brochure, section 2.3.1)",
                 UnitBasis.ADDED,
@@ -203,61 +229,181 @@ def _symbolic(
         + [c.identifier for c in coefficients]
         + [k.identifier for k in formulation.constants]
     )
-    forward = _forward(formulation)
-    targets = forward(samples)
+    targets = _forward(formulation, expr)(samples)
+    values = [c.value for c in coefficients] + [k.value for k in formulation.constants]
     for solution in solutions:
-        expr = solution
+        found = solution
         if shift:
-            expr = expr - sympy.Symbol(_OFFSET, real=True)
-        source = _source(expr)
+            # t = T - T0 from K to degC, T = t + T0 from degC to K.
+            offset = sympy.Symbol(_OFFSET, real=True)
+            found = found + offset if shift > 0 else found - offset
+        source = _source(found)
         try:
             parsed = parse_expression(source, names)
         except ValueError:
             continue
-        values = [c.value for c in coefficients] + [
-            k.value for k in formulation.constants
-        ]
         with np.errstate(invalid="ignore", divide="ignore"):
             back = np.asarray(
                 compile_numeric(parsed, tuple(names))(targets, *values), dtype=float
             )
         if np.allclose(back, samples + shift, rtol=1e-9, atol=1e-9):
-            return Formulation(
-                key=key,
-                label=label,
-                output=output,
-                inputs=(input,),
-                coefficients=tuple(coefficients),
-                constants=formulation.constants,
-                expression=source,
-                fixed_units=formulation.fixed_units,
-                physical_domains=_carried_domains(
-                    formulation.physical_domains,
+            return source, coefficients
+    return None
+
+
+def _branch_samples(low: float, high: float, samples: Any) -> Any:
+    """Points inside the interval of a branch, near the given samples."""
+    first, last = float(np.min(samples)), float(np.max(samples))
+    width = max(last - first, 1.0)
+    start = low if np.isfinite(low) else min(first, high - width)
+    stop = high if np.isfinite(high) else max(last, low + width)
+    return np.linspace(start, stop, 51)[1:-1]
+
+
+def _image_condition(
+    variable: str,
+    lower: tuple[float, bool] | None,
+    upper: tuple[float, bool] | None,
+) -> str:
+    """The condition of an inverse branch: the image of the interval."""
+    if lower and upper:
+        return (
+            f"{lower[0]!r} {'<=' if lower[1] else '<'} {variable} "
+            f"{'<=' if upper[1] else '<'} {upper[0]!r}"
+        )
+    if lower:
+        return f"{variable} {'>=' if lower[1] else '>'} {lower[0]!r}"
+    assert upper is not None
+    return f"{variable} {'<=' if upper[1] else '<'} {upper[0]!r}"
+
+
+def _closed_form_of_pieces(
+    formulation: Formulation,
+    solve_for: str,
+    output: Variable,
+    input: Variable,
+    samples: Any,
+) -> tuple[str, list[Coefficient]] | None:
+    """A closed-form inverse of a piecewise definition, branch by branch.
+
+    Each branch must be strictly monotonic on its interval (checked on
+    samples) and have a closed-form inverse; the inverse takes the image
+    of each interval as its condition, and the images must not overlap.
+    One piecewise definition only: with several, ``None``.
+    """
+    import sympy
+
+    expr = formulation.sympy_expression
+    nodes = [
+        n for n in sympy.preorder_traversal(expr) if isinstance(n, sympy.Piecewise)
+    ]
+    if len(nodes) != 1:
+        return None
+    # The catalog checked that every condition bounds the input alone.
+    pieces = _pieces(nodes[0], [solve_for])
+    pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+    pairs += [(k.identifier, k.value) for k in formulation.constants]
+    values = {sympy.Symbol(name, real=True): value for name, value in pairs}
+    texts, spans = [], []
+    coefficients: list[Coefficient] = []
+    for piece in pieces:
+        branch = expr.xreplace({nodes[0]: piece.expression})
+        low = float(piece.low.xreplace(values))
+        high = float(piece.high.xreplace(values))
+        inside = _branch_samples(low, high, samples)
+        forward = _forward(formulation, branch)
+        steps = np.diff(forward(inside))
+        if not (np.all(steps > 0) or np.all(steps < 0)):
+            return None
+        found = _closed_form(formulation, branch, solve_for, output, input, inside)
+        if found is None:
+            return None
+        source, coefficients = found
+        ends: list[tuple[float, bool] | None] = []
+        for end, closed in ((low, piece.low_closed), (high, piece.high_closed)):
+            image = float(forward(np.array(end))) if np.isfinite(end) else np.inf
+            ends.append((image, closed) if np.isfinite(image) else None)
+        lower, upper = ends if steps[0] > 0 else ends[::-1]
+        if lower is None and upper is None:
+            return None
+        texts.append(f"({source}, {_image_condition(input.identifier, lower, upper)})")
+        spans.append(
+            (
+                lower[0] if lower else -np.inf,
+                not (lower and lower[1]),
+                upper[0] if upper else np.inf,
+                bool(upper and upper[1]),
+            )
+        )
+    spans.sort()
+    for (_, _, top, top_closed), (bottom, bottom_open, _, _) in pairwise(spans):
+        if top > bottom or (top == bottom and top_closed and not bottom_open):
+            return None
+    # Each branch was checked on its samples, and the images do not overlap.
+    return f"{PIECEWISE}({', '.join(texts)})", coefficients
+
+
+def _symbolic(
+    formulation: Formulation,
+    solve_for: str,
+    output: Variable,
+    input: Variable,
+    key: str,
+    label: str,
+    samples: Any,
+) -> Formulation | None:
+    import sympy
+
+    if formulation.sympy_expression.has(sympy.Piecewise):
+        found = _closed_form_of_pieces(formulation, solve_for, output, input, samples)
+    else:
+        found = _closed_form(
+            formulation,
+            formulation.sympy_expression,
+            solve_for,
+            output,
+            input,
+            samples,
+        )
+    if found is None:
+        return None
+    source, coefficients = found
+    forward = _forward(formulation)
+    return Formulation(
+        key=key,
+        label=label,
+        output=output,
+        inputs=(input,),
+        coefficients=tuple(coefficients),
+        constants=formulation.constants,
+        expression=source,
+        fixed_units=formulation.fixed_units,
+        physical_domains=_carried_domains(
+            formulation.physical_domains,
+            formulation.key,
+            solve_for,
+            input.identifier,
+            forward,
+        ),
+        citations=tuple(
+            replace(
+                citation,
+                domains=_carried_domains(
+                    citation.domains,
                     formulation.key,
                     solve_for,
                     input.identifier,
                     forward,
                 ),
-                citations=tuple(
-                    replace(
-                        citation,
-                        domains=_carried_domains(
-                            citation.domains,
-                            formulation.key,
-                            solve_for,
-                            input.identifier,
-                            forward,
-                        ),
-                        # The output carries the scale of the solved variable.
-                        scales=MappingProxyType({}),
-                    )
-                    for citation in formulation.citations
-                ),
-                note=f"Derived by symbolic inversion of {formulation.key}.",
-                matches=(),
-                derivation=Derivation(formulation.key, "symbolic inversion", solve_for),
+                # The output carries the scale of the solved variable.
+                scales=MappingProxyType({}),
             )
-    return None
+            for citation in formulation.citations
+        ),
+        note=f"Derived by symbolic inversion of {formulation.key}.",
+        matches=(),
+        derivation=Derivation(formulation.key, "symbolic inversion", solve_for),
+    )
 
 
 def _carried_domains(
@@ -369,7 +515,10 @@ class NumericalInverse:
             With ``outside="raise"``, if a result is outside a domain, or
             a value beyond a scale conversion.
         ScaleConversionError
-            With ``scale="convert"``, if a scale cannot be converted.
+            With ``scale="convert"``, if a scale cannot be converted; with
+            ``scale="ignore"``, if the input is not written as its scale
+            writes it: with a unit on a scale of numbers (Practical
+            Salinity), bare on a scale in per mille (Knudsen salinity).
         """
         _check_options(outside, basis, scale)
         if set(inputs) != {self.input.identifier}:
@@ -378,6 +527,8 @@ class NumericalInverse:
         units = semantic_catalog().units
         source_input = self.source.inputs[0]
         given = inputs[self.input.identifier]
+        if scale == "ignore":
+            _check_given(self.key, self.input, given)
         target_scale = self.input.scale
         if (
             scale == "convert"
@@ -472,14 +623,18 @@ def invert(
         Identifier of its input x, which becomes the output.
     output : Variable
         The new output (x's identifier, kind and unit; K and degC are
-        interchangeable for temperatures).
+        interchangeable for the temperature of a numerical value
+        equation, while a quantity equation keeps the unit of x).
     input : Variable
         The new input, in the unit of the formulation's output.
     key, label : str, optional
         Identification of the result; derived from the source otherwise.
     method : {"auto", "symbolic", "numerical"}
         ``"auto"`` tries a closed form, then falls back to numerical
-        inversion; the others force one method.
+        inversion; the others force one method. A piecewise definition
+        has a closed form only if each branch is strictly monotonic on
+        its interval, has a closed form itself, and the images of the
+        intervals do not overlap.
     search : (float, float), optional
         Interval of x searched by numerical inversion, in x's unit;
         defaults to the source's stated validity domain.
@@ -499,6 +654,8 @@ def invert(
     source_input = formulation.inputs[0]
     output = replace(
         output,
+        # A quantity equation gives x in its own unit, which pint converts.
+        unit=output.unit if formulation.fixed_units else source_input.unit,
         scale=source_input.scale,
         scale_basis=source_input.scale_basis,
     )
@@ -524,6 +681,12 @@ def invert(
             return closed
         if method == "symbolic":
             msg = f"{formulation.key}: no closed form found for {solve_for}"
+            if f"{PIECEWISE}(" in formulation.expression:
+                msg += (
+                    " (a piecewise definition needs each branch strictly "
+                    "monotonic on its interval, with a closed form, and images "
+                    "that do not overlap)"
+                )
             raise InversionError(msg)
     if interval is None:
         msg = (
@@ -563,7 +726,8 @@ def dew_point(
     -------
     Formulation or NumericalInverse
         t_d = g(e), with e a vapour pressure (in the unit of e_s) and t_d
-        a dew point temperature in degC.
+        a dew point temperature in degC, or in the unit of the
+        temperature for a quantity equation.
     """
     temperature = formulation.inputs[0]
     if search is None and _bounds(formulation, temperature.identifier) is None:

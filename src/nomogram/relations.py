@@ -7,9 +7,11 @@ A relation of the catalog is a claim made by a source; :func:`verify`
 checks it and returns a :class:`Verdict`:
 
 - an **equivalence** is proved with SymPy: coefficients become exact
-  rationals, each result is brought into its output unit, the object's
-  inputs are replaced as the relation says (``given``) or by the subject
-  inputs that feed them, and the difference must simplify to zero. If
+  rationals, each result is brought into the output unit of the subject,
+  the object's inputs are replaced as the relation says (``given``) or
+  by the subject inputs that feed them, converted by a factor where
+  their units differ (hPa fed by Pa), and the difference must simplify
+  to zero. If
   it does not, a numerical counterexample refutes the claim; without
   one, the equivalence is left unproven (equivalence of transcendental
   expressions is undecidable in general). Between formulations on
@@ -23,7 +25,19 @@ checks it and returns a :class:`Verdict`:
   finite are not compared, and the verdict says so; it is unverified
   when no point is left.
 
-Deviations nomogram computes without a source are observations, given by
+- a **proportionality** is proved like an equivalence, on the ratio of
+  the two sides, which must simplify to a constant: the factor. If it
+  does not, the ratio is sampled on the bounds: it holds when it varies
+  no more than the rounding of the printed coefficients allows (half a
+  unit of the last digit of each, through its effect on the ratio), and
+  the verdict says what the factor is the ratio of, whether the two are
+  even equal to the printed precision, and whether a shift or a factor
+  of an input with a conventional scale would make them equal (a matter
+  of scale rather than of coefficients).
+
+A relation without a citation is computed by nomogram: an equivalence or
+a proportionality it proves or holds. Deviations nomogram computes
+without a source are observations, given by
 :func:`nomogram.comparison.compare`; they never become relations.
 """
 
@@ -36,6 +50,7 @@ import math
 import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from fractions import Fraction
 from functools import lru_cache
 from importlib.resources import files
@@ -47,16 +62,18 @@ import numpy as np
 import sympy
 
 from nomogram.comparison import same_state
-from nomogram.expression import parse_expression
+from nomogram.expression import Piecewise, parse_expression
 from nomogram.model import (
     CheckCase,
+    ConstantNature,
     CrossCheck,
     Formulation,
+    PhysicalConstant,
     Relation,
     RelationKind,
     Variable,
 )
-from nomogram.units import Q_
+from nomogram.units import Q_, is_offset_unit
 
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
@@ -99,6 +116,8 @@ class Verdict:
     ----------
     status : str
         ``"proven"``, ``"refuted"`` or ``"unproven"`` for an equivalence;
+        ``"proven"``, ``"held"`` (to the printed precision of the
+        coefficients) or ``"refuted"`` for a proportionality;
         ``"reproduced"``, ``"held"`` or ``"exceeded"`` for an
         approximation; ``"unverified"`` when the claim cannot be checked
         as it stands (an equivalence between formulations on different
@@ -109,12 +128,15 @@ class Verdict:
         How it was verified.
     value : float or None
         For an approximation, the maximum relative deviation found, in
-        percent; ``None`` when it is unverified.
+        percent; for a proportionality, the factor; ``None`` when it is
+        unverified or refuted.
     at : mapping of str to float
         Where that maximum lies, or where a counterexample was found, by
         input identifier of the subject.
     detail : str or None
-        The simplified difference of an equivalence that is not proven.
+        The simplified difference of an equivalence that is not proven;
+        for a proportionality, what explains the factor, or the ratio when
+        refuted.
     """
 
     status: Status
@@ -124,9 +146,28 @@ class Verdict:
     detail: str | None = None
 
 
-def _decimals(value: float) -> int:
-    text = repr(value)
-    return len(text.split(".")[1]) if "." in text and "e" not in text else 0
+def _printed_step(value: float) -> float:
+    """Half a unit of the last significant digit: the rounding a value may hide.
+
+    Read from the shortest text of the value, in any notation: 5.9e-06
+    hides 5e-08, 6.112 hides 5e-04. The catalog keeps no text of its
+    numbers, so an integral value is read without trailing zeros: 2.501e6
+    hides 500, 72 hides 0.5.
+    """
+    digits = Decimal(repr(float(value)))
+    if digits == digits.to_integral_value():
+        digits = digits.normalize()
+    exponent = digits.as_tuple().exponent
+    return 0.5 * 10.0 ** int(exponent)
+
+
+def _constant_step(constant: PhysicalConstant) -> float:
+    """The rounding a constant may hide: none when exact, else its printed digits."""
+    if constant.nature is ConstantNature.EXACT:
+        return 0.0
+    if constant.printed is not None:
+        return 0.5 * 10.0 ** int(Decimal(constant.printed).as_tuple().exponent)
+    return _printed_step(constant.value)
 
 
 #: Evaluations of the first grid of an approximation, all in one
@@ -186,6 +227,12 @@ def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
         str(formulation.fixed_units),
     ]
     head += [f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in ordered]
+    if keep_coefficients:
+        # The units of coefficients and constants set the factor that brings
+        # a quantity equation into its output unit.
+        units = [f"{c.value!r} {c.unit}" for c in formulation.coefficients]
+        units += [f"{k.value!r} {k.unit}" for k in formulation.constants]
+        head.append(" ".join(sorted(units)))
     return "|".join(head) + "|" + min(texts)
 
 
@@ -323,7 +370,7 @@ def _approximation(
             found, where = value, centre
     at = MappingProxyType({n: float(x) for n, x in zip(names, where, strict=True)})
     claimed = float(relation.accuracy or 0.0)
-    tolerance = 0.5 * 10.0 ** -_decimals(claimed)
+    tolerance = _printed_step(claimed)
     if abs(found - claimed) <= tolerance:
         status: Status = "reproduced"
     elif found < claimed:
@@ -359,14 +406,43 @@ def _exact(value: float) -> Any:
     return sympy.Rational(exact.numerator, exact.denominator)
 
 
+def _unit_factor(source: str, target: str) -> Any:
+    """The exact factor bringing a value from one unit of the catalog into another.
+
+    Raises
+    ------
+    ValueError
+        When no factor does: the dimensions differ, or a unit carries an
+        offset (``DEG_C``). That conversion is affine, and its origin
+        (0 degC at 273.15 or 273.16 K) is what a relation states with
+        ``given``.
+    """
+    if source == target:
+        return sympy.Integer(1)
+    from pint.errors import DimensionalityError
+
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    start, end = units[source].pint, units[target].pint
+    if is_offset_unit(start) or is_offset_unit(end):
+        msg = f"{source} and {target} differ by an offset"
+        raise ValueError(msg)
+    try:
+        return _exact(float(Q_(1.0, start).to(end).magnitude))
+    except DimensionalityError:
+        msg = f"{source} and {target} have different dimensions"
+        raise ValueError(msg) from None
+
+
 def _rational(formulation: Formulation) -> Any:
-    """The result in the output unit, with exact coefficients and constants.
+    """The result in the output unit, with exact numbers, coefficients and constants.
 
     A quantity equation gives its result in the units of its inputs, which
     :attr:`~nomogram.model.Formulation.output_factor` brings into the
     output unit (1 for fixed units): the factor is part of the result.
     """
-    expr = parse_expression(formulation.expression, formulation.names)
+    expr = parse_expression(formulation.expression, formulation.names, exact=True)
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {
@@ -430,6 +506,72 @@ def _real(expr: Any, sample: Mapping[Any, float]) -> float | None:
     return value.real
 
 
+def _same_conditions(left: Any, right: Any) -> bool:
+    """Whether two piecewise definitions have the same conditions, in order."""
+    return (
+        isinstance(left, sympy.Piecewise)
+        and isinstance(right, sympy.Piecewise)
+        and [c for _, c in left.args] == [c for _, c in right.args]
+    )
+
+
+def _difference(left: Any, right: Any) -> Any:
+    """The difference of two expressions, simplified where it surely ends.
+
+    Piecewise definitions with the same conditions are compared branch by
+    branch; otherwise their difference is not simplified (SymPy would
+    combine the conditions, at a cost without bound), and the search for a
+    counterexample on samples decides.
+    """
+    if _same_conditions(left, right):
+        branches = [
+            _difference(a, b)
+            for (a, _), (b, _) in zip(left.args, right.args, strict=True)
+        ]
+        if all(branch == 0 for branch in branches):
+            return sympy.Integer(0)
+        conditions = [c for _, c in left.args]
+        return Piecewise(*zip(branches, conditions, strict=True))
+    difference = sympy.nsimplify(left - right, rational=True)
+    if left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
+        return difference
+    return sympy.simplify(difference)
+
+
+def _sides(
+    relation: Relation, subject: Formulation, other: Formulation
+) -> tuple[Any, Any, dict[Any, Any]]:
+    """The subject and the object, fed by the subject, and the replacements made.
+
+    The object is brought into the units of the subject: its result into
+    the output unit of the subject, and each input fed by a subject input
+    in another unit receives it converted (``p`` in hPa fed by ``P`` in
+    Pa becomes ``P / 100``). The loader has checked that a factor gives
+    each of these conversions.
+    """
+    names = [v.identifier for v in subject.inputs]
+    units = {v.identifier: v.unit for v in subject.inputs}
+    replacements = {
+        sympy.Symbol(identifier, real=True): parse_expression(source, names, exact=True)
+        for identifier, source in relation.given.items()
+    }
+    # An input of the object fed by a subject input of another identifier
+    # (Q fed by P, the only pressure of the subject) takes its symbol.
+    feeds = match_inputs(subject, other)
+    for variable in other.inputs:
+        source = feeds.get(variable.identifier)
+        if source is None or variable.identifier in relation.given:
+            continue
+        factor = _unit_factor(units[source], variable.unit)
+        if variable.identifier != source or factor != 1:
+            replacements[sympy.Symbol(variable.identifier, real=True)] = (
+                factor * sympy.Symbol(source, real=True)
+            )
+    output = _unit_factor(other.output.unit, subject.output.unit)
+    right = output * _rational(other).xreplace(replacements)
+    return _rational(subject), right, replacements
+
+
 def _equivalence(
     relation: Relation, subject: Formulation, other: Formulation, points: int
 ) -> Verdict:
@@ -445,22 +587,14 @@ def _equivalence(
         )
     if differences:
         method += f"; scales ignored: {'; '.join(differences)}"
-    names = [v.identifier for v in subject.inputs]
-    left = _rational(subject)
-    right = _rational(other)
-    replacements = {
-        sympy.Symbol(identifier, real=True): parse_expression(source, names)
-        for identifier, source in relation.given.items()
-    }
-    # An input of the object fed by a subject input of another identifier
-    # (Q fed by P, the only pressure of the subject) takes its symbol.
-    for identifier, source in match_inputs(subject, other).items():
-        if identifier != source and identifier not in relation.given:
-            replacements[sympy.Symbol(identifier, real=True)] = sympy.Symbol(
-                source, real=True
-            )
-    difference = sympy.nsimplify(left - right.xreplace(replacements), rational=True)
-    simplified = sympy.simplify(difference)
+    left, right, _ = _sides(relation, subject, other)
+    if left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
+        method += (
+            "; piecewise definitions compared branch by branch"
+            if _same_conditions(left, right)
+            else "; piecewise definitions not simplified, compared on samples"
+        )
+    simplified = _difference(left, right)
     if simplified == 0:
         return Verdict("proven", method)
     # Look for a counterexample on positive values, or on the stated domain,
@@ -503,6 +637,392 @@ def _equivalence(
     return Verdict("unproven", method, detail=str(simplified))
 
 
+#: Share of the variation of a ratio, or of its distance from 1, that moving
+#: one coefficient within its rounding may leave: a rest of second order.
+UNEXPLAINED = 1e-3
+
+
+def _sensitivities(
+    formulation: Formulation, replacements: Mapping[Any, Any], sign: int
+) -> list[tuple[str, Any, float]]:
+    """For each coefficient and constant, d(sign * ln f)/dc and its printed step."""
+    expr = parse_expression(formulation.expression, formulation.names)
+    expr = expr.xreplace(replacements)
+    pairs = [
+        (c.identifier, c.value, _printed_step(c.value))
+        for c in formulation.coefficients
+    ]
+    pairs += [(k.identifier, k.value, _constant_step(k)) for k in formulation.constants]
+    values = {
+        sympy.Symbol(name, real=True): sympy.Rational(repr(value))
+        for name, value, _ in pairs
+    }
+    found = []
+    for name, value, step in pairs:
+        derivative = sign * sympy.diff(sympy.log(expr), sympy.Symbol(name, real=True))
+        label = f"{name} of {formulation.key} ({value!r})"
+        found.append((label, derivative.xreplace(values), step))
+    return found
+
+
+def _samples(
+    relation: Relation, subject: Formulation, points: int
+) -> tuple[list[Any], list[Any]]:
+    """The input symbols of the subject, and random points of the bounds."""
+    symbols = [sympy.Symbol(v.identifier, real=True) for v in subject.inputs]
+    random = np.random.default_rng(0)
+    return symbols, [random.uniform(*relation.bounds[s.name], points) for s in symbols]
+
+
+def _absorbed(target: Any, effect: Any, step: float) -> Any:
+    """What is left of ``target`` once a coefficient moves within its rounding.
+
+    The move is the least-squares one along ``effect``, the change of the
+    log ratio per unit of the coefficient, held within plus or minus
+    ``step``.
+    """
+    norm = float(effect @ effect)
+    move = 0.0 if norm == 0 else float(np.clip(-(target @ effect) / norm, -step, step))
+    return target + move * effect
+
+
+def _ratio_check(
+    relation: Relation,
+    subject: Formulation,
+    other: Formulation,
+    catalog: Catalog,
+    left: Any,
+    right: Any,
+    replacements: Mapping[Any, Any],
+    points: int,
+) -> tuple[Status, float | None, str, Mapping[str, float], float]:
+    """The ratio on samples of the bounds, against the printed precision.
+
+    The ratio holds as constant when moving one printed coefficient within
+    its rounding (half a unit of its last digit) takes its variation away,
+    to a rest of second order (:data:`UNEXPLAINED`); the verdict names the
+    finest such coefficient. The two are equal to the printed precision
+    when such a move takes the ratio to 1. Points where a side is zero or
+    not finite are left aside; a ratio that changes sign is refuted.
+    Returns the status, the factor, what explains it (or why it is
+    refuted), where it strays most, and the share of the samples compared.
+    """
+    symbols, columns = _samples(relation, subject, points)
+    function = sympy.lambdify(symbols, left / right, "numpy")
+    with np.errstate(all="ignore"):
+        ratios = np.broadcast_to(np.asarray(function(*columns), dtype=float), (points,))
+    usable = np.isfinite(ratios) & (ratios != 0)
+    share = float(np.mean(usable))
+    if not usable.any():
+        return "unverified", None, "", MappingProxyType({}), share
+    ratios = ratios[usable]
+    columns = [c[usable] for c in columns]
+
+    def where(index: int) -> Mapping[str, float]:
+        return MappingProxyType(
+            {s.name: float(c[index]) for s, c in zip(symbols, columns, strict=True)}
+        )
+
+    signs = np.sign(ratios)
+    if (signs != signs[0]).any():
+        return (
+            "refuted",
+            None,
+            "the ratio changes sign",
+            where(int(np.argmax(signs != signs[0]))),
+            share,
+        )
+    logs = np.log(np.abs(ratios))
+    middle = float(np.median(logs))
+    factor = float(signs[0]) * math.exp(middle)
+    spread = float(logs.max() - logs.min())
+    residual = float(np.abs(logs - middle).max())
+    centred = logs - logs.mean()
+    explaining: list[tuple[float, str]] = []
+    equalling: list[tuple[float, str]] = []
+    sensitivities = _sensitivities(subject, {}, 1) + _sensitivities(
+        other, replacements, -1
+    )
+    for label, derivative, step in sensitivities:
+        if step == 0:
+            continue
+        function = sympy.lambdify(symbols, derivative, "numpy")
+        with np.errstate(all="ignore"):
+            values = np.broadcast_to(
+                np.asarray(function(*columns), dtype=float), logs.shape
+            )
+        # Where the sensitivity is not finite, it tells nothing.
+        values = np.where(np.isfinite(values), values, 0.0)
+        rest = _absorbed(centred, values - values.mean(), step)
+        if float(rest.max() - rest.min()) <= max(
+            UNEXPLAINED * spread, EQUALITY_TOLERANCE
+        ):
+            explaining.append((float(values.max() - values.min()) * step, label))
+        rest = _absorbed(logs, values, step)
+        if float(np.abs(rest).max()) <= max(
+            UNEXPLAINED * abs(middle), EQUALITY_TOLERANCE
+        ):
+            equalling.append((float(np.abs(values).max()) * step, label))
+    held = spread <= EQUALITY_TOLERANCE or bool(explaining)
+    if not held:
+        worst = int(np.argmax(np.abs(logs - middle)))
+        return "refuted", None, "", where(worst), share
+    text, ratio_of = _factor_text(factor, subject, other, spread)
+    parts = [text]
+    if explaining:
+        allowance, label = min(explaining)
+        parts.append(
+            f"the ratio varies by {spread:.2g}, which the rounding of {label} "
+            f"explains (up to {allowance:.2g})"
+        )
+    else:
+        parts.append(
+            f"the ratio varies by {spread:.2g} only, within the precision of "
+            "the computation"
+        )
+    # A factor that is the ratio of two coefficients is explained by theirs
+    # first.
+    equal = min([e for e in equalling if e[1] in ratio_of] or equalling, default=None)
+    if equal is not None:
+        parts.append(
+            f"equivalent to the printed precision: |ln factor| = "
+            f"{abs(middle):.2g}, which the rounding of {equal[1]} explains "
+            f"(up to {equal[0]:.2g})"
+        )
+    parts.append(_scale_text(subject, catalog, symbols, columns, left, right, residual))
+    return "held", factor, "; ".join(parts), MappingProxyType({}), share
+
+
+def _factor_text(
+    factor: float, subject: Formulation, other: Formulation, spread: float = 0.0
+) -> tuple[str, tuple[str, ...]]:
+    """The factor, its deviation, and the two coefficients it is the ratio of.
+
+    A proven factor is constant; a sampled one is the median of a ratio
+    that varies by ``spread``, and it is the ratio of two coefficients
+    only within their printed rounding. Two equal coefficients give no
+    factor. A coefficient of the object is brought into the output unit of
+    the subject (611.21 Pa is 6.1121 hPa).
+    """
+    deviation = f"{100 * abs(1 - factor):.2g} %"
+    text = (
+        f"factor {factor:.8g}, a constant relative deviation of {deviation}"
+        if not spread
+        else f"factor {factor:.8g}, the median of the sampled ratio, a relative "
+        f"deviation of {deviation}"
+    )
+    unit = float(_unit_factor(other.output.unit, subject.output.unit))
+    converted = (
+        "" if unit == 1 else f", {other.output.unit} brought into {subject.output.unit}"
+    )
+
+    def values(formulation: Formulation) -> list[tuple[str, float]]:
+        pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+        return pairs + [(k.identifier, k.value) for k in formulation.constants]
+
+    for (a, x), (b, y) in itertools.product(values(subject), values(other)):
+        if not x or not y or x == y * unit:
+            continue
+        allowed = (
+            max(1e-9, _printed_step(x) / abs(x) + _printed_step(y) / abs(y))
+            if spread
+            else 1e-9
+        )
+        if abs(x / (y * unit) - factor) <= allowed * abs(factor):
+            labels = (f"{a} of {subject.key} ({x!r})", f"{b} of {other.key} ({y!r})")
+            found = (
+                f"{text}, the ratio of {a} of {subject.key} to {b} of "
+                f"{other.key} ({x!r} / {y!r}{converted})"
+            )
+            return found, labels
+    return text, ()
+
+
+def _scale_windows(
+    variable: Variable, values: Any, catalog: Catalog
+) -> tuple[float, float]:
+    """How far the catalog's scales move an input, as a shift and as a factor.
+
+    The largest difference, over the samples, between a value on a scale
+    applying to the input and the same value on the reference scale: as a
+    shift in the unit of the input, and as a relative factor. A temperature
+    may also be shifted by 0.01 K, a Celsius origin written 273.16 K.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    unit = units[variable.unit].pint
+    shift = factor = 0.0
+    for scale in catalog.scales.values():
+        if scale.is_reference or not scale.convertible or scale.unit is None:
+            continue
+        if not scale.applies_to(variable.kind, catalog.kinds):
+            continue
+        own = units[scale.unit].pint
+        on_reference = scale.to_reference(Q_(values, unit).to(own).magnitude)
+        back = Q_(on_reference, own).to(unit).magnitude
+        with np.errstate(all="ignore"):
+            moved = np.abs(back - values)
+            scaled = np.abs(back / values - 1)
+        if np.isfinite(moved).any():
+            shift = max(shift, float(np.nanmax(moved)))
+        if np.isfinite(scaled).any():
+            factor = max(factor, float(np.nanmax(scaled)))
+    if Q_(1.0, unit).dimensionality == Q_(1.0, "K").dimensionality:
+        kelvin = Q_(1.0, unit).to("K").magnitude - Q_(0.0, unit).to("K").magnitude
+        shift += 0.01 / kelvin
+    return shift, factor
+
+
+def _scale_text(
+    subject: Formulation,
+    catalog: Catalog,
+    symbols: list[Any],
+    columns: list[Any],
+    left: Any,
+    right: Any,
+    tolerance: float,
+) -> str:
+    """Whether a shift or a factor on an input with a conventional scale explains it.
+
+    A formulation read on another scale (0 degC at 273.16 K, IPTS-68, a
+    salinity scale) differs by a shift or a factor of an input: if one
+    makes the two formulations equal as closely as the proportionality
+    does (``tolerance``, its largest residual), the factor may come from
+    the scale rather than a coefficient. Only shifts and factors the
+    catalog's scales can produce over the samples are tried
+    (:func:`_scale_windows`). When the object is proportional to a power of
+    an input, a factor of that input is a factor of the result, which tells
+    nothing: only its shift is tried.
+    """
+    candidates = [
+        (i, v)
+        for i, v in enumerate(subject.inputs)
+        if any(s.applies_to(v.kind, catalog.kinds) for s in catalog.scales.values())
+    ]
+    if not candidates:
+        return "no input with a conventional scale"
+    found = []
+    blind = []
+    shift = sympy.Symbol("_shift", real=True)
+    for index, variable in candidates:
+        x = symbols[index]
+        most, factor = _scale_windows(variable, columns[index], catalog)
+        moves = [("a shift", x + shift, -most, most)] if most else []
+        if sympy.simplify(x * sympy.diff(sympy.log(right), x)).free_symbols:
+            if factor:
+                moves.append(("a factor", x * shift, 1 - factor, 1 + factor))
+        else:
+            blind.append(variable.identifier)
+        for name, image, low, high in moves:
+            moved = sympy.lambdify(
+                [*symbols, shift], left / right.xreplace({x: image}), "numpy"
+            )
+
+            def worst(value: float, moved: Any = moved) -> float:
+                with np.errstate(all="ignore"):
+                    logs = np.log(
+                        np.abs(np.asarray(moved(*columns, value), dtype=float))
+                    )
+                logs = logs[np.isfinite(logs)]
+                return float(np.abs(logs).max()) if logs.size else math.inf
+
+            best = _golden(worst, low, high)
+            if worst(best) <= max(tolerance, EQUALITY_TOLERANCE):
+                found.append(
+                    f"equal to it with {name} of {variable.identifier} "
+                    f"({best:.6g}): the factor may come from the scale of "
+                    f"{variable.identifier}, not a coefficient"
+                )
+    notes = [
+        f"a factor of {name} cannot be told from a coefficient, the object "
+        f"being proportional to a power of {name}"
+        for name in blind
+    ]
+    if found:
+        return "; ".join(found + notes)
+    names = ", ".join(v.identifier for _, v in candidates)
+    within = "within what the catalog's scales give"
+    if not blind:
+        return (
+            f"no shift nor factor of {names} {within} makes them as close: "
+            "not a matter of scale"
+        )
+    factors = ", ".join(
+        v.identifier for _, v in candidates if v.identifier not in blind
+    )
+    tried = f"no shift of {names}" + (f" nor factor of {factors}" if factors else "")
+    return "; ".join([f"{tried} {within} makes them as close", *notes])
+
+
+def _golden(function: Any, low: float, high: float, steps: int = 80) -> float:
+    """The minimum of a unimodal function on an interval (golden-section search)."""
+    ratio = (math.sqrt(5) - 1) / 2
+    a, b = low, high
+    c, d = b - ratio * (b - a), a + ratio * (b - a)
+    fc, fd = function(c), function(d)
+    for _ in range(steps):
+        if fc < fd:
+            b, d, fd = d, c, fc
+            c = b - ratio * (b - a)
+            fc = function(c)
+        else:
+            a, c, fc = c, d, fd
+            d = a + ratio * (b - a)
+            fd = function(d)
+    return (a + b) / 2
+
+
+def _proportionality(
+    relation: Relation,
+    subject: Formulation,
+    other: Formulation,
+    catalog: Catalog,
+    points: int,
+) -> Verdict:
+    method = "symbolic ratio simplified with SymPy, exact rationals"
+    differences = _scale_differences(relation, subject, other)
+    if differences and relation.scale == "convert":
+        return Verdict(
+            "unverified",
+            "a proportionality is proved on the expressions as written, which "
+            "evaluated with conversion of conventional scales needs the same "
+            f'scales: {"; ".join(differences)}; state scale = "ignore" to '
+            "compare the expressions as written",
+        )
+    if differences:
+        method += f"; scales ignored: {'; '.join(differences)}"
+    left, right, replacements = _sides(relation, subject, other)
+    ratio = sympy.simplify(sympy.nsimplify(left / right, rational=True))
+    if not ratio.free_symbols:
+        factor = float(ratio)
+        detail, _ = _factor_text(factor, subject, other)
+        symbols, columns = _samples(relation, subject, points)
+        scale = _scale_text(
+            subject, catalog, symbols, columns, left, right, EQUALITY_TOLERANCE
+        )
+        return Verdict("proven", method, factor, detail=f"{detail}; {scale}")
+    method += (
+        f"; not constant: ratio sampled at {points} points of the bounds, "
+        "against the rounding of the printed coefficients"
+    )
+    status, sampled, detail, at, share = _ratio_check(
+        relation, subject, other, catalog, left, right, replacements, points
+    )
+    if share < 1:
+        method += (
+            f"; ratio finite and non-zero on {100 * share:.4g} % of the samples "
+            "only, the others not compared"
+        )
+    if status == "unverified":
+        return Verdict("unverified", method)
+    if status == "held":
+        return Verdict("held", method, sampled, detail=detail)
+    if detail:
+        method += f"; {detail}"
+    return Verdict("refuted", method, None, at, str(ratio))
+
+
 def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Verdict:
     """Verify a relation stated by a source.
 
@@ -526,6 +1046,8 @@ def verify(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -> Ver
     other = catalog.formulations[relation.object]
     if relation.kind is RelationKind.APPROXIMATES:
         return _approximation(relation, subject, other, budget)[0]
+    if relation.kind is RelationKind.PROPORTIONAL:
+        return _proportionality(relation, subject, other, catalog, SAMPLES)
     return _equivalence(relation, subject, other, SAMPLES)
 
 
@@ -557,8 +1079,10 @@ def _common_bounds(
 
     units = semantic_catalog().units
     feeds = {source: name for name, source in match_inputs(subject, other).items()}
-    own_extent = _valid_extent(subject)
-    other_extent = _valid_extent(other)
+    own_extent = _on_reference(subject, _valid_extent(subject))
+    other_extent = _on_reference(other, _valid_extent(other))
+    if own_extent is None or other_extent is None:
+        return None
     bounds = {}
     for variable in subject.inputs:
         low, high = own_extent.get(variable.identifier, (-math.inf, math.inf))
@@ -574,6 +1098,40 @@ def _common_bounds(
             return None
         bounds[variable.identifier] = (low, high)
     return bounds
+
+
+def _on_reference(
+    formulation: Formulation, extent: Mapping[str, tuple[float, float]]
+) -> dict[str, tuple[float, float]] | None:
+    """An extent of a formulation's inputs, carried to their reference scales.
+
+    Domains are stated on the scale a formulation was fitted on, while a
+    comparison takes its inputs on the reference scale (ITS-90, Reference
+    Salinity); values that do not convert are left out. ``None`` when no
+    value of an input's extent converts. A scale nomogram cannot convert is
+    left as it is: :func:`report` says why such a pair is not compared.
+    """
+    from nomogram.semantics import semantic_catalog
+
+    units = semantic_catalog().units
+    carried = dict(extent)
+    for variable in formulation.inputs:
+        scale = variable.scale
+        if (
+            variable.identifier not in extent
+            or scale is None
+            or scale.is_reference
+            or not scale.convertible
+        ):
+            continue
+        own, table = units[variable.unit].pint, units[str(scale.unit)].pint
+        on_scale = Q_(np.array(extent[variable.identifier]), own).to(table)
+        interval = scale.interval_to_reference(*on_scale.magnitude)
+        if interval is None:
+            return None
+        back = Q_(np.array(interval), table).to(own).magnitude
+        carried[variable.identifier] = (float(back[0]), float(back[1]))
+    return carried
 
 
 def _stated_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
@@ -608,8 +1166,9 @@ def _beyond_parts(formulation: Formulation) -> list[str]:
     """Where the sources of a composed formulation state more than those of its parts.
 
     A domain stated for the composed formulation replaces those stated for
-    its parts (see :meth:`~nomogram.model.Formulation.outside_mask`): a
-    disagreement is pointed out, never smoothed.
+    its parts; for a formulation calling others, both hold (see
+    :meth:`~nomogram.model.Formulation.outside_mask`). A disagreement is
+    pointed out, never smoothed.
     """
     own = _stated_extent(formulation)
     if not own:
@@ -800,7 +1359,7 @@ def _unconvertible(formulation: Formulation) -> list[str]:
 
 #: Version of the verification method. Increase it when a change of the
 #: method may change a verdict: every recorded verdict is then redone.
-VERIFIER = 2
+VERIFIER = 3
 
 #: The registry of the bundled catalog, generated, never edited by hand.
 REGISTRY = "verifications.json"
@@ -848,9 +1407,32 @@ def fingerprint(relation: Relation, catalog: Catalog, *, budget: int = BUDGET) -
         for v in (f.output, *f.inputs)
         if v.scale is not None
     )
+    # The detail names coefficients and formulations, and weighs the scales
+    # of the catalog applying to the inputs (_scale_text).
+    names = [
+        (f.key, c.identifier, c.value) for f in (subject, other) for c in f.coefficients
+    ]
+    names += [
+        (f.key, k.identifier, k.value) for f in (subject, other) for k in f.constants
+    ]
+    applying = sorted(
+        (
+            v.identifier,
+            s.key,
+            list(s.points),
+            list(s.difference),
+            *_conversion_chain(s),
+        )
+        for v in subject.inputs
+        for s in catalog.scales.values()
+        if s.applies_to(v.kind, catalog.kinds)
+    )
     content = {
         "verifier": VERIFIER,
         "budget": budget,
+        "keys": [relation.subject, relation.object],
+        "names": names,
+        "applying": applying,
         "kind": relation.kind.value,
         "accuracy": relation.accuracy,
         "at": sorted(relation.at.items()),

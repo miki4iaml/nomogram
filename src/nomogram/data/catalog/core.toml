@@ -2,16 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Shared ground of the catalog: conventional reference scales, notation
-# conventions and the references they cite.
+# conventions, the defining constants of the SI and constants derived
+# from them, and the references they cite.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
 [catalog]
 name = "core"
-label = "Core: scales and notations"
+label = "Core: scales, notations and constants"
 format = 2
 requires = []
-keywords = ["conventional reference scales", "notations"]
+keywords = ["conventional reference scales", "notations", "physical constants"]
 
 # --- References -------------------------------------------------------
 
@@ -54,10 +55,29 @@ note = "p. 71: T68 = T - 4.4e-6 T (100 - T), built from the difference between T
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
-title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I, Annex 4.B"
+title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I"
 doi = "10.59327/WMO/CIMO/1"
-status = "to-confirm"
-note = "Primary text not read; formula and range cross-checked with WMO training material. Notation e_w to confirm in the text."
+status = "verified"
+note = "Annex 4.A read (2024 edition, pp. 193-196): definitions 4.A.1 to 4.A.21, among them e' = x_v p (4.A.6) and the relative humidities U_w and U_i (4.A.15, 4.A.17), which do not apply when the pressure is below the saturation vapour pressure of the pure phase. Annex 4.B read (pp. 197-198): formulae 4.B.1 (water, -45 to 60 degC) and 4.B.3 (ice, -65 to 0 degC), written e_w(t) and e_i(t); 'sufficiently accurate for all normal meteorological applications', not suitable below -45 degC (water) and -65 degC (ice). Section 4.3.1.1 read (p. 167): the psychrometric formulae 4.1 and 4.2; section 4.3.3.1 (p. 175): the coefficients of screen psychrometers. No uncertainty is stated for them; the 0.6 % of the annex's note is the pressure dependence of the enhancement factor f(p)."
+
+[references.wmo_etqtc2025]
+authors = "World Meteorological Organization, INFCOM SC-MINT Expert Team on Quality, Traceability and Calibration (ET-QTC)"
+year = 2025
+title = "Calibration of humidity instruments, Part 1: Introduction (training unit)"
+url = "https://etrp.wmo.int/pluginfile.php/97653/mod_folder/content/0/Training%20Material/5_1_Humidity%20Part%201%20Introduction.pdf"
+status = "verified"
+note = "Slide 13 read: the Magnus forms of WMO-No. 8 Annex 4.B with 'uncertainty up to 0.6 %, (k = 2)' over water (-45 to +60 degC) and 'up to 1 %, (k = 2)' over ice (-65 to 0 degC), attributed to the 2023 edition of the guide. The 2024 text of that annex states no uncertainty."
+
+[references.ambaum2020]
+authors = "Ambaum, M. H. P."
+year = 2020
+title = "Accurate, simple equation for saturated vapour pressure over water and ice"
+container = "Quarterly Journal of the Royal Meteorological Society 146 (733), 4252-4258"
+doi = "10.1002/qj.3899"
+url = "https://centaur.reading.ac.uk/93718/"
+status = "verified"
+note = "Published version, CC BY 4.0, read in the University of Reading repository: R_v = 461.52 J kg-1 K-1 under equation 2 (p. 4253); equations 13 to 16 with the triple-point values of equation 14 (p. 4254); equations 17 to 19, and the latent heat of melting written below equation 20 with the triple-point values of the caption of Figure 4 (p. 4256). Equation 18 gives the latent heat of sublimation without a value of Ls0."
+
 
 [references.ashrae2017]
 authors = "ASHRAE"
@@ -65,6 +85,25 @@ year = 2017
 title = "ASHRAE Handbook - Fundamentals, chapter 1: Psychrometrics"
 status = "to-confirm"
 note = "Cited through the tests of PsychroLib; notation p_ws to confirm in the text."
+
+[references.bipm_si9]
+authors = "Bureau International des Poids et Mesures"
+year = 2019
+title = "The International System of Units (SI), 9th edition"
+container = "BIPM, version 4.01 (June 2026)"
+doi = "10.59161/AUEZ1291"
+status = "verified"
+note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Read on the PDF of version 4.01."
+
+[references.codata2022]
+authors = "Mohr, P. J.; Newell, D. B.; Taylor, B. N.; Tiesinga, E."
+year = 2025
+title = "CODATA recommended values of the fundamental physical constants: 2022"
+container = "Reviews of Modern Physics 97, 025002"
+doi = "10.1103/RevModPhys.97.025002"
+url = "https://physics.nist.gov/constants"
+status = "verified"
+note = "Table XXXIII (p. 025002-49): molar gas constant N_A k = 8.314 462 618... J/(mol K) and Stefan-Boltzmann constant (pi^2/60) k^4/(hbar^3 c^2) = 5.670 374 419... e-8 W/(m2 K4), both exact and printed truncated; the same values in the NIST listing of the 2022 adjustment."
 
 # --- Notations --------------------------------------------------------
 
@@ -78,18 +117,93 @@ label = "ASHRAE Handbook - Fundamentals"
 symbols = { e_s = 'p_{\mathrm{ws}}', RH = '\phi' }
 reference = "ashrae2017"
 
+# --- Physical constants -----------------------------------------------
+
+# Defining constants of the SI (SI Brochure, table 1).
+[constants.c_si2019]
+identifier = "c"
+value = 299792458
+unit = "M-PER-SEC"
+description = "Speed of light in vacuum, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2111", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.h_si2019]
+identifier = "h"
+value = 6.62607015e-34
+unit = "J-SEC"
+description = "Planck constant, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q122894", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.k_si2019]
+identifier = "k"
+value = 1.380649e-23
+unit = "J-PER-K"
+description = "Boltzmann constant, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q5962", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.N_A_si2019]
+identifier = "N_A"
+value = 6.02214076e23
+unit = "PER-MOL"
+description = "Avogadro constant, a defining constant of the SI"
+reference = "bipm_si9"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q6203", relation = "close", verified = 2026-10-24 },
+]
+
+# Constants CODATA derives from them alone: exact, printed truncated.
+[constants.R_codata2022]
+identifier = "R"
+value = 8.314462618
+unit = "J-PER-MOL-K"
+description = "Molar gas constant"
+reference = "codata2022"
+nature = "exact"
+definition = "N_A * k"
+constants = ["N_A_si2019", "k_si2019"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q182333", relation = "close", verified = 2026-10-24 },
+]
+
+# CODATA writes (pi^2/60) k^4/(hbar^3 c^2), with hbar = h/(2 pi).
+[constants.sigma_codata2022]
+identifier = "sigma"
+value = 5.670374419e-8
+unit = "W-PER-M2-K4"
+description = "Stefan-Boltzmann constant"
+reference = "codata2022"
+nature = "exact"
+definition = "2 * pi**5 * k**4 / (15 * h**3 * c**2)"
+constants = ["k_si2019", "h_si2019", "c_si2019"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q51374", relation = "close", verified = 2026-10-24 },
+]
+
 # --- Conventional reference scales (VIM 1.29) -------------------------
 
 [scales.its90]
 label = "International Temperature Scale of 1990 (ITS-90)"
 symbol = "ITS-90"
 subscript = "90"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference = "preston_thomas1990"
 
 [scales.ipts68_saunders1990]
 label = "IPTS-68 through the linear conversion of Saunders (1990)"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 unit = "DEG_C"
 conversion = "x / 1.00024"
@@ -101,7 +215,7 @@ note = "t68 = 1.00024 t90, the conversion oceanographic algorithms (PSS-78, EOS-
 
 [scales.ipts48]
 label = "International Practical Temperature Scale of 1948 (IPTS-48), oceanographic conversion"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 base = "ipts68"
 unit = "DEG_C"
@@ -116,7 +230,7 @@ note = "t68 from t48, then IPTS-68 to ITS-90. Fofonoff and Bryden build the conv
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"
 symbol = "IPTS-68"
 subscript = "68"
-kinds = ["ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 unit = "DEG_C"
 reference = "preston_thomas1990"

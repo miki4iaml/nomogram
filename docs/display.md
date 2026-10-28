@@ -78,7 +78,8 @@ formulation took the values as given, on the scale it was fitted on.
 The mark joins a subscript of the symbol, braced or not (`T_d` gives
 T_d,90). A temperature axis follows the values plotted: in °C a Celsius
 temperature t, in K or °R a thermodynamic temperature T, in °F simply a
-temperature. Names are in sentence case, as the SI and ISO 80000 write
+temperature; another temperature point takes the letter of its unit too
+(a dew point t_d in °C, T_d in K). Names are in sentence case, as the SI and ISO 80000 write
 them ("Celsius temperature"); units take the catalog's symbols (a
 temperature difference in °C, never Δ°C).
 
@@ -100,6 +101,134 @@ when the entry was written, or inferred by nomogram from the expression
 that a reader comparing with the source knows they are nomogram's). For a formulation with fixed units, it also
 gives the units its coefficients hold for. Tables and plot labels never
 show where units come from.
+
+### How much plot labels say
+
+Two options set how much a plot says, from a figure that needs room for
+its curves to one that must stand alone: `axis_detail` for both axes,
+`legend_detail` for the legend. Each is `"short"`, `"standard"` (default)
+or `"full"`, independently of the other:
+
+| Detail | x axis (`axis_detail`) | Deviation axis (`axis_detail`) | Legend entry (`legend_detail`) |
+|---|---|---|---|
+| `"short"` | t₉₀/°C | δ/% | Bechtold (2015), eq. 54 |
+| `"standard"` (default) | Celsius temperature t₉₀/°C | Relative deviation from IAPWS (1992) δ/% | Magnus form in kelvins (Bechtold 2015) |
+| `"full"` | the same, then *on the International Temperature Scale of 1990 (ITS-90)* | the same, then the label of the reference | the label, then *Bechtold (2015), eq. 54* |
+
+- A short entry is the first citation of the formulation: its authors
+  (a body keeps its whole name, *IOC, SCOR and IAPSO*), the year and the
+  equation when the catalog records it. A formulation keeps its label
+  when it cites nothing, when its first source is not in the bundled
+  catalog (a personal one), or when another formulation of the plot
+  would share the entry (Buck (1981) gives two). A legend of more than
+  ten short entries, none longer than 30 characters, takes two columns.
+- A full label takes a second line: the scale of an axis spelled out,
+  the full label of the reference, the first citation of a formulation.
+  It suits a plot of a few curves.
+- An axis keeps its name, even short, when it has no symbol.
+
+```python
+import numpy as np
+
+import nomogram as nomo
+from nomogram.units import Q_
+
+table = nomo.comparison.compare(
+    c.formulations_of("SaturationVapourPressureOverWater"),
+    c.formulations["iapws_sr1_86"],
+    {"ThermodynamicTemperature": Q_(np.linspace(-60, 110, 341), "degC")},
+)
+with display_options(axis_detail="full", legend_detail="short"):
+    ax = nomo.plot.plot_deviations(table)  # extra viz
+```
+
+### Scales of the plots
+
+`plot_deviations` draws off scale a curve whose largest deviation
+exceeds those of all the others by more than three times: the y axis
+holds the others, the curve still leaves through it, and its legend
+entry says how far it goes (*off scale, up to 26.7 %*). The largest
+deviations, sorted, are split at their largest such jump in the upper
+half, so at least half of the curves stay on scale. In the figure of the
+README, the two forms with a constant latent heat reach 27 %, and the
+others stay within 4.3 %. `off_scale=False` holds every curve. Keyword
+arguments set properties of the axes once the curves are drawn
+(`Axes.set` of matplotlib): `ylim=(-1, 1)` zooms in, and every curve
+leaving these limits is off scale, its legend entry saying how far it
+goes; `xlim=(0, 40)` narrows the x axis, and the y axis then holds what
+the curves show within it; `title` and the others likewise. With the
+display option `off_scale_notes=False`, legend entries say nothing of
+the curves off scale, which still leave the axis. On axes
+given through `ax`, which may hold curves of one's own, the limits are
+left as they are unless `off_scale=True`; `plot_values` likewise leaves
+their scale unless `yscale` names one.
+
+`plot_values` plots on a logarithmic scale values that are all positive
+and span more than two decades, a saturation vapour pressure from −60 to
+110 °C for instance; `yscale="linear"` or `"log"` chooses. A deviation
+has a sign, and points of an interval scale (temperatures in °C) have no
+ratio: both stay on a linear scale. The relative deviation of values in
+°C is computed in kelvins, where a ratio means something.
+
+### Signature
+
+The figures that `plot_values` and `plot_deviations` create take the
+tight layout of matplotlib, which makes room for labels of two lines
+whatever size the figure is given later, and are signed with the logo,
+at the right edge, on the line of the x-axis label: the signature
+follows that label and stays below the tick labels whatever the layout.
+A figure saved with `bbox_inches="tight"` keeps it whole. `signature=False` leaves it out, and a figure given through
+`ax` is never signed, so that a plot keeps its place in a layout of one's
+own. `sign` signs any figure, and returns the signature: an artist, which
+`remove()` takes off. Its colours follow the background of the figure,
+light or dark, and it changes no setting of matplotlib.
+
+```python
+import matplotlib.pyplot as plt
+
+from nomogram.plot import sign
+
+figure, ax = plt.subplots()
+mark = sign(figure)  # bottom right corner; sign(figure, axes=ax) follows its x label
+mark.remove()  # unsigned again
+```
+
+### Option sets
+
+An option set is a `DisplayOptions`: one of nomogram's presets, or one
+of one's own. It is given to `display_options` for a block, with fields
+to change if need be, or to a plot for one call (`options=`).
+`DisplayOptions.DOCUMENTATION` is the set of the figures of nomogram's
+documentation, the README's included: full axes, short legend entries,
+and curves off scale without a note (`off_scale_notes=False`), so that a
+figure stands alone without crowding.
+
+```python
+import dataclasses
+
+from nomogram.display import DisplayOptions
+
+with display_options(DisplayOptions.DOCUMENTATION, legend_detail="standard"):
+    ax = nomo.plot.plot_deviations(table, xlim=(0, 40))
+mine = dataclasses.replace(DisplayOptions.DOCUMENTATION, legend_detail="standard")
+ax = nomo.plot.plot_values(table, options=mine)
+settings = {"axis_detail": "short", "off_scale_notes": False}  # from a file
+ax = nomo.plot.plot_deviations(table, options=DisplayOptions(**settings))
+```
+
+A set never changes: another one is made from it. `dataclasses.asdict`
+gives its fields as a dictionary, to keep in a file of one's own, and a
+field name misspelt or a value unknown raises an error rather than being
+ignored.
+
+The options cover what nomogram decides or adds to a figure: labels,
+legend entries, curves off scale. The rest stays with matplotlib and the
+caller. The visual style (colours, fonts, sizes, grid) follows
+matplotlib's style sheets and `rcParams`, which nomogram leaves as they
+are; the limits, the title and the other properties of the axes are
+keyword arguments of the call; the axes returned take everything else,
+the place of the legend included, which depends too much on each figure
+to be chosen for it.
 
 ## Typography
 
@@ -143,7 +272,7 @@ undone when the block ends. There is no global setting.
 
 ## Which LaTeX
 
-MathJax (JupyterLab), KaTeX (VS Code, GitHub) and matplotlib's mathtext
+MathJax (JupyterLab, GitHub), KaTeX (VS Code) and matplotlib's mathtext
 do not accept exactly the same commands. nomogram only emits a small
 subset common to the three, `nomogram.expression.LATEX_COMMANDS`, checked
 against their documentation; the tests check every formula of the

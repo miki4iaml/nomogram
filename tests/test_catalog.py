@@ -7,9 +7,10 @@ import datetime
 
 import pytest
 
-from nomogram.catalog import CatalogError, catalog, load_catalog
-from nomogram.model import ReferenceStatus, UnitBasis
+from nomogram.catalog import CatalogError, catalog, load_catalog, main, stats
+from nomogram.model import ConstantNature, ReferenceStatus, UnitBasis
 from nomogram.semantics import MatchRelation
+from nomogram.units import Q_
 
 CATALOG = catalog()
 
@@ -38,10 +39,17 @@ def test_kind_defined_by_nomogram() -> None:
     kind = CATALOG.kinds["SaturationVapourPressureOverWater"]
     assert kind.origin == "nomogram"
     assert kind.iri is None
-    assert kind.specialization_of == "VapourPressure"
+    assert kind.specialization_of == "SaturationVapourPressure"
     assert kind.applicable_units == CATALOG.kinds["VapourPressure"].applicable_units
     assert kind.matches[0].relation is MatchRelation.BROAD
     assert CATALOG.kinds["VapourPressure"].origin == "qudt"
+    # Over water or over ice, or over each on one side of a temperature.
+    parent = CATALOG.kinds["SaturationVapourPressure"]
+    assert parent.specialization_of == "VapourPressure"
+    assert parent.matches[0].relation is MatchRelation.CLOSE
+    assert CATALOG.kinds["SaturationVapourPressureOverIce"].specialization_of == (
+        "SaturationVapourPressure"
+    )
 
 
 def test_formulations_are_grouped_by_computed_kind() -> None:
@@ -60,6 +68,12 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "buck1996",
         "goff_gratch1946",
         "goff1957",
+        "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
+        "bechtold2015_magnus_water",
+        "ambaum2020",
+        "ambaum2020_constant_latent_heat",
+        "metpy171_saturation_vapour_pressure",
+        "ecmwf_ifs_saturation_water",
     }
 
 
@@ -85,11 +99,47 @@ def test_trade_term_points_to_unambiguous_kinds() -> None:
     assert term.meanings[0].sources == ("ams_glossary",)
 
 
+def test_relative_humidity_has_three_meanings() -> None:
+    term = CATALOG.trade_terms["relative_humidity"]
+    assert [m.kind for m in term.meanings] == [
+        "RelativeHumidity",
+        "RelativeHumidity",
+        "RelativeMassRatioOfVapour",
+    ]
+    assert [m.sources for m in term.meanings] == [
+        ("wmo2024", "teos10_manual"),
+        ("teos10_manual", "bechtold2015"),
+        ("teos10_manual",),
+    ]
+    assert "relative_humidity" in [
+        e.key for e in CATALOG.search("relative humidity", section="trade_terms")
+    ]
+
+
 def test_minimal_valid_document() -> None:
     loaded = load_catalog([VALID])
     formulation = loaded.formulations["f"]
     assert formulation.coefficients[0].unit is None
     assert loaded.formulations_of("VapourPressure") == (formulation,)
+
+
+def test_a_dew_point_may_be_given_in_kelvins() -> None:
+    # CF and the IFS give the dew point in K, empirical formulas in degC.
+    document = (
+        VALID.replace("a * t", "t - a")
+        .replace(
+            'identifier = "e", kind = "VapourPressure", unit = "HectoPA"',
+            'identifier = "T_d", kind = "DewPointTemperature", unit = "K"',
+        )
+        .replace(
+            'identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C"',
+            'identifier = "t", kind = "ThermodynamicTemperature", unit = "K"',
+        )
+    )
+    f = load_catalog([document]).formulations["f"]
+    dew_point = f.evaluate(t=Q_(293.15, "K"))
+    assert f.output.kind == "DewPointTemperature"
+    assert dew_point.to("degC").magnitude == pytest.approx(18.0)
 
 
 def test_documents_are_merged() -> None:
@@ -181,6 +231,7 @@ value = 2.0
 unit = "J-PER-KiloGM-K"
 description = "constant"
 reference = "src"
+nature = "conventional"
 
 [formulations.q]
 label = "Quantity equation"
@@ -280,6 +331,16 @@ def test_invalid_kinds_are_refused(name: str, parent: str, message: str) -> None
         load_catalog([KIND.format(name=name, parent=parent)])
 
 
+def test_a_local_kind_may_specialize_one_written_after_it() -> None:
+    # Families load in the order of their names, not of their requirements.
+    child = KIND.format(name="Child", parent="Parent")
+    parent = KIND.format(name="Parent", parent="VapourPressure")
+    assert load_catalog([child + parent]).kinds["Child"].specialization_of == "Parent"
+    loop = KIND.format(name="A", parent="B") + KIND.format(name="B", parent="A")
+    with pytest.raises(CatalogError, match="specializations form a cycle: A, B"):
+        load_catalog([loop])
+
+
 def test_a_local_kind_may_declare_an_interval_scale() -> None:
     document = KIND.format(name="Modified", parent="DimensionlessRatio")
     kind = load_catalog([document + 'scale_type = "interval"\n']).kinds["Modified"]
@@ -288,6 +349,56 @@ def test_a_local_kind_may_declare_an_interval_scale() -> None:
     assert load_catalog([document]).kinds["Modified"].scale_type.value == "ratio"
     with pytest.raises(CatalogError, match="is not one of"):
         load_catalog([document + 'scale_type = "ordinal"\n'])
+
+
+def test_a_local_kind_may_carry_cf_standard_names() -> None:
+    assert CATALOG.kinds["VirtualTemperature"].cf_standard_names == (
+        "virtual_temperature",
+    )
+    assert CATALOG.kinds["DensityOfMoistAir"].cf_standard_names == ("air_density",)
+    assert CATALOG.kinds["VirtualPotentialTemperature"].cf_standard_names == ()
+    for kind, name in [
+        ("MoleFractionOfWaterVapour", "mole_fraction_of_water_vapor_in_air"),
+        ("SeaWaterSalinity", "sea_water_salinity"),
+        ("SurfaceAltitude", "surface_altitude"),
+    ]:
+        assert CATALOG.kinds[kind].cf_standard_names == (name,)
+    document = KIND.format(name="Local", parent="ThermodynamicTemperature")
+    with pytest.raises(CatalogError, match="not in the frozen CF subset: no_such_name"):
+        load_catalog([document + 'cf_standard_names = ["no_such_name"]\n'])
+    # A CF name of another dimension: a salinity for a temperature.
+    with pytest.raises(CatalogError, match="sea_water_salinity is in 1e-3, no unit"):
+        load_catalog([document + 'cf_standard_names = ["sea_water_salinity"]\n'])
+
+
+def test_cf_links_carry_their_relation_and_verification_date() -> None:
+    from nomogram.semantics import CF_NAMESPACE, MatchRelation, semantic_catalog
+
+    link = CATALOG.kinds["VirtualTemperature"].matches[-1]
+    assert link.target == f"{CF_NAMESPACE}virtual_temperature/"
+    assert link.relation is MatchRelation.EXACT
+    assert link.verified == datetime.date(2026, 10, 26)
+    # A CF name denotes a salinity on the scale, not the scale: close.
+    assert CATALOG.scales["pss78"].matches[0].relation is MatchRelation.CLOSE
+    document = KIND.format(name="Local", parent="ThermodynamicTemperature")
+    # A bare name, as format 2 writes it: exact, checked with the frozen table.
+    bare = load_catalog([document + 'cf_standard_names = ["air_temperature"]\n'])
+    (link,) = bare.kinds["Local"].matches
+    assert link.relation is MatchRelation.EXACT
+    assert link.verified == semantic_catalog().extracted
+    for value, message in (
+        ('"air_temperature"', "expected a list"),
+        (
+            '[{ name = "air_temperature", relation = "near", verified = 2026-10-26 }]',
+            "is not one of",
+        ),
+        (
+            '[{ name = "air_temperature", relation = "narrow", verified = "today" }]',
+            "expected a date",
+        ),
+    ):
+        with pytest.raises(CatalogError, match=message):
+            load_catalog([document + f"cf_standard_names = {value}\n"])
 
 
 def test_table_expected() -> None:
@@ -356,6 +467,58 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("dickson2007_vapour_pressure", "S_1"): "added",
         ("dickson2007_vapour_pressure", "T_c"): "stated",
         ("dickson2007_vapour_pressure", "p_c"): "stated",
+        ("ambaum2020_latent_heat_vaporization", "L_0"): "stated",
+        ("ambaum2020_latent_heat_vaporization", "Delta_c"): "stated",
+        ("ambaum2020_latent_heat_vaporization", "T_0"): "stated",
+        ("ambaum2020_latent_heat_fusion", "L_m0"): "stated",
+        ("ambaum2020_latent_heat_fusion", "c_l"): "stated",
+        ("ambaum2020_latent_heat_fusion", "c_i"): "stated",
+        ("ambaum2020_latent_heat_fusion", "T_0"): "stated",
+        (
+            "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
+            "p_vs0",
+        ): "stated",
+        ("ambaum2020", "e_s0"): "stated",
+        ("ambaum2020", "T_0"): "stated",
+        ("ambaum2020", "Delta_c"): "stated",
+        ("ambaum2020", "L_0"): "stated",
+        ("ambaum2020", "R_v"): "stated",
+        ("ambaum2020_constant_latent_heat", "e_s0"): "stated",
+        ("ambaum2020_constant_latent_heat", "T_0"): "stated",
+        ("ambaum2020_constant_latent_heat", "L_0"): "stated",
+        ("ambaum2020_constant_latent_heat", "R_v"): "stated",
+        ("ambaum2020_ice", "e_i0"): "stated",
+        ("ambaum2020_ice", "T_0"): "stated",
+        ("ambaum2020_ice", "Delta_c"): "stated",
+        ("ambaum2020_ice", "R_v"): "stated",
+        ("ambaum2020_ice", "L_s0"): "added",
+        ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
+        ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
+        ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
+        (
+            "metpy171_psychrometric_vapour_pressure",
+            "e_s0__metpy171_saturation_vapour_pressure",
+        ): "stated",
+        (
+            "metpy171_psychrometric_vapour_pressure",
+            "T_0__metpy171_saturation_vapour_pressure",
+        ): "stated",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "A"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "B"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "C"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "D"): "added",
+        ("ashrae2017_mixing_ratio_from_wet_bulb", "E"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "A"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "B"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "C"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "D"): "added",
+        ("ashrae2017_mixing_ratio_from_ice_bulb", "E"): "added",
+        ("ecmwf_ifs_saturation_water", "e_0"): "stated",
+        ("ecmwf_ifs_saturation_water", "A"): "added",
+        ("ecmwf_ifs_saturation_water", "B"): "stated",
+        ("ecmwf_ifs_saturation_ice", "e_0"): "stated",
+        ("ecmwf_ifs_saturation_ice", "A"): "added",
+        ("ecmwf_ifs_saturation_ice", "B"): "stated",
     }
 
 
@@ -551,6 +714,287 @@ def test_a_domain_bound_must_be_a_finite_number() -> None:
         load_catalog([VALID + domain])
 
 
+CONSTANT = """
+[constants.c]
+identifier = "c"
+value = {value}
+unit = "J-PER-KiloGM-K"
+description = "constant"
+reference = "src"
+nature = "{nature}"
+{extra}
+"""
+
+
+def test_bundled_constants_state_their_nature() -> None:
+    natures = {k.nature for k in CATALOG.constants.values()}
+    assert natures == {ConstantNature.EXACT, ConstantNature.CONVENTIONAL}
+    si = [c for k, c in CATALOG.constants.items() if k.endswith("_si2019")]
+    assert {c.identifier for c in si} == {"c", "h", "k", "N_A"}
+    assert all(c.nature is ConstantNature.EXACT for c in si)
+
+
+def test_bundled_derived_constants_link_to_their_components() -> None:
+    # CODATA derives R and sigma from the defining constants of the SI.
+    assert set(CATALOG.used_by("constants.k_si2019").refs) == {
+        "constants.R_codata2022",
+        "constants.sigma_codata2022",
+    }
+    # The IFS derives its gas constants from R = N k.
+    assert set(CATALOG.used_by("constants.R_ecmwf_ifs").refs) == {
+        "constants.R_d_ecmwf_ifs",
+        "constants.R_v_ecmwf_ifs",
+    }
+    assert CATALOG.constants["c_pd_ecmwf_ifs"].printed == "1004.7090"
+
+
+def test_a_measured_constant_keeps_its_uncertainty_and_printed_digits() -> None:
+    extra = 'uncertainty = 0.0002\nconditions = "at 0 degC"'
+    document = CONSTANT.format(value='"287.0500"', nature="measured", extra=extra)
+    constant = load_catalog([VALID + document]).constants["c"]
+    assert constant.nature is ConstantNature.MEASURED
+    assert (constant.value, constant.printed) == (287.05, "287.0500")
+    assert (constant.uncertainty, constant.conditions) == (0.0002, "at 0 degC")
+    plain = load_catalog([VALID + CONSTANT.format(value=1.5, nature="exact", extra="")])
+    assert plain.constants["c"].printed is None
+
+
+@pytest.mark.parametrize(
+    ("value", "nature", "extra", "message"),
+    [
+        ("1.0", "exact", "uncertainty = 0.1", "an exact constant has none"),
+        ("1.0", "measured", "uncertainty = -0.1", "expected a positive number"),
+        ("1.0", "known", "", "is not one of exact, conventional, measured"),
+        ('"1,5"', "measured", "", "expected a finite decimal number"),
+        ('"nan"', "measured", "", "expected a finite decimal number"),
+        ('" 1.5"', "measured", "", "expected a finite decimal number"),
+        # Finite as a decimal, infinite as a float.
+        ('"1e400"', "measured", "", "expected a finite decimal number"),
+        ("1.0", "measured", 'conditions = ""', "expected a non-empty string"),
+    ],
+)
+def test_invalid_constants_are_refused(
+    value: str, nature: str, extra: str, message: str
+) -> None:
+    document = CONSTANT.format(value=value, nature=nature, extra=extra)
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([VALID + document])
+
+
+DERIVED = """
+[constants.a]
+identifier = "a"
+value = 1.380649
+unit = "UNITLESS"
+description = "an exact constant"
+reference = "src"
+nature = "exact"
+
+[constants.b]
+identifier = "b"
+value = 6.02214076e23
+unit = "UNITLESS"
+description = "another exact constant"
+reference = "src"
+nature = "exact"
+
+[constants.R_d]
+identifier = "R_d"
+value = 287.0597
+unit = "J-PER-KiloGM-K"
+description = "gas constant of dry air"
+reference = "src"
+nature = "conventional"
+
+[constants.R_v]
+identifier = "R_v"
+value = 461.5250
+unit = "J-PER-KiloGM-K"
+description = "gas constant of water vapour"
+reference = "src"
+nature = "conventional"
+
+[constants.c]
+identifier = "c"
+unit = "{unit}"
+description = "a derived constant"
+reference = "src"
+{fields}
+"""
+
+
+def derived(fields: str, unit: str = "UNITLESS") -> str:
+    return VALID + DERIVED.format(unit=unit, fields=fields)
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        # An exact product, which floats would not reproduce exactly.
+        (
+            'value = 8.31446261815324e23\nnature = "exact"\n'
+            'definition = "a * b"\nconstants = ["a", "b"]'
+        ),
+        # An exact constant prints a truncation of its definition.
+        'value = 40.80262463\nnature = "exact"\ndefinition = "2 * pi ** 5 / 15"',
+        # Rounded to half a unit of the last digit (the IFS ratio R_d / R_v).
+        (
+            'value = 0.6219808\nnature = "conventional"\n'
+            'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+        ),
+        # Within the uncertainty the source gives.
+        (
+            'value = 0.62198\nnature = "measured"\nuncertainty = 1e-5\n'
+            'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+        ),
+        # A source departing from its own formula, said in a note.
+        (
+            'value = 0.6219812\nnature = "conventional"\n'
+            'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]\n'
+            'tolerance = 5e-7\nnote = "The source rounds an intermediate value."'
+        ),
+    ],
+)
+def test_a_value_agrees_with_its_definition(fields: str) -> None:
+    constant = load_catalog([derived(fields)]).constants["c"]
+    assert constant.definition is not None
+
+
+@pytest.mark.parametrize(
+    ("fields", "message"),
+    [
+        (
+            'value = 40.80262464\nnature = "exact"\ndefinition = "2 * pi ** 5 / 15"',
+            "prints a truncation of its definition",
+        ),
+        (
+            (
+                'value = 0.6219812\nnature = "conventional"\n'
+                'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+            ),
+            "beyond half a unit of its last digit",
+        ),
+        # Written as text, the trailing zero counts: 0.6219810, not 0.621981.
+        (
+            (
+                'value = "0.6219810"\nnature = "conventional"\n'
+                'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+            ),
+            "beyond half a unit of its last digit",
+        ),
+        (
+            (
+                'value = 0.6219812\nnature = "conventional"\n'
+                'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]\ntolerance = 5e-7'
+            ),
+            "a note must say by how much and why",
+        ),
+        (
+            'value = 1.0\ntolerance = 0.1\nnote = "n"',
+            "tolerance: only with a definition",
+        ),
+        ('value = 1.0\nconstants = ["a"]', "constants: only with a definition"),
+        (
+            'value = 1.0\ndefinition = "a * x"\nconstants = ["a", "x"]',
+            "unknown constant 'x'",
+        ),
+        (
+            'value = 1.0\ndefinition = "a"\nconstants = ["a", "b"]',
+            "not used by the definition: b",
+        ),
+        ('value = 1.0\ndefinition = "a * y"\nconstants = ["a"]', "undeclared name"),
+        ('value = 1.0\ndefinition = "a"\nconstants = "a"', "a list of constant keys"),
+        (
+            (
+                'value = 1.0\ndefinition = "a"\nconstants = ["a"]\n'
+                'tolerance = -1.0\nnote = "n"'
+            ),
+            "tolerance: expected a positive number",
+        ),
+    ],
+)
+def test_a_definition_is_checked(fields: str, message: str) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([derived(fields)])
+
+
+def chain(r_d: str = "287.0597") -> str:
+    """The ECMWF IFS gas constants (CY49R1, section 12.5), without units."""
+    constants = [
+        ("N", "6.0221367e23", ""),
+        ("k", "1.380658e-23", ""),
+        ("M_d", "28.9644e-3", ""),
+        ("R", "8.31451", 'definition = "N * k"\nconstants = ["N", "k"]'),
+        ("R_d", r_d, 'definition = "R / M_d"\nconstants = ["R", "M_d"]'),
+        ("c_pd", '"1004.7090"', 'definition = "7 / 2 * R_d"\nconstants = ["R_d"]'),
+    ]
+    return VALID + "".join(
+        f'\n[constants.{key}]\nidentifier = "{key}"\nvalue = {value}\n'
+        f'unit = "UNITLESS"\ndescription = "{key}"\nreference = "src"\n'
+        f'nature = "conventional"\n{extra}\n'
+        for key, value, extra in constants
+    )
+
+
+def test_a_source_may_derive_from_printed_or_unrounded_values() -> None:
+    # The IFS prints R = N k = 8.31451, derives R_d = R / M_d = 287.0597
+    # from the unrounded product (R / M_d gives 287.05963 with the printed
+    # R), then c_pd = 7/2 R_d = 1004.7090 from the printed R_d (7/2 of the
+    # unrounded R_d gives 1004.70886).
+    loaded = load_catalog([chain()])
+    assert loaded.constants["c_pd"].components == ("R_d",)
+
+
+def test_a_value_agreeing_with_neither_evaluation_is_refused() -> None:
+    message = (
+        r"287\.0598 departs .* = 287\.0596318.* \(unrounded components: 287\.0596736"
+    )
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([chain(r_d="287.0598")])
+
+
+def test_a_definition_names_each_component_once() -> None:
+    document = derived('value = 1.0\ndefinition = "a"\nconstants = ["a", "a_bis"]') + (
+        '\n[constants.a_bis]\nidentifier = "a"\nvalue = 1.0\nunit = "UNITLESS"\n'
+        'description = "the same identifier"\nreference = "src"\n'
+    )
+    with pytest.raises(CatalogError, match="'a' names two constants"):
+        load_catalog([document])
+
+
+def test_a_definition_gives_the_unit_of_its_constant() -> None:
+    fields = 'value = 2.0\ndefinition = "a * b"\nconstants = ["a", "b"]'
+    with pytest.raises(CatalogError, match="gives 1, not"):
+        load_catalog([derived(fields, unit="J-PER-KiloGM-K")])
+
+
+def test_constants_cannot_define_each_other() -> None:
+    document = derived('value = 1.0\ndefinition = "d"\nconstants = ["d"]') + (
+        '\n[constants.d]\nidentifier = "d"\nvalue = 1.0\nunit = "UNITLESS"\n'
+        'description = "d"\nreference = "src"\ndefinition = "c"\nconstants = ["c"]\n'
+    )
+    with pytest.raises(CatalogError, match="definitions form a cycle"):
+        load_catalog([document])
+
+
+def test_a_derived_constant_links_to_its_components() -> None:
+    fields = (
+        'value = 0.6219808\nnature = "conventional"\n'
+        'definition = "R_d / R_v"\nconstants = ["R_d", "R_v"]'
+    )
+    loaded = load_catalog([derived(fields)])
+    assert {"constants.R_d", "constants.R_v"} <= set(loaded.uses("constants.c").refs)
+    assert loaded.used_by("constants.R_d").refs == ("constants.c",)
+
+
+def test_a_constant_may_leave_its_nature_out() -> None:
+    # Files written for 0.3 have no nature; the bundled catalog states it.
+    document = CONSTANT.format(value=1.0, nature="exact", extra="").replace(
+        'nature = "exact"\n', ""
+    )
+    assert load_catalog([VALID + document]).constants["c"].nature is None
+
+
 def test_a_constant_must_be_a_finite_number() -> None:
     constant = QUANTITY.format(unit="GM-PER-M3").replace("value = 2.0", "value = inf")
     with pytest.raises(CatalogError, match=r"constants\.k\.value: expected a finite"):
@@ -569,3 +1013,95 @@ def test_uses_and_used_by_follow_the_catalog_order() -> None:
     for ref in targets:
         found = CATALOG.used_by(ref).refs
         assert list(found) == sorted(found, key=order.__getitem__), ref
+
+
+# --- Indicators of the design goals -------------------------------------------
+
+WIKIDATA = 'matches = [{{ target = "http://www.wikidata.org/entity/{q}", relation = "close", verified = 2026-10-24 }}]'
+
+STATS = f"""
+[references.read]
+authors = "Author, A."
+title = "Read"
+status = "verified"
+{WIKIDATA.format(q="Q1")}
+
+[references.unread]
+authors = "Author, B."
+title = "Unread"
+status = "to-confirm"
+
+[scales.s0]
+label = "Reference scale"
+kinds = ["CelsiusTemperature"]
+
+[formulations.f]
+label = "F"
+expression = "a * t"
+fixed_units = true
+citations = [{{ reference = "read" }}]
+{WIKIDATA.format(q="Q2")}
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in", scale = "s0", scale_basis = "inferred-from-date" }}]
+coefficients = {{ a = 2.0 }}
+
+[[formulations.f.domains]]
+bounds = {{ t = [0, 50] }}
+
+[formulations.g]
+label = "G"
+expression = "b * t"
+fixed_units = true
+citations = [{{ reference = "unread" }}]
+output = {{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }}]
+coefficients = {{ b = 3.0 }}
+
+[formulations.h]
+label = "H"
+expression = "c * e"
+fixed_units = true
+output = {{ identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "out" }}
+inputs = [{{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "in" }}]
+coefficients = {{ c = 0.6 }}
+"""
+
+
+def test_a_domain_reached_two_levels_down_counts() -> None:
+    from nomogram.catalog import _reaches_domain
+
+    # The relative humidity calls the saturation in moist air, a
+    # composition whose domain is that of Sonntag (1990).
+    f = CATALOG.formulations["wmo_relative_humidity_from_dew_point"]
+    assert not f.domains
+    assert not any(p.formulation.domains for p in f.parts)
+    assert _reaches_domain(f)
+
+
+def test_stats_counts_the_indicators_of_the_design_goals() -> None:
+    lines = stats(load_catalog([STATS])).splitlines()
+    assert lines[0] == "Indicators of the design goals (AGENTS.md)"
+    assert lines[1:] == [
+        "1. Alternatives side by side",
+        "  quantity kinds computed by several formulations: 1 of 2",
+        "2. Validity, scale and sources stated, never invented",
+        "  formulations with a validity domain: 1 of 3",
+        "  inputs on a conventional scale with their scale recorded: 1 of 2",
+        "  references checked against the source: 1 of 2",
+        "  formulations derived by nomogram, which no source prints: 0 of 3",
+        "5. Linked to shared vocabularies",
+        "  quantity kinds used that are QUDT kinds or specialize one: 3 of 3",
+        "  quantity kinds used with a CF standard name: 3 of 3",
+        "  quantity kinds used with a Wikidata link: 2 of 3",
+        "  formulations with a Wikidata link: 1 of 3",
+        "  references with a Wikidata link: 1 of 2",
+    ]
+
+
+def test_every_kind_of_the_bundled_catalog_is_tied_to_qudt(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["stats"]) == 0
+    line = next(x for x in capsys.readouterr().out.splitlines() if "QUDT" in x)
+    count, total = line.rsplit(": ", 1)[1].split(" of ")
+    assert count == total

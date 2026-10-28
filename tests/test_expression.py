@@ -7,8 +7,10 @@ import math
 
 import numpy as np
 import pytest
+import sympy
 
 from nomogram.expression import (
+    CONSTANTS,
     LATEX_COMMANDS,
     MAX_SOURCE_LENGTH,
     ExpressionError,
@@ -72,6 +74,7 @@ def test_compile_requires_every_free_symbol() -> None:
         ("-x + +x", 0.0),
         ("sqrt(x + 1)", 2.0),
         ("ln(exp(x))", 3.0),
+        ("2 * pi * x", 6 * math.pi),
     ],
 )
 def test_supported_syntax(source: str, expected: float) -> None:
@@ -84,6 +87,23 @@ def test_decimal_coefficients_keep_their_digits() -> None:
     assert "6.1094" in str(expr)
 
 
+def test_exact_parsing_reads_decimals_as_rationals() -> None:
+    import sympy
+
+    exact = parse_expression(
+        "piecewise((1 / (t + 273.15), t < 0.5), (ln(t), t >= 0.5))", ["t"], exact=True
+    )
+    assert not exact.atoms(sympy.Float)
+    assert sympy.Rational(5463, 20) in exact.atoms(sympy.Rational)
+    # The same number written in two expressions cancels exactly.
+    t, kelvin = sympy.Symbol("t", real=True), sympy.Symbol("T", real=True)
+    shifted = parse_expression("T - 273.15", ["T"], exact=True)
+    assert (
+        parse_expression("t + 273.15", ["t"], exact=True).xreplace({t: shifted})
+        == kelvin
+    )
+
+
 @pytest.mark.parametrize(
     ("source", "message"),
     [
@@ -92,7 +112,7 @@ def test_decimal_coefficients_keep_their_digits() -> None:
         ("x[0]", "Subscript"),
         ("(lambda: 1)()", "only calls to"),
         ("x if x else 1", "IfExp"),
-        ("x < 1", "Compare"),
+        ("x < 1", "only as the conditions of piecewise"),
         ("'text'", "unsupported constant"),
         ("True * x", "unsupported constant"),
         ("y + 1", "undeclared name: 'y'"),
@@ -115,10 +135,45 @@ def test_overlong_source_is_rejected() -> None:
         parse_expression("x + " * MAX_SOURCE_LENGTH + "x", ["x"])
 
 
-@pytest.mark.parametrize("name", ["exp", "not an identifier"])
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        # SymPy would compute 9 ** 387420489 exactly, without end.
+        ("9 ** 9 ** 9 * x", "beyond 1000 digits"),
+        ("(10 ** 999) ** 999 * x", "beyond 1000 digits"),
+        ("-" * 1500 + "x", "nested too deeply"),
+        ("1e309 * x", "number too large"),
+    ],
+)
+def test_short_sources_that_would_never_end_are_rejected(
+    source: str, message: str
+) -> None:
+    with pytest.raises(ExpressionError, match=message):
+        parse_expression(source, ["x"])
+    assert parse_expression("2 ** 10 * x", ["x"]) == 1024 * sympy.Symbol("x", real=True)
+
+
+def test_functions_and_constants_cannot_be_changed() -> None:
+    from nomogram.expression import FUNCTIONS
+
+    with pytest.raises(TypeError):
+        CONSTANTS["e"] = sympy.E  # type: ignore[index]
+    with pytest.raises(TypeError):
+        FUNCTIONS["sin"] = sympy.sin  # type: ignore[index]
+
+
+@pytest.mark.parametrize("name", ["exp", "pi", "not an identifier"])
 def test_reserved_or_invalid_names_are_rejected(name: str) -> None:
     with pytest.raises(ExpressionError, match="invalid or reserved name"):
         parse_expression("1", [name])
+
+
+def test_pi_is_a_constant_written_as_its_greek_letter() -> None:
+    expr = parse_expression("pi * x ** 2", ["x"])
+    assert {s.name for s in expr.free_symbols} == {"x"}  # pi is no variable
+    assert r"\pi" in to_latex(expr)
+    assert latex_commands(to_latex(expr)) <= LATEX_COMMANDS
+    assert set(CONSTANTS) == {"pi"}
 
 
 def test_latex_writes_exp_explicitly_never_as_a_power_of_e() -> None:

@@ -1,114 +1,6 @@
 {
  "verdicts": {
-  "4891291da7eaadf0a2d561d6b8612f9112b6ede07fd7985bdab27b8be68ab816": {
-   "at": {
-    "T": 233.15
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_gg46_so90",
-   "status": "reproduced",
-   "value": 0.6483320703041695
-  },
-  "4a1738fa8c24ee3ee40996c830f5a1af1c25b77292049d163e22b96a6bc35293": {
-   "at": {
-    "t": -40.0
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_bu2_so90",
-   "status": "reproduced",
-   "value": 0.1587395510561751
-  },
-  "6897cfefab0059a0ea4aa77f9314df8a7645f57d20f4790243a291a31bb73cce": {
-   "at": {
-    "t": -40.0
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_bu2_gg46",
-   "status": "reproduced",
-   "value": 0.49278741811860094
-  },
-  "728d6254a3b455af6f5a01dd9c9823491049cfb2cab77708e764d5e67c224ac1": {
-   "at": {
-    "t": -40.0
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_aekr_so90",
-   "status": "reproduced",
-   "value": 0.33737678039363894
-  },
-  "80e0275f170fb366bde8427e711b35ed7963c86721a9734f2cd50bcafa23cd23": {
-   "at": {
-    "t": 28.050310270192625
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_sa90_so90",
-   "status": "held",
-   "value": 0.31517868418324824
-  },
-  "9320b25f0d45655a98e7da6e70b654fe7d4b0df6219ec151947661af6dea7668": {
-   "at": {
-    "t": -40.0
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_te30_so90",
-   "status": "reproduced",
-   "value": 3.1689148839079695
-  },
-  "9c74fb9d158dfce4652baedefe6cfa098de1988d0de231569b1fd41e5dac5da6": {
-   "at": {
-    "T": 233.15
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_so90_gg46",
-   "status": "reproduced",
-   "value": 0.6525628445039677
-  },
-  "a3fa3e148261112e9e25cac2e597f163b8d39d5cd19c5af66f73bad6e18b963a": {
-   "at": {
-    "t": -40.0
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_te30_gg46",
-   "status": "reproduced",
-   "value": 2.5370312005098317
-  },
-  "b338c3d17a0e5dd309e684e2c929df954bbe112aaa3c1f38e02d4e7f03fc262a": {
-   "at": {
-    "t": -40.0
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_bu81_so90",
-   "status": "reproduced",
-   "value": 1.411977361987371
-  },
-  "ce14ec8a55a695177e344a3566f77223cb29252e26b2c7b2067e7cc9250158eb": {
-   "at": {
-    "t": -30.188041809799344
-   },
-   "detail": null,
-   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
-   "relation": "ae96_aekr_gg46",
-   "status": "reproduced",
-   "value": 0.3843123031154638
-  },
-  "d2389530c2bbf5bec6da027fe3433411c9b964a4731a06a5f712e5a59e07922a": {
-   "at": {},
-   "detail": null,
-   "method": "symbolic difference simplified with SymPy, exact rationals",
-   "relation": "itu_r_p453_total_pressure_form",
-   "status": "proven",
-   "value": null
-  },
-  "e7e25ce9d873f75bf9accbe860bb45b9abe7c9bad664fdeb9144514d4029e443": {
+  "0b4c5e537770e59d5c57fb12fe7790a97a0ee77df05d88ba458390c36e9b7639": {
    "at": {
     "t": -35.15303406330479
    },
@@ -118,7 +10,107 @@
    "status": "exceeded",
    "value": 0.6098152408553492
   },
-  "f3cf5f9a874e8953e77daaf79e28a59bc6ac7e49a18302263e2464b1df59c2ee": {
+  "3ae34193f7de1865ec6e4a3c70b70e87aebbb9ef6e84e7c43a21ecf6bdaaec60": {
+   "at": {},
+   "detail": "factor 0.99998364, a constant relative deviation of 0.0016 %, the ratio of C of bechtold2015_magnus_ice to e_0 of ecmwf_ifs_saturation_ice (6.112 / 611.21, PA brought into HectoPA); no shift nor factor of T within what the catalog's scales give makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_ecmwf_ifs_ice",
+   "status": "proven",
+   "value": 0.9999836390111418
+  },
+  "44a6e5be374de9867c3a0295cb3c5f6fce077fd8642dab1d52d97c24e921e7e2": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals; scales ignored: t on ipts68 fed by T on no scale",
+   "relation": "ecmwf_ifs_buck1981_magnus",
+   "status": "proven",
+   "value": null
+  },
+  "4589f8a367517297f0f6e337be5cba31f64aaf7717f47fb58e7d5568e9ea2f80": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_te30_so90",
+   "status": "reproduced",
+   "value": 3.1689148839079695
+  },
+  "46bbbe07cf106869813ae115453c089ab97873652c6905ccac57326ac4207900": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "itu_r_p453_total_pressure_form",
+   "status": "proven",
+   "value": null
+  },
+  "46ec8f4eda94bebe8a60ab894942b7cf63b1a001e655d6360e0f2aab5e5756a1": {
+   "at": {},
+   "detail": "factor 0.99963993, the median of the sampled ratio, a relative deviation of 0.036 %, the ratio of C of murray1967 to C of tetens1930 (6.1078 / 6.11); the ratio varies by 7.4e-08, which the rounding of A of murray1967 (17.269388) explains (up to 1.9e-07); equivalent to the printed precision: |ln factor| = 0.00036, which the rounding of C of tetens1930 (6.11) explains (up to 0.00082); no shift nor factor of T within what the catalog's scales give makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; not constant: ratio sampled at 200 points of the bounds, against the rounding of the printed coefficients",
+   "relation": "murray1967_tetens1930",
+   "status": "held",
+   "value": 0.9996399261893075
+  },
+  "4c90882a9a6f420b459dd120eb85a4e6a5b8325acf726f81941a6cef4e26a6bb": {
+   "at": {
+    "t": -30.188041809799344
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_aekr_gg46",
+   "status": "reproduced",
+   "value": 0.3843123031154638
+  },
+  "55ca63ea88f0deac0aa16d37a9cfeb13f37bde54f8a8ef946a060bf2a68c2809": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu2_so90",
+   "status": "reproduced",
+   "value": 0.1587395510561751
+  },
+  "5761d231759fd65611a82b8b93110ee6cdabe0ee37822c27c6218ec68ad610d2": {
+   "at": {
+    "t": 28.050310270192625
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_sa90_so90",
+   "status": "held",
+   "value": 0.31517868418324824
+  },
+  "63c43cda09205e189b6e209a3ec2f12de4e959391dd5151618d184a826234038": {
+   "at": {
+    "T": 233.15
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_gg46_so90",
+   "status": "reproduced",
+   "value": 0.6483320703041695
+  },
+  "69c7143a52983526a611a7b7862d4bf803011a50fcb0ad3825a2fde6d45f77e6": {
+   "at": {},
+   "detail": "factor 0.99998364, a constant relative deviation of 0.0016 %, the ratio of C of bechtold2015_magnus_water to C of buck1981_magnus (6.112 / 6.1121); no shift nor factor of T within what the catalog's scales give makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; scales ignored: t on ipts68 fed by T on no scale",
+   "relation": "bechtold2015_buck1981_magnus",
+   "status": "proven",
+   "value": 0.9999836390111418
+  },
+  "7145fb86682f004a05392edf8ec93f83651bdc80180cc0b33f7856b4cd6639a8": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu81_so90",
+   "status": "reproduced",
+   "value": 1.411977361987371
+  },
+  "74cd9ed3cc64746394f90d7ddc452459c533cf785887791a5ceacce8a8f36396": {
    "at": {
     "t": -40.0
    },
@@ -127,7 +119,87 @@
    "relation": "ae96_bu81_gg46",
    "status": "reproduced",
    "value": 0.7686285571200213
+  },
+  "7d02d983b798eb8f0ee160372899613817c079a5c1a651c825279c5a6da6566e": {
+   "at": {
+    "T": 233.15
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_so90_gg46",
+   "status": "reproduced",
+   "value": 0.6525628445039677
+  },
+  "81acdc8f6f880b7a05f9a694ea27fc0bae3bac9faa64f8587da978dc6ff996ba": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_te30_gg46",
+   "status": "reproduced",
+   "value": 2.5370312005098317
+  },
+  "82e44299cefc3fbe5777208f8d75420729366b4961c1b4aedb33450d70afa624": {
+   "at": {},
+   "detail": "factor 0.99998364, a constant relative deviation of 0.0016 %, the ratio of C of bechtold2015_magnus_water to e_0 of ecmwf_ifs_saturation_water (6.112 / 611.21, PA brought into HectoPA); no shift nor factor of T within what the catalog's scales give makes them as close: not a matter of scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_ecmwf_ifs_water",
+   "status": "proven",
+   "value": 0.9999836390111418
+  },
+  "9616b52f9f9e518581ea6290725df7b759eea55550ef2240586073b1f4305cae": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "wmo_vapour_pressure_two_forms",
+   "status": "proven",
+   "value": null
+  },
+  "ad7fbec09ddd4fed256ef8fc0daacb7616258d1056767341cbef1df80cb6e200": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_bu2_gg46",
+   "status": "reproduced",
+   "value": 0.49278741811860094
+  },
+  "b0ed88a27e192146cda764ef7c5893bf97dd4e3e851ee1acfb04766d9c0b1deb": {
+   "at": {},
+   "detail": "factor 1.000006, the median of the sampled ratio, a relative deviation of 0.0006 %; the ratio varies by 1.1e-05, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); equivalent to the printed precision: |ln factor| = 6e-06, which the rounding of a of bechtold2015_virtual_temperature_rounded (0.608) explains (up to 1.9e-05); no shift of T within what the catalog's scales give makes them as close; a factor of T cannot be told from a coefficient, the object being proportional to a power of T",
+   "method": "symbolic ratio simplified with SymPy, exact rationals; not constant: ratio sampled at 200 points of the bounds, against the rounding of the printed coefficients",
+   "relation": "bechtold2015_virtual_temperature_rounding",
+   "status": "held",
+   "value": 1.000005997250167
+  },
+  "c20d7e1e7e2c89f8e5342c867004c0730e4bbd06ce9afa1a7b27b325d7d183a7": {
+   "at": {
+    "t": -40.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
+   "relation": "ae96_aekr_so90",
+   "status": "reproduced",
+   "value": 0.33737678039363894
+  },
+  "d9df158e6743ffa76bf79b9ea34797a5b79d8be49e8ca1871ef971c995f48774": {
+   "at": {},
+   "detail": "factor 1.0000884, a constant relative deviation of 0.0088 %, the ratio of epsilon of bechtold2015_mixing_ratio_from_vapour_pressure to epsilon of mixing_ratio_from_vapour_pressure (0.622 / 0.621945); no input with a conventional scale",
+   "method": "symbolic ratio simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_ashrae2017_mixing_ratio",
+   "status": "proven",
+   "value": 1.0000884322568715
+  },
+  "f98a8baa7be71335089786ed59228bd8e91b8dced267945698203c24dbd269cd": {
+   "at": {},
+   "detail": null,
+   "method": "symbolic difference simplified with SymPy, exact rationals",
+   "relation": "bechtold2015_virtual_temperature_two_forms",
+   "status": "proven",
+   "value": null
   }
  },
- "verifier": 2
+ "verifier": 3
 }

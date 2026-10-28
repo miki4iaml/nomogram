@@ -46,6 +46,35 @@ def test_compare_refuses_another_kind() -> None:
         compare([IDEAL_GAS], IAPWS, {"ThermodynamicTemperature": Q_(20, "degC")})
 
 
+def test_a_difference_never_feeds_a_temperature_point() -> None:
+    from nomogram.comparison import feeds
+
+    # QUDT makes a temperature difference a temperature; not nomogram.
+    assert not feeds("TemperatureDifference", "Temperature")
+    assert feeds("DewPointTemperature", "Temperature")
+    assert feeds("TemperatureDifference", "TemperatureDifference")
+
+
+def test_points_of_an_interval_scale_deviate_in_kelvins() -> None:
+    # Two WMO dew points about 0.004 K apart, around 0 degC: in degC the
+    # relative deviation would blow up there and change sign.
+    e = Q_(np.linspace(5.0, 8.0, 7), "hPa")
+    inputs = {
+        "VapourPressure": e,
+        "Pressure": Q_(1013.25, "hPa"),
+        "EnhancementFactor": Q_(1.0044, ""),
+    }
+    reference = FORMULATIONS["wmo_dew_point_moist_air"]
+    comparison = compare([FORMULATIONS["wmo_dew_point"]], reference, inputs)
+    values = comparison.values
+    kelvin = {k: v.to("K").magnitude for k, v in values.items()}
+    expected = kelvin["wmo_dew_point"] / kelvin["wmo_dew_point_moist_air"] - 1
+    found = comparison.relative_deviations["wmo_dew_point"]
+    assert found == pytest.approx(expected)
+    assert np.abs(found).max() < 1e-4
+    assert str(values["wmo_dew_point"].units) == "degree_Celsius"
+
+
 def test_values_are_expressed_in_the_reference_unit() -> None:
     comparison = compare([SONNTAG], IAPWS, {"ThermodynamicTemperature": Q_(20, "degC")})
     assert str(comparison.values["sonntag1990_magnus"].units) == "pascal"
@@ -66,12 +95,12 @@ def test_max_abs_deviation_ignores_nan_and_reports_all_nan() -> None:
 def test_comparison_records_the_scale_mode() -> None:
     # Weiss and Price fitted T on IPTS-48 and S on PSS-78.
     weiss = FORMULATIONS["weiss_price1980_vapour_pressure"]
-    inputs = {
-        "ThermodynamicTemperature": Q_(np.array([10.0, 20.0]), "degC"),
-        "SeaWaterSalinity": Q_(35.0, "g/kg"),
-    }
-    converted = compare([weiss], weiss, inputs)
-    ignored = compare([weiss], weiss, inputs, scale="ignore")
+    t = Q_(np.array([10.0, 20.0]), "degC")
+    # Reference Salinity in g/kg; taken as given, Practical Salinity, a number.
+    reference = {"ThermodynamicTemperature": t, "SeaWaterSalinity": Q_(35.0, "g/kg")}
+    as_given = {"ThermodynamicTemperature": t, "SeaWaterSalinity": Q_(35.0)}
+    converted = compare([weiss], weiss, reference)
+    ignored = compare([weiss], weiss, as_given, scale="ignore")
     assert converted.scale == "convert"
     assert ignored.scale == "ignore"
     # Taken on its own scales, the formulation gives other numbers.

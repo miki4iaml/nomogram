@@ -9,6 +9,7 @@ import datetime
 import pytest
 
 from nomogram.semantics import (
+    CF_NAMESPACE,
     ExternalMatch,
     MatchRelation,
     QuantityKind,
@@ -42,7 +43,7 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 def test_sources_are_recorded() -> None:
     assert CATALOG.qudt_version == "3.5.2"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 10, 21)
+    assert CATALOG.extracted == datetime.date(2026, 10, 26)
 
 
 def test_catalog_is_read_once() -> None:
@@ -54,6 +55,8 @@ def test_unit_symbols_follow_the_si_brochure() -> None:
     assert CATALOG.units["UNITLESS"].symbol == "1"
     assert CATALOG.units["PPM"].symbol == "ppm"
     assert CATALOG.units["PERCENT"].symbol == "%"
+    # Table 1 writes mol⁻¹; QUDT writes /mol.
+    assert CATALOG.units["PER-MOL"].symbol == "mol⁻¹"
 
 
 def test_reference_case_kinds_are_present() -> None:
@@ -97,6 +100,10 @@ def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
 #: unit: multiplicative units (``offset_units=False`` in the extraction).
 SURFACE_ZERO = frozenset({"Altitude"})
 
+#: Temperature points written with or without an offset, in degC or in K
+#: (``offset_units="any"`` in the extraction).
+ANY_OFFSET = frozenset({"DewPointTemperature", "Temperature", "WetBulbTemperature"})
+
 
 @pytest.mark.parametrize("name", sorted(CATALOG.quantity_kinds))
 def test_applicable_units_follow_the_scale_rule(name: str) -> None:
@@ -106,7 +113,7 @@ def test_applicable_units_follow_the_scale_rule(name: str) -> None:
     for unit_name in kind.applicable_units:
         unit = CATALOG.units[unit_name]
         assert unit.dimensions == kind.dimensions
-        assert (unit.offset != 0.0) is offset
+        assert name in ANY_OFFSET or (unit.offset != 0.0) is offset
     assert set(kind.added_units) <= set(kind.applicable_units)
 
 
@@ -133,6 +140,29 @@ def test_celsius_is_not_a_unit_of_thermodynamic_temperature() -> None:
     assert kinds["CelsiusTemperature"].scale_type is ScaleType.INTERVAL
 
 
+def test_a_dew_point_is_given_in_degc_or_in_k() -> None:
+    # QUDT has one kind for the dew point, which CF gives in K and empirical
+    # formulas in degC; nomogram's scale rule would keep only degC and degF.
+    kind = CATALOG.quantity_kinds["DewPointTemperature"]
+    assert set(kind.applicable_units) == {"DEG_C", "DEG_F", "K"}
+    assert kind.scale_type is ScaleType.INTERVAL
+    assert not kind.added_units
+
+
+def test_specific_energy_is_in_joules_per_kilogram() -> None:
+    kind = CATALOG.quantity_kinds["SpecificEnergy"]
+    assert kind.applicable_units == ("J-PER-KiloGM", "KiloJ-PER-KiloGM")
+    assert not kind.added_units
+
+
+def test_air_temperature_names_both_temperatures() -> None:
+    # CF names a temperature by its medium, not by its scale: air_temperature
+    # may be in degC, so it names the Celsius temperature too.
+    kinds = CATALOG.quantity_kinds
+    assert kinds["ThermodynamicTemperature"].cf_standard_names == ("air_temperature",)
+    assert kinds["CelsiusTemperature"].cf_standard_names == ("air_temperature",)
+
+
 def test_temperature_difference_is_the_only_delta_kind() -> None:
     deltas = [k.name for k in CATALOG.quantity_kinds.values() if k.delta]
     assert deltas == ["TemperatureDifference"]
@@ -152,15 +182,25 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
     assert ureg.Quantity(1, cf.pint).to("g/m^3").magnitude == pytest.approx(1000)
 
 
-def test_wikidata_links_carry_their_relation_and_verification_date() -> None:
+def test_external_links_carry_their_relation_and_verification_date() -> None:
     kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
+    checked = datetime.date(2026, 10, 26)
     assert kind.matches == (
         ExternalMatch(
-            target="http://www.wikidata.org/entity/Q76378808",
-            relation=MatchRelation.CLOSE,
-            verified=datetime.date(2026, 10, 21),
+            "http://www.wikidata.org/entity/Q76378808", MatchRelation.CLOSE, checked
+        ),
+        ExternalMatch(
+            f"{CF_NAMESPACE}mass_concentration_of_water_vapor_in_air/",
+            MatchRelation.EXACT,
+            checked,
         ),
     )
+    # CF names the temperature of the air: narrower than the kind.
+    temperature = CATALOG.quantity_kinds["ThermodynamicTemperature"].matches[-1]
+    assert temperature.target == f"{CF_NAMESPACE}air_temperature/"
+    assert temperature.relation is MatchRelation.NARROW
+    altitude = CATALOG.quantity_kinds["Altitude"]
+    assert [m.relation.value for m in altitude.matches[1:]] == ["exact", "close"]
     assert CATALOG.units["DEG_C"].matches[0].target.endswith("/Q25267")
 
 

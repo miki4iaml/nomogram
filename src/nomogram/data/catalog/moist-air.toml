@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Moist air: humidity quantities computed from the vapour pressure
-# (mass concentration, mixing ratio, specific humidity), and the
-# saturation vapour pressure in moist air (enhancement factor).
+# (mass concentration, mixing ratio, specific humidity), the saturation
+# vapour pressure in moist air (enhancement factor), the temperatures of
+# atmospheric thermodynamics (virtual, potential, equivalent potential),
+# and the constants of moist air thermodynamics.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -29,7 +31,7 @@ description = "Saturation vapour pressure of water vapour in moist air at a give
 [kinds.SaturationVapourPressureOverWaterInMoistAir]
 label = "Saturation Vapour Pressure over Water in Moist Air"
 specialization_of = "SaturationVapourPressureInMoistAir"
-description = "Saturation vapour pressure over a plane surface of pure liquid water, in moist air at a given pressure: that of pure water vapour times the enhancement factor."
+description = "Saturation vapour pressure of moist air with respect to a plane surface of water containing the dissolved air of equilibrium, at a given pressure (WMO-No. 8, 4.A.9): that of pure water vapour times the enhancement factor."
 
 [kinds.SaturationVapourPressureOverIceInMoistAir]
 label = "Saturation Vapour Pressure over Ice in Moist Air"
@@ -46,6 +48,124 @@ label = "Partial Pressure of Dry Air"
 specialization_of = "Pressure"
 description = "Partial pressure of the dry air in moist air: the total pressure minus the vapour pressure."
 
+# Merged into QUDT on 2026-10-25 (qudt-public-repo pull request 1578),
+# not yet in a release.
+[kinds.SpecificLatentHeat]
+label = "Specific Latent Heat"
+specialization_of = "SpecificEnergy"
+description = "Latent heat of a phase transition per unit mass: vaporization, sublimation or fusion."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q104217205", relation = "exact", verified = 2026-10-25 },
+]
+
+[kinds.SpecificLatentHeatOfVaporization]
+label = "Specific Latent Heat of Vaporization"
+specialization_of = "SpecificLatentHeat"
+description = "Latent heat of vaporization per unit mass, at a given temperature: the difference of the specific enthalpies of the vapour and of the liquid."
+
+[kinds.SpecificLatentHeatOfSublimation]
+label = "Specific Latent Heat of Sublimation"
+specialization_of = "SpecificLatentHeat"
+description = "Latent heat of sublimation per unit mass, at a given temperature: the difference of the specific enthalpies of the vapour and of the solid."
+
+[kinds.SpecificLatentHeatOfFusion]
+label = "Specific Latent Heat of Fusion"
+specialization_of = "SpecificLatentHeat"
+description = "Latent heat of fusion (melting) per unit mass, at a given temperature: the difference of the specific enthalpies of the liquid and of the solid."
+
+[kinds.RelativeHumidityWithRespectToIce]
+label = "Relative Humidity with respect to Ice"
+specialization_of = "RelativePartialPressure"
+description = "Relative humidity of moist air with respect to ice: the vapour mole fraction over the one the air would have if saturated with respect to a plane surface of ice at the same pressure and temperature. A sibling of the relative humidity, which QUDT defines with respect to water, as WMO-No. 8 evaluates it even below 0 degC (4.A, para. 17): it never feeds a relative humidity input."
+
+[kinds.MoleFractionOfWaterVapour]
+label = "Mole Fraction of Water Vapour"
+specialization_of = "MoleFraction"
+description = "Number of moles of water vapour over the total number of moles of a sample of moist air."
+cf_standard_names = [{ name = "mole_fraction_of_water_vapor_in_air", relation = "exact", verified = 2026-10-26 }]
+
+[kinds.SaturationMixingRatioOverWater]
+label = "Saturation Mixing Ratio over Water"
+specialization_of = "MassRatioOfWaterVapourToDryGas"
+description = "Mixing ratio of moist air saturated with respect to a plane surface of the associated liquid phase, at the same temperature and pressure."
+
+[kinds.SaturationMixingRatioOverIce]
+label = "Saturation Mixing Ratio over Ice"
+specialization_of = "MassRatioOfWaterVapourToDryGas"
+description = "Mixing ratio of moist air saturated with respect to a plane surface of the associated solid phase, at the same temperature and pressure."
+
+[kinds.VirtualTemperature]
+label = "Virtual Temperature"
+specialization_of = "ThermodynamicTemperature"
+description = "Temperature dry air would need to have the density of a sample of moist air at the same pressure."
+cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verified = 2026-10-26 }]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q761179", relation = "exact", verified = 2026-10-26 },
+]
+
+[kinds.PotentialTemperature]
+label = "Potential Temperature"
+specialization_of = "ThermodynamicTemperature"
+description = "Temperature a parcel of air would reach if brought adiabatically to a reference pressure, usually 1000 hPa."
+cf_standard_names = [{ name = "air_potential_temperature", relation = "exact", verified = 2026-10-26 }]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q760765", relation = "exact", verified = 2026-10-26 },
+]
+
+[kinds.VirtualPotentialTemperature]
+label = "Virtual Potential Temperature"
+specialization_of = "PotentialTemperature"
+description = "Potential temperature of the virtual temperature: the effect of water vapour on the density is kept, not its effect on the heat capacity."
+
+[kinds.EquivalentPotentialTemperature]
+label = "Equivalent Potential Temperature"
+specialization_of = "PotentialTemperature"
+description = "Temperature a parcel of air would reach if all its water vapour condensed, the latent heat warming it, and it were brought adiabatically to the reference pressure."
+cf_standard_names = [{ name = "air_equivalent_potential_temperature", relation = "exact", verified = 2026-10-26 }]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q3055058", relation = "exact", verified = 2026-10-26 },
+]
+
+[kinds.DensityOfMoistAir]
+label = "Density of Moist Air"
+specialization_of = "Density"
+description = "Mass of moist air, dry air and water vapour, per unit volume."
+cf_standard_names = [{ name = "air_density", relation = "exact", verified = 2026-10-26 }]
+# The Wikidata item is the density of the Earth's atmosphere.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1511415", relation = "close", verified = 2026-10-26 },
+]
+
+[kinds.MassRatioOfTotalWaterToDryGas]
+label = "Mass Ratio of Total Water to Dry Gas"
+specialization_of = "MassRatio"
+description = "Mass of water in all its phases, vapour and condensate, per mass of dry air: the total water mixing ratio."
+
+[kinds.FrostPointTemperature]
+label = "Frost Point Temperature"
+specialization_of = "Temperature"
+description = "Temperature at which moist air, saturated with respect to ice at the same pressure, has a saturation mixing ratio equal to its mixing ratio (WMO-No. 8, 4.A.14). The counterpart of the dew point over ice, not a dew point: it never feeds a dew point input."
+
+[kinds.IceBulbTemperature]
+label = "Ice-Bulb Temperature"
+specialization_of = "Temperature"
+description = "Thermodynamic ice-bulb temperature (WMO-No. 8, 4.A.20): the counterpart of the thermodynamic wet-bulb temperature over ice. Not the reading of a psychrometer, a quantity of its own."
+
+[kinds.PsychrometerWetBulbTemperature]
+label = "Psychrometer Wet-Bulb Temperature"
+specialization_of = "Temperature"
+description = "Temperature indicated by the wet bulb of a psychrometer. For most instruments it is not identical to the thermodynamic wet-bulb temperature (WMO-No. 8, 4.3.1.7); their relation is a matter of controlled experiment (Annex 4.A): neither feeds an input of the other."
+
+[kinds.PsychrometerIceBulbTemperature]
+label = "Psychrometer Ice-Bulb Temperature"
+specialization_of = "Temperature"
+description = "Temperature indicated by the ice-covered bulb of a psychrometer, the counterpart of its wet-bulb temperature over ice. Not the thermodynamic ice-bulb temperature (WMO-No. 8, Annex 4.A)."
+
+[kinds.PsychrometerCoefficient]
+label = "Psychrometer Coefficient"
+specialization_of = "InverseTemperature"
+description = "The coefficient A of the psychrometric formula e' = e'_w(p, t_w) - A p (t - t_w), which depends on the design and ventilation of the psychrometer (WMO-No. 8, 4.3.1). WMO-No. 8 prefers this term to psychrometer constant, a misnomer."
+
 # --- References -------------------------------------------------------
 
 [references.itu_r_p453_14]
@@ -60,17 +180,27 @@ note = "Annex 1, sections 1, 2.1 and 5 (equations 1 to 12 and 17, enhancement fa
 authors = "ECMWF"
 year = 2024
 title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
+doi = "10.21957/c731ee1102"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, section 12.5 (p. 246): Md = 28.9644e-3 kg/mol, Mv = 18.0153e-3 kg/mol, Rd = 287.0597 and Rv = 461.5250 J/(kg K); their ratio Rd/Rv is 0.6219808. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+
+[references.bechtold2015]
+authors = "Bechtold, P."
+year = 2015
+title = "Atmospheric Thermodynamics"
+container = "ECMWF Meteorological Training Course Lecture Series (June 2009, last update May 2015)"
+url = "https://www.ecmwf.int/en/elibrary/16954-atmospheric-thermodynamics"
+status = "verified"
+note = "ECMWF training lecture notes, without a DOI and not indexed by Crossref or OpenAlex (checked 2026-10-26): a secondary source, cited for what it states. CC BY 4.0 under the ECMWF terms of use, the document carrying no rights notice of its own. Read in full: equations 1 to 59 and Table 1 (pp. 1-15). Constants as printed: R_d = 287.06 and R_v = 461.52 J kg-1 K-1 and epsilon = 0.622 (p. 1), c_pd = 7/2 R_d = 1004.7 J kg-1 K-1 (p. 3), p0 = 1000 hPa (p. 5); c_pv = 1846.1 J kg-1 K-1 (p. 6), c_l = 4218 J kg-1 K-1, L_v(T00) = 2.5008e6 J kg-1 and T00 = 273.16 K (p. 7) are the values of the ECMWF IFS."
 
 [references.metpy171]
 authors = "MetPy developers"
 year = 2025
-title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py)"
-url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/constants/default.py"
+title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py) and metpy.calc.thermo"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1/src/metpy"
 status = "verified"
-note = "epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol (0.6219569); MetPy 0.12 used 18.01528 and 28.9644 g/mol. Released 2025-08-29."
+note = "Read in the source: constants/default.py (epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol, 0.6219569; MetPy 0.12 used 18.01528 and 28.9644 g/mol; R, Rv = R / Mw, Cp_v = gamma Rv / (gamma - 1) with gamma = 1.330, Cp_l, Lv, sat_pressure_0c, T0); calc/thermo.py (water_latent_heat_vaporization, saturation_vapor_pressure with phase='liquid', psychrometric_vapor_pressure_wet). Released 2025-08-29."
 
 [references.iapws95]
 authors = "IAPWS"
@@ -99,6 +229,7 @@ value = 461.51805
 unit = "J-PER-KiloGM-K"
 description = "Specific gas constant of water vapour"
 reference = "iapws95"
+nature = "conventional"
 # The Wikidata item is the specific gas constant of any gas: broader.
 matches = [
   { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-14 },
@@ -110,23 +241,356 @@ value = 0.621945
 unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, M_w / M_d"
 reference = "ashrae2017"
+nature = "conventional"
 
-# Other values of the same ratio, read in their sources. The relative
-# spread (about 6e-5) is negligible against the deviations between
-# formulations, but the value used is part of a formulation.
-[constants.epsilon_ecmwf_ifs]
-identifier = "epsilon"
-value = 0.6219808
-unit = "UNITLESS"
-description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
-reference = "ecmwf_ifs_cy49r1"
-
+# Other values of the same ratio, read in their sources (the IFS one
+# below). The relative spread (about 6e-5) is negligible against the
+# deviations between formulations, but the value used is part of a
+# formulation.
 [constants.epsilon_metpy]
 identifier = "epsilon"
 value = 0.6219569
 unit = "UNITLESS"
 description = "Ratio of the molar masses of water and dry air, M_w / M_d of MetPy"
 reference = "metpy171"
+nature = "conventional"
+
+# The constants of MetPy behind its saturation vapour pressure; R_v and
+# c_pv are computed by MetPy, the values here from their definitions.
+[constants.R_metpy]
+identifier = "R"
+value = 8.314462618
+unit = "J-PER-MOL-K"
+description = "Molar gas constant of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.M_w_metpy]
+identifier = "M_w"
+value = 0.018015268
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of water of MetPy (18.015268 g/mol)"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.R_v_metpy]
+identifier = "R_v"
+value = "461.52312"
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour of MetPy"
+reference = "metpy171"
+nature = "conventional"
+definition = "R / M_w"
+constants = ["R_metpy", "M_w_metpy"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-26 },
+]
+
+[constants.gamma_v_metpy]
+identifier = "gamma_v"
+value = 1.330
+unit = "UNITLESS"
+description = "Ratio of the specific heats of water vapour of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.c_pv_metpy]
+identifier = "c_pv"
+value = "1860.0780"
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of water vapour at constant pressure of MetPy"
+reference = "metpy171"
+nature = "conventional"
+definition = "gamma_v * R_v / (gamma_v - 1)"
+constants = ["gamma_v_metpy", "R_v_metpy"]
+
+[constants.c_l_metpy]
+identifier = "c_l"
+value = 4219.4
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of liquid water of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.L_v0_metpy]
+identifier = "L_v0"
+value = 2.50084e6
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of vaporization of MetPy, at its reference temperature 273.16 K"
+reference = "metpy171"
+nature = "conventional"
+
+# Constants of the ECMWF IFS (CY49R1, Part IV, chapter 12, p. 246). The
+# fundamental constants are those of the 1986 CODATA adjustment, adopted
+# by the model. R_d and R_v are derived from the unrounded R = N k, the
+# specific heats of dry air from the printed R_d.
+[constants.c_ecmwf_ifs]
+identifier = "c"
+value = 299792458
+unit = "M-PER-SEC"
+description = "Speed of light in vacuum, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "exact"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2111", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.h_ecmwf_ifs]
+identifier = "h"
+value = 6.6260755e-34
+unit = "J-SEC"
+description = "Planck constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q122894", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.k_ecmwf_ifs]
+identifier = "k"
+value = 1.380658e-23
+unit = "J-PER-K"
+description = "Boltzmann constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q5962", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.N_ecmwf_ifs]
+identifier = "N"
+value = 6.0221367e23
+unit = "PER-MOL"
+description = "Avogadro constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q6203", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.sigma_ecmwf_ifs]
+identifier = "sigma"
+value = 5.6705085e-8
+unit = "W-PER-M2-K4"
+description = "Stefan-Boltzmann constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "2 * pi**5 * k**4 / (15 * c**2 * h**3)"
+constants = ["k_ecmwf_ifs", "c_ecmwf_ifs", "h_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q51374", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.R_ecmwf_ifs]
+identifier = "R"
+value = 8.31451
+unit = "J-PER-MOL-K"
+description = "Universal gas constant, as the IFS gives it"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "N * k"
+constants = ["N_ecmwf_ifs", "k_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q182333", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.M_d_ecmwf_ifs]
+identifier = "M_d"
+value = 0.0289644
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of dry air"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+
+[constants.M_v_ecmwf_ifs]
+identifier = "M_v"
+value = 0.0180153
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of water vapour"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+
+[constants.R_d_ecmwf_ifs]
+identifier = "R_d"
+value = 287.0597
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of dry air"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R / M_d"
+constants = ["R_ecmwf_ifs", "M_d_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-24 },
+]
+
+[constants.R_v_ecmwf_ifs]
+identifier = "R_v"
+value = "461.5250"
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R / M_v"
+constants = ["R_ecmwf_ifs", "M_v_ecmwf_ifs"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-24 },
+]
+
+[constants.c_pd_ecmwf_ifs]
+identifier = "c_pd"
+value = "1004.7090"
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant pressure"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "7 / 2 * R_d"
+constants = ["R_d_ecmwf_ifs"]
+
+[constants.c_vd_ecmwf_ifs]
+identifier = "c_vd"
+value = 717.6493
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant volume"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "5 / 2 * R_d"
+constants = ["R_d_ecmwf_ifs"]
+
+[constants.c_pv_ecmwf_ifs]
+identifier = "c_pv"
+value = 1846.1
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of water vapour at constant pressure"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "4 * R_v"
+constants = ["R_v_ecmwf_ifs"]
+
+[constants.c_vv_ecmwf_ifs]
+identifier = "c_vv"
+value = 1384.575
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of water vapour at constant volume"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "3 * R_v"
+constants = ["R_v_ecmwf_ifs"]
+
+[constants.c_l_ecmwf_ifs]
+identifier = "c_l"
+value = 4218
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of liquid water"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "Taken as constant; the value holds at the triple point temperature, T0 = 273.16 K."
+
+[constants.c_s_ecmwf_ifs]
+identifier = "c_s"
+value = 2106
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of ice"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "Taken as constant; the value holds at the triple point temperature, T0 = 273.16 K."
+
+[constants.L_v0_ecmwf_ifs]
+identifier = "L_v0"
+value = 2.5008e6
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of vaporisation"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "At the triple point temperature, T0 = 273.16 K; the model physics takes it as invariable."
+
+[constants.L_s0_ecmwf_ifs]
+identifier = "L_s0"
+value = 2.8345e6
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of sublimation"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+conditions = "At the triple point temperature, T0 = 273.16 K; the model physics takes it as invariable."
+
+[constants.T_0_ecmwf_ifs]
+identifier = "T_0"
+value = 273.16
+unit = "K"
+description = "Triple point temperature of water, at which the IFS gives the specific heats of liquid water and ice and the latent heats"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+
+[constants.epsilon_wmo2024]
+identifier = "epsilon"
+value = 0.62198
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, as WMO-No. 8 writes it in the mole fraction of water vapour"
+reference = "wmo2024"
+nature = "conventional"
+
+# Printed in section 7.5.2 (p. 136), with the relative humidity.
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.621981
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R_d / R_v"
+constants = ["R_d_ecmwf_ifs", "R_v_ecmwf_ifs"]
+
+# Constants of Bechtold (2015), where the notes round the IFS values
+# (pp. 1, 3 and 5); they print the IFS values of c_pv, c_l, L_v(T00) and
+# T00, used as such.
+[constants.R_d_bechtold2015]
+identifier = "R_d"
+value = 287.06
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of dry air"
+reference = "bechtold2015"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-26 },
+]
+
+[constants.R_v_bechtold2015]
+identifier = "R_v"
+value = 461.52
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "bechtold2015"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q94372268", relation = "broad", verified = 2026-10-26 },
+]
+
+[constants.epsilon_bechtold2015]
+identifier = "epsilon"
+value = 0.622
+unit = "UNITLESS"
+description = "Ratio of the specific gas constants of dry air and water vapour, R_d / R_v"
+reference = "bechtold2015"
+nature = "conventional"
+definition = "R_d / R_v"
+constants = ["R_d_bechtold2015", "R_v_bechtold2015"]
+
+[constants.c_pd_bechtold2015]
+identifier = "c_pd"
+value = 1004.7
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant pressure"
+reference = "bechtold2015"
+nature = "conventional"
+definition = "7 / 2 * R_d"
+constants = ["R_d_bechtold2015"]
+
+[constants.p_0_bechtold2015]
+identifier = "p_0"
+value = 1000
+unit = "HectoPA"
+description = "Reference pressure of the potential temperatures"
+reference = "bechtold2015"
+nature = "conventional"
 
 # --- Ambiguous trade terms --------------------------------------------
 
@@ -149,13 +613,43 @@ kind = "MassRatioOfWaterVapourToDryGas"
 definition = "Mass of water vapour per mass of dry air."
 sources = ["cengel_boles"]
 
+[trade_terms.relative_humidity]
+term = "relative humidity"
+language = "en"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q2499617", relation = "close", verified = 2026-10-26 },
+]
+
+[[trade_terms.relative_humidity.meanings]]
+community = "metrology (CCT), WMO"
+kind = "RelativeHumidity"
+definition = "Ratio of the mole fraction of water vapour to the one moist air would have if saturated with respect to water or ice, at the same pressure and temperature (WMO-No. 8, 4.A.15 and 4.A.17)."
+sources = ["wmo2024", "teos10_manual"]
+
+[[trade_terms.relative_humidity.meanings]]
+community = "chemistry (IUPAC), meteorology textbooks"
+kind = "RelativeHumidity"
+definition = "Ratio of the partial pressure of water vapour to the saturation vapour pressure of pure water at the same temperature, e / e_s."
+sources = ["teos10_manual", "bechtold2015"]
+
+[[trade_terms.relative_humidity.meanings]]
+community = "cloud physics textbooks, as TEOS-10 cites them"
+kind = "RelativeMassRatioOfVapour"
+definition = "Ratio of the mixing ratio to the saturation mixing ratio, r / r_sat, which TEOS-10 calls the WMO definition. WMO-No. 8 (2024) defines the relative humidity by mole fractions and writes it exactly in mixing ratios (4.A.16), which is not r / r_sat."
+sources = ["teos10_manual"]
+
 # --- Formulations -----------------------------------------------------
 
 [formulations.mass_concentration_ideal_gas]
 label = "Mass concentration of water vapour, ideal gas law"
 expression = "RH * e_s / (R_v * T)"
 fixed_units = false
-note = "Water vapour treated as an ideal gas; e_s must be taken at the temperature T."
+conditions = "e_s at the temperature T."
+assumptions = [
+  { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
+  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.47 % at 1000 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5, valid around 1000 hPa).", status = "deduced" },
+  { text = "e'_w = e_w within 0.5 % or less in the meteorological range of pressure and temperature (equation 4.A.11).", status = "stated-by-other", reference = "wmo2024" },
+]
 output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Mass concentration of water vapour (absolute humidity, meteorological sense)" }
 inputs = [
   { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
@@ -176,6 +670,10 @@ output = { identifier = "e", kind = "VapourPressure", unit = "PA", description =
 inputs = [
   { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity" },
   { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water at the same temperature" },
+]
+assumptions = [
+  { text = "e = RH e_s with e_s of pure water: the enhancement factor of moist air is left out, which lowers e by about 0.47 % at 1000 hPa and 0.50 % at 1100 hPa (WMO-No. 8, equation 4.B.5, valid around 1000 hPa).", status = "deduced" },
+  { text = "e'_w = e_w within 0.5 % or less in the meteorological range of pressure and temperature (equation 4.A.11).", status = "stated-by-other", reference = "wmo2024" },
 ]
 
 [formulations.mixing_ratio_from_vapour_pressure]
@@ -198,6 +696,7 @@ reference = "psychrolib"
 
 [formulations.specific_humidity_from_mixing_ratio]
 label = "Specific humidity from mixing ratio"
+nature = "identity"
 expression = "r / (1 + r)"
 fixed_units = false
 note = "From the definitions (mass of water vapour per mass of moist air, per mass of dry air); ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 9b, through PsychroLib."
@@ -211,6 +710,28 @@ reference = "ashrae2017"
 
 [[formulations.specific_humidity_from_mixing_ratio.citations]]
 reference = "psychrolib"
+
+[[formulations.specific_humidity_from_mixing_ratio.citations]]
+reference = "bechtold2015"
+equation = "22"
+notation = { q = "q_v", r = "r_v" }
+
+[formulations.mixing_ratio_from_specific_humidity]
+label = "Mixing ratio from specific humidity"
+nature = "identity"
+expression = "q / (1 - q)"
+fixed_units = false
+note = "From the definitions: mass of water vapour per mass of dry air, and per mass of moist air."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+keywords = ["humidity"]
+
+[[formulations.mixing_ratio_from_specific_humidity.citations]]
+reference = "bechtold2015"
+equation = "22"
+notation = { q = "q_v" }
 
 # Saturation vapour pressure in moist air: the enhancement factor times
 # that of pure water vapour. ITU-R P.453 equation 9 is this product with
@@ -321,3 +842,1215 @@ coefficients = { C = 216.7 }
 [[formulations.itu_r_p453_vapour_pressure_from_density.citations]]
 reference = "itu_r_p453_14"
 equation = "10"
+
+# WMO-No. 8 (2024), Volume I, Annex 4.B (p. 197): the enhancement factor
+# f(p), the saturation vapour pressures in moist air, the relative
+# humidity and the dew point, built on the saturation vapour pressures
+# 4.B.1 (sonntag1990_magnus) and 4.B.3 (wmo2008_ice) of the water-vapour
+# family.
+
+[formulations.wmo_enhancement_factor]
+label = "Enhancement factor, WMO Guide (CIMO)"
+expression = "f_0 + f_1 * p - f_2 / p"
+fixed_units = true
+note = "The guide omits the temperature dependence of f (below 0.1 %, against 0 to +0.6 % for the pressure) and keeps the formula to pressures around 1000 hPa, surface measurements; for upper-air measurements it refers to WMO (1966), Table 4.10. That restriction states no bounds, so it stays in this note."
+output = { identifier = "f", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+coefficients = { f_0 = 1.0016, f_1 = 3.15e-6, f_2 = 0.074 }
+
+[[formulations.wmo_enhancement_factor.citations]]
+reference = "wmo2024"
+equation = "4.B.5"
+
+[formulations.wmo_es_water_moist_air]
+label = "Saturation vapour pressure over water in moist air, WMO Guide (CIMO)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "wmo_enhancement_factor", e_s = "sonntag1990_magnus" } }
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+
+[[formulations.wmo_es_water_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.2"
+notation = { e_ws = "e'_{\\mathrm{w}}" }
+
+[formulations.wmo_es_ice_moist_air]
+label = "Saturation vapour pressure over ice in moist air, WMO Guide (CIMO)"
+composition = { outer = "saturation_vapour_pressure_in_moist_air", inner = { EF = "wmo_enhancement_factor", e_s = "wmo2008_ice" } }
+output = { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air" }
+
+[[formulations.wmo_es_ice_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.4"
+notation = { e_is = "e'_{\\mathrm{i}}" }
+
+[formulations.wmo_relative_humidity]
+label = "Relative humidity with respect to water, WMO Guide (CIMO)"
+nature = "definition"
+expression = "100 * e / e_ws"
+fixed_units = true
+note = "Below 0 degC too, relative humidity is evaluated with respect to water (Annex 4.A, paragraph 17)."
+conditions = "e' and e'_w at the same pressure and temperature; not applicable when the pressure is below the saturation vapour pressure of pure water at that temperature (note to 4.A.15 and 4.A.17)."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air, at the same pressure and temperature" },
+]
+
+[[formulations.wmo_relative_humidity.citations]]
+reference = "wmo2024"
+equation = "4.B.10"
+notation = { RH = "U", e = "e'", e_ws = "e'_{\\mathrm{w}}" }
+
+[[formulations.wmo_relative_humidity.citations]]
+reference = "wmo2024"
+equation = "4.A.15"
+notation = { RH = "U_w", e = "e'", e_ws = "e'_{\\mathrm{w}}" }
+note = "The definition: 100 times the vapour mole fraction over that of moist air saturated with respect to water, at the same pressure and temperature."
+
+[formulations.wmo_dew_point]
+label = "Dew point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
+expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
+fixed_units = true
+note = "The guide states the range -45 to 60 degC for the dew point over water, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_dew_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the dew point, 4.A.13, with the Magnus form 4.B.1."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "f", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" },
+]
+coefficients = { A = 17.62, B = 243.12, C = 6.112 }
+
+[[formulations.wmo_dew_point.citations]]
+reference = "wmo2024"
+equation = "4.B.6"
+notation = { e = "e'" }
+
+[formulations.wmo_dew_point_moist_air]
+label = "Dew point from the vapour pressure and the pressure of moist air, WMO Guide (CIMO)"
+composition = { outer = "wmo_dew_point", inner = { f = "wmo_enhancement_factor" } }
+
+[[formulations.wmo_dew_point_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.6"
+notation = { e = "e'" }
+
+[formulations.wmo_relative_humidity_from_dew_point]
+label = "Relative humidity with respect to water, from the dew point, WMO Guide (CIMO)"
+expression = "100 * e_w(p=p, t=t_d) / e_w(p=p, t=t)"
+calls = { e_w = "wmo_es_water_moist_air" }
+fixed_units = true
+note = "The enhancement factor cancels between the two calls, as the guide's equation shows: the value does not depend on p."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+
+[[formulations.wmo_relative_humidity_from_dew_point.citations]]
+reference = "wmo2024"
+equation = "4.B.11"
+notation = { RH = "U" }
+
+[formulations.wmo_frost_point]
+label = "Frost point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
+expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
+fixed_units = true
+note = "The guide states the range -65 to 0 degC for the frost point, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_frost_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the frost point, 4.A.14, with the Magnus form over ice 4.B.3."
+output = { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature", scale = "its90", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "f", kind = "EnhancementFactor", unit = "UNITLESS", description = "Enhancement factor" },
+]
+coefficients = { A = 22.46, B = 272.62, C = 6.112 }
+
+[[formulations.wmo_frost_point.citations]]
+reference = "wmo2024"
+equation = "4.B.7"
+notation = { e = "e'" }
+
+[formulations.wmo_frost_point_moist_air]
+label = "Frost point from the vapour pressure and the pressure of moist air, WMO Guide (CIMO)"
+composition = { outer = "wmo_frost_point", inner = { f = "wmo_enhancement_factor" } }
+
+[[formulations.wmo_frost_point_moist_air.citations]]
+reference = "wmo2024"
+equation = "4.B.7"
+notation = { e = "e'" }
+
+[formulations.relative_humidity_ice_from_frost_point]
+label = "Relative humidity with respect to ice, from the frost point, with the saturation vapour pressure of WMO Guide (CIMO)"
+expression = "100 * e_i(p=p, t=t_f) / e_i(p=p, t=t)"
+calls = { e_i = "wmo_es_ice_moist_air" }
+fixed_units = true
+note = "The counterpart over ice of 4.B.11, which the guide gives over water only: the definition 4.A.17, with e' the saturation vapour pressure over ice of 4.B.4 at the frost point and e'_i the same at the air temperature. The enhancement factor cancels between the two calls."
+output = { identifier = "RH_i", kind = "RelativeHumidityWithRespectToIce", unit = "PERCENT", description = "Relative humidity with respect to ice" }
+inputs = [
+  { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+
+[formulations.wmo_psychrometer_water]
+label = "Vapour pressure from an Assmann psychrometer with a wet bulb, WMO Guide (CIMO)"
+expression = "e_w(p=p, t=t_w) - A * (1 + B * t_w) * p * (t - t_w)"
+calls = { e_w = "wmo_es_water_moist_air" }
+fixed_units = true
+conditions = "An Assmann aspirated psychrometer, its bulb covered with water."
+note = "6.53e-4 (1 + 0.000944 t_w) K-1 is the psychrometer coefficient of the Assmann psychrometer; other psychrometers have their own."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t_w", kind = "PsychrometerWetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+coefficients = { A = 6.53e-4, B = 0.000944 }
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometer_water.citations]]
+reference = "wmo2024"
+equation = "4.B.8"
+notation = { e = "e'" }
+
+[formulations.wmo_psychrometer_ice]
+label = "Vapour pressure from an Assmann psychrometer with an ice bulb, WMO Guide (CIMO)"
+expression = "e_i(p=p, t=t_i) - A * p * (t - t_i)"
+calls = { e_i = "wmo_es_ice_moist_air" }
+fixed_units = true
+conditions = "An Assmann aspirated psychrometer, its bulb covered with ice."
+note = "5.75e-4 K-1 is the psychrometer coefficient of the Assmann psychrometer over ice; other psychrometers have their own."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "t_i", kind = "PsychrometerIceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+coefficients = { A = 5.75e-4 }
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometer_ice.citations]]
+reference = "wmo2024"
+equation = "4.B.9"
+notation = { e = "e'" }
+
+# The general psychrometric formulae of WMO-No. 8 (4.3.1.1, p. 167), with
+# the psychrometer coefficient and the saturation vapour pressure at the
+# bulb temperature as inputs; 4.B.8 and 4.B.9 are those of the Assmann
+# psychrometer.
+
+[formulations.wmo_psychrometric_formula_water]
+label = "Vapour pressure from a psychrometer with a wet bulb, for a given psychrometer coefficient, WMO Guide (CIMO)"
+expression = "e_ws - A * p * (t - t_w)"
+fixed_units = true
+note = "Semi-empirical. The coefficient depends on the psychrometer: the guide gives 6.53e-4 (1 + 0.000944 t_w) K-1 for the Assmann psychrometer (4.B.8) and ranges for screen psychrometers (4.3.3.1)."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water at the wet-bulb temperature and the pressure of the air" },
+  { identifier = "A", kind = "PsychrometerCoefficient", unit = "PER-K", description = "Psychrometer coefficient" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the air" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_w", kind = "PsychrometerWetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+]
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometric_formula_water.citations]]
+reference = "wmo2024"
+equation = "4.1"
+notation = { e = "e'", e_ws = "e'_{\\mathrm{w}}(p, t_{\\mathrm{w}})" }
+
+[formulations.wmo_psychrometric_formula_ice]
+label = "Vapour pressure from a psychrometer with an ice bulb, for a given psychrometer coefficient, WMO Guide (CIMO)"
+expression = "e_is - A * p * (t - t_i)"
+fixed_units = true
+note = "Semi-empirical. The coefficient depends on the psychrometer: the guide gives 5.75e-4 K-1 for the Assmann psychrometer over ice (4.B.9)."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice at the ice-bulb temperature and the pressure of the air" },
+  { identifier = "A", kind = "PsychrometerCoefficient", unit = "PER-K", description = "Psychrometer coefficient" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the air" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_i", kind = "PsychrometerIceBulbTemperature", unit = "DEG_C", description = "Ice-bulb temperature" },
+]
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.wmo_psychrometric_formula_ice.citations]]
+reference = "wmo2024"
+equation = "4.2"
+notation = { e = "e'", e_is = "e'_{\\mathrm{i}}(p, t_{\\mathrm{i}})" }
+
+# The thermodynamic wet-bulb and ice-bulb temperatures of WMO-No. 8,
+# Annex 4.A, for ideal gases with constant specific heats (pp. 195-196).
+
+[formulations.wmo_wet_bulb_ideal_gas]
+label = "Air temperature from the thermodynamic wet-bulb temperature, ideal gases with constant specific heats, WMO Guide (CIMO)"
+expression = "T_w + (r_w - r) * L_v / (c_pa + r * c_pv)"
+fixed_units = false
+note = "Explicit in the air temperature: the wet-bulb temperature from the air temperature and the mixing ratio needs a solver. The exact definition is the enthalpy balance 4.A.18. Air-conditioning engineers call this temperature that of adiabatic saturation; how a psychrometer reading relates to it is a matter of experiment."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature" }
+inputs = [
+  { identifier = "T_w", kind = "WetBulbTemperature", unit = "K", description = "Thermodynamic wet-bulb temperature" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio of the air" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over water at the wet-bulb temperature and the pressure of the air" },
+  { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporization at the wet-bulb temperature" },
+  { identifier = "c_pa", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of dry air at constant pressure" },
+  { identifier = "c_pv", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of water vapour at constant pressure" },
+]
+keywords = ["humidity", "wet bulb", "adiabatic saturation"]
+
+[[formulations.wmo_wet_bulb_ideal_gas.citations]]
+reference = "wmo2024"
+equation = "4.A.19"
+assumptions = ["Air and water vapour as ideal gases with constant specific heats (Annex 4.A, paragraph 18)."]
+
+[formulations.wmo_ice_bulb_ideal_gas]
+label = "Air temperature from the thermodynamic ice-bulb temperature, ideal gases with constant specific heats, WMO Guide (CIMO)"
+expression = "T_i + (r_i - r) * L_s / (c_pa + r * c_pv)"
+fixed_units = false
+note = "Explicit in the air temperature: the ice-bulb temperature from the air temperature and the mixing ratio needs a solver. The exact definition is the enthalpy balance 4.A.20."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature" }
+inputs = [
+  { identifier = "T_i", kind = "IceBulbTemperature", unit = "K", description = "Thermodynamic ice-bulb temperature" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio of the air" },
+  { identifier = "r_i", kind = "SaturationMixingRatioOverIce", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over ice at the ice-bulb temperature and the pressure of the air" },
+  { identifier = "L_s", kind = "SpecificLatentHeatOfSublimation", unit = "J-PER-KiloGM", description = "Specific latent heat of sublimation at the ice-bulb temperature" },
+  { identifier = "c_pa", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of dry air at constant pressure" },
+  { identifier = "c_pv", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat of water vapour at constant pressure" },
+]
+keywords = ["humidity", "ice bulb"]
+
+[[formulations.wmo_ice_bulb_ideal_gas.citations]]
+reference = "wmo2024"
+equation = "4.A.21"
+notation = { c_pa = "c_p" }
+note = "Printed c_p where 4.A.19 writes c_pa, the specific heat of dry air at constant pressure."
+assumptions = ["Air and water vapour as ideal gases with constant specific heats (Annex 4.A, paragraph 19)."]
+
+# Latent heats of the ECMWF IFS (CY49R1, Part IV, section 12.5, p. 246):
+# differences of specific enthalpies, linear in temperature.
+
+[formulations.ecmwf_ifs_latent_heat_vaporization]
+label = "Specific latent heat of vaporisation, linear in temperature, ECMWF IFS"
+expression = "L_v0 + (c_pv - c_l) * (T - T_0)"
+fixed_units = false
+note = "The difference of the specific enthalpies of water vapour and liquid water, with specific heats taken as constant. The IFS states no validity domain. Its model physics takes the latent heat as invariable, L_v0; this form gives the temperature dependency in the moist static energy (equations 12.26 to 12.28)."
+output = { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+constants = ["L_v0_ecmwf_ifs", "c_pv_ecmwf_ifs", "c_l_ecmwf_ifs", "T_0_ecmwf_ifs"]
+assumptions = [
+  { text = "The specific heat of water vapour is constant (c_pv = 4 R_v).", status = "deduced" },
+]
+keywords = ["latent heat", "Kirchhoff"]
+
+[[formulations.ecmwf_ifs_latent_heat_vaporization.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.1"
+notation = { L_v0 = 'L_{\mathrm{v}}(T_0)' }
+assumptions = ["The specific heat of liquid water is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
+
+[formulations.ecmwf_ifs_latent_heat_sublimation]
+label = "Specific latent heat of sublimation, linear in temperature, ECMWF IFS"
+expression = "L_s0 + (c_pv - c_s) * (T - T_0)"
+fixed_units = false
+note = "The difference of the specific enthalpies of water vapour and ice, with specific heats taken as constant. The IFS states no validity domain. Its model physics takes the latent heat as invariable, L_s0; this form gives the temperature dependency in the moist static energy (equations 12.26 to 12.28)."
+output = { identifier = "L_s", kind = "SpecificLatentHeatOfSublimation", unit = "J-PER-KiloGM", description = "Specific latent heat of sublimation" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+constants = ["L_s0_ecmwf_ifs", "c_pv_ecmwf_ifs", "c_s_ecmwf_ifs", "T_0_ecmwf_ifs"]
+assumptions = [
+  { text = "The specific heat of water vapour is constant (c_pv = 4 R_v).", status = "deduced" },
+]
+keywords = ["latent heat", "Kirchhoff"]
+
+[[formulations.ecmwf_ifs_latent_heat_sublimation.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.2"
+notation = { L_s0 = 'L_{\mathrm{s}}(T_0)' }
+assumptions = ["The specific heat of ice is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
+
+# Latent heats of Ambaum (2020), specific heats taken as constant.
+
+[formulations.ambaum2020_latent_heat_vaporization]
+label = "Specific latent heat of vaporisation, linear in temperature, Ambaum (2020)"
+expression = "L_0 - Delta_c * (T - T_0)"
+fixed_units = false
+note = "Delta_c stands for c_pl - c_pv. Its value is chosen so that the vapour pressure of equation 13 fits IAPWS-95 from 0 to 100 degC; it corresponds to c_pv near 2040 J kg-1 K-1, where c_pv goes from 1888.2 at the triple point to 2077.5 J kg-1 K-1 at 100 degC (p. 4254). The latent heat itself is not assessed against reference values. Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
+output = { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
+]
+coefficients = { L_0 = 2.501e6, Delta_c = 2180.0, T_0 = 273.16 }
+keywords = ["latent heat", "Kirchhoff"]
+
+[[formulations.ambaum2020_latent_heat_vaporization.citations]]
+reference = "ambaum2020"
+equation = "15"
+notation = { L_v = "L", Delta_c = '\left(c_{\mathrm{pl}} - c_{\mathrm{pv}}\right)' }
+assumptions = ["Water vapour as an ideal gas, so that c_pv is constant, which is 'only approximately valid' from 0 to 100 degC (p. 4254)."]
+units = { L_0 = "J-PER-KiloGM", Delta_c = "J-PER-KiloGM-K", T_0 = "K" }
+
+[[formulations.ambaum2020_latent_heat_vaporization.citations.domains]]
+bounds = { T = [273.15, 373.15] }
+criterion = "c_pl - c_pv = 2180 J kg-1 K-1 'gives a very good fit across the 0-100 C temperature range, in particular for temperatures below 70 C' (p. 4254): the fit of the vapour pressure of equation 13 to IAPWS-95."
+
+[formulations.ambaum2020_latent_heat_fusion]
+label = "Specific latent heat of melting, linear in temperature, Ambaum (2020)"
+expression = "L_m0 + (c_l - c_i) * (T - T_0)"
+fixed_units = false
+note = "Written L_m = L_s - L, the latent heat of sublimation minus that of vaporisation. Figure 4 assesses the saturation ratio of equation 20, built on these values, from -40 degC to the triple point. Its temperatures are on ITS-90, the scale Ambaum names where he compares with IAPWS-95 (p. 4255)."
+output = { identifier = "L_m", kind = "SpecificLatentHeatOfFusion", unit = "J-PER-KiloGM", description = "Specific latent heat of melting" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
+]
+coefficients = { L_m0 = 0.3334e6, c_l = 4220.0, c_i = 2097.0, T_0 = 273.16 }
+keywords = ["latent heat", "Kirchhoff", "melting"]
+
+[[formulations.ambaum2020_latent_heat_fusion.citations]]
+reference = "ambaum2020"
+notation = { c_l = 'c_{\mathrm{pl}}', c_i = 'c_{\mathrm{pi}}' }
+assumptions = ["The heat capacities of liquid water and ice are taken as constant, at their triple-point values (p. 4256)."]
+note = "Unnumbered, in the text below equation 20 (p. 4256); L_m0, c_pl and c_pi are the triple-point values of the caption of Figure 4, T_0 that of equations 14 and 19."
+units = { L_m0 = "J-PER-KiloGM", c_l = "J-PER-KiloGM-K", c_i = "J-PER-KiloGM-K", T_0 = "K" }
+
+# The latent heat of fusion: the identity, and the form it gives from the
+# latent heats of the IFS.
+
+[formulations.latent_heat_fusion_identity]
+label = "Specific latent heat of fusion, as that of sublimation minus that of vaporization"
+nature = "identity"
+expression = "L_s - L_v"
+fixed_units = false
+conditions = "Both latent heats at the same temperature, the specific enthalpy of each phase depending on temperature only (Bechtold, equation 39)."
+output = { identifier = "L_f", kind = "SpecificLatentHeatOfFusion", unit = "J-PER-KiloGM", description = "Specific latent heat of fusion" }
+inputs = [
+  { identifier = "L_s", kind = "SpecificLatentHeatOfSublimation", unit = "J-PER-KiloGM", description = "Specific latent heat of sublimation" },
+  { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" },
+]
+keywords = ["latent heat", "melting"]
+
+[[formulations.latent_heat_fusion_identity.citations]]
+reference = "bechtold2015"
+equation = "40"
+notation = { L_f = "L_m" }
+
+[[formulations.latent_heat_fusion_identity.citations]]
+reference = "ambaum2020"
+notation = { L_f = "L_m", L_v = "L" }
+note = "Unnumbered, in the text below equation 20 (p. 4256)."
+
+[formulations.ecmwf_ifs_latent_heat_fusion]
+label = "Specific latent heat of fusion, linear in temperature, from the latent heats of the ECMWF IFS"
+composition = { outer = "latent_heat_fusion_identity", inner = { L_s = "ecmwf_ifs_latent_heat_sublimation", L_v = "ecmwf_ifs_latent_heat_vaporization" } }
+note = "The IFS prints no latent heat of fusion as a function of temperature: it writes Ldep = Lvap + Lfus (section 7.2.2, p. 118) and takes Ls - Lv, with equations 12.1 and 12.2, in equations 12.24 to 12.33."
+keywords = ["latent heat", "melting"]
+
+# Definitions of WMO-No. 8 (2024), Volume I, Annex 4.A (pp. 193-196).
+
+[formulations.wmo_vapour_pressure_definition]
+label = "Vapour pressure of moist air, from the mixing ratio and the pressure, WMO Guide (CIMO)"
+nature = "definition"
+expression = "r * p / (epsilon + r)"
+fixed_units = false
+note = "Defined as x_v p, the mole fraction of water vapour times the total pressure, with x_v = r / (0.62198 + r) (4.A.5). The WMO calls the relative humidity that follows formally similar to the one based on Dalton's law of partial pressures (4.A.15)."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_vapour_pressure_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.6"
+notation = { e = "e'" }
+
+[formulations.wmo_relative_humidity_ice]
+label = "Relative humidity with respect to ice, WMO Guide (CIMO)"
+nature = "definition"
+expression = "100 * e / e_is"
+fixed_units = true
+conditions = "e' and e'_i at the same pressure and temperature; not applicable when the pressure is below the saturation vapour pressure of ice at that temperature (note to 4.A.15 and 4.A.17)."
+output = { identifier = "RH_i", kind = "RelativeHumidityWithRespectToIce", unit = "PERCENT", description = "Relative humidity with respect to ice" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
+  { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air, at the same pressure and temperature" },
+]
+keywords = ["humidity"]
+
+[[formulations.wmo_relative_humidity_ice.citations]]
+reference = "wmo2024"
+equation = "4.A.17"
+notation = { RH_i = "U_i", e = "e'", e_is = "e'_{\\mathrm{i}}" }
+
+# The other definitions of WMO-No. 8 (2024), Volume I, Annex 4.A: masses,
+# moles and saturation (pp. 193-195).
+
+[formulations.wmo_mixing_ratio_definition]
+label = "Mixing ratio of moist air, from the masses of water vapour and dry air, WMO Guide (CIMO)"
+nature = "definition"
+expression = "m_v / m_a"
+fixed_units = false
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" }
+inputs = [
+  { identifier = "m_v", kind = "Mass", unit = "KiloGM", description = "Mass of water vapour" },
+  { identifier = "m_a", kind = "Mass", unit = "KiloGM", description = "Mass of dry air with which the water vapour is associated" },
+]
+keywords = ["humidity"]
+
+[[formulations.wmo_mixing_ratio_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.1"
+
+[formulations.wmo_specific_humidity_definition]
+label = "Specific humidity of moist air, from the masses of water vapour and dry air, WMO Guide (CIMO)"
+nature = "definition"
+expression = "m_v / (m_v + m_a)"
+fixed_units = false
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity (mass concentration, moisture content)" }
+inputs = [
+  { identifier = "m_v", kind = "Mass", unit = "KiloGM", description = "Mass of water vapour" },
+  { identifier = "m_a", kind = "Mass", unit = "KiloGM", description = "Mass of dry air" },
+]
+keywords = ["humidity"]
+
+[[formulations.wmo_specific_humidity_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.2"
+
+[formulations.wmo_vapour_concentration_definition]
+label = "Vapour concentration of moist air, from the mass of water vapour and the volume, WMO Guide (CIMO)"
+nature = "definition"
+expression = "m_v / V"
+fixed_units = false
+output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "KiloGM-PER-M3", description = "Vapour concentration (density of water vapour in the mixture, absolute humidity)" }
+inputs = [
+  { identifier = "m_v", kind = "Mass", unit = "KiloGM", description = "Mass of water vapour" },
+  { identifier = "V", kind = "Volume", unit = "M3", description = "Volume occupied by the mixture" },
+]
+keywords = ["humidity", "absolute humidity"]
+
+[[formulations.wmo_vapour_concentration_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.3"
+
+[formulations.wmo_mole_fraction_definition]
+label = "Mole fraction of water vapour in moist air, from the amounts of water vapour and dry air, WMO Guide (CIMO)"
+nature = "definition"
+expression = "n_v / (n_a + n_v)"
+fixed_units = false
+output = { identifier = "x_v", kind = "MoleFractionOfWaterVapour", unit = "UNITLESS", description = "Mole fraction of water vapour" }
+inputs = [
+  { identifier = "n_v", kind = "AmountOfSubstance", unit = "MOL", description = "Amount of water vapour" },
+  { identifier = "n_a", kind = "AmountOfSubstance", unit = "MOL", description = "Amount of dry air" },
+]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_mole_fraction_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.4"
+
+[formulations.wmo_mole_fraction_from_mixing_ratio]
+label = "Mole fraction of water vapour in moist air, from the mixing ratio, WMO Guide (CIMO)"
+nature = "identity"
+expression = "r / (epsilon + r)"
+fixed_units = false
+conditions = "n = m / M for water vapour and dry air, the ratio of their molar masses being 0.62198."
+output = { identifier = "x_v", kind = "MoleFractionOfWaterVapour", unit = "UNITLESS", description = "Mole fraction of water vapour" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_mole_fraction_from_mixing_ratio.citations]]
+reference = "wmo2024"
+equation = "4.A.5"
+
+[formulations.wmo_vapour_pressure_from_mole_fraction]
+label = "Vapour pressure of moist air, from the mole fraction of water vapour and the pressure, WMO Guide (CIMO)"
+nature = "definition"
+expression = "x_v * p"
+fixed_units = false
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" }
+inputs = [
+  { identifier = "x_v", kind = "MoleFractionOfWaterVapour", unit = "UNITLESS", description = "Mole fraction of water vapour" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+keywords = ["humidity", "mole fraction"]
+
+[[formulations.wmo_vapour_pressure_from_mole_fraction.citations]]
+reference = "wmo2024"
+equation = "4.A.6"
+notation = { e = "e'" }
+
+[formulations.wmo_saturation_vapour_pressure_water_definition]
+label = "Saturation vapour pressure over water in moist air, from the saturation mixing ratio, WMO Guide (CIMO)"
+nature = "definition"
+expression = "r_w * p / (epsilon + r_w)"
+fixed_units = false
+output = { identifier = "e_ws", kind = "SaturationVapourPressureOverWaterInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over water in moist air" }
+inputs = [
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to water" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "saturation"]
+
+[[formulations.wmo_saturation_vapour_pressure_water_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.9"
+notation = { e_ws = "e'_{\\mathrm{w}}" }
+
+[formulations.wmo_saturation_vapour_pressure_ice_definition]
+label = "Saturation vapour pressure over ice in moist air, from the saturation mixing ratio, WMO Guide (CIMO)"
+nature = "definition"
+expression = "r_i * p / (epsilon + r_i)"
+fixed_units = false
+output = { identifier = "e_is", kind = "SaturationVapourPressureOverIceInMoistAir", unit = "HectoPA", description = "Saturation vapour pressure over ice in moist air" }
+inputs = [
+  { identifier = "r_i", kind = "SaturationMixingRatioOverIce", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to ice" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure of moist air" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity", "saturation"]
+
+[[formulations.wmo_saturation_vapour_pressure_ice_definition.citations]]
+reference = "wmo2024"
+equation = "4.A.10"
+notation = { e_is = "e'_{\\mathrm{i}}" }
+
+[formulations.wmo_relative_humidity_from_mixing_ratios]
+label = "Relative humidity with respect to water, from the mixing ratio and the saturation mixing ratio, WMO Guide (CIMO)"
+nature = "identity"
+expression = "100 * r * (epsilon + r_w) / (r_w * (epsilon + r))"
+fixed_units = true
+conditions = "r_w at the pressure and temperature of the moist air."
+note = "Not 100 r / r_w, the form TEOS-10 attributes to the WMO: the two differ unless r = r_w."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to water" },
+]
+constants = ["epsilon_wmo2024"]
+keywords = ["humidity"]
+
+[[formulations.wmo_relative_humidity_from_mixing_ratios.citations]]
+reference = "wmo2024"
+equation = "4.A.16"
+notation = { RH = "U_w" }
+
+# The ratio r / r_sat, which TEOS-10 calls the WMO relative humidity.
+[formulations.teos10_relative_mass_ratio_of_vapour]
+label = "Mixing ratio over the saturation mixing ratio, r / r_sat (TEOS-10, RH_WMO)"
+nature = "definition"
+expression = "r / r_w"
+fixed_units = false
+note = "TEOS-10 attributes this definition to the WMO, after Pruppacher and Klett (1997) and Jacobson (2005), and notes that it nears the mole fraction definition for small r. WMO-No. 8 (2024) defines the relative humidity by mole fractions (4.A.15) and writes it in mixing ratios as wmo_relative_humidity_from_mixing_ratios (4.A.16), which this ratio is not."
+output = { identifier = "psi", kind = "RelativeMassRatioOfVapour", unit = "UNITLESS", description = "Mixing ratio over the saturation mixing ratio" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio, at the same pressure and temperature" },
+]
+keywords = ["humidity", "relative humidity"]
+
+[[formulations.teos10_relative_mass_ratio_of_vapour.citations]]
+reference = "teos10_manual"
+equation = "3.40.2"
+notation = { psi = 'RH_{\mathrm{WMO}}', r_w = 'r^{\mathrm{sat}}' }
+note = "TEOS-10 takes r_sat with respect to liquid water above the freezing point of pure water, and to ice below."
+
+# Computed by nomogram: the two forms of 4.A.6.
+[relations.wmo_vapour_pressure_two_forms]
+kind = "equivalent"
+subject = "wmo_vapour_pressure_definition"
+object = "wmo_vapour_pressure_from_mole_fraction"
+given = { x_v = "r / (0.62198 + r)" }
+note = "4.A.6 writes both: x_v p, with x_v = r / (0.62198 + r) (4.A.5)."
+
+# Atmospheric thermodynamics of Bechtold (2015), ECMWF training notes:
+# humidity variables, virtual and potential temperatures, saturation.
+
+[formulations.bechtold2015_specific_humidity_from_vapour_pressure]
+label = "Specific humidity from vapour pressure (Bechtold 2015)"
+expression = "epsilon * e / (p - (1 - epsilon) * e)"
+fixed_units = false
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["humidity"]
+
+[[formulations.bechtold2015_specific_humidity_from_vapour_pressure.citations]]
+reference = "bechtold2015"
+note = "Table 1 (p. 4)."
+assumptions = ["Dry air and water vapour as ideal gases, the vapour pressure being their partial pressure (equations 4 and 6)."]
+
+[formulations.bechtold2015_mixing_ratio_from_vapour_pressure]
+label = "Humidity mixing ratio from vapour pressure (Bechtold 2015)"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["humidity"]
+
+[[formulations.bechtold2015_mixing_ratio_from_vapour_pressure.citations]]
+reference = "bechtold2015"
+note = "Table 1 (p. 4)."
+assumptions = ["Dry air and water vapour as ideal gases, the vapour pressure being their partial pressure (equations 4 and 6)."]
+
+[formulations.bechtold2015_virtual_temperature_definition]
+label = "Virtual temperature, from the density and pressure of moist air (Bechtold 2015)"
+nature = "definition"
+expression = "p / (rho * R_d)"
+fixed_units = false
+note = "The temperature dry air would need to have the density of the moist air at the same pressure."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+  { identifier = "rho", kind = "DensityOfMoistAir", unit = "KiloGM-PER-M3", description = "Density of moist air" },
+]
+constants = ["R_d_bechtold2015"]
+keywords = ["virtual temperature", "density"]
+
+[[formulations.bechtold2015_virtual_temperature_definition.citations]]
+reference = "bechtold2015"
+equation = "23"
+
+[formulations.bechtold2015_virtual_temperature]
+label = "Virtual temperature from the temperature and the specific humidity (Bechtold 2015)"
+expression = "T * (1 + (1 - epsilon) / epsilon * q)"
+fixed_units = false
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["virtual temperature", "humidity"]
+
+[[formulations.bechtold2015_virtual_temperature.citations]]
+reference = "bechtold2015"
+equation = "25"
+notation = { q = "q_v" }
+assumptions = ["Dry air and water vapour as ideal gases, the gas constant of moist air being their mass-weighted mean, q R_v + (1 - q) R_d (equations 4, 20 and 24)."]
+
+[formulations.bechtold2015_virtual_temperature_mixing_ratio]
+label = "Virtual temperature from the temperature and the mixing ratio (Bechtold 2015)"
+expression = "T * (1 + (1 - epsilon) * r / (epsilon * (1 + r)))"
+fixed_units = false
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+]
+constants = ["epsilon_bechtold2015"]
+keywords = ["virtual temperature", "humidity"]
+
+[[formulations.bechtold2015_virtual_temperature_mixing_ratio.citations]]
+reference = "bechtold2015"
+equation = "25"
+notation = { r = "r_v" }
+assumptions = ["Dry air and water vapour as ideal gases, the gas constant of moist air being their mass-weighted mean, q R_v + (1 - q) R_d (equations 4, 20 and 24)."]
+
+[formulations.bechtold2015_virtual_temperature_rounded]
+label = "Virtual temperature from the temperature and the specific humidity, coefficient 0.608 (Bechtold 2015)"
+expression = "T * (1 + a * q)"
+fixed_units = false
+note = "The coefficient rounds (1 - epsilon) / epsilon = 0.6077, with epsilon = 0.622; the notes write this form as an approximation of the exact one."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+coefficients = { a = 0.608 }
+keywords = ["virtual temperature", "humidity"]
+
+[[formulations.bechtold2015_virtual_temperature_rounded.citations]]
+reference = "bechtold2015"
+equation = "25"
+notation = { a = "0.608", q = "q_v" }
+
+[formulations.bechtold2015_potential_temperature]
+label = "Potential temperature of dry air (Bechtold 2015)"
+expression = "T * (p_0 / p) ** (R_d / c_pd)"
+fixed_units = false
+note = "The exponent kappa = R_d / c_pd is 2/7, c_pd being 7/2 R_d for dry air as a diatomic ideal gas."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015"]
+assumptions = [
+  { text = "c_pd is constant over the transformation, which integrates equation 27.", status = "deduced" },
+]
+keywords = ["potential temperature", "adiabatic"]
+
+[[formulations.bechtold2015_potential_temperature.citations]]
+reference = "bechtold2015"
+equation = "28"
+assumptions = ["An isentropic transformation of dry air, without phase change (section 8.1)."]
+
+[formulations.bechtold2015_potential_temperature_moist_air]
+label = "Potential temperature of moist air, without phase change (Bechtold 2015)"
+expression = "T * (p_0 / p) ** ((R_d + r * R_v) / (c_pd + r * c_pv))"
+fixed_units = false
+note = "Written theta_m: the notes keep theta_v for the virtual potential temperature, in which water vapour acts through the virtual temperature only, not through the exponent."
+output = { identifier = "theta_m", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of moist air" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+]
+constants = ["R_d_bechtold2015", "R_v_bechtold2015", "c_pd_bechtold2015", "c_pv_ecmwf_ifs", "p_0_bechtold2015"]
+assumptions = [
+  { text = "The mixing ratio and the specific heats are constant over the transformation, which integrates equation 34.", status = "deduced" },
+]
+keywords = ["potential temperature", "adiabatic", "humidity"]
+
+[[formulations.bechtold2015_potential_temperature_moist_air.citations]]
+reference = "bechtold2015"
+equation = "35"
+notation = { r = "r_v" }
+assumptions = ["A system that exchanges no mass or heat with its environment, without phase change (section 8.3)."]
+
+[formulations.bechtold2015_virtual_potential_temperature]
+label = "Virtual potential temperature (Bechtold 2015)"
+expression = "T_v * (p_0 / p) ** (R_d / c_pd)"
+fixed_units = false
+output = { identifier = "theta_v", kind = "VirtualPotentialTemperature", unit = "K", description = "Virtual potential temperature" }
+inputs = [
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015"]
+keywords = ["potential temperature", "virtual temperature"]
+
+[[formulations.bechtold2015_virtual_potential_temperature.citations]]
+reference = "bechtold2015"
+equation = "36"
+note = "Printed T_v (p / p_0)^kappa: p and p_0 are swapped against equation 28, of which the text makes it the counterpart for the virtual temperature."
+
+[formulations.bechtold2015_equivalent_potential_temperature]
+label = "Equivalent potential temperature, reversible (Bechtold 2015)"
+expression = "T * (p_0 / p) ** (R_d / (c_pd + r_w * c_l)) * exp(L_v * r / ((c_pd + r_w * c_l) * T))"
+fixed_units = false
+conditions = "Strictly, T in the exponential is the temperature at the isentropic condensation level; the actual temperature is very often used (section 9.3)."
+note = "c_pd + r_w c_l is the heat capacity of moist air containing liquid water, often replaced by c_pd, as for a pseudo-adiabat (section 9.3)."
+output = { identifier = "theta_e", kind = "EquivalentPotentialTemperature", unit = "K", description = "Equivalent potential temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" },
+  { identifier = "r_w", kind = "MassRatioOfTotalWaterToDryGas", unit = "KiloGM-PER-KiloGM", description = "Total water mixing ratio" },
+  { identifier = "L_v", kind = "SpecificLatentHeatOfVaporization", unit = "J-PER-KiloGM", description = "Specific latent heat of vaporisation" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "c_l_ecmwf_ifs", "p_0_bechtold2015"]
+assumptions = [
+  { text = "Integrating equation 44 into this form leaves the term r R_v out of the exponent R_d / c_p, and holds T constant in the latent heat term.", status = "deduced" },
+]
+keywords = ["potential temperature", "equivalent potential temperature", "latent heat"]
+
+[[formulations.bechtold2015_equivalent_potential_temperature.citations]]
+reference = "bechtold2015"
+equation = "46"
+notation = { r = "r_v" }
+assumptions = ["A fictive reversible adiabatic process in which all the water vapour of the parcel condenses (section 9.3)."]
+
+[formulations.bechtold2015_saturation_vapour_pressure_constant_latent_heat]
+label = "Clausius-Clapeyron with a constant latent heat (Bechtold 2015)"
+expression = "p_vs0 * exp(L_v0 / R_v * (1 / T_0 - 1 / T))"
+fixed_units = false
+note = "The notes give no value to the constant latent heat: L_v0 is their L_v(T00) of equation 40, at the integration point. p_vs0 = 6.112 hPa is taken at T00 = 273.16 K, the triple point, where the pressure is 6.11657 hPa (IAPWS R14-08)."
+# The Wikidata item is the Clausius-Clapeyron relation: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q745416", relation = "broad", verified = 2026-10-26 },
+]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { p_vs0 = 6.112 }
+constants = ["L_v0_ecmwf_ifs", "R_v_bechtold2015", "T_0_ecmwf_ifs"]
+keywords = ["saturation", "Clausius-Clapeyron"]
+
+[[formulations.bechtold2015_saturation_vapour_pressure_constant_latent_heat.citations]]
+reference = "bechtold2015"
+equation = "53"
+notation = { e_s = "p_{vs}", p_vs0 = "p_{vs0}", L_v0 = "L_v", T_0 = "T_{00}" }
+assumptions = ["The latent heat of vaporisation is constant (section 10).", "The specific volume of liquid water is neglected against that of water vapour, an ideal gas (equation 52)."]
+units = { p_vs0 = "HectoPA" }
+
+[formulations.bechtold2015_magnus_water]
+label = "Magnus form in kelvins (Bechtold 2015)"
+expression = "C * exp(A * (T - T_0) / (T - B))"
+fixed_units = true
+note = "Attributed to 'Thetens' by the notes; the coefficients are those of Buck (1981) over water, with B = 273.16 - 240.97 and C = 6.112 hPa rather than 6.1121. Its inversion at 1013 hPa gives 99.39 degC, where the notes write 99.5 degC (p. 10)."
+# The Wikidata item is the group of Buck's correlations: broader.
+matches = [
+  { target = "http://www.wikidata.org/entity/Q4787919", relation = "broad", verified = 2026-10-26 },
+]
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+assumptions = [
+  { text = "0 degC is taken as 273.16 K (T_0, the triple point): T - T_0 stands for the Celsius temperature of Buck, which lowers e_s by 0.05 to 0.11 % from -40 to 50 degC.", status = "deduced" },
+]
+keywords = ["saturation", "Magnus"]
+
+[formulations.bechtold2015_magnus_water.coefficients]
+A = 17.502
+B = 32.19
+C = 6.112
+T_0 = { value = 273.16, note = "T00, the triple point temperature" }
+
+[[formulations.bechtold2015_magnus_water.citations]]
+reference = "bechtold2015"
+equation = "54"
+notation = { e_s = "p_{vs}", C = "p_{vs0}", T_0 = "T_{00}" }
+
+[formulations.bechtold2015_magnus_ice]
+label = "Magnus form in kelvins over ice (Bechtold 2015)"
+expression = "C * exp(A * (T - T_0) / (T + B))"
+fixed_units = true
+note = "The form of the saturation over ice of the ECMWF IFS (12.10), with p_vs0 = 6.112 hPa rather than 611.21 Pa."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+keywords = ["saturation", "Magnus", "ice"]
+
+[formulations.bechtold2015_magnus_ice.coefficients]
+A = 22.587
+B = 0.7
+C = 6.112
+T_0 = { value = 273.16, note = "T00, the triple point temperature" }
+
+[[formulations.bechtold2015_magnus_ice.citations]]
+reference = "bechtold2015"
+equation = "54"
+notation = { e_i = "p_{vsi}", C = "p_{vs0}", T_0 = "T_{00}" }
+
+# Saturation vapour pressures of the ECMWF IFS (CY49R1, Part IV,
+# section 12.7, p. 247).
+
+[formulations.ecmwf_ifs_saturation_water]
+label = "Saturation vapour pressure over water, Magnus form in kelvins, ECMWF IFS"
+expression = "e_0 * exp(A * (T - T_0) / (T - B))"
+fixed_units = false
+note = "Empirical, used instead of integrating the Clausius-Clapeyron equation (12.8). The coefficients are those of Buck (1981) over water, written in kelvins: B = 273.16 - 240.97, and e_0 = 611.21 Pa is Buck's 6.1121 hPa, given at T_0 (12.11)."
+output = { identifier = "e_sat", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["T_0_ecmwf_ifs"]
+assumptions = [
+  { text = "T - T_0 stands for the Celsius temperature of Buck (1981), 0 degC being taken as 273.16 K, the triple point.", status = "deduced" },
+]
+keywords = ["saturation", "Magnus"]
+
+[formulations.ecmwf_ifs_saturation_water.coefficients]
+e_0 = 611.21
+A = { value = 17.502, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints a3 without unit" }
+B = 32.19
+
+[[formulations.ecmwf_ifs_saturation_water.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.9"
+notation = { e_sat = 'e_{\mathrm{sat,l}}' }
+note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is a4 = 32.19 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
+units = { e_0 = "PA", B = "K" }
+
+[formulations.ecmwf_ifs_saturation_ice]
+label = "Saturation vapour pressure over ice, Magnus form in kelvins, ECMWF IFS"
+expression = "e_0 * exp(A * (T - T_0) / (T + B))"
+fixed_units = false
+note = "Empirical, used instead of integrating the Clausius-Clapeyron equation (12.8), with the e_0 of the formula over water (12.11)."
+output = { identifier = "e_sat", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["T_0_ecmwf_ifs"]
+keywords = ["saturation", "Magnus", "ice"]
+
+[formulations.ecmwf_ifs_saturation_ice.coefficients]
+e_0 = 611.21
+A = { value = 22.587, unit = "UNITLESS", unit_basis = "added", note = "implied by T in K: the IFS prints a3 without unit" }
+B = 0.7
+
+[[formulations.ecmwf_ifs_saturation_ice.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.10"
+notation = { e_sat = 'e_{\mathrm{sat,i}}' }
+note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is -a4, a4 = -0.7 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
+units = { e_0 = "PA", B = "K" }
+
+# Stated by the notes: the two forms of equation 25.
+[relations.bechtold2015_virtual_temperature_two_forms]
+kind = "equivalent"
+subject = "bechtold2015_virtual_temperature_mixing_ratio"
+object = "bechtold2015_virtual_temperature"
+citation = "bechtold2015"
+given = { q = "r / (1 + r)" }
+note = "Equation 25 writes both forms."
+
+# Computed by nomogram.
+[relations.bechtold2015_virtual_temperature_rounding]
+kind = "proportional"
+subject = "bechtold2015_virtual_temperature_rounded"
+object = "bechtold2015_virtual_temperature"
+bounds = { T = [200.0, 320.0], q = [0.0, 0.04] }
+note = "0.608 rounds (1 - epsilon) / epsilon = 0.6077, with epsilon = 0.622."
+
+[relations.bechtold2015_ashrae2017_mixing_ratio]
+kind = "proportional"
+subject = "bechtold2015_mixing_ratio_from_vapour_pressure"
+object = "mixing_ratio_from_vapour_pressure"
+bounds = { e = [1.0, 12000.0], p = [30000.0, 110000.0] }
+note = "The same form, with epsilon = 0.622 rather than 0.621945."
+
+[relations.bechtold2015_buck1981_magnus]
+kind = "proportional"
+subject = "bechtold2015_magnus_water"
+object = "buck1981_magnus"
+given = { t = "T - 273.16" }
+bounds = { T = [233.15, 323.15] }
+scale = "ignore"
+note = "Buck (1981) with 0 degC written 273.16 K and C = 6.112 hPa rather than 6.1121; checked from -40 to 50 degC, the formulas compared as written."
+
+# Computed by nomogram: the saturation of the IFS is Buck (1981) in
+# kelvins, and the Magnus forms of Bechtold round its e_0.
+[relations.ecmwf_ifs_buck1981_magnus]
+kind = "equivalent"
+subject = "ecmwf_ifs_saturation_water"
+object = "buck1981_magnus"
+given = { t = "T - 273.16" }
+bounds = { T = [233.15, 323.15] }
+scale = "ignore"
+note = "Buck (1981) with 0 degC written 273.16 K, e_0 = 611.21 Pa being Buck's C = 6.1121 hPa; the formulas compared as written."
+
+[relations.bechtold2015_ecmwf_ifs_water]
+kind = "proportional"
+subject = "bechtold2015_magnus_water"
+object = "ecmwf_ifs_saturation_water"
+bounds = { T = [233.15, 323.15] }
+note = "The same form, with C = 6.112 hPa rather than e_0 = 611.21 Pa."
+
+[relations.bechtold2015_ecmwf_ifs_ice]
+kind = "proportional"
+subject = "bechtold2015_magnus_ice"
+object = "ecmwf_ifs_saturation_ice"
+bounds = { T = [213.15, 273.16] }
+note = "The same form, with C = 6.112 hPa rather than e_0 = 611.21 Pa."
+
+
+# MetPy 1.7.1: Ambaum (2020) equation 13 with MetPy's constants, and its
+# psychrometric vapour pressure.
+
+[formulations.metpy171_saturation_vapour_pressure]
+label = "Saturation vapour pressure over water of MetPy, Ambaum (2020) equation 13 with MetPy constants"
+expression = "e_s0 * (T_0 / T) ** ((c_l - c_pv) / R_v) * exp((L_v0 / T_0 - (L_v0 - (c_l - c_pv) * (T - T_0)) / T) / R_v)"
+fixed_units = false
+note = "The form of Ambaum (2020) equation 13, with the latent heat L_v0 - (c_l - c_pv)(T - T_0), but MetPy's constants rather than those Ambaum recommends (equation 14): e_s0 = 6.112 hPa against 611.655 Pa, c_l - c_pv = 2359 J kg-1 K-1 against 2180, L_v0 = 2.50084e6 J kg-1 against 2.501e6."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { e_s0 = 6.112, T_0 = 273.16 }
+constants = ["L_v0_metpy", "c_l_metpy", "c_pv_metpy", "R_v_metpy"]
+keywords = ["saturation", "Clausius-Clapeyron"]
+
+[[formulations.metpy171_saturation_vapour_pressure.citations]]
+reference = "metpy171"
+note = "saturation_vapor_pressure with phase='liquid' and water_latent_heat_vaporization, in metpy.calc.thermo; e_s0 is sat_pressure_0c, 6.112 millibar."
+units = { e_s0 = "HectoPA", T_0 = "K" }
+
+[formulations.metpy171_psychrometric_vapour_pressure]
+label = "Vapour pressure from a psychrometer with a wet bulb, MetPy default coefficient"
+expression = "e_s(T=T_w) - A * p * (T - T_w)"
+calls = { e_s = "metpy171_saturation_vapour_pressure" }
+fixed_units = false
+note = "The psychrometric formula of WMO-No. 8 (4.1) with MetPy's default psychrometer coefficient, 6.21e-4 K-1, which MetPy attributes to Fan (1987), and the saturation vapour pressure of pure water, without enhancement factor, at the wet-bulb temperature."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air (dry-bulb) temperature" },
+  { identifier = "T_w", kind = "PsychrometerWetBulbTemperature", unit = "K", description = "Wet-bulb temperature" },
+]
+coefficients = { A = 6.21e-4 }
+keywords = ["humidity", "psychrometer"]
+
+[[formulations.metpy171_psychrometric_vapour_pressure.citations]]
+reference = "metpy171"
+note = "psychrometric_vapor_pressure_wet in metpy.calc.thermo, with psychrometer_coefficient left at its default."
+units = { A = "PER-K" }
+
+# The mixing ratio from the wet-bulb temperature, ASHRAE Handbook -
+# Fundamentals (2017), chapter 1, equations 33 and 35, as PsychroLib codes
+# them (GetHumRatioFromTWetBulb, SI branch).
+
+[formulations.ashrae2017_mixing_ratio_from_wet_bulb]
+label = "Humidity mixing ratio from a wet bulb above freezing (ASHRAE 2017)"
+expression = "((A - B * t_w) * W_s - C * (t - t_w)) / (A + D * t - E * t_w)"
+fixed_units = true
+note = "In kJ kg-1 and kJ kg-1 K-1, A is the latent heat of vaporization at 0 degC, C and D the specific heats of dry air and water vapour, E that of liquid water, and B = E - D. It is WMO-No. 8 4.A.19 solved for the mixing ratio, with these values and the latent heat A - B t_w (algebra by nomogram). PsychroLib applies it for a wet bulb at or above 0 degC, and equation 35 below."
+output = { identifier = "W", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_w", kind = "WetBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature" },
+  { identifier = "W_s", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio at the wet-bulb temperature and the pressure of the air" },
+]
+keywords = ["humidity", "psychrometrics", "wet bulb"]
+
+[formulations.ashrae2017_mixing_ratio_from_wet_bulb.coefficients]
+A = { value = 2501.0, unit = "KiloJ-PER-KiloGM", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+B = { value = 2.326, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+C = { value = 1.006, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+D = { value = 1.86, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+E = { value = 4.186, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+
+[[formulations.ashrae2017_mixing_ratio_from_wet_bulb.citations]]
+reference = "ashrae2017"
+equation = "33"
+notation = { W_s = "W_s^*", t_w = "t^*" }
+
+[[formulations.ashrae2017_mixing_ratio_from_wet_bulb.citations]]
+reference = "psychrolib"
+note = "GetHumRatioFromTWetBulb, SI branch for TWetBulb >= 0 degC."
+
+[formulations.ashrae2017_mixing_ratio_from_ice_bulb]
+label = "Humidity mixing ratio from a wet bulb below freezing, covered with ice (ASHRAE 2017)"
+expression = "((A - B * t_i) * W_s - C * (t - t_i)) / (A + D * t - E * t_i)"
+fixed_units = true
+note = "In kJ kg-1 and kJ kg-1 K-1, A is the latent heat of sublimation at 0 degC, C and D the specific heats of dry air and water vapour, E that of ice, and B = E - D. PsychroLib applies it for a wet bulb below 0 degC."
+output = { identifier = "W", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Humidity mixing ratio" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air (dry-bulb) temperature" },
+  { identifier = "t_i", kind = "IceBulbTemperature", unit = "DEG_C", description = "Wet-bulb temperature below freezing, the bulb covered with ice" },
+  { identifier = "W_s", kind = "SaturationMixingRatioOverIce", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over ice at the bulb temperature and the pressure of the air" },
+]
+keywords = ["humidity", "psychrometrics", "ice bulb"]
+
+[formulations.ashrae2017_mixing_ratio_from_ice_bulb.coefficients]
+A = { value = 2830.0, unit = "KiloJ-PER-KiloGM", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+B = { value = 0.24, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+C = { value = 1.006, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+D = { value = 1.86, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+E = { value = 2.1, unit = "KiloJ-PER-KiloGM-K", unit_basis = "added", note = "the unit of the SI form, kJ kg-1 or kJ kg-1 K-1, written by nomogram: the source prints numbers" }
+
+[[formulations.ashrae2017_mixing_ratio_from_ice_bulb.citations]]
+reference = "ashrae2017"
+equation = "35"
+notation = { W_s = "W_s^*", t_i = "t^*" }
+
+[[formulations.ashrae2017_mixing_ratio_from_ice_bulb.citations]]
+reference = "psychrolib"
+note = "GetHumRatioFromTWetBulb, SI branch for TWetBulb < 0 degC."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.metpy171]
+implementation = "MetPy"
+version = "1.7.1"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1"
+checked = 2026-10-26
+note = "Values of the doctests of MetPy 1.7.1, which its continuous integration runs: saturation_vapor_pressure and psychrometric_vapor_pressure_wet, both printed in their docstring."
+
+[[cross_checks.metpy171.cases]]
+formulation = "metpy171_saturation_vapour_pressure"
+inputs = { T = 298.15 }
+value = 31.623456
+call = "saturation_vapor_pressure(25 * units.degC, phase='liquid').to('hPa')"
+rtol = 1e-7
+
+[[cross_checks.metpy171.cases]]
+formulation = "metpy171_psychrometric_vapour_pressure"
+inputs = { p = 958.0, T = 298.15, T_w = 285.15 }
+value = 6.2752
+call = "psychrometric_vapor_pressure_wet(958 * units.hPa, 25 * units.degC, 12 * units.degC), printed 627.52 pascal"
+rtol = 1e-5
+
+[cross_checks.psychrolib_wet_bulb]
+implementation = "PsychroLib"
+version = "commit 3066345dc8cf91bf59134147cf917f982c1fce13"
+url = "https://github.com/psychrometrics/psychrolib"
+checked = 2026-10-26
+note = "GetHumRatioFromTWetBulb in SI units, with W_s from GetSatHumRatio at the wet-bulb temperature and the same pressure (Pa). Computed with the source of the commit, kept in the local reference store."
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_wet_bulb"
+inputs = { t = 25.0, t_w = 20.0, W_s = 0.01469505164977836 }
+value = 0.012598004031751205
+call = "GetHumRatioFromTWetBulb(25.0, 20.0, 101325.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_wet_bulb"
+inputs = { t = 30.0, t_w = 15.0, W_s = 0.010647455293969347 }
+value = 0.004477847312164244
+call = "GetHumRatioFromTWetBulb(30.0, 15.0, 101325.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_wet_bulb"
+inputs = { t = 10.0, t_w = 5.0, W_s = 0.006088341207066817 }
+value = 0.004052609568544834
+call = "GetHumRatioFromTWetBulb(10.0, 5.0, 90000.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_ice_bulb"
+inputs = { t = 5.0, t_i = -2.0, W_s = 0.00319412791645178 }
+value = 0.0007029770300539598
+call = "GetHumRatioFromTWetBulb(5.0, -2.0, 101325.0)"
+
+[[cross_checks.psychrolib_wet_bulb.cases]]
+formulation = "ashrae2017_mixing_ratio_from_ice_bulb"
+inputs = { t = -5.0, t_i = -8.0, W_s = 0.001908549933558117 }
+value = 0.0008411843974773226
+call = "GetHumRatioFromTWetBulb(-5.0, -8.0, 101325.0)"
+
+
+[cross_checks.earthkit_meteo121]
+implementation = "earthkit-meteo"
+version = "1.2.1"
+url = "https://github.com/ecmwf/earthkit-meteo/tree/1.2.1"
+checked = 2026-10-26
+note = "Reference values of the tests of earthkit-meteo 1.2.1, computed by thermo.array.saturation_vapour_pressure with phase='water' and phase='ice': tests/thermo/array/test_thermo.py (267.16 K) and tests/data/sat_vp.csv (233.16 and 329.16 K)."
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_water"
+inputs = { T = 233.16 }
+value = 18.763914769647631
+call = "saturation_vapour_pressure(233.16, phase='water')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_water"
+inputs = { T = 267.16 }
+value = 390.92822342088988
+call = "saturation_vapour_pressure(267.16, phase='water')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_water"
+inputs = { T = 329.16 }
+value = 16577.711212965245
+call = "saturation_vapour_pressure(329.16, phase='water')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_ice"
+inputs = { T = 233.16 }
+value = 12.834072645682090
+call = "saturation_vapour_pressure(233.16, phase='ice')"
+
+[[cross_checks.earthkit_meteo121.cases]]
+formulation = "ecmwf_ifs_saturation_ice"
+inputs = { T = 267.16 }
+value = 368.52081496958311
+call = "saturation_vapour_pressure(267.16, phase='ice')"

@@ -27,33 +27,49 @@ import math
 import os
 import sys
 import tomllib
+from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+from fractions import Fraction
 from functools import cached_property, lru_cache
 from importlib.resources import files
 from itertools import pairwise
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeGuard, cast
 
 import pint
+import sympy
 
 from nomogram.dimensions import DimensionError
 from nomogram.expression import (
+    CONSTANTS,
+    FUNCTIONS,
     LATEX_COMMANDS,
+    PIECEWISE,
     ExpressionError,
+    _call_sites,
+    _pieces,
+    compile_numeric,
     latex_commands,
     parse_expression,
 )
 from nomogram.model import (
+    Assumption,
+    AssumptionStatus,
+    Branch,
+    Call,
     CheckCase,
     Citation,
     Coefficient,
+    ConstantNature,
     ConventionalScale,
     CrossCheck,
     Derivation,
     DomainBasis,
     Formulation,
+    FormulationNature,
     Notation,
     Part,
     PhysicalConstant,
@@ -68,8 +84,10 @@ from nomogram.model import (
     UnitBasis,
     ValidityDomain,
     Variable,
+    _origin,
 )
 from nomogram.relations import (
+    _unit_factor,
     match_inputs,
     record,
     replay,
@@ -78,14 +96,17 @@ from nomogram.relations import (
     verdict,
 )
 from nomogram.semantics import (
+    CF_NAMESPACE,
     ExternalMatch,
     MatchRelation,
     QuantityKind,
     semantic_catalog,
 )
-from nomogram.units import ScaleType
+from nomogram.units import Q_, ScaleType, is_offset_unit, ureg
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from nomogram.search import Entry, Selection
 
 __all__ = [
@@ -97,6 +118,7 @@ __all__ = [
     "check",
     "describe",
     "load_catalog",
+    "stats",
 ]
 
 _SECTIONS = (
@@ -192,8 +214,9 @@ class Catalog:
         For each entry (``section.key``), the entries it refers to: kinds
         of its variables (those a composition takes from its parts
         included), cited references, notations, constants, scales,
-        the formulations a composition, a relation or a cross-check uses,
-        the families a family requires.
+        units (of its variables, constants and declared coefficients; of
+        a constant, of a scale), the formulations a composition, a
+        relation or a cross-check uses, the families a family requires.
     """
 
     kinds: Mapping[str, QuantityKind]
@@ -249,9 +272,9 @@ class Catalog:
             (default).
         **fields : str
             Field filters, patterns as well (:data:`nomogram.search.FIELDS`):
-            ``kind``, ``output``, ``input``, ``variable``, ``symbol`` with
-            ``notation``, ``source`` with ``equation``, ``family``,
-            ``keyword``, ``key``.
+            ``kind``, ``unit``, ``output``, ``input``, ``variable``,
+            ``symbol`` with ``notation``, ``source`` with ``equation``,
+            ``family``, ``keyword``, ``key``.
 
         Returns
         -------
@@ -267,9 +290,9 @@ class Catalog:
         Examples
         --------
         >>> c = catalog()
-        >>> c.search("buck*", section="formulations").refs[:2]
-        ('formulations.buck1981_magnus', 'formulations.buck1981')
-        >>> c.search(variable="rho*").refs
+        >>> "formulations.buck1981_magnus" in c.search("buck*", section="formulations")
+        True
+        >>> c.search(variable="rho*").refs[:2]
         ('formulations.mass_concentration_ideal_gas', 'formulations.itu_r_p453_vapour_pressure_from_density')
         """
         from nomogram.search import search
@@ -296,21 +319,23 @@ class Catalog:
         entries = sorted(selection.entries, key=lambda e: positions[e.ref])
         return Selection(tuple(entries), self)
 
-    def uses(self, entry: str | Entry) -> Selection:
+    def uses(self, entry: str | Entry | Formulation) -> Selection:
         """The entries an entry refers to (see :attr:`links`), in catalog order.
 
         ``catalog().uses("formulations.itu_r_p453_es_water")`` gives its
-        parts, its kinds and its reference.
+        parts, its kinds and its reference. The entry is a reference
+        ``section.key``, an entry a search found, or a formulation of the
+        catalog.
         """
         from nomogram.search import uses
 
         return self._in_order(uses(self, entry))
 
-    def used_by(self, entry: str | Entry) -> Selection:
+    def used_by(self, entry: str | Entry | Formulation) -> Selection:
         """The entries that refer to an entry, in catalog order.
 
         ``catalog().used_by("references.itu_r_p453_14")`` gives everything
-        citing ITU-R P.453.
+        citing ITU-R P.453. The entry is given as for :meth:`uses`.
         """
         from nomogram.search import used_by
 
@@ -354,6 +379,83 @@ def _number(where: str, value: Any) -> float:
         msg = f"{where}: expected a finite number, not {value!r}"
         raise CatalogError(msg)
     return float(value)
+
+
+def _dimensionality(expression: str) -> Any:
+    """The dimension of a unit expression, a scaling factor left aside (CF 1e-3)."""
+    return (Q_(1.0) * ureg.parse_expression(expression)).dimensionality
+
+
+def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
+    """A finite number, written as a number or as decimal text.
+
+    Text keeps the digits as printed, significant trailing zeros included
+    (``"287.0500"``), which a TOML float loses whatever its notation; the
+    text is returned with the number, ``None`` for a plain number.
+    """
+    if not isinstance(value, str):
+        return _number(where, value), None
+    try:
+        number = Decimal(value.strip())
+    except InvalidOperation:
+        number = None
+    # Decimal("1e400") is finite, its float is not.
+    found = float(number) if number is not None and number.is_finite() else math.inf
+    if not math.isfinite(found) or value != value.strip():
+        msg = f"{where}: expected a finite decimal number, not {value!r}"
+        raise CatalogError(msg)
+    return found, value
+
+
+def _check_pieces(where: str, formulation: Formulation) -> None:
+    """A piecewise definition cuts the range of one input into intervals.
+
+    Every condition is an interval of the same input, bounded by numbers,
+    coefficients or constants, and the intervals do not overlap; where none
+    holds, the formulation gives NaN.
+    """
+    pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+    pairs += [(k.identifier, k.value) for k in formulation.constants]
+    values = {sympy.Symbol(name, real=True): value for name, value in pairs}
+    inputs = [v.identifier for v in formulation.inputs]
+    for node in sympy.preorder_traversal(formulation.sympy_expression):
+        if not isinstance(node, sympy.Piecewise):
+            continue
+        try:
+            pieces = _pieces(node, inputs)
+        except ExpressionError as exc:
+            msg = f"{where}.expression: {exc}"
+            raise CatalogError(msg) from None
+        variable = pieces[0].variable
+        spans = sorted(
+            (
+                float(p.low.xreplace(values)),
+                not p.low_closed,
+                float(p.high.xreplace(values)),
+                p.high_closed,
+            )
+            for p in pieces
+        )
+        for low, low_open, high, high_closed in spans:
+            if low > high or (low == high and (low_open or not high_closed)):
+                msg = f"{where}.expression: an empty interval of {variable}"
+                raise CatalogError(msg)
+        for (_, _, high, high_closed), (low, low_open, _, _) in pairwise(spans):
+            if high > low or (high == low and high_closed and not low_open):
+                msg = f"{where}.expression: the intervals of {variable} overlap"
+                raise CatalogError(msg)
+
+
+def _exact(constant: PhysicalConstant) -> Any:
+    """The value of a constant as an exact rational, as it is printed."""
+    text = constant.printed or repr(constant.value)
+    return _rational(text)
+
+
+def _rational(text: str) -> Any:
+    """A decimal text as an exact SymPy rational (``6.02214076e+23`` too)."""
+    fraction = Fraction(Decimal(text))
+    return sympy.Rational(fraction.numerator, fraction.denominator)
 
 
 def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
@@ -498,14 +600,6 @@ _DERIVED = (
 )
 
 
-def _defined_in(formulation: Formulation, identifier: str) -> str:
-    """Key of the formulation that defines a coefficient, through compositions."""
-    for part in formulation.parts:
-        if any(c.identifier == identifier for c in part.formulation.coefficients):
-            return _defined_in(part.formulation, identifier)
-    return formulation.key
-
-
 def _substitute(
     outer: Formulation,
     inner: Mapping[str, Formulation],
@@ -538,6 +632,101 @@ def _substitute(
     return ast.unparse(Substitute().visit(body(outer, {})))
 
 
+#: Kinds whose values may be passed to an input of another kind, when a
+#: formulation calls another: the temperature of a point at which the
+#: called formulation is evaluated (a saturation vapour pressure at the
+#: dew or frost point, or at the wet- or ice-bulb temperature). Never a
+#: difference.
+_TEMPERATURES = frozenset({"CelsiusTemperature", "ThermodynamicTemperature"})
+_EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
+    {
+        "DewPointTemperature": _TEMPERATURES,
+        "FrostPointTemperature": _TEMPERATURES,
+        "WetBulbTemperature": _TEMPERATURES,
+        "IceBulbTemperature": _TEMPERATURES,
+        "PsychrometerWetBulbTemperature": _TEMPERATURES,
+        "PsychrometerIceBulbTemperature": _TEMPERATURES,
+    }
+)
+
+
+def _texts(where: str, items: Any) -> tuple[str, ...]:
+    """A list of non-empty strings."""
+    if items is None:
+        return ()
+    if not isinstance(items, list) or not all(
+        isinstance(t, str) and t.strip() for t in items
+    ):
+        msg = f"{where}: expected a list of non-empty strings"
+        raise CatalogError(msg)
+    return tuple(items)
+
+
+def _nature(where: str, value: Any) -> FormulationNature | None:
+    """The nature of a formulation, if it is a definition or an identity."""
+    if value is None:
+        return None
+    try:
+        return FormulationNature(value)
+    except ValueError:
+        known = ", ".join(n.value for n in FormulationNature)
+        msg = f"{where}: unknown nature {value!r} (known: {known})"
+        raise CatalogError(msg) from None
+
+
+def _named_call(node: ast.AST, names: Iterable[str]) -> TypeGuard[ast.Call]:
+    """Whether a node calls one of the names."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in names
+    )
+
+
+def _qualified(formulation: Formulation, identifier: str) -> str:
+    """A coefficient of a called formulation, under a name of its own.
+
+    Its identifier as written, qualified by the formulation that defines it
+    (``A__sonntag1990_magnus``): the coefficients of two formulations never
+    meet, and those of one formulation are shared by its calls, however it
+    is reached.
+    """
+    definer, written = _origin(formulation, identifier)
+    return f"{written}__{definer}"
+
+
+def _developed(
+    written: str,
+    calls: Iterable[Call],
+    renames: Iterable[Mapping[str, str]],
+    fixed: bool,
+) -> str:
+    """The expression with each call replaced by the expression it calls.
+
+    Each called expression takes the arguments of its call and the renamed
+    coefficients and constants; in a fixed-units formulation, a quantity
+    equation keeps its value in its output unit through its factor.
+    """
+    pairs = list(zip(calls, renames, strict=True))
+    text, _ = _call_sites(written, {call.alias for call, _ in pairs})
+    bodies: dict[str, ast.expr] = {}
+    for i, (call, rename) in enumerate(pairs):
+        part = call.formulation
+        tree = ast.parse(part.expression, mode="eval").body
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                node.id = rename.get(node.id, node.id)
+        if fixed and not part.fixed_units and part.output_factor != 1.0:
+            tree = ast.BinOp(ast.Constant(part.output_factor), ast.Mult(), tree)
+        bodies[f"_call_{i}"] = tree
+
+    class Substitute(ast.NodeTransformer):
+        def visit_Name(self, node: ast.Name) -> ast.expr:
+            return bodies.get(node.id, node)
+
+    return ast.unparse(Substitute().visit(ast.parse(text, mode="eval").body))
+
+
 class _Builder:
     def __init__(
         self,
@@ -550,6 +739,8 @@ class _Builder:
         self.kinds: dict[str, QuantityKind] = dict(self.semantics.quantity_kinds)
         self.references: dict[str, Reference] = {}
         self.constants: dict[str, PhysicalConstant] = {}
+        #: The definition of a constant, scaled to its unit.
+        self.definitions: dict[str, Any] = {}
         self.scales: dict[str, ConventionalScale] = {}
         self.notations: dict[str, Notation] = {}
 
@@ -569,40 +760,111 @@ class _Builder:
         return str(name)
 
     def build_kinds(self) -> None:
-        for name, table in self.data["kinds"].items():
-            where = f"kinds.{name}"
-            f = _fields(
-                where,
-                table,
-                ("label", "specialization_of"),
-                ("description", "matches", "scale_type"),
-            )
-            if name in self.kinds:
-                msg = f"{where}: already a QUDT kind"
+        # A kind may specialize another kind of the catalog, whatever the
+        # order of the families: each is built after its parent.
+        pending = dict(self.data["kinds"])
+        while pending:
+            ready = [
+                name
+                for name, table in pending.items()
+                if not isinstance(table, dict)
+                or table.get("specialization_of") not in pending
+            ]
+            if not ready:
+                msg = (
+                    f"kinds: specializations form a cycle: {', '.join(sorted(pending))}"
+                )
                 raise CatalogError(msg)
-            parent = self.kinds.get(f["specialization_of"])
-            if parent is None:
-                msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
+            for name in ready:
+                self.kind_entry(name, pending.pop(name))
+
+    def kind_entry(self, name: str, table: Any) -> None:
+        """A kind of the catalog, specializing a QUDT kind or another one."""
+        where = f"kinds.{name}"
+        f = _fields(
+            where,
+            table,
+            ("label", "specialization_of"),
+            ("description", "matches", "scale_type", "cf_standard_names"),
+        )
+        if name in self.kinds:
+            msg = f"{where}: already a QUDT kind"
+            raise CatalogError(msg)
+        parent = self.kinds.get(f["specialization_of"])
+        if parent is None:
+            msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
+            raise CatalogError(msg)
+        # A kind may be on an interval scale under a ratio-scale parent:
+        # the modified refractivity M has a conventional origin.
+        scale_type = parent.scale_type
+        if f["scale_type"] is not None:
+            scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
+        cf = self.cf_links(f"{where}.cf_standard_names", f["cf_standard_names"], parent)
+        self.kinds[name] = QuantityKind(
+            name=name,
+            origin="nomogram",
+            iri=None,
+            label=f["label"],
+            dimension_vector=parent.dimension_vector,
+            specialization_of=parent.name,
+            scale_type=scale_type,
+            delta=parent.delta and scale_type is ScaleType.RATIO,
+            applicable_units=parent.applicable_units,
+            added_units=(),
+            matches=_matches(where, f["matches"]) + cf,
+        )
+
+    def cf_links(
+        self, where: str, items: Any, kind: QuantityKind | None = None
+    ) -> tuple[ExternalMatch, ...]:
+        """Links to CF standard names, each with its SKOS relation and date.
+
+        An item is a table (``name``, ``relation``, ``verified``), or a bare
+        name, as format 2 writes it: an exact match, checked when the frozen
+        CF subset was extracted. Every name is in that subset; the canonical
+        unit of a name given to a ``kind`` has the dimension of the kind.
+        """
+        if items is not None and not isinstance(items, list):
+            msg = f"{where}: expected a list"
+            raise CatalogError(msg)
+        frozen = self.semantics.cf_standard_names
+        found = []
+        for i, item in enumerate(items or ()):
+            w = f"{where}[{i}]"
+            if isinstance(item, str):
+                name, relation, verified = (
+                    item,
+                    MatchRelation.EXACT,
+                    self.semantics.extracted,
+                )
+            else:
+                f = _fields(w, item, ("name", "relation", "verified"))
+                if not isinstance(f["verified"], datetime.date):
+                    msg = f"{w}.verified: expected a date (YYYY-MM-DD)"
+                    raise CatalogError(msg)
+                name = f["name"]
+                relation = _enum(f"{w}.relation", MatchRelation, f["relation"])
+                verified = f["verified"]
+            if name not in frozen:
+                msg = (
+                    f"{w}: not in the frozen CF subset: {name} "
+                    "(scripts/extract_semantics.py)"
+                )
                 raise CatalogError(msg)
-            # A kind may be on an interval scale under a ratio-scale parent:
-            # the modified refractivity M has a conventional origin.
-            scale_type = parent.scale_type
-            if f["scale_type"] is not None:
-                scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
-            self.kinds[name] = QuantityKind(
-                name=name,
-                origin="nomogram",
-                iri=None,
-                label=f["label"],
-                dimension_vector=parent.dimension_vector,
-                specialization_of=parent.name,
-                scale_type=scale_type,
-                delta=parent.delta and scale_type is ScaleType.RATIO,
-                cf_standard_names=(),
-                applicable_units=parent.applicable_units,
-                added_units=(),
-                matches=_matches(where, f["matches"]),
-            )
+            canonical = _dimensionality(frozen[name].pint)
+            units = self.semantics.units
+            if kind is not None and not any(
+                canonical == _dimensionality(units[u].pint)
+                for u in kind.applicable_units
+                if u in units
+            ):
+                msg = (
+                    f"{w}: {name} is in {frozen[name].canonical_units}, "
+                    f"no unit of {kind.name}"
+                )
+                raise CatalogError(msg)
+            found.append(ExternalMatch(f"{CF_NAMESPACE}{name}/", relation, verified))
+        return tuple(found)
 
     def build_references(self) -> None:
         for key, table in self.data["references"].items():
@@ -633,17 +895,191 @@ class _Builder:
                 where,
                 table,
                 ("identifier", "value", "unit", "description", "reference"),
-                ("matches",),
+                (
+                    "nature",
+                    "uncertainty",
+                    "conditions",
+                    "definition",
+                    "constants",
+                    "tolerance",
+                    "note",
+                    "matches",
+                ),
             )
+            nature = None
+            if f["nature"] is not None:
+                nature = _enum(f"{where}.nature", ConstantNature, f["nature"])
+            value, printed = _printed_number(f"{where}.value", f["value"])
+            uncertainty = None
+            if f["uncertainty"] is not None:
+                uncertainty = _number(f"{where}.uncertainty", f["uncertainty"])
+                if nature is ConstantNature.EXACT:
+                    msg = f"{where}.uncertainty: an exact constant has none"
+                    raise CatalogError(msg)
+                if uncertainty <= 0:
+                    msg = f"{where}.uncertainty: expected a positive number"
+                    raise CatalogError(msg)
+            for name in ("conditions", "definition", "note"):
+                text = f[name]
+                if text is not None and (not isinstance(text, str) or not text.strip()):
+                    msg = f"{where}.{name}: expected a non-empty string"
+                    raise CatalogError(msg)
+            conditions = f["conditions"]
+            components = f["constants"] or []
+            if not isinstance(components, list) or not all(
+                isinstance(c, str) for c in components
+            ):
+                msg = f"{where}.constants: expected a list of constant keys"
+                raise CatalogError(msg)
+            tolerance = None
+            if f["tolerance"] is not None:
+                tolerance = _number(f"{where}.tolerance", f["tolerance"])
+                if tolerance <= 0:
+                    msg = f"{where}.tolerance: expected a positive number"
+                    raise CatalogError(msg)
+                if not f["note"]:
+                    msg = (
+                        f"{where}.tolerance: a note must say by how much and why "
+                        "the source departs from its definition"
+                    )
+                    raise CatalogError(msg)
+            if f["definition"] is None and (components or tolerance is not None):
+                name = "constants" if components else "tolerance"
+                msg = f"{where}.{name}: only with a definition"
+                raise CatalogError(msg)
             self.constants[key] = PhysicalConstant(
                 key=key,
                 identifier=f["identifier"],
-                value=_number(f"{where}.value", f["value"]),
+                value=value,
                 unit=self.unit(f"{where}.unit", f["unit"]),
                 description=f["description"],
                 reference=self.reference(f"{where}.reference", f["reference"]),
                 matches=_matches(where, f["matches"]),
+                nature=nature,
+                uncertainty=uncertainty,
+                conditions=conditions,
+                printed=printed,
+                definition=f["definition"],
+                components=tuple(components),
+                tolerance=tolerance,
+                note=f["note"],
             )
+        for key in self.constants:
+            self.check_definition(key)
+        self.check_definition_cycles()
+        for key in self.definitions:
+            self.check_value(key)
+
+    def check_definition(self, key: str) -> None:
+        """The definition of a constant, if any, uses its components and gives its unit."""
+        constant = self.constants[key]
+        if constant.definition is None:
+            return
+        where = f"constants.{key}"
+        parts = []
+        for name in constant.components:
+            if name not in self.constants:
+                msg = f"{where}.constants: unknown constant {name!r}"
+                raise CatalogError(msg)
+            parts.append(self.constants[name])
+        identifiers = [p.identifier for p in parts]
+        for identifier in identifiers:
+            if identifiers.count(identifier) > 1:
+                msg = f"{where}.constants: {identifier!r} names two constants"
+                raise CatalogError(msg)
+        try:
+            expr = parse_expression(constant.definition, identifiers)
+        except ExpressionError as exc:
+            msg = f"{where}.definition: {exc}"
+            raise CatalogError(msg) from None
+        unused = sorted(set(identifiers) - {s.name for s in expr.free_symbols})
+        if unused:
+            msg = f"{where}.constants: not used by the definition: {', '.join(unused)}"
+            raise CatalogError(msg)
+        units = self.semantics.units
+        target = units[constant.unit].pint
+        function = compile_numeric(expr, tuple(identifiers))
+        result = Q_(function(*(Q_(p.value, units[p.unit].pint) for p in parts)))
+        try:
+            factor = Q_(1.0, result.units).to(target).magnitude
+        except pint.errors.DimensionalityError:
+            unit = format(result.units, "~P") or "1"
+            msg = f"{where}.definition: gives {unit}, not {target}"
+            raise CatalogError(msg) from None
+        self.definitions[key] = expr * _rational(repr(factor))
+
+    def evaluate(self, key: str, value: Callable[[str], Any]) -> Any:
+        """The definition of a constant, on the values ``value`` gives its components."""
+        expr = self.definitions[key]
+        names = {
+            self.constants[n].identifier: n for n in self.constants[key].components
+        }
+        return expr.subs({s: value(names[s.name]) for s in expr.free_symbols})
+
+    def unrounded(self, key: str) -> Any:
+        """The exact value of a constant: its definition, recursively, else as printed."""
+        if key not in self.definitions:
+            return _exact(self.constants[key])
+        return self.evaluate(key, self.unrounded)
+
+    def check_value(self, key: str) -> None:
+        """The value of a constant agrees with its definition.
+
+        The formula is evaluated in exact arithmetic (π exact), so that an
+        exact product is not taken for a rounding, on the values the
+        components print and on their unrounded values (the definition of a
+        component, recursively): a source may derive a constant from either.
+        The value agrees with one of the two results within the tolerance
+        the catalog states, else the uncertainty the source gives; an exact
+        constant prints a truncation of it (less than one unit of its last
+        digit below); any other value is rounded to half a unit of its last
+        digit.
+        """
+        constant = self.constants[key]
+        results = [
+            self.evaluate(key, lambda name: _exact(self.constants[name])),
+            self.evaluate(key, self.unrounded),
+        ]
+        printed = Decimal(constant.printed or repr(constant.value))
+        digit = sympy.Rational(10) ** printed.as_tuple().exponent
+        differences = [sympy.N(r - _rational(str(printed)), 30) for r in results]
+        if constant.tolerance is not None or constant.uncertainty is not None:
+            allowed = _rational(repr(constant.tolerance or constant.uncertainty))
+            agrees = any(abs(d) <= allowed for d in differences)
+            rule = f"beyond {float(allowed):g}"
+        elif constant.nature is ConstantNature.EXACT:
+            agrees = any(0 <= d < digit for d in differences)
+            rule = "an exact constant prints a truncation of its definition"
+        else:
+            agrees = any(abs(d) <= digit / 2 for d in differences)
+            rule = "beyond half a unit of its last digit"
+        if not agrees:
+            found = f"{sympy.N(results[0], 20)}"
+            if results[1] != results[0]:
+                found += f" (unrounded components: {sympy.N(results[1], 20)})"
+            msg = (
+                f"constants.{key}.value: {printed} departs from its definition "
+                f"{constant.definition} = {found} ({rule})"
+            )
+            raise CatalogError(msg)
+
+    def check_definition_cycles(self) -> None:
+        """No constant is defined, through others, by itself."""
+        done: set[str] = set()
+
+        def visit(key: str, path: tuple[str, ...]) -> None:
+            if key in path:
+                cycle = " -> ".join((*path[path.index(key) :], key))
+                msg = f"constants.{key}: definitions form a cycle ({cycle})"
+                raise CatalogError(msg)
+            if key in done:
+                return
+            for name in self.constants[key].components:
+                visit(name, (*path, key))
+            done.add(key)
+
+        for key in sorted(self.constants):
+            visit(key, ())
 
     def build_notations(self) -> dict[str, Notation]:
         notations = {}
@@ -690,7 +1126,6 @@ class _Builder:
 
     def build_scales(self) -> None:
         tables = self.data["scales"]
-        reference_of: dict[str, str] = {}
         pending = dict(tables)
         # Reference scales first, then each scale after the one it converts to.
         for key, table in pending.items():
@@ -714,11 +1149,9 @@ class _Builder:
                 raise CatalogError(msg)
             ready.sort(key=lambda k: "reference_scale" in pending[k])
             for key in ready:
-                self.scales[key] = self.scale(key, pending.pop(key), reference_of)
+                self.scales[key] = self.scale(key, pending.pop(key))
 
-    def scale(
-        self, key: str, table: Any, reference_of: dict[str, str]
-    ) -> ConventionalScale:
+    def scale(self, key: str, table: Any) -> ConventionalScale:
         where = f"scales.{key}"
         f = _fields(
             where,
@@ -752,14 +1185,7 @@ class _Builder:
             msg = f"{where}.convertible: expected true or false"
             raise CatalogError(msg)
         convertible = f["convertible"] is None or f["convertible"]
-        cf_names = _keywords(f"{where}.cf_standard_names", f["cf_standard_names"])
-        unknown = sorted(set(cf_names) - set(self.semantics.cf_standard_names))
-        if unknown:
-            msg = (
-                f"{where}.cf_standard_names: not in the frozen CF subset: "
-                f"{', '.join(unknown)} (scripts/extract_semantics.py, SCALE_CF_NAMES)"
-            )
-            raise CatalogError(msg)
+        cf = self.cf_links(f"{where}.cf_standard_names", f["cf_standard_names"])
         conversion_fields = ("unit", "differences", "conversion", "base", "bounds")
         common = {
             "key": key,
@@ -769,7 +1195,7 @@ class _Builder:
             "reference": self.optional_reference(f"{where}.reference", f["reference"]),
             "symbol": f["symbol"],
             "subscript": f["subscript"],
-            "cf_standard_names": cf_names,
+            "matches": cf,
             "note": f["note"],
         }
         if parent is None:
@@ -777,20 +1203,26 @@ class _Builder:
             if given:
                 msg = f"{where}: a reference scale has no conversion table ({', '.join(given)})"
                 raise CatalogError(msg)
-            for kind in kinds:
-                if kind in reference_of:
+            scale = ConventionalScale(unit=None, points=(), difference=(), **common)
+            # One reference scale per kind, specializations included: a
+            # reference scale of Temperature is that of the Celsius
+            # temperature too. Reference scales are built first: those
+            # already built are all reference scales.
+            for other in self.scales.values():
+                clash = [k for k in kinds if other.applies_to(k, self.kinds)]
+                clash += [k for k in other.kinds if scale.applies_to(k, self.kinds)]
+                if clash:
                     msg = (
-                        f"{where}: {kind} already has a reference scale, "
-                        f"{reference_of[kind]}"
+                        f"{where}: {clash[0]} already has a reference scale, "
+                        f"{other.key}"
                     )
                     raise CatalogError(msg)
-                reference_of[kind] = key
-            return ConventionalScale(unit=None, points=(), difference=(), **common)
+            return scale
         top = self.scales.get(parent)
         if top is None or not top.is_reference:
             msg = f"{where}.reference_scale: {parent!r} is not a reference scale"
             raise CatalogError(msg)
-        outside = sorted(set(kinds) - set(top.kinds))
+        outside = sorted(k for k in kinds if not top.applies_to(k, self.kinds))
         if outside:
             msg = f"{where}.kinds: {', '.join(outside)} not covered by {parent}"
             raise CatalogError(msg)
@@ -892,7 +1324,7 @@ class _Builder:
         if scale is None:
             msg = f"{where}: unknown scale {key!r}"
             raise CatalogError(msg)
-        if variable.kind not in scale.kinds:
+        if not scale.applies_to(variable.kind, self.kinds):
             msg = f"{where}: scale {key} does not apply to {variable.kind}"
             raise CatalogError(msg)
         if scale.unit is not None:
@@ -900,6 +1332,14 @@ class _Builder:
             ours = units[variable.unit].dimension_vector
             if ours != units[scale.unit].dimension_vector:
                 msg = f"{where}: {variable.unit} cannot be converted to {scale.unit}"
+                raise CatalogError(msg)
+            # A number, such as a Practical Salinity, is no ratio: 35 is not
+            # 35 per mille.
+            if scale.unit == "UNITLESS" and variable.unit != "UNITLESS":
+                msg = (
+                    f"{where}: {key} gives numbers (unit UNITLESS, as Practical "
+                    f"Salinity is since 0.4), not values in {variable.unit}"
+                )
                 raise CatalogError(msg)
         return scale
 
@@ -1062,6 +1502,7 @@ class _Builder:
                     "scales",
                     "accuracy",
                     "note",
+                    "assumptions",
                 ),
             )
             reference = self.reference(f"{w}.reference", f["reference"])
@@ -1099,9 +1540,47 @@ class _Builder:
                     scales=MappingProxyType(scales),
                     accuracy=f["accuracy"],
                     note=f["note"],
+                    assumptions=_texts(f"{w}.assumptions", f["assumptions"]),
                 )
             )
         return tuple(result)
+
+    def assumptions(self, where: str, items: Any) -> tuple[Assumption, ...]:
+        """Assumptions noted on a formulation, those its sources do not state."""
+        if items is None:
+            return ()
+        if not isinstance(items, list):
+            msg = f"{where}: expected a list of {{ text, status }} tables"
+            raise CatalogError(msg)
+        found = []
+        for i, item in enumerate(items):
+            w = f"{where}[{i}]"
+            f = _fields(w, item, ("text", "status"), ("reference",))
+            (text,) = _texts(f"{w}.text", [f["text"]])
+            try:
+                status = AssumptionStatus(f["status"])
+            except ValueError:
+                status = None
+            if status is None or status is AssumptionStatus.STATED:
+                known = ", ".join(
+                    s.value
+                    for s in AssumptionStatus
+                    if s is not AssumptionStatus.STATED
+                )
+                msg = (
+                    f"{w}.status: expected one of {known}; an assumption the "
+                    "source states goes in its citation"
+                )
+                raise CatalogError(msg)
+            reference = self.optional_reference(f"{w}.reference", f["reference"])
+            if (reference is None) == (status is AssumptionStatus.STATED_BY_OTHER):
+                msg = (
+                    f"{w}: a reference is given for, and only for, an assumption "
+                    "stated by another source"
+                )
+                raise CatalogError(msg)
+            found.append(Assumption(text, status, reference))
+        return tuple(found)
 
     def citation_notation(
         self, where: str, value: Any, formulation: str, reference: str, names: set[str]
@@ -1140,12 +1619,19 @@ class _Builder:
                 "note",
                 "matches",
                 "keywords",
+                "nature",
+                "conditions",
+                "assumptions",
             ),
         )
         output = self.variable(f"{where}.output", f["output"])
         inputs = tuple(
             self.variable(f"{where}.inputs[{i}]", v) for i, v in enumerate(f["inputs"])
         )
+        nature = _nature(f"{where}.nature", f["nature"])
+        if f["conditions"] is not None and not isinstance(f["conditions"], str):
+            msg = f"{where}.conditions: expected a string"
+            raise CatalogError(msg)
         constants = []
         for name in f["constants"] or ():
             if name not in self.constants:
@@ -1168,6 +1654,14 @@ class _Builder:
             {c.identifier for c in coefficients},
             (output,),
         )
+        if nature is not None:
+            # True by definition: nothing fitted, nowhere it stops holding.
+            if coefficients:
+                msg = f"{where}: a {nature.value} has no empirical coefficient"
+                raise CatalogError(msg)
+            if any(c.domains for c in citations):
+                msg = f"{where}: a {nature.value} holds without a stated domain"
+                raise CatalogError(msg)
         formulation = Formulation(
             key=key,
             label=f["label"],
@@ -1185,6 +1679,11 @@ class _Builder:
             matches=_matches(where, f["matches"]),
             family=self.owners.get(("formulations", key)),
             keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            nature=nature,
+            conditions=f["conditions"],
+            noted_assumptions=self.assumptions(
+                f"{where}.assumptions", f["assumptions"]
+            ),
         )
         self.check(where, formulation)
         return formulation
@@ -1193,9 +1692,12 @@ class _Builder:
         """Whether a result of one kind may feed an input of another.
 
         The kinds of this catalog, not those of the bundled one (see
-        :func:`nomogram.comparison.feeds`).
+        :func:`nomogram.comparison.feeds`): never a difference for a point.
         """
         kind = self.kinds.get(output_kind)
+        target = self.kinds.get(input_kind)
+        if kind is not None and target is not None and kind.delta and not target.delta:
+            return False
         while kind is not None:
             if kind.name == input_kind:
                 return True
@@ -1233,6 +1735,11 @@ class _Builder:
             msg = f"{place}.inner: expected a table of input identifier to formulation"
             raise CatalogError(msg)
         outer_inputs = {v.identifier: v for v in outer.inputs}
+        bounded = {
+            _pieces(node, outer_inputs)[0].variable.name
+            for node in sympy.preorder_traversal(outer.sympy_expression)
+            if isinstance(node, sympy.Piecewise)
+        }
         inner: dict[str, Formulation] = {}
         for identifier, name in c["inner"].items():
             w = f"{place}.inner.{identifier}"
@@ -1240,6 +1747,14 @@ class _Builder:
             target = outer_inputs.get(identifier)
             if target is None:
                 msg = f"{w}: {outer.key} has no input {identifier!r}"
+                raise CatalogError(msg)
+            if identifier in bounded:
+                # A condition on a computed value is no interval of an input.
+                msg = (
+                    f"{w}: a condition of {outer.key}'s piecewise definition "
+                    f"bounds {identifier}, which {part.key} computes; the "
+                    "conditions bound inputs of the composed formulation"
+                )
                 raise CatalogError(msg)
             if not self.feeds(part.output.kind, target.kind):
                 msg = (
@@ -1319,7 +1834,7 @@ class _Builder:
         constants: dict[str, PhysicalConstant] = {}
         for piece in (outer, *inner.values()):
             for coefficient in piece.coefficients:
-                origin = _defined_in(piece, coefficient.identifier)
+                origin, _ = _origin(piece, coefficient.identifier)
                 if coefficient.identifier in owner:
                     first, defined = owner[coefficient.identifier]
                     if defined == origin:
@@ -1446,13 +1961,499 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def called(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation whose expression calls other formulations."""
+        where = f"formulations.{key}"
+        f = _fields(
+            where,
+            table,
+            ("label", "expression", "fixed_units", "output", "inputs", "calls"),
+            (
+                "coefficients",
+                "constants",
+                "domains",
+                "citations",
+                "note",
+                "matches",
+                "keywords",
+                "conditions",
+            ),
+        )
+        if f["conditions"] is not None and not isinstance(f["conditions"], str):
+            msg = f"{where}.conditions: expected a string"
+            raise CatalogError(msg)
+        if not isinstance(f["calls"], dict) or not f["calls"]:
+            msg = f"{where}.calls: expected a table of alias to formulation"
+            raise CatalogError(msg)
+        output = self.variable(f"{where}.output", f["output"])
+        inputs = tuple(
+            self.variable(f"{where}.inputs[{i}]", v) for i, v in enumerate(f["inputs"])
+        )
+        own_constants: dict[str, PhysicalConstant] = {}
+        for name in f["constants"] or ():
+            if name not in self.constants:
+                msg = f"{where}.constants: unknown constant {name!r}"
+                raise CatalogError(msg)
+            own_constants[self.constants[name].identifier] = self.constants[name]
+        own_coefficients = self.coefficients(f"{where}.coefficients", f["coefficients"])
+        own = (
+            {output.identifier}
+            | {v.identifier for v in inputs}
+            | {c.identifier for c in own_coefficients}
+            | set(own_constants)
+        )
+        qualified = sorted(n for n in own if "__" in n)
+        if qualified:
+            msg = (
+                f"{where}: '__' is kept for the coefficients of called "
+                f"formulations: {', '.join(qualified)}"
+            )
+            raise CatalogError(msg)
+        aliases: dict[str, Formulation] = {}
+        for alias, name in f["calls"].items():
+            w = f"{where}.calls.{alias}"
+            reserved = alias in FUNCTIONS or alias in CONSTANTS or alias == PIECEWISE
+            if not alias.isidentifier() or reserved or alias in own:
+                msg = f"{w}: {alias!r} cannot name a call: reserved or already used"
+                raise CatalogError(msg)
+            aliases[alias] = self.part(w, name, formulations)
+        calls = self.calls_written(where, f["expression"], aliases, inputs)
+        fixed = bool(f["fixed_units"])
+        loose = [c.formulation.key for c in calls if c.formulation.fixed_units]
+        if loose and not fixed:
+            msg = (
+                f"{where}: calls {', '.join(dict.fromkeys(loose))}, which only "
+                "hold in their declared units: write fixed_units = true"
+            )
+            raise CatalogError(msg)
+
+        # Each input takes the scale of the inputs it feeds, when that scale
+        # applies to its own kind.
+        fed: dict[str, dict[Any, tuple[str, Any]]] = {}
+        own_kinds = {v.identifier: v.kind for v in inputs}
+        for call in calls:
+            for v in call.formulation.inputs:
+                argument = call.arguments[v.identifier]
+                if v.scale is not None and v.scale.applies_to(
+                    own_kinds[argument], self.kinds
+                ):
+                    target = fed.setdefault(argument, {})
+                    target[v.scale.key] = (call.formulation.key, v)
+        inherited: dict[str, str] = {}
+        typed = []
+        for variable in inputs:
+            scales = fed.get(variable.identifier, {})
+            if len(scales) > 1:
+                msg = (
+                    f"{where}: {variable.identifier} feeds inputs on different "
+                    f"scales: {', '.join(sorted(scales))}"
+                )
+                raise CatalogError(msg)
+            if scales:
+                (owner, source), *_ = scales.values()
+                if variable.scale is not None and variable.scale != source.scale:
+                    msg = (
+                        f"{where}: {variable.identifier} is on "
+                        f"{variable.scale.key}, but feeds {owner} on "
+                        f"{source.scale.key}"
+                    )
+                    raise CatalogError(msg)
+                variable = dataclasses.replace(
+                    variable, scale=source.scale, scale_basis=source.scale_basis
+                )
+                inherited[variable.identifier] = owner
+            typed.append(variable)
+
+        # Coefficients and constants of the called formulations, renamed:
+        # one formulation's coefficients are shared by its calls, and never
+        # meet those of another formulation.
+        coefficients = list(own_coefficients)
+        known = {c.identifier for c in coefficients}
+        constants = dict(own_constants)
+        renames: list[dict[str, str]] = []
+        for call in calls:
+            part = call.formulation
+            rename = dict(call.arguments)
+            for coefficient in part.coefficients:
+                name = _qualified(part, coefficient.identifier)
+                rename[coefficient.identifier] = name
+                if name not in known:
+                    known.add(name)
+                    coefficients.append(
+                        dataclasses.replace(coefficient, identifier=name)
+                    )
+            for constant in part.constants:
+                _, written = _origin(part, constant.identifier)
+                found = constants.get(written)
+                if found is None and written not in own:
+                    constants[written] = dataclasses.replace(
+                        constant, identifier=written
+                    )
+                    name = written
+                elif found is not None and found.key == constant.key:
+                    name = written
+                else:
+                    name = f"{written}__{constant.key}"
+                    constants.setdefault(
+                        name, dataclasses.replace(constant, identifier=name)
+                    )
+                rename[constant.identifier] = name
+            renames.append(rename)
+
+        names = own | set(known) | set(constants)
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            tuple(typed),
+            names,
+            {c.identifier for c in own_coefficients},
+            (output,),
+        )
+        stated = f"{where}.citations"
+        parts: dict[str, Part] = {}
+        for call, rename in zip(calls, renames, strict=True):
+            written = ", ".join(f"{k}={v}" for k, v in call.arguments.items())
+            parts.setdefault(
+                f"{call.alias}({written})",
+                Part(
+                    call.formulation,
+                    f"{call.alias}({written})",
+                    MappingProxyType(rename),
+                ),
+            )
+        own_names = {c.identifier for c in own_coefficients}
+        # A called formulation giving its result on another scale than the
+        # reference: the caller states that scale, so that evaluation
+        # converts the result back.
+        given = _stated_scales(stated, (output,), citations)[0]
+        for call in calls:
+            scale = call.formulation.output.scale
+            if scale is not None and not scale.is_reference and given.scale != scale:
+                msg = (
+                    f"{where}: {call.formulation.key} gives its result on "
+                    f"{scale.key}; state that scale for the output of {key}, "
+                    "so that it is converted back"
+                )
+                raise CatalogError(msg)
+        formulation = Formulation(
+            key=key,
+            label=f["label"],
+            output=given,
+            inputs=_stated_scales(stated, tuple(typed), citations, inherited),
+            coefficients=(
+                *_stated_units(stated, tuple(own_coefficients), citations),
+                *(c for c in coefficients if c.identifier not in own_names),
+            ),
+            constants=tuple(constants.values()),
+            expression=_developed(f["expression"], calls, renames, fixed),
+            fixed_units=fixed,
+            physical_domains=self.domains(
+                f"{where}.domains", f["domains"], tuple(typed), None
+            ),
+            citations=citations,
+            note=f["note"],
+            conditions=f["conditions"],
+            matches=_matches(where, f["matches"]),
+            derivation=Derivation(
+                calls[0].formulation.key,
+                "calls",
+                parts=MappingProxyType(
+                    {s: p.formulation.key for s, p in parts.items()}
+                ),
+            ),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            parts=tuple(parts.values()),
+            calls=tuple(calls),
+            written=f["expression"],
+        )
+        self.check(where, formulation)
+        # What the entry declares is used as written, not only by a call.
+        declared = set(own_constants) | own_names
+        unused = sorted(
+            declared - {s.name for s in formulation.written_expression.free_symbols}
+        )
+        if unused:
+            msg = f"{where}: declared but not used: {', '.join(unused)}"
+            raise CatalogError(msg)
+        return formulation
+
+    def calls_written(
+        self,
+        where: str,
+        expression: Any,
+        aliases: Mapping[str, Formulation],
+        inputs: tuple[Variable, ...],
+    ) -> list[Call]:
+        """The calls of an expression, checked against what they call."""
+        if not isinstance(expression, str):
+            msg = f"{where}.expression: expected a string"
+            raise CatalogError(msg)
+        try:
+            text, sites = _call_sites(expression, aliases)
+        except ExpressionError as exc:
+            msg = f"{where}.expression: {exc}"
+            raise CatalogError(msg) from None
+        inside = sorted(
+            {
+                cast("ast.Name", n.func).id  # found by name
+                for node in ast.walk(ast.parse(expression.strip(), mode="eval"))
+                if _named_call(node, {PIECEWISE})
+                for n in ast.walk(node)
+                if _named_call(n, aliases)
+            }
+        )
+        if inside:
+            msg = (
+                f"{where}.expression: {', '.join(inside)} is called in a "
+                "piecewise definition, where its domain would hold in every "
+                "branch: define the formulation by branches"
+            )
+            raise CatalogError(msg)
+        bare = sorted(
+            {
+                n.id
+                for n in ast.walk(ast.parse(text, mode="eval"))
+                if isinstance(n, ast.Name)
+            }
+            & set(aliases)
+        )
+        if bare:
+            msg = f"{where}.expression: {', '.join(bare)} is called with its arguments"
+            raise CatalogError(msg)
+        by_name = {v.identifier: v for v in inputs}
+        calls = []
+        for site in sites:
+            alias = cast("ast.Name", site.func).id  # found by name
+            part = aliases[alias]
+            w = f"{where}.expression: {alias}()"
+            if site.args:
+                msg = f"{w}: name its arguments, as {alias}(t=t_d)"
+                raise CatalogError(msg)
+            arguments: dict[str, str] = {}
+            for keyword in site.keywords:
+                if keyword.arg is None:
+                    msg = f"{w}: name its arguments, as {alias}(t=t_d)"
+                    raise CatalogError(msg)
+                if keyword.arg in arguments:
+                    msg = f"{w}: {keyword.arg} is given twice"
+                    raise CatalogError(msg)
+                if (
+                    not isinstance(keyword.value, ast.Name)
+                    or keyword.value.id not in by_name
+                ):
+                    msg = f"{w}: the argument {keyword.arg} is an input of the formulation"
+                    raise CatalogError(msg)
+                arguments[keyword.arg] = keyword.value.id
+            expected = [v.identifier for v in part.inputs]
+            unknown = sorted(set(arguments) - set(expected))
+            missing = [n for n in expected if n not in arguments]
+            if unknown or missing:
+                msg = (
+                    f"{w}: {part.key} takes {', '.join(expected)}"
+                    + (f"; unknown {', '.join(unknown)}" if unknown else "")
+                    + (f"; missing {', '.join(missing)}" if missing else "")
+                )
+                raise CatalogError(msg)
+            for v in part.inputs:
+                self.argument(w, part, v, by_name[arguments[v.identifier]])
+            calls.append(
+                Call(alias, part, MappingProxyType({n: arguments[n] for n in expected}))
+            )
+        unused = sorted(set(aliases) - {c.alias for c in calls})
+        if unused:
+            msg = f"{where}.calls: declared but not called: {', '.join(unused)}"
+            raise CatalogError(msg)
+        return calls
+
+    def argument(
+        self, where: str, part: Formulation, inner: Variable, outer: Variable
+    ) -> None:
+        """Check that an input may be passed to an input of a called formulation."""
+        point = inner.kind in _EVALUATION_POINTS.get(outer.kind, ())
+        if not (self.feeds(outer.kind, inner.kind) or point):
+            msg = (
+                f"{where}: {outer.identifier} is {outer.kind}, but {part.key} "
+                f"takes {inner.identifier} as {inner.kind}"
+            )
+            raise CatalogError(msg)
+        if outer.unit != inner.unit:
+            msg = (
+                f"{where}: {outer.identifier} is in {outer.unit}, but {part.key} "
+                f"takes {inner.identifier} in {inner.unit}"
+            )
+            raise CatalogError(msg)
+
+    def branched(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation defined by pieces, each a formulation of the catalog."""
+        where = f"formulations.{key}"
+        derived = sorted(set(table) & set(_DERIVED))
+        if derived:
+            msg = (
+                f"{where}: a formulation by branches takes {', '.join(derived)} "
+                "from its branches"
+            )
+            raise CatalogError(msg)
+        f = _fields(
+            where,
+            table,
+            ("label", "branches", "output"),
+            ("citations", "note", "matches", "keywords"),
+        )
+        if not isinstance(f["branches"], list) or len(f["branches"]) < 2:
+            msg = (
+                f"{where}.branches: expected a list of at least two "
+                "{ formulation, where } tables"
+            )
+            raise CatalogError(msg)
+        output = self.variable(f"{where}.output", f["output"])
+        branches: list[tuple[Formulation, str]] = []
+        for index, item in enumerate(f["branches"]):
+            w = f"{where}.branches[{index}]"
+            b = _fields(w, item, ("formulation", "where"), ())
+            part = self.part(f"{w}.formulation", b["formulation"], formulations)
+            if not self.feeds(part.output.kind, output.kind):
+                msg = (
+                    f"{w}: {part.key} computes {part.output.kind}, which is not "
+                    f"{output.kind} or a specialization of it"
+                )
+                raise CatalogError(msg)
+            if part.output.unit != output.unit:
+                msg = f"{w}: {part.key} gives {part.output.unit}, not {output.unit}"
+                raise CatalogError(msg)
+            branches.append((part, b["where"]))
+        first = branches[0][0]
+        for part, _ in branches[1:]:
+            if part.output.scale != first.output.scale:
+                msg = f"{where}.branches: the branches give values on different scales"
+                raise CatalogError(msg)
+            if part.fixed_units != first.fixed_units:
+                msg = (
+                    f"{where}.branches: the branches mix numerical value and "
+                    "quantity equations"
+                )
+                raise CatalogError(msg)
+        if output.scale is not None and output.scale != first.output.scale:
+            given = first.output.scale.key if first.output.scale else "none"
+            msg = (
+                f"{where}.output: on {output.scale.key}, but the branches give "
+                f"it on {given}"
+            )
+            raise CatalogError(msg)
+        output = dataclasses.replace(
+            output, scale=first.output.scale, scale_basis=first.output.scale_basis
+        )
+
+        # Inputs: one identifier is one input, alike in every branch.
+        inputs: dict[str, Variable] = {}
+        came_from: dict[str, str] = {}
+        for part, _ in branches:
+            for variable in part.inputs:
+                came_from.setdefault(variable.identifier, part.key)
+                known = inputs.setdefault(variable.identifier, variable)
+                if (known.kind, known.unit, known.scale) != (
+                    variable.kind,
+                    variable.unit,
+                    variable.scale,
+                ):
+                    msg = (
+                        f"{where}: input {variable.identifier} of {part.key} "
+                        "differs in kind, unit or scale from the input of the "
+                        "same name in another branch"
+                    )
+                    raise CatalogError(msg)
+
+        # Formulation that defines each coefficient: one formulation may serve
+        # two branches, two formulations may not share a name.
+        owner: dict[str, str] = {}
+        coefficients: list[Coefficient] = []
+        constants: dict[str, PhysicalConstant] = {}
+        for part, _ in branches:
+            for coefficient in part.coefficients:
+                origin, _ = _origin(part, coefficient.identifier)
+                if owner.get(coefficient.identifier, origin) != origin:
+                    msg = (
+                        f"{where}: coefficient {coefficient.identifier} in both "
+                        f"{owner[coefficient.identifier]} and {origin}"
+                    )
+                    raise CatalogError(msg)
+                if coefficient.identifier not in owner:
+                    owner[coefficient.identifier] = origin
+                    coefficients.append(coefficient)
+            for constant in part.constants:
+                found = constants.setdefault(constant.identifier, constant)
+                if found.key != constant.key:
+                    msg = (
+                        f"{where}: constant {constant.identifier} is {found.key} "
+                        f"in one branch and {constant.key} in {part.key}"
+                    )
+                    raise CatalogError(msg)
+
+        known_names = [*inputs, *owner, *constants]
+        for index, (_, condition) in enumerate(branches):
+            w = f"{where}.branches[{index}].where"
+            try:
+                parsed = parse_expression(f"{PIECEWISE}((0, {condition}))", known_names)
+            except (ExpressionError, TypeError) as exc:
+                msg = f"{w}: {exc}"
+                raise CatalogError(msg) from None
+            # The condition is pasted into the definition: "t < 0), (1, t > 5"
+            # would add a piece no branch gives.
+            if len(parsed.args) != 1:
+                msg = f"{w}: expected one condition, not {condition!r}"
+                raise CatalogError(msg)
+        pieces = ", ".join(f"({p.expression}, {c})" for p, c in branches)
+        names = {output.identifier} | set(known_names)
+        variables = tuple(inputs.values())
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            variables,
+            names,
+            set(owner),
+            (output,),
+        )
+        stated = f"{where}.citations"
+        formulation = Formulation(
+            key=key,
+            label=f["label"],
+            output=_stated_scales(
+                stated, (output,), citations, {output.identifier: first.key}
+            )[0],
+            inputs=_stated_scales(stated, variables, citations, came_from),
+            coefficients=_stated_units(stated, tuple(coefficients), citations, owner),
+            constants=tuple(constants.values()),
+            expression=f"{PIECEWISE}({pieces})",
+            fixed_units=first.fixed_units,
+            physical_domains=(),
+            citations=citations,
+            note=f["note"],
+            matches=_matches(where, f["matches"]),
+            derivation=Derivation(
+                first.key,
+                "branches",
+                parts=MappingProxyType({c: p.key for p, c in branches}),
+            ),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+            branches=tuple(Branch(p, c) for p, c in branches),
+        )
+        self.check(where, formulation)
+        return formulation
+
     @staticmethod
     def composition_order(tables: Mapping[str, Any]) -> list[str]:
-        """Composed formulations, each after the composed ones it uses."""
+        """Formulations made of others, each after those it uses."""
         composed = {
-            key: table["composition"]
+            key: table
             for key, table in tables.items()
-            if isinstance(table, dict) and "composition" in table
+            if isinstance(table, dict) and set(table) & set(_USING)
         }
         order: list[str] = []
 
@@ -1463,14 +2464,7 @@ class _Builder:
                 cycle = " -> ".join([*path[path.index(key) :], key])
                 msg = f"formulations.{key}: compositions form a cycle: {cycle}"
                 raise CatalogError(msg)
-            parts = composed[key]
-            names = []
-            if isinstance(parts, dict):
-                inner = parts.get("inner")
-                names = [
-                    parts.get("outer"),
-                    *(inner.values() if isinstance(inner, dict) else ()),
-                ]
+            names = _used_formulations(composed[key])
             for name in names:
                 if isinstance(name, str) and name in composed:
                     visit(name, [*path, key])
@@ -1487,10 +2481,16 @@ class _Builder:
         f = _fields(
             where,
             table,
-            ("kind", "subject", "object", "citation"),
-            ("accuracy", "at", "bounds", "given", "scale", "note"),
+            ("kind", "subject", "object"),
+            ("citation", "accuracy", "at", "bounds", "given", "scale", "note"),
         )
         kind = _enum(f"{where}.kind", RelationKind, f["kind"])
+        if f["citation"] is None and kind is RelationKind.APPROXIMATES:
+            msg = (
+                f"{where}: an approximation states its source; nomogram computes "
+                "only equivalences and proportionalities"
+            )
+            raise CatalogError(msg)
         ends = []
         for role in ("subject", "object"):
             if f[role] not in formulations:
@@ -1559,11 +2559,25 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             if given:
-                msg = f"{where}.given: only for an equivalence"
+                msg = f"{where}.given: only for an equivalence or a proportionality"
                 raise CatalogError(msg)
         else:
             if f["accuracy"] is not None:
                 msg = f"{where}.accuracy: only for an approximation"
+                raise CatalogError(msg)
+            if kind is RelationKind.PROPORTIONAL and set(bounds) != names:
+                msg = (
+                    f"{where}: a proportionality is checked on a domain: bound "
+                    f"every input of {subject.key}"
+                )
+                raise CatalogError(msg)
+            output_unit = semantic_catalog().units[subject.output.unit].pint
+            if kind is RelationKind.PROPORTIONAL and is_offset_unit(output_unit):
+                msg = (
+                    f"{where}: a ratio of points of an interval scale "
+                    f"({subject.output.unit}) means nothing: state an "
+                    "equivalence, or write the outputs in an absolute unit"
+                )
                 raise CatalogError(msg)
             others = {v.identifier for v in other.inputs}
             for identifier, source in given.items():
@@ -1583,7 +2597,7 @@ class _Builder:
             kind=kind,
             subject=subject.key,
             object=other.key,
-            citation=self.reference(f"{where}.citation", f["citation"]),
+            citation=self.optional_reference(f"{where}.citation", f["citation"]),
             accuracy=accuracy,
             at=MappingProxyType(at),
             bounds=bounds,
@@ -1596,32 +2610,48 @@ class _Builder:
     def check_units(
         where: str, subject: Formulation, other: Formulation, given: Mapping[str, Any]
     ) -> None:
-        """An equivalence is proved on the expressions as written: same units.
+        """An equivalence is proved on the expressions in the same units.
 
-        The output, and every input of the object with the subject inputs
-        feeding it (matched, or used by its ``given`` expression), must be
-        in the same unit; conversions in ``given`` are not supported.
+        The verifier brings the output of the object, and each of its
+        inputs fed by a subject input, into the units of the subject by a
+        factor (hPa fed by Pa): a unit with an offset (``DEG_C`` fed by
+        ``K``) or of another dimension has none. A ``given`` expression is
+        taken as written: it converts only with a number
+        (``t = "T - 273.16"``, ``P = "100 * p"``), and ``P - e`` converts
+        nothing.
         """
         units = {v.identifier: v.unit for v in subject.inputs}
         matched = match_inputs(subject, other)
         found = []
-        if subject.output.unit != other.output.unit:
+        try:
+            _unit_factor(other.output.unit, subject.output.unit)
+        except ValueError:
             found.append(f"output in {subject.output.unit} and {other.output.unit}")
         for variable in other.inputs:
-            if variable.identifier in given:
-                expr = parse_expression(str(given[variable.identifier]), sorted(units))
-                sources = sorted(s.name for s in expr.free_symbols)
-            else:
-                sources = [matched[variable.identifier]]
+            if variable.identifier not in given:
+                source = matched[variable.identifier]
+                try:
+                    _unit_factor(units[source], variable.unit)
+                except ValueError:
+                    found.append(
+                        f"{variable.identifier} in {variable.unit} fed by "
+                        f"{source} in {units[source]}"
+                    )
+                continue
+            expr = parse_expression(str(given[variable.identifier]), sorted(units))
+            if any(abs(n) != 1 for n in expr.atoms(sympy.Number)):
+                continue  # a number states the conversion (P - e has -1 only)
             found += [
                 f"{variable.identifier} in {variable.unit} fed by {s} in {units[s]}"
-                for s in sources
+                for s in sorted(s.name for s in expr.free_symbols)
                 if units[s] != variable.unit
             ]
         if found:
             msg = (
-                f"{where}: an equivalence is proved on the expressions as "
-                f"written, which needs the same units: {'; '.join(found)}"
+                f"{where}: no factor converts these units: {'; '.join(found)}; "
+                "an equivalence is proved on the expressions brought into the "
+                "same units, and an input converted with an offset states it "
+                'in given (t = "T - 273.15")'
             )
             raise CatalogError(msg)
 
@@ -1695,13 +2725,31 @@ class _Builder:
         except ExpressionError as exc:
             msg = f"{where}.expression: {exc}"
             raise CatalogError(msg) from None
-        unused = sorted(set(names) - {s.name for s in expr.free_symbols})
+        used = {s.name for s in expr.free_symbols}
+        if formulation.calls:
+            # Checked on the expression as written: what a call brings needs
+            # no use, and what the development simplifies stays declared.
+            inputs = {v.identifier for v in formulation.inputs}
+            used = {s.name for s in formulation.written_expression.free_symbols}
+            used |= {
+                name
+                for part in formulation.parts
+                for name in part.rename.values()
+                if name not in inputs
+            }
+        unused = sorted(set(names) - used)
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
             raise CatalogError(msg)
+        if not formulation.parts or formulation.calls:
+            _check_pieces(where, formulation)
         try:
             _ = formulation.output_factor
-        except pint.errors.DimensionalityError as exc:
+        except (
+            pint.errors.DimensionalityError,
+            pint.errors.OffsetUnitCalculusError,
+            DimensionError,
+        ) as exc:
             msg = f"{where}: not dimensionally homogeneous: {exc}"
             raise CatalogError(msg) from None
         # Every coefficient needs a unit, declared or inferred.
@@ -1731,10 +2779,15 @@ class _Builder:
         built = {
             key: self.formulation(key, table)
             for key, table in tables.items()
-            if not (isinstance(table, dict) and "composition" in table)
+            if not (isinstance(table, dict) and set(table) & set(_USING))
         }
         for key in self.composition_order(tables):
-            built[key] = self.composed(key, tables[key], built)
+            if "branches" in tables[key]:
+                built[key] = self.branched(key, tables[key], built)
+            elif "calls" in tables[key]:
+                built[key] = self.called(key, tables[key], built)
+            else:
+                built[key] = self.composed(key, tables[key], built)
         formulations = {key: built[key] for key in tables}
         # Two sources of one formulation make one entry with two citations.
         seen: dict[str, str] = {}
@@ -1806,6 +2859,32 @@ def _header(label: str, table: Any) -> dict[str, Any]:
     return f
 
 
+#: The fields by which a formulation uses others.
+_USING = ("composition", "branches", "calls")
+
+
+def _used_formulations(table: Any) -> list[Any]:
+    """The formulations a formulation made of others uses, by key.
+
+    Called on unvalidated tables too (to order the entries before building
+    them): anything malformed is left to the builder.
+    """
+    calls = table.get("calls")
+    if isinstance(calls, dict):
+        return list(calls.values())
+    composition = table.get("composition")
+    if isinstance(composition, dict):
+        inner = composition.get("inner")
+        return [
+            composition.get("outer"),
+            *(inner.values() if isinstance(inner, dict) else ()),
+        ]
+    branches = table.get("branches")
+    if isinstance(branches, list):
+        return [b.get("formulation") for b in branches if isinstance(b, dict)]
+    return []
+
+
 def _references(section: str, table: Any) -> set[tuple[str, str]]:
     """The entries of other sections an entry refers to, by key.
 
@@ -1818,11 +2897,8 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
             found.add((target, value))
 
     if section == "formulations":
-        composition = table.get("composition")
-        if composition is not None:
-            add("formulations", composition["outer"])
-            for name in composition["inner"].values():
-                add("formulations", name)
+        for name in _used_formulations(table):
+            add("formulations", name)
         variables = [table["output"]] if "output" in table else []
         for variable in (*variables, *table.get("inputs", ())):
             add("kinds", variable["kind"])
@@ -1831,6 +2907,8 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
             add("constants", constant)
         for domain in table.get("domains", ()):
             add("references", domain.get("reference"))
+        for assumption in table.get("assumptions", ()):
+            add("references", assumption.get("reference"))
         for citation in table.get("citations", ()):
             add("references", citation["reference"])
             add("notations", citation.get("notation"))
@@ -1838,6 +2916,8 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
                 add("scales", scale)
     elif section in ("constants", "notations"):
         add("references", table.get("reference"))
+        for constant in table.get("constants", ()):
+            add("constants", constant)
     elif section == "trade_terms":
         for meaning in table["meanings"]:
             add("kinds", meaning["kind"])
@@ -1848,10 +2928,10 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
     elif section == "cross_checks":
         for case in table["cases"]:
             add("formulations", case["formulation"])
-    elif section == "relations":
+    elif section == "relations":  # a computed relation has no citation
         add("formulations", table["subject"])
         add("formulations", table["object"])
-        add("references", table["citation"])
+        add("references", table.get("citation"))
     elif section == "scales":
         for kind in table["kinds"]:
             add("kinds", kind)
@@ -2031,9 +3111,13 @@ def _links(
 ) -> Mapping[str, tuple[str, ...]]:
     """For each entry, the existing entries it refers to (``section.key``).
 
-    A formulation also refers to the kinds and scales of its variables as
-    built: a composition writes none, it takes them from its parts. The
-    family check reads the written tables only (:func:`_references`).
+    A formulation also refers to the kinds, scales and units of its
+    variables and to its constants as built: a composition writes none, it
+    takes them from its parts. It refers to the units of its constants and
+    to the declared units of its coefficients (added or stated, never
+    inferred); a constant or a scale to its unit. Units were checked
+    against the semantic catalog when built. The family check reads the
+    written tables only (:func:`_references`): units belong to no family.
     """
     links: dict[str, tuple[str, ...]] = {}
     for section, key in owners:
@@ -2042,13 +3126,26 @@ def _links(
             formulation = built.formulations[key]
             for variable in (formulation.output, *formulation.inputs):
                 references.add(("kinds", variable.kind))
+                references.add(("units", variable.unit))
                 if variable.scale is not None:
                     references.add(("scales", variable.scale.key))
+            for coefficient in formulation.coefficients:
+                if coefficient.unit is not None:
+                    references.add(("units", coefficient.unit))
+            for constant in formulation.constants:
+                references.add(("constants", constant.key))
+                references.add(("units", constant.unit))
+        elif section == "constants":
+            references.add(("units", built.constants[key].unit))
+        elif section == "scales":
+            scale_unit = built.scales[key].unit
+            if scale_unit is not None:
+                references.add(("units", scale_unit))
         targets = sorted(references)
         found = tuple(
             f"{s}.{k}"
             for s, k in targets
-            if (s, k) in owners or (s == "kinds" and k in built.kinds)
+            if (s, k) in owners or (s == "kinds" and k in built.kinds) or s == "units"
         )
         if found:
             links[f"{section}.{key}"] = found
@@ -2207,6 +3304,144 @@ def check(source: Source) -> str:
     return report(loaded, list(document.get("formulations", {})))
 
 
+_WIKIDATA = "http://www.wikidata.org/entity/"
+
+
+def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
+    """(goal, indicator, count, total) for each indicator of the design goals.
+
+    Kinds "used" are those of the formulations' outputs and inputs; an
+    input is "on a conventional scale" when its kind, or a kind it
+    specializes, is one a scale of the catalog applies to.
+    """
+    formulations = list(loaded.formulations.values())
+    computed = Counter(f.output.kind for f in formulations)
+    used = {f.output.kind for f in formulations}
+    used |= {v.kind for f in formulations for v in f.inputs}
+
+    def lineage(name: str) -> list[QuantityKind]:
+        # A QUDT kind may specialize one outside the bundled subset.
+        found = [loaded.kinds[name]]
+        while found[-1].specialization_of in loaded.kinds:
+            found.append(loaded.kinds[str(found[-1].specialization_of)])
+        return found
+
+    on_scale = [
+        v
+        for f in formulations
+        for v in f.inputs
+        if any(s.applies_to(v.kind, loaded.kinds) for s in loaded.scales.values())
+    ]
+    references = list(loaded.references.values())
+
+    def linked(matches: Iterable[ExternalMatch]) -> bool:
+        return any(m.target.startswith(_WIKIDATA) for m in matches)
+
+    alternatives = "1. Alternatives side by side"
+    stated = "2. Validity, scale and sources stated, never invented"
+    shared = "5. Linked to shared vocabularies"
+    return [
+        (
+            alternatives,
+            "quantity kinds computed by several formulations",
+            sum(n > 1 for n in computed.values()),
+            len(computed),
+        ),
+        (
+            stated,
+            "formulations with a validity domain",
+            sum(_reaches_domain(f) for f in formulations),
+            len(formulations),
+        ),
+        (
+            stated,
+            "inputs on a conventional scale with their scale recorded",
+            sum(v.scale is not None for v in on_scale),
+            len(on_scale),
+        ),
+        (
+            stated,
+            "references checked against the source",
+            sum(r.status is ReferenceStatus.VERIFIED for r in references),
+            len(references),
+        ),
+        (
+            stated,
+            "formulations derived by nomogram, which no source prints",
+            sum(f.derived for f in formulations),
+            len(formulations),
+        ),
+        (
+            shared,
+            "quantity kinds used that are QUDT kinds or specialize one",
+            sum(any(q.origin == "qudt" for q in lineage(k)) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "quantity kinds used with a CF standard name",
+            sum(bool(loaded.kinds[k].cf_standard_names) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "quantity kinds used with a Wikidata link",
+            sum(linked(loaded.kinds[k].matches) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "formulations with a Wikidata link",
+            sum(linked(f.matches) for f in formulations),
+            len(formulations),
+        ),
+        (
+            shared,
+            "references with a Wikidata link",
+            sum(linked(r.matches) for r in references),
+            len(references),
+        ),
+    ]
+
+
+def _reaches_domain(formulation: Formulation) -> bool:
+    """Whether a validity domain applies to a formulation, its own or a part's.
+
+    The reach of evaluation: parts (compositions, calls) and branches, at
+    any depth.
+    """
+    pieces = [p.formulation for p in formulation.parts]
+    pieces += [b.formulation for b in formulation.branches]
+    return bool(formulation.domains) or any(_reaches_domain(p) for p in pieces)
+
+
+def stats(loaded: Catalog | None = None) -> str:
+    """The indicators of the design goals, as plain text.
+
+    The design goals (AGENTS.md) are rules, enforced by the loader and
+    the tests, and indicators of how far the catalog covers them: each
+    indicator counts what the catalog covers out of what it could cover.
+
+    Parameters
+    ----------
+    loaded : Catalog, optional
+        The catalog to measure; the bundled one by default.
+
+    Returns
+    -------
+    str
+        One line per indicator, under the goal it measures.
+    """
+    lines = ["Indicators of the design goals (AGENTS.md)"]
+    goal = None
+    for name, indicator, count, total in _indicators(loaded or catalog()):
+        if name != goal:
+            lines.append(name)
+            goal = name
+        lines.append(f"  {indicator}: {count} of {total}")
+    return "\n".join(lines) + "\n"
+
+
 def _verdicts(write: bool) -> str:
     """The verdicts on the relations of the bundled catalog, one per line."""
     loaded = catalog()
@@ -2215,8 +3450,14 @@ def _verdicts(write: bool) -> str:
         computed, reused = record(loaded)
         lines.append(f"registry written: {computed} computed, {reused} reused")
     for key in sorted(loaded.relations):
-        found = verdict(loaded.relations[key], loaded)
-        value = "" if found.value is None else f" {found.value:.4g} %"
+        relation = loaded.relations[key]
+        found = verdict(relation, loaded)
+        if found.value is None:
+            value = ""
+        elif relation.kind is RelationKind.PROPORTIONAL:
+            value = f" factor {found.value:.8g}"
+        else:
+            value = f" {found.value:.4g} %"
         lines.append(f"{key}: {found.status}{value}")
     for key in sorted(loaded.cross_checks):
         check = loaded.cross_checks[key]
@@ -2229,7 +3470,7 @@ def _verdicts(write: bool) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Command line: ``python -m nomogram.catalog describe|check FILE``, ``verify``."""
+    """Command line: ``python -m nomogram.catalog describe|check FILE``, ``verify``, ``stats``."""
     parser = argparse.ArgumentParser(prog="python -m nomogram.catalog")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, text in (
@@ -2245,10 +3486,16 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="compute what is missing and write the registry",
     )
+    commands.add_parser(
+        "stats", help="indicators of the design goals for the bundled catalog"
+    )
     arguments = parser.parse_args(argv)
     try:
         if arguments.command == "verify":
             sys.stdout.write(_verdicts(arguments.record))
+            return 0
+        if arguments.command == "stats":
+            sys.stdout.write(stats())
             return 0
         action = describe if arguments.command == "describe" else check
         sys.stdout.write(action(arguments.file))

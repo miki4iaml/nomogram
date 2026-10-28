@@ -27,13 +27,19 @@ feed them, and the difference must simplify to zero.
 - **unverified**: the claim cannot be checked as it stands, for a
   reason the verdict's `method` gives (different scales, below).
 
-The proof compares the **expressions as written**. It means something
-only if both formulations work in the same units: loading refuses an
-equivalence whose outputs, or whose inputs and the subject inputs feeding
-them (matched, or used by `given`), are in different units. Conversions
-inside `given` are not supported: write both formulations in the same
-units. An input of the object matched by its quantity kind (`Q` fed by
-the subject's `P`, the only pressure) takes the subject's symbol. A
+The proof compares the **expressions as written**, brought into the
+same units by an exact factor: the result of the object into the output
+unit of the subject, and each input of the object fed by a subject input
+in another unit receives it converted (`p` in hPa fed by `P` in Pa
+becomes `P / 100`). Loading refuses an equivalence when no factor
+converts: units of different dimensions, or a unit with an offset
+(`DEG_C` fed by `K`). That conversion is affine, and its origin is a
+choice of the source (0 degC at 273.15 K, or at 273.16 K as Murray and
+the ECMWF IFS write it): `given` states it with a number
+(`given = { t = "T - 273.16" }`). An expression in `given` is taken as
+written, and `P - e` converts nothing. An input of the object matched by
+its quantity kind (`Q` fed by the subject's `P`, the only pressure)
+takes the subject's symbol. A
 quantity equation gives its result in the units of its inputs, then
 nomogram converts it into the output unit
 (`Formulation.output_factor`); that factor is part of the expression
@@ -101,6 +107,57 @@ the square root of a square is wrong for negative ones. And stating the
 **bounds** of the inputs, when the source gives them, lets the search for
 a counterexample look where the formula is used.
 
+## Proportionalities: proved, or held to the printed precision
+
+A proportionality states that the subject equals the object times a
+constant factor, once the object's inputs are fed by the subject's
+(`given`). It is proved like an equivalence, on the ratio of the two
+sides, which must simplify to a constant: *proven*, with the factor.
+
+When the ratio does not simplify, it is sampled on the bounds. It is
+*held* when moving one printed coefficient within its rounding takes its
+variation away, to a rest of a thousandth of it: the variation must
+follow the effect of that coefficient on the ratio, not only be smaller
+than it. The verdict names the finest such coefficient. Beyond, it is
+*refuted*, with the point where the ratio strays most. The rounding of
+a value is half a unit of its last significant digit, read in any
+notation (5.9 × 10⁻⁶ hides 5 × 10⁻⁸); the catalog keeps no text of its
+numbers, so an integral value is read without trailing zeros (2.501 ×
+10⁶ hides 500); an exact constant hides nothing, and a constant written
+as text keeps its printed digits. Points where a side is zero or not a
+finite number are left aside, and the `method` gives the share of the
+samples compared; with none left, the verdict is *unverified*. A ratio
+that changes sign is *refuted*. A ratio of points of an interval scale
+(two dew points in °C) means nothing: loading refuses such a
+proportionality. The verdict then says:
+
+- the factor and the relative deviation |1 − factor| it implies (the
+  median of the sampled ratio when it varies), and the two coefficients
+  it is the ratio of, when it is one within their printed rounding (two
+  equal coefficients explain no factor);
+- whether the two formulations are even equal to the printed precision:
+  moving one coefficient within its rounding takes the ratio to 1;
+- whether a shift or a factor of an input with a conventional scale (a
+  temperature, a salinity) makes them equal as closely as the
+  proportionality does. Only what the catalog's scales give over the
+  bounds is tried (a few hundredths of a kelvin between ITS-90 and the
+  older temperature scales, and 0.01 K for a Celsius origin written
+  273.16 K): if it suffices, the factor may come from the scale on which
+  one of them was read rather than from a coefficient. When the object
+  is proportional to a power of that input (the virtual temperature to
+  T), a factor of the input is a factor of the result: it cannot be told
+  from a coefficient, and only the shift is tried.
+
+### A computed proportionality: Murray (1967) and Tetens (1930)
+
+Murray writes Tetens in kelvins: with `given = { t = "T - 273.16" }`, the
+ratio is not constant, but varies by 7·10⁻⁸ from −40 to 50 °C, which the
+rounding of A = 17.269388 (7.5 ln 10) explains. The factor 0.99964 is the
+ratio of their constants C, 6.1078 and 6.11, and the rounding of 6.11
+explains it: the two are equivalent to the printed precision. No shift
+nor factor of T makes them as close: the 273.16 K is a convention of the
+formula, not an error of scale. The verdict is *held*.
+
 ## Approximations: checked on points, never proved
 
 An approximation states a maximum relative deviation over a domain. It
@@ -157,10 +214,12 @@ a registry, `src/nomogram/data/catalog/verifications.json`, generated and
 never edited by hand:
 
 - each verdict is filed under a **fingerprint** (SHA-256) of everything
-  it depends on: the relation as written, the signatures of its two
-  formulations (expression, coefficients, kinds and units), the
-  conventional scales of their variables, the budget of the check and
-  the version of the method (`VERIFIER`);
+  it depends on: the relation as written and the keys of its two
+  formulations, their signatures (expression, coefficients and the
+  units of coefficients and constants, kinds and units), the names of
+  their coefficients and constants, the conventional scales of their
+  variables and the catalog's scales applying to the inputs, the budget
+  of the check and the version of the method (`VERIFIER`);
 - `nomogram.relations.verdict` reads the registry when the fingerprint
   matches, and computes the verdict otherwise; any change to a relation
   or to one of its formulations changes the fingerprint, so a recorded

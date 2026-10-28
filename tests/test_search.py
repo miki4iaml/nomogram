@@ -49,15 +49,18 @@ def test_words_split_identifiers_and_keep_them_whole() -> None:
 
 def test_terms_are_wildcards_matched_against_words() -> None:
     assert refs(CATALOG.search("buck*", section="formulations")) == {
+        "formulations.bechtold2015_magnus_water",
         "formulations.buck1981",
         "formulations.buck1981_magnus",
         "formulations.buck1981_ice",
         "formulations.buck1996",
         "formulations.buck1996_ice",
+        "formulations.ecmwf_ifs_saturation_water",
     }
     assert refs(CATALOG.search("absolute", "humidity")) == {
         "kinds.AbsoluteHumidity",
         "trade_terms.absolute_humidity",
+        "formulations.wmo_vapour_concentration_definition",
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
@@ -78,15 +81,42 @@ def test_kind_with_and_without_specializations() -> None:
     assert "formulations.buck1996" in (CATALOG.search(kind="SaturationVapour*")).refs
 
 
+def test_a_cf_name_finds_temperatures_on_either_scale() -> None:
+    # The Magnus forms take a Celsius temperature, IAPWS a thermodynamic
+    # one: the CF name air_temperature reaches both.
+    found = CATALOG.search(input="air_temperature").refs
+    for key in ("tetens1930", "buck1981_magnus", "sonntag1990_magnus", "iapws_sr1_86"):
+        assert f"formulations.{key}" in found, key
+    kinds = refs(CATALOG.search("air_temperature", section="kinds"))
+    assert kinds == {"kinds.CelsiusTemperature", "kinds.ThermodynamicTemperature"}
+
+
+def test_a_cf_name_finds_a_kind_defined_by_nomogram() -> None:
+    assert refs(CATALOG.search("virtual_temperature", section="kinds")) == {
+        "kinds.VirtualTemperature"
+    }
+    found = CATALOG.search(output="virtual_temperature").refs
+    assert "formulations.bechtold2015_virtual_temperature" in found
+    found = CATALOG.search(input="air_density").refs
+    assert found == ("formulations.bechtold2015_virtual_temperature_definition",)
+    # Close rather than exact: mean sea level, which the geoid approximates.
+    assert refs(CATALOG.search("height_above_mean_sea_level", section="kinds")) == {
+        "kinds.Altitude"
+    }
+
+
 def test_variables_whatever_their_notation() -> None:
     expected = {
         "formulations.mass_concentration_ideal_gas",
         "formulations.itu_r_p453_vapour_pressure_from_density",
+        "formulations.wmo_vapour_concentration_definition",
+        "formulations.bechtold2015_virtual_temperature_definition",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern
     assert refs(CATALOG.search(variable=r"\rho_{\mathrm{v}}")) == {
-        "formulations.mass_concentration_ideal_gas"
+        "formulations.mass_concentration_ideal_gas",
+        "formulations.wmo_vapour_concentration_definition",
     }
     assert (
         "formulations.itu_r_p453_vapour_pressure"
@@ -175,6 +205,107 @@ def test_units_and_scales_are_found_by_their_symbols() -> None:
     assert "units.PERCENT" in CATALOG.search("%").refs
 
 
+def test_dois_and_urls_are_kept_whole() -> None:
+    for key, reference in CATALOG.references.items():
+        for address in (reference.doi, reference.url):
+            if address:
+                found = CATALOG.search(address).refs
+                assert f"references.{key}" in found, address
+    for key, check in CATALOG.cross_checks.items():
+        if check.url:
+            assert f"cross_checks.{key}" in CATALOG.search(check.url).refs, check.url
+    doi = "10.1016/0304-4203(80)90024-9"
+    assert "references.weiss_price1980" in CATALOG.search(doi).refs
+    assert "references.weiss_price1980" in CATALOG.search(f"https://doi.org/{doi}").refs
+    # A SICI-style DOI, in lower case as Crossref returns it.
+    sici = "10.1175/1520-0450(1981)020<1527:nefcvp>2.0.co;2"
+    assert "references.buck1981" in CATALOG.search(sici).refs
+    assert "references.robinson1954" in CATALOG.search("*archive.org*").refs
+
+
+def test_an_address_with_wildcard_signs_finds_itself() -> None:
+    url = "https://example.org/page?id[0]=x"
+    document = f'[references.r]\nauthors = "A"\ntitle = "T"\nurl = "{url}"\nstatus = "verified"\n'
+    assert load_catalog([document]).search(url).refs == ("references.r",)
+
+
+def test_unit_finds_what_works_in_a_unit() -> None:
+    hpa = refs(CATALOG.search(unit="hPa"))
+    assert hpa == refs(CATALOG.search(unit="HectoPA"))
+    assert hpa == refs(CATALOG.search(unit="hectopascal"))
+    assert {"units.HectoPA", "formulations.buck1996"} <= hpa
+    assert "formulations.buck1996" in CATALOG.search(unit="°C").refs  # an input
+    assert "constants.R_v_iapws95" in CATALOG.search(unit="J/(kg·K)").refs
+    # Knudsen and Cox salinities are in per mille; Practical Salinity is a number.
+    per_mille = CATALOG.search(unit="‰").refs
+    assert "scales.cox1967" in per_mille
+    assert "scales.pss78" not in per_mille
+    assert refs(CATALOG.search(unit="*Pa", section="units")) == {
+        "units.HectoPA",
+        "units.KiloPA",
+        "units.PA",
+    }
+    assert not CATALOG.search(unit="furlong")
+
+
+def test_a_unit_is_matched_whole() -> None:
+    # Split into words, K would match J-PER-KiloGM-K, the unit of R_v.
+    kelvin = CATALOG.search(unit="K")
+    assert "constants.R_v_iapws95" not in kelvin.refs
+    for entry in kelvin:
+        assert entry.ref == "units.K" or "units.K" in CATALOG.uses(entry).refs
+
+
+def test_every_form_of_a_unit_finds_that_unit_alone() -> None:
+    from nomogram.semantics import semantic_catalog
+
+    # A form is taken literally before wildcards: UCUM's [ppm], pint's J/(kg*K).
+    for name, unit in semantic_catalog().units.items():
+        for form in (name, unit.symbol, unit.ucum, unit.label, unit.pint):
+            if form:
+                found = refs(CATALOG.search(unit=form, section="units"))
+                assert found == {f"units.{name}"}, form
+
+
+def test_a_unit_written_exactly_comes_before_case_and_wildcards() -> None:
+    from nomogram.search import _units
+
+    # SI symbols differ by case alone: mPa is not MPa.
+    forms = {"MilliPA": frozenset({"mPa"}), "MegaPA": frozenset({"MPa"})}
+    assert _units(forms, "mPa") == {"MilliPA"}
+    assert _units(forms, "MPa") == {"MegaPA"}
+    assert _units(forms, "mpa") == {"MilliPA", "MegaPA"}
+    assert _units(forms, "*pa") == {"MilliPA", "MegaPA"}
+    assert _units(forms, "kPa") == frozenset()
+
+
+def test_constants_are_found_by_their_nature_and_conditions() -> None:
+    for nature in ("exact", "conventional"):
+        found = CATALOG.search(nature, section="constants")
+        assert set(found.refs) == {
+            f"constants.{k}"
+            for k, c in CATALOG.constants.items()
+            if c.nature is not None and c.nature.value == nature
+        }
+    document = """
+[references.src]
+authors = "A."
+title = "T"
+status = "verified"
+
+[constants.c_pd]
+identifier = "c_pd"
+value = 1004.0
+unit = "J-PER-KiloGM-K"
+description = "Specific heat capacity of dry air"
+reference = "src"
+nature = "measured"
+conditions = "at 300 K"
+"""
+    loaded = load_catalog([document])
+    assert loaded.search("measured", "300").refs == ("constants.c_pd",)
+
+
 def test_source_and_equation_in_the_same_citation() -> None:
     nine = CATALOG.search(source="itu_r_p453*", equation="9")
     assert "formulations.itu_r_p453_es_water" in nine.refs
@@ -225,8 +356,45 @@ def test_uses_and_used_by() -> None:
     )
     with pytest.raises(KeyError, match="no entry"):
         CATALOG.uses("formulations.nope")
+
+
+def test_links_of_a_formulation_given_as_itself() -> None:
+    formulation = CATALOG.formulations["itu_r_p453_es_water"]
+    assert (
+        CATALOG.uses(formulation).refs
+        == CATALOG.uses("formulations.itu_r_p453_es_water").refs
+    )
+    buck = CATALOG.formulations["buck1996"]
+    assert "formulations.itu_r_p453_es_water" in CATALOG.used_by(buck).refs
+    with pytest.raises(TypeError, match="not Reference"):
+        CATALOG.uses(CATALOG.references["itu_r_p453_14"])  # type: ignore[arg-type]
     with pytest.raises(KeyError, match="no entry"):
         CATALOG.used_by("nope")
+
+
+def test_formulations_link_to_the_units_they_work_in() -> None:
+    # Declared coefficient units only (added or stated): never the inference.
+    for key, f in CATALOG.formulations.items():
+        expected = {
+            f.output.unit,
+            *(v.unit for v in f.inputs),
+            *(c.unit for c in f.coefficients if c.unit is not None),
+            *(k.unit for k in f.constants),
+        }
+        linked = {
+            e.key for e in CATALOG.uses(f"formulations.{key}") if e.section == "units"
+        }
+        assert linked == expected, key
+
+
+def test_constants_and_scales_link_to_their_unit() -> None:
+    for key, constant in CATALOG.constants.items():
+        assert f"units.{constant.unit}" in CATALOG.uses(f"constants.{key}").refs
+    assert "constants.R_v_iapws95" in CATALOG.used_by("units.J-PER-KiloGM-K").refs
+    assert {"scales.ipts68", "scales.ipts48"} <= refs(CATALOG.used_by("units.DEG_C"))
+    assert "scales.cox1967" in CATALOG.used_by("units.PERMILLE").refs
+    assert "scales.pss78" in CATALOG.used_by("units.UNITLESS").refs
+    assert not CATALOG.uses("scales.its90").search(section="units")
 
 
 # --- Selections ----------------------------------------------------------
@@ -265,10 +433,12 @@ def test_selection_behaves_as_a_sequence() -> None:
     assert "formulations.buck1996" in found  # type: ignore[comparison-overlap]
     assert found[0] in found
     assert 3 not in found  # type: ignore[comparison-overlap]
-    assert all(f.key.startswith("buck") for f in found.formulations)
-    assert repr(found).startswith("Selection(5 entries: formulations.buck1981_magnus")
-    assert repr(found[:2]).endswith("formulations.buck1981)")
-    assert found[0].ref == "formulations.buck1981_magnus"
+    assert all("Buck" in f.label + (f.note or "") for f in found.formulations)
+    assert repr(found).startswith(
+        "Selection(7 entries: formulations.bechtold2015_magnus_water"
+    )
+    assert repr(found[:2]).endswith("formulations.ecmwf_ifs_saturation_water)")
+    assert found[0].ref == "formulations.bechtold2015_magnus_water"
 
 
 def test_selection_displays_as_a_table() -> None:
@@ -310,3 +480,46 @@ def test_a_symbol_part_without_letters_adds_no_word() -> None:
 
     # "{}" has an empty normal form: only "m" and the whole count.
     assert _symbol_words("m {}") == frozenset({"m"})
+
+
+def test_the_examples_of_the_search_docstring_give_what_they_show() -> None:
+    import doctest
+
+    from nomogram.catalog import Catalog
+
+    runner = doctest.DocTestRunner()
+    for test in doctest.DocTestFinder().find(
+        Catalog.search, "Catalog.search", globs={"catalog": catalog}
+    ):
+        runner.run(test)
+    assert runner.summarize(verbose=False).failed == 0
+
+
+def test_formulations_written_without_a_source_are_uncited() -> None:
+    found = set(CATALOG.search(provenance="uncited").refs)
+    assert "formulations.height_above_surface" in found
+    assert not found & set(CATALOG.search(provenance="cited").refs)
+    assert not found & set(CATALOG.search(provenance="derived").refs)
+
+
+def test_the_note_of_a_constant_is_searched() -> None:
+    noted = load_catalog(
+        [
+            """
+[references.src]
+authors = "A."
+title = "T"
+status = "verified"
+
+[constants.k]
+identifier = "k"
+value = 1.0
+unit = "UNITLESS"
+description = "a constant"
+reference = "src"
+nature = "conventional"
+note = "Rounded from the Smithsonian tables."
+"""
+        ]
+    )
+    assert "constants.k" in noted.search("smithsonian", section="constants").refs

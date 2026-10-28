@@ -53,10 +53,11 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sympy
 
+from nomogram.expression import _relations
 from nomogram.semantics import semantic_catalog
 from nomogram.units import ureg
 
@@ -116,18 +117,41 @@ def _pint(key: str) -> Any:
     return ureg.Unit("delta_degC" if expression == "degC" else expression)
 
 
+#: Integer exponents, as superscripts.
+_SUPERSCRIPTS = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+
+def _factor_text(name: str, exponent: float) -> str:
+    """One unit of a product with its exponent: K⁻², or ‰^1.5 when not whole."""
+    symbol = f"{ureg.Unit(name):~P}".replace("Δ°C", "°C")
+    if exponent == 1:
+        return symbol
+    if float(exponent).is_integer():
+        return symbol + str(int(exponent)).translate(_SUPERSCRIPTS)
+    return f"{symbol}^{exponent:g}"
+
+
 def unit_text(unit: Any) -> str:
     """A unit as text, with the symbols of the catalog where possible.
 
-    A temperature difference in degrees Celsius is written °C, as the SI
-    Brochure does, not pint's Δ°C. A pure number gives an empty string.
+    A unit of the catalog takes its symbol (J/(kg·K)). Another is written
+    as the SI Brochure writes products: factors joined by a middle dot,
+    those of the denominator with a negative exponent (g·K·hPa⁻¹·m⁻³,
+    K⁻¹, never a chain of solidi); an exponent that is not whole follows
+    a caret (‰^1.5). A temperature difference in degrees Celsius is
+    written °C, not pint's Δ°C. A pure number gives an empty string.
     """
     if unit is None or unit.dimensionless and unit == ureg.dimensionless:
         return ""
     for key, definition in semantic_catalog().units.items():
         if definition.symbol and key != "UNITLESS" and _pint(key) == unit:
             return definition.symbol
-    return f"{unit:~P}".replace("Δ°C", "°C")
+    # pint types exponents as any number: they are real here.
+    items = [
+        (n, float(cast(float, p))) for n, p in ureg.Quantity(1.0, unit).unit_items()
+    ]
+    items.sort(key=lambda item: item[1] < 0)
+    return "·".join(_factor_text(name, power) for name, power in items)
 
 
 @dataclass
@@ -149,7 +173,9 @@ class _Context:
         """
         if node.is_Symbol:
             return node.name in names
-        if node.is_Number or isinstance(node, sympy.Function):
+        if isinstance(node, sympy.Piecewise):
+            return all(self.involves(e, names) for e, _ in node.args)
+        if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return False
         if node.is_Pow:
             return bool(node.exp.is_Number) and self.involves(node.base, names)
@@ -179,7 +205,11 @@ class _Context:
         """The unit of a node, or ``None`` while an unknown it needs is unsolved."""
         if node.is_Symbol:
             return self.units.get(node.name)
-        if node.is_Number or isinstance(node, sympy.Function):
+        if isinstance(node, sympy.Piecewise):
+            # Its branches share one dimension (a constraint): any known one.
+            known = (self.unit(e) for e, _ in node.args)
+            return next((u for u in known if u is not None), None)
+        if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return ureg.dimensionless
         if node.is_Pow:
             if not node.exp.is_Number:
@@ -231,6 +261,12 @@ class _Context:
                 for term in node.args
                 if self.unit(term) is None
             )
+        if isinstance(node, sympy.Piecewise):
+            return any(
+                self.solve(e, target, reason)
+                for e, _ in node.args
+                if self.unit(e) is None
+            )
         return False  # pragma: no cover - numbers and functions have a unit
 
 
@@ -244,7 +280,21 @@ class _Constraint:
 
 
 def _constraints(expr: Any) -> Iterator[_Constraint]:
-    """The constraints of an expression tree, outermost first."""
+    """The constraints of an expression tree, outermost first.
+
+    The branches of a piecewise definition share one dimension, and so do
+    both sides of each comparison of its conditions (T_ice < T gives T_ice
+    the unit of T).
+    """
+    if isinstance(expr, sympy.Piecewise):
+        branches = tuple(e for e, _ in expr.args)
+        if len(branches) > 1:
+            yield _Constraint("equal", branches, str(expr))
+        for relation in _relations(expr):
+            yield _Constraint("equal", (relation.lhs, relation.rhs), str(relation))
+        for branch in branches:
+            yield from _constraints(branch)
+        return
     pure: list[Any] = []
     if isinstance(expr, sympy.Function):
         pure = list(expr.args)
@@ -301,6 +351,35 @@ def _check(context: _Context, constraints: list[_Constraint]) -> None:
                 raise DimensionError(msg)
 
 
+def _intermediates(
+    formulation: Formulation, rename: Mapping[str, str], path: str
+) -> Iterator[tuple[Any, Any, Any]]:
+    """Each intermediate quantity of a formulation made of others.
+
+    Yields a marker, the unit of the part's output and the part's
+    expression, renamed into the outermost formulation (``rename`` maps the
+    identifiers of ``formulation`` to it), for the parts and, recursively,
+    the parts of the parts.
+    """
+    for part in formulation.parts:
+        inner = part.formulation
+        into = {
+            name: rename.get(part.rename.get(name, name), part.rename.get(name, name))
+            for name in inner.names
+        }
+        if part.computes is not None:
+            piece = inner.sympy_expression.xreplace(
+                {
+                    sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
+                    for old, new in into.items()
+                    if old != new
+                }
+            )
+            marker = sympy.Symbol(f"{path}{part.computes} ({inner.key})", real=True)
+            yield marker, _pint(inner.output.unit), piece
+        yield from _intermediates(inner, into, f"{path}{part.computes or inner.key}/")
+
+
 def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     units: dict[str, Any] = {}
     for variable in (formulation.output, *formulation.inputs):
@@ -313,22 +392,16 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
             unknown.append(coefficient.identifier)
         else:
             units[coefficient.identifier] = _pint(coefficient.unit)
-    # A composed formulation keeps the units of its intermediate quantities:
-    # each inner part's expression has the unit of the part's output.
+    # A formulation made of others keeps the units of its intermediate
+    # quantities: each part's expression has the unit of the part's output,
+    # and so do the parts of its parts, renamed into the formulation.
+    # Each brings its own structure too: the expression of the formulation
+    # may have simplified it away (a factor common to two calls).
     pieces = []
-    for part in formulation.parts:
-        if part.computes is None:
-            continue
-        inner = part.formulation
-        piece = inner.sympy_expression.xreplace(
-            {
-                sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
-                for old, new in part.rename.items()
-            }
-        )
-        marker = sympy.Symbol(f"{part.computes} ({inner.key})", real=True)
-        units[marker.name] = _pint(inner.output.unit)
+    for marker, unit, piece in _intermediates(formulation, {}, ""):
+        units[marker.name] = unit
         pieces.append(_Constraint("equal", (marker, piece), f"{marker} = {piece}"))
+        pieces.extend(_constraints(piece))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
         formulation.fixed_units, units, frozenset(unknown), coefficients, {}
@@ -384,9 +457,9 @@ def _linear(
     context, constraints, _ = _setup(formulation)
     basis = _factors if in_units else _dimension
     bases = sorted({name for unit in context.units.values() for name in basis(unit)})
-    if not bases:
+    if not bases or not context.unknown:
         # Every unit is a number (per mille against per mille): so is each
-        # coefficient.
+        # coefficient. Or every unit is declared: nothing to solve.
         return {name: {} for name in sorted(context.unknown)}
     exponents = {
         (name, base): sympy.Symbol(f"x_{name}_{index}")
@@ -400,7 +473,12 @@ def _linear(
                 return {b: exponents[node.name, b] for b in bases}
             dimension = basis(context.units[node.name])
             return {b: sympy.Rational(dimension.get(b, 0)) for b in bases}
-        if node.is_Number or isinstance(node, sympy.Function):
+        if isinstance(node, sympy.Piecewise):
+            # Like a sum: a branch not depending on an unknown, if any.
+            branches = [e for e, _ in node.args]
+            fixed = [e for e in branches if not context.depends(e)]
+            return vector(fixed[0] if fixed else branches[0])
+        if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return dict.fromkeys(bases, sympy.Integer(0))
         if node.is_Pow:
             if not node.exp.is_Number:

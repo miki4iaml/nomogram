@@ -40,23 +40,36 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 import numpy as np
 import sympy
 
-from nomogram.expression import compile_numeric, parse_expression
-from nomogram.semantics import ExternalMatch, semantic_catalog
+from nomogram.expression import (
+    _opaque_calls,
+    _relations,
+    _variants,
+    compile_numeric,
+    parse_expression,
+)
+from nomogram.semantics import ExternalMatch, _cf_names, semantic_catalog
 from nomogram.units import Q_, convert
 
 if TYPE_CHECKING:
     from nomogram.dimensions import CoefficientUnit
     from nomogram.display import Rendering
+    from nomogram.semantics import QuantityKind
 
 __all__ = [
+    "Assumption",
+    "AssumptionStatus",
+    "Branch",
+    "Call",
     "CheckCase",
     "Citation",
     "Coefficient",
+    "ConstantNature",
     "ConventionalScale",
     "CrossCheck",
     "Derivation",
     "DomainBasis",
     "Formulation",
+    "FormulationNature",
     "Notation",
     "OutOfDomainError",
     "Part",
@@ -143,6 +156,43 @@ def _flag_beyond(
     warnings.warn(message, ValidityWarning, stacklevel=3)
 
 
+def _check_given(key: str, variable: Variable, value: Any) -> None:
+    """Refuse a value taken as given that is not written as its scale writes it.
+
+    A scale of numbers (Practical Salinity, S_P = 35) takes a bare number:
+    in per mille or in g/kg the value would be read a thousand times
+    smaller. A scale of dimensionless quantities (Knudsen salinity, in per
+    mille) takes a quantity with its unit: a bare number would be read as a
+    fraction, a thousand times larger. Either way without error, hence the
+    refusal.
+
+    Raises
+    ------
+    ScaleConversionError
+        If the value is not written as its scale writes it.
+    """
+    scale = variable.scale
+    if scale is None or scale.unit is None:
+        return
+    # pint's own ``unitless`` holds for per mille: only a bare number has
+    # no unit items.
+    items = getattr(value, "unit_items", None)
+    bare = items is None or not dict(items())
+    where = f"{key}: {variable.identifier} is taken as given on {scale.label}"
+    if scale.unit == "UNITLESS":
+        if bare:
+            return
+        msg = (
+            f"{where}, whose values are numbers: give it without a unit, not in "
+            f"{format(value.units, '~P')}"
+        )
+        raise ScaleConversionError(msg)
+    unit = semantic_catalog().units[scale.unit]
+    if bare and Q_(1, unit.pint).dimensionless:
+        msg = f"{where}, in {unit.symbol}: give it with its unit, not as a bare number"
+        raise ScaleConversionError(msg)
+
+
 class ReferenceStatus(Enum):
     """Whether a reference has been checked against its source."""
 
@@ -186,7 +236,8 @@ class Reference:
     doi : str or None
         DOI, which takes precedence over any other identifier.
     url : str or None
-        Address, when there is no DOI.
+        Address of the source when there is no DOI, or beside a DOI the
+        address of a freely readable copy.
     status : ReferenceStatus
         Whether the details were checked against the source.
     note : str or None
@@ -288,9 +339,10 @@ class ConventionalScale:
         ``False`` when the conversion needs data nomogram does not hold
         (Absolute Salinity needs the anomaly of its location): values on
         such a scale are taken as given, ``scale="ignore"``.
-    cf_standard_names : tuple of str
-        CF standard names of quantities on this scale
-        (``sea_water_practical_salinity``).
+    matches : tuple of ExternalMatch
+        Links to the CF standard names of quantities on this scale
+        (``sea_water_practical_salinity``), each with its SKOS relation and
+        the date it was checked.
     note : str or None
         Remark: disagreements between sources on the conversion, its
         domain...
@@ -310,13 +362,50 @@ class ConventionalScale:
     conversion: str | None = None
     bounds: tuple[float, float] | None = None
     convertible: bool = True
-    cf_standard_names: tuple[str, ...] = ()
+    matches: tuple[ExternalMatch, ...] = ()
     note: str | None = None
+
+    @property
+    def cf_standard_names(self) -> tuple[str, ...]:
+        """The CF standard names the scale is linked to (see ``matches``)."""
+        return _cf_names(self.matches)
 
     @property
     def is_reference(self) -> bool:
         """Whether this is the reference scale of its kinds."""
         return self.reference_scale is None
+
+    def applies_to(self, kind: str, kinds: Mapping[str, QuantityKind]) -> bool:
+        """Whether the scale applies to a kind: one of its kinds or a specialization.
+
+        A difference is never on a conventional scale, though QUDT makes a
+        temperature difference a temperature.
+
+        Parameters
+        ----------
+        kind : str
+            The name of the quantity kind.
+        kinds : mapping of str to QuantityKind
+            The kinds of the catalog, through which specializations are
+            followed (a frost point is a temperature).
+
+        Returns
+        -------
+        bool
+        """
+        start = kinds.get(kind)
+        if start is not None and start.delta:
+            return False
+        seen: set[str] = set()
+        while kind not in seen:
+            if kind in self.kinds:
+                return True
+            seen.add(kind)
+            found = kinds.get(kind)
+            if found is None or found.specialization_of is None:
+                return False
+            kind = found.specialization_of
+        return False
 
     def check_convertible(self) -> None:
         """Raise :class:`ScaleConversionError` if nomogram cannot convert.
@@ -436,15 +525,87 @@ class ConventionalScale:
             return values
         self.check_convertible()
         if self.conversion is None:
-            on_reference = values
-            for _ in range(4):
-                on_reference = values + np.interp(
-                    on_reference, self.points, self.difference
-                )
+            on_reference = self._through_table(values)
             outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
             return np.where(outside, np.nan, on_reference)
         on_base = np.where(self._outside(values), np.nan, self._forward(values))
         return on_base if self.base is None else self.base.to_reference(on_base)
+
+    def interval_to_reference(
+        self, low: float, high: float
+    ) -> tuple[float, float] | None:
+        """An interval of values on this scale, carried to the reference scale.
+
+        Conversions increase: each end is converted, an infinite end staying
+        infinite, and the part beyond the conversion table or the bounds of
+        the conversion, which has no value on the reference scale, is left
+        out.
+
+        Parameters
+        ----------
+        low, high : float
+            Ends of the interval on this scale, in the unit of the scale.
+
+        Returns
+        -------
+        (float, float) or None
+            The interval on the reference scale, in the same unit; ``None``
+            when no value of it converts.
+
+        Raises
+        ------
+        ScaleConversionError
+            For a scale nomogram cannot convert.
+        """
+        self.check_convertible()
+        ends = np.array([low, high], dtype=float)
+        finite = np.isfinite(ends)
+        converted = np.where(
+            finite, self._unbounded_to_reference(np.where(finite, ends, 0.0)), ends
+        )
+        floor, ceiling = self._reference_extent
+        low, high = max(float(converted[0]), floor), min(float(converted[1]), ceiling)
+        return (low, high) if low < high else None
+
+    def _through_table(self, values: Any) -> Any:
+        """Values on the reference scale, by the table, extended beyond it."""
+        on_reference = values
+        for _ in range(4):
+            on_reference = values + np.interp(
+                on_reference, self.points, self.difference
+            )
+        return on_reference
+
+    def _unbounded_to_reference(self, values: Any) -> Any:
+        """:meth:`to_reference` extended beyond the table and the bounds."""
+        if self.is_reference:
+            return values
+        if self.conversion is None:
+            return self._through_table(values)
+        on_base = self._forward(values)
+        return (
+            on_base if self.base is None else self.base._unbounded_to_reference(on_base)
+        )
+
+    @cached_property
+    def _reference_extent(self) -> tuple[float, float]:
+        """Values on the reference scale that convert to this scale.
+
+        The range of a table; the bounds of a conversion carried to the
+        reference scale, within the extent of its base; infinite on a side
+        nothing bounds.
+        """
+        if self.is_reference:
+            return (-np.inf, np.inf)
+        if self.conversion is None:
+            return (self.points[0], self.points[-1])
+        low, high = (
+            (-np.inf, np.inf) if self.base is None else self.base._reference_extent
+        )
+        if self.bounds is not None:
+            ends = self._unbounded_to_reference(np.array(self.bounds, dtype=float))
+            low, high = max(low, float(ends[0])), min(high, float(ends[1]))
+        return (float(low), float(high))
 
 
 class ScaleConversionError(ValueError):
@@ -452,21 +613,38 @@ class ScaleConversionError(ValueError):
 
 
 class RelationKind(Enum):
-    """What a relation between two formulations states."""
+    """What a relation between two formulations states.
+
+    An equivalence is the narrowest: a proportionality of factor 1. An
+    approximation is on another axis, a bounded deviation; a
+    proportionality of factor k implies a constant relative deviation
+    of |1 - k|.
+    """
 
     #: The subject equals the object, possibly given substitutions.
     EQUIVALENT = "equivalent"
     #: The subject approximates the object within a stated deviation.
     APPROXIMATES = "approximates"
+    #: The subject equals the object times a constant factor, possibly
+    #: given substitutions (Murray 1967 and Tetens 1930, whose constants
+    #: C differ).
+    PROPORTIONAL = "proportional"
+
+    @property
+    def broader(self) -> RelationKind | None:
+        """The looser kind it implies: an equivalence is a proportionality."""
+        return RelationKind.PROPORTIONAL if self is RelationKind.EQUIVALENT else None
 
 
 @dataclass(frozen=True)
 class Relation:
-    """A relation between two formulations, as a source states it.
+    """A relation between two formulations, as a source states it or nomogram proves it.
 
-    A relation is a claim, cited: nomogram verifies it
-    (:func:`nomogram.relations.verify`) but never invents one. Deviations
-    nomogram computes are observations (:func:`nomogram.comparison.compare`).
+    A relation is a claim, cited, which nomogram verifies
+    (:func:`nomogram.relations.verify`); or, without a citation, an
+    equivalence or a proportionality nomogram computes and proves, exactly
+    or to the printed precision of the coefficients. Deviations nomogram
+    computes are observations (:func:`nomogram.comparison.compare`).
 
     Attributes
     ----------
@@ -476,8 +654,9 @@ class Relation:
         Equivalence or approximation.
     subject, object : str
         Keys of the two formulations.
-    citation : str
-        Key of the source that states the relation.
+    citation : str or None
+        Key of the source that states the relation; ``None`` for a
+        relation computed by nomogram (see :attr:`computed`).
     accuracy : float or None
         For an approximation, the maximum relative deviation the source
         states, in percent.
@@ -488,8 +667,9 @@ class Relation:
         Domain over which the source states it, by input identifier of the
         subject, in the input's unit.
     given : mapping of str to str
-        For an equivalence, inputs of the object expressed with those of
-        the subject (``{"P_d": "P - e"}``).
+        For an equivalence or a proportionality, inputs of the object
+        expressed with those of the subject (``{"P_d": "P - e"}``); the
+        expression may convert a unit (``{"t": "T - 273.16"}``).
     scale : {"convert", "ignore"}
         How the formulations are evaluated for the claim: with conversion
         of conventional scales, or as given, each on its own scale.
@@ -501,7 +681,7 @@ class Relation:
     kind: RelationKind
     subject: str
     object: str
-    citation: str
+    citation: str | None
     accuracy: float | None = None
     at: Mapping[str, float] = field(default_factory=lambda: MappingProxyType({}))
     bounds: Mapping[str, tuple[float, float]] = field(
@@ -510,6 +690,11 @@ class Relation:
     given: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     scale: ScaleConversion = "convert"
     note: str | None = None
+
+    @property
+    def computed(self) -> bool:
+        """Whether nomogram computes it, no source stating it."""
+        return self.citation is None
 
 
 @dataclass(frozen=True)
@@ -584,16 +769,21 @@ class Derivation:
     ----------
     source : str
         Key of the formulation it derives from; for a composition, the
-        formulation evaluated last.
+        formulation evaluated last; for branches, the first branch; for
+        calls, the first formulation called.
     method : str
         ``"symbolic inversion"`` (closed form found by SymPy),
-        ``"numerical inversion"`` or ``"composition"``.
+        ``"numerical inversion"``, ``"composition"``, ``"branches"`` or
+        ``"calls"``.
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
     parts : mapping of str to str
         For a composition, the formulation computing each input of the
-        source it replaces: input identifier to formulation key.
+        source it replaces: input identifier to formulation key. For
+        branches, the formulation used under each condition. For calls,
+        the formulation of each call, by the call as written
+        (``"e_w(p=p, t=t_d)"``).
     """
 
     source: str
@@ -665,6 +855,34 @@ class Coefficient:
     unit_basis: UnitBasis | None = None
 
 
+class ConstantNature(Enum):
+    """How the value of a physical constant is known."""
+
+    #: Fixed by definition, without uncertainty: the defining constants of
+    #: the SI, whose numerical values "have no uncertainty" (SI Brochure,
+    #: 9th ed., 2.2), and constants derived from them alone (CODATA
+    #: "exact"; QUDT ``qudt:exactConstant``).
+    EXACT = "exact"
+    #: Attributed by agreement for a given purpose (VIM 2.12, conventional
+    #: quantity value): the standard acceleration of free fall, or a value a
+    #: source adopts for its formulas.
+    CONVENTIONAL = "conventional"
+    #: Representing a measurement result (VIM 2.10, measured quantity
+    #: value), with its standard uncertainty when the source gives it.
+    MEASURED = "measured"
+
+
+class FormulationNature(Enum):
+    """What makes a formulation hold, when no fit nor model does."""
+
+    #: True by definition (the definition of a quantity, cited to a text
+    #: that defines it): it holds without a validity domain.
+    DEFINITION = "definition"
+    #: An exact consequence of definitions (the latent heat of fusion as
+    #: that of sublimation minus that of vaporization).
+    IDENTITY = "identity"
+
+
 @dataclass(frozen=True)
 class PhysicalConstant:
     """A constant with a metrological status, and its source.
@@ -686,6 +904,32 @@ class PhysicalConstant:
         Key of the source.
     matches : tuple of ExternalMatch
         Links to external vocabularies.
+    nature : ConstantNature or None
+        How the value is known; ``None`` when not stated (a catalog file
+        may leave it out; every constant of the bundled catalog states it).
+    uncertainty : float or None
+        Standard uncertainty in ``unit``, as the source gives it; ``None``
+        when exact or not given.
+    conditions : str or None
+        The conditions the value holds in, when it depends on them (a
+        latent heat at 0 degC).
+    printed : str or None
+        The value as the source prints it, when written as text in the
+        catalog to keep significant trailing zeros (``"287.0500"``).
+    definition : str or None
+        The formula giving the value from other constants, in the
+        restricted syntax of expressions (``"R_d / R_v"``), when the source
+        states one. The value used stays the one printed; the catalog
+        checks that it agrees with the formula.
+    components : tuple of str
+        Keys of the constants the definition uses (``constants`` in a
+        catalog file).
+    tolerance : float or None
+        How far the printed value may depart from the definition, in
+        ``unit``, when the source departs from its own formula; ``note``
+        then says by how much and why.
+    note : str or None
+        Remark.
     """
 
     key: str
@@ -695,6 +939,14 @@ class PhysicalConstant:
     description: str
     reference: str
     matches: tuple[ExternalMatch, ...]
+    nature: ConstantNature | None = None
+    uncertainty: float | None = None
+    conditions: str | None = None
+    printed: str | None = None
+    definition: str | None = None
+    components: tuple[str, ...] = ()
+    tolerance: float | None = None
+    note: str | None = None
 
 
 @dataclass(frozen=True)
@@ -773,6 +1025,8 @@ class Citation:
         Accuracy the source claims, as stated.
     note : str or None
         Remark on this citation.
+    assumptions : tuple of str
+        Assumptions the source states for the formula, as stated.
     """
 
     reference: str
@@ -785,6 +1039,40 @@ class Citation:
     )
     accuracy: str | None = None
     note: str | None = None
+    assumptions: tuple[str, ...] = ()
+
+
+class AssumptionStatus(Enum):
+    """How an assumption of a formulation is known."""
+
+    #: Stated by the source that gives the formula (in its citation).
+    STATED = "stated"
+    #: Stated by another source, about the formula (a review, a guide).
+    STATED_BY_OTHER = "stated-by-other"
+    #: Deduced from the form of the formula, its coefficients or its kinds.
+    DEDUCED = "deduced"
+    #: Suspected, not established: to be checked.
+    SUSPECTED = "suspected"
+
+
+@dataclass(frozen=True)
+class Assumption:
+    """An assumption under which a formulation holds.
+
+    Attributes
+    ----------
+    text : str
+        The assumption.
+    status : AssumptionStatus
+        How it is known.
+    reference : str or None
+        Key of the source that states it; ``None`` when deduced or
+        suspected.
+    """
+
+    text: str
+    status: AssumptionStatus
+    reference: str | None = None
 
 
 @dataclass(frozen=True)
@@ -846,13 +1134,54 @@ class Part:
         Identifier of the outer formulation's input it computes; ``None``
         for the outer formulation itself.
     rename : mapping of str to str
-        Its inputs taken under another identifier in the composed
-        formulation (``bind``), by its own identifier.
+        Its identifiers taken under another in the formulation made of it,
+        by its own identifier: inputs bound (``bind``) or passed as
+        arguments, and, for a formulation called, its coefficients and
+        constants renamed.
     """
 
     formulation: Formulation
     computes: str | None
     rename: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+
+
+@dataclass(frozen=True)
+class Branch:
+    """A formulation a piecewise formulation uses on an interval of its input.
+
+    Attributes
+    ----------
+    formulation : Formulation
+        The formulation used there, with its own validity domains and
+        sources.
+    condition : str
+        Where it is used: an interval of the input, in the catalog syntax
+        (``"T <= 273.16"``).
+    """
+
+    formulation: Formulation
+    condition: str
+
+
+@dataclass(frozen=True)
+class Call:
+    """A formulation called in the expression of another, with its arguments.
+
+    Attributes
+    ----------
+    alias : str
+        The name the expression calls it by (``e_w``).
+    formulation : Formulation
+        The formulation called, with its own validity domains and sources.
+    arguments : mapping of str to str
+        For each of its inputs, by identifier and in the order of its
+        inputs, the input of the calling formulation passed to it
+        (``{"p": "p", "t": "t_d"}``).
+    """
+
+    alias: str
+    formulation: Formulation
+    arguments: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -899,6 +1228,32 @@ class Formulation:
         For a composed formulation, its parts: the inner formulations,
         then the outer one. Their validity domains apply to the values
         each part receives (see :meth:`outside_mask`).
+    branches : tuple of Branch
+        For a formulation defined by pieces taken from other formulations,
+        those formulations, each with its condition; the expression is
+        the piecewise definition they make. The validity domains of each
+        apply where its condition holds.
+    calls : tuple of Call
+        For a formulation whose expression calls others, every call, in
+        order of appearance (two identical calls are both kept; they make
+        one part). ``expression`` is then the expression with each call
+        developed: the coefficients of each formulation called under an
+        identifier qualified by the formulation that defines them, a
+        constant under its identifier, or qualified by its key when
+        another constant has that identifier. ``written`` keeps the
+        expression as written.
+    written : str or None
+        The expression as written, with its calls; ``None`` without calls.
+    nature : FormulationNature or None
+        For a definition or an identity, which; ``None`` for a formula a
+        source gives (a fit, a model).
+    conditions : str or None
+        Conditions under which it holds, as stated (the same temperature
+        and pressure).
+    noted_assumptions : tuple of Assumption
+        Assumptions its sources do not state, noted with their status
+        (stated by another source, deduced, suspected); see
+        :attr:`assumptions`.
     """
 
     key: str
@@ -917,11 +1272,47 @@ class Formulation:
     family: str | None = None
     keywords: tuple[str, ...] = ()
     parts: tuple[Part, ...] = ()
+    branches: tuple[Branch, ...] = ()
+    calls: tuple[Call, ...] = ()
+    written: str | None = None
+    nature: FormulationNature | None = None
+    conditions: str | None = None
+    noted_assumptions: tuple[Assumption, ...] = ()
 
     @property
     def references(self) -> tuple[str, ...]:
         """Keys of the cited sources, in order, without repetition."""
         return tuple(dict.fromkeys(c.reference for c in self.citations))
+
+    @property
+    def assumptions(self) -> tuple[Assumption, ...]:
+        """Its assumptions: those its sources state, those noted, then those of its parts.
+
+        A composition, a formulation by branches or one calling others
+        holds under the assumptions of what it is built from, at any depth;
+        each assumption is given once.
+        """
+        found = [
+            Assumption(text, AssumptionStatus.STATED, c.reference)
+            for c in self.citations
+            for text in c.assumptions
+        ]
+        found += self.noted_assumptions
+        for part in self.parts:
+            found += part.formulation.assumptions
+        for branch in self.branches:
+            found += branch.formulation.assumptions
+        return tuple(dict.fromkeys(found))
+
+    @property
+    def derived(self) -> bool:
+        """Whether nomogram derived it from others, no source printing it.
+
+        A composition, a formulation by branches or one calling others,
+        without a citation of its own, or an inversion: its provenance is
+        its :attr:`derivation`, never a citation.
+        """
+        return self.derivation is not None and not self.citations
 
     @property
     def domains(self) -> tuple[ValidityDomain, ...]:
@@ -945,6 +1336,25 @@ class Formulation:
         return parse_expression(self.expression, self.names)
 
     @cached_property
+    def written_expression(self) -> Any:
+        """The expression as written, each call of a formulation kept opaque.
+
+        The same as :attr:`sympy_expression` for a formulation without
+        calls; with calls, an opaque function per call (``e_w(p, t_d)``),
+        its arguments in the order of the called formulation's inputs.
+        """
+        if not self.calls or self.written is None:
+            return self.sympy_expression
+        return _opaque_calls(
+            self.written,
+            self.names,
+            [
+                (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
+                for c in self.calls
+            ],
+        )
+
+    @cached_property
     def _function(self) -> Callable[..., Any]:
         return compile_numeric(self.sympy_expression, self.names)
 
@@ -954,24 +1364,62 @@ class Formulation:
 
         1 for a fixed-units formulation. For a quantity equation, the
         expression is evaluated once with pint quantities, which checks
-        its dimensional homogeneity.
+        its dimensional homogeneity; a piecewise definition is evaluated
+        once per branch (pint quantities do not go through numpy's choice
+        of branch), and both sides of each comparison of its conditions
+        must be in the same unit, since the comparison is made on the
+        numbers.
 
         Raises
         ------
         pint.errors.DimensionalityError
-            If the expression does not have the dimension of the output.
+            If the expression does not have the dimension of the output, or
+            a comparison joins two dimensions.
+        DimensionError
+            If the branches of a piecewise definition give values in
+            different units, or a comparison joins two units of one
+            dimension (a bound in Pa for an input in hPa).
         """
         if self.fixed_units:
             return 1.0
+        from nomogram.dimensions import DimensionError
+
         units = semantic_catalog().units
         # Distinct probe values, so that no difference such as p - e
         # vanishes; only the unit of the result matters.
         probe = iter(1.5 ** (i + 1) for i in range(len(self.names)))
         values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
-        values += [next(probe) for _ in self.coefficients]
+        # A coefficient is a pure number unless declared otherwise (a
+        # threshold T_0 in K, compared with T).
+        values += [
+            Q_(next(probe), units[c.unit].pint if c.unit else "dimensionless")
+            for c in self.coefficients
+        ]
         values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
-        result = Q_(self._function(*values))
-        return float(Q_(1.0, result.units).to(units[self.output.unit].pint).magnitude)
+
+        def unit_of(expr: Any) -> Any:
+            return Q_(compile_numeric(expr, self.names)(*values)).units
+
+        for relation in _relations(self.sympy_expression):
+            left, right = unit_of(relation.lhs), unit_of(relation.rhs)
+            if Q_(1.0, left).to(right).magnitude != 1.0:
+                msg = (
+                    f"{self.key}: {relation} compares {left:~P} with {right:~P}: "
+                    "write a bound in the unit of its input"
+                )
+                raise DimensionError(msg)
+        target = units[self.output.unit].pint
+        factors = {
+            float(Q_(1.0, unit_of(variant)).to(target).magnitude)
+            for variant in _variants(self.sympy_expression)
+        }
+        if len(factors) > 1:
+            msg = (
+                f"{self.key}: the branches of its piecewise definition give "
+                "values in different units"
+            )
+            raise DimensionError(msg)
+        return factors.pop()
 
     def latex(self, notation: Notation | None = None, **options: Any) -> str:
         """The formulation as a LaTeX equation, in a given notation.
@@ -1037,7 +1485,9 @@ class Formulation:
         receives, intermediate values included, unless a source of the
         composed formulation states its own domain, which then replaces
         the domains the sources of the parts state. Physical domains of
-        the parts always apply.
+        the parts always apply. In a formulation defined by branches, the
+        domains of each branch apply where its condition holds, under the
+        same rule.
         """
         _check_options("nan", basis, "convert")
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
@@ -1063,12 +1513,37 @@ class Formulation:
                 for domains in stating:
                     inside |= ~outside_all(domains)
                 outside |= ~inside
-        if self.parts:
+        if self.parts or self.branches:
             part_basis: Basis | None = basis
-            if basis != "physical" and any(c.domains for c in self.citations):
+            # A domain stated for a composition replaces those of its parts;
+            # the domains of called formulations always apply to each call.
+            stated = any(c.domains for c in self.citations)
+            if basis != "physical" and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None
-            if part_basis is not None:
+            if part_basis is not None and self.parts:
                 outside = outside | self._parts_outside(arrays, part_basis)
+            if part_basis is not None and self.branches:
+                outside = outside | self._branches_outside(arrays, part_basis, shape)
+        return outside
+
+    def _branches_outside(
+        self, values: Mapping[str, Any], basis: Basis, shape: tuple[int, ...]
+    ) -> Any:
+        """Where the branch whose condition holds is outside its domains."""
+        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
+        arguments += [c.value for c in self.coefficients]
+        arguments += [k.value for k in self.constants]
+        outside = np.zeros(shape, dtype=bool)
+        for branch, (_, condition) in zip(
+            self.branches, self.sympy_expression.args, strict=True
+        ):
+            with np.errstate(invalid="ignore"):
+                active = compile_numeric(condition, self.names)(*arguments)
+            own = {
+                v.identifier: values[v.identifier] for v in branch.formulation.inputs
+            }
+            mask = branch.formulation.outside_mask(own, basis)
+            outside |= np.broadcast_to(np.asarray(active, dtype=bool), shape) & mask
         return outside
 
     def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:
@@ -1096,7 +1571,7 @@ class Formulation:
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]
-        with np.errstate(invalid="ignore", divide="ignore"):
+        with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
             result = np.asarray(self._function(*arguments), dtype=float)
         return result * self.output_factor
 
@@ -1150,7 +1625,10 @@ class Formulation:
             beyond a scale conversion.
         ScaleConversionError
             With ``scale="convert"``, if an input or the output is on a
-            scale nomogram cannot convert (Absolute Salinity).
+            scale nomogram cannot convert (Absolute Salinity); with
+            ``scale="ignore"``, if an input is not written as its scale
+            writes it: with a unit on a scale of numbers (Practical
+            Salinity), bare on a scale in per mille (Knudsen salinity).
         """
         _check_options(outside, basis, scale)
         expected = {v.identifier for v in self.inputs}
@@ -1159,6 +1637,9 @@ class Formulation:
             extra = ", ".join(sorted(set(inputs) - expected)) or "none"
             msg = f"{self.key}: missing inputs: {missing}; unexpected: {extra}"
             raise TypeError(msg)
+        if scale == "ignore":
+            for v in self.inputs:
+                _check_given(self.key, v, inputs[v.identifier])
         units = semantic_catalog().units
         values = {
             v.identifier: np.asarray(
@@ -1216,3 +1697,31 @@ class Formulation:
             )
         magnitude = result.item() if result.ndim == 0 else result
         return Q_(magnitude, output_unit)
+
+
+def _origin(formulation: Formulation, identifier: str) -> tuple[str, str]:
+    """Where a coefficient or a constant of a formulation comes from.
+
+    The key of the formulation that defines a coefficient, through
+    compositions and branches, which keep its identifier, and through
+    calls, which rename it; or the key of a constant. Then the identifier
+    it is written with there.
+    """
+    if formulation.calls:
+        for part in formulation.parts:
+            inner = part.formulation
+            held = {c.identifier for c in inner.coefficients}
+            held |= {c.identifier for c in inner.constants}
+            for name, renamed in part.rename.items():
+                if renamed == identifier and name in held:
+                    return _origin(inner, name)
+    else:
+        used = [p.formulation for p in formulation.parts]
+        used += [b.formulation for b in formulation.branches]
+        for inner in used:
+            if any(c.identifier == identifier for c in inner.coefficients):
+                return _origin(inner, identifier)
+    constant = next(
+        (c for c in formulation.constants if c.identifier == identifier), None
+    )
+    return (formulation.key if constant is None else constant.key), identifier

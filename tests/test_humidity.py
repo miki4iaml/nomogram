@@ -13,7 +13,9 @@ import pytest
 
 from nomogram.catalog import catalog
 from nomogram.comparison import compare, compose
+from nomogram.inversion import dew_point
 from nomogram.model import Outside
+from nomogram.semantics import MatchRelation
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -56,7 +58,13 @@ def test_every_formulation_stays_close_to_iapws_between_0_and_40_celsius() -> No
     worst = comparison.max_abs_deviation()
     # Alduchov and Eskridge (1996, Table III) give at most 3.214 % (Tetens)
     # against three basic formulations over -40..50 degC; above 0 degC all
-    # stay well within 0.5 % of IAPWS.
+    # the fitted ones stay well within 0.5 % of IAPWS. Integrated with a
+    # constant latent heat, Clausius-Clapeyron departs by 4 % at 40 degC.
+    for key in (
+        "bechtold2015_saturation_vapour_pressure_constant_latent_heat",
+        "ambaum2020_constant_latent_heat",
+    ):
+        assert 0.03 < worst.pop(key) < 0.05, key
     assert max(worst.values()) < 0.005
     assert worst["iapws_sr1_86"] == 0.0
 
@@ -88,6 +96,69 @@ def test_aekr_stated_domain_and_criterion() -> None:
     assert domain.bounds["t"] == (-40.0, 50.0)
     assert "0.384 %" in (domain.criterion or "")
     assert np.isnan(aekr.evaluate(t=Q_(-45, "degC")).magnitude)
+
+
+@pytest.mark.parametrize(
+    ("key", "uncertainty"), [("sonntag1990_magnus", "0.6 %"), ("wmo2008_ice", "1 %")]
+)
+def test_the_wmo_guide_states_no_uncertainty_for_its_magnus_forms(
+    key: str, uncertainty: str
+) -> None:
+    # WMO-No. 8 (2024), Annex 4.B gives ranges, no uncertainty; the WMO
+    # ET-QTC training unit states one, and is cited for it on its own.
+    citations = {c.reference: c for c in FORMULATIONS[key].citations}
+    guide = citations["wmo2024"].domains[0].criterion or ""
+    training = citations["wmo_etqtc2025"].domains[0].criterion or ""
+    assert "No uncertainty stated" in guide
+    assert "%" not in guide
+    assert f"up to {uncertainty} (k = 2)" in training
+
+
+def test_the_wmo_magnus_form_over_ice_keeps_to_its_stated_domain() -> None:
+    ice = FORMULATIONS["wmo2008_ice"]
+    assert np.isnan(ice.evaluate(t=Q_(5, "degC")).magnitude)
+    assert np.isnan(ice.evaluate(t=Q_(-70, "degC")).magnitude)
+    hectopascal = ice.evaluate(t=Q_(-10, "degC")).to("hPa").magnitude
+    assert hectopascal == pytest.approx(2.5988, abs=1e-4)
+
+
+def test_the_wmo_training_unit_is_linked_to_both_magnus_forms() -> None:
+    linked = {entry.key for entry in CATALOG.used_by("references.wmo_etqtc2025")}
+    assert linked == {"sonntag1990_magnus", "wmo2008_ice"}
+    assert [entry.key for entry in CATALOG.used_by("notations.wmo")] == [
+        "sonntag1990_magnus"
+    ]
+
+
+#: Wikidata items of formulations, checked on 2026-10-24 (Bechtold's on
+#: 2026-10-26): the Goff-Gratch item covers the equations over water and
+#: over ice, the Buck item the group of his correlations, which Bechtold
+#: restates; the Tetens item is the equation over water, and the
+#: Clausius-Clapeyron item the relation that Bechtold integrates.
+FORMULATION_ITEMS = {
+    "bechtold2015_magnus_water": ("Q4787919", MatchRelation.BROAD),
+    "bechtold2015_saturation_vapour_pressure_constant_latent_heat": (
+        "Q745416",
+        MatchRelation.BROAD,
+    ),
+    "goff_gratch1946": ("Q3433288", MatchRelation.BROAD),
+    "goff_gratch1946_ice": ("Q3433288", MatchRelation.BROAD),
+    "buck1981_magnus": ("Q4787919", MatchRelation.BROAD),
+    "buck1981": ("Q4787919", MatchRelation.BROAD),
+    "buck1981_ice": ("Q4787919", MatchRelation.BROAD),
+    "buck1996": ("Q4787919", MatchRelation.BROAD),
+    "buck1996_ice": ("Q4787919", MatchRelation.BROAD),
+    "tetens1930": ("Q28231917", MatchRelation.CLOSE),
+}
+
+
+def test_formulations_link_to_their_wikidata_items() -> None:
+    for key, (item, relation) in FORMULATION_ITEMS.items():
+        (match,) = CATALOG.formulations[key].matches
+        assert match.target == f"http://www.wikidata.org/entity/{item}", key
+        assert match.relation is relation, key
+    found = {e.key for e in CATALOG.search("Q4787919", section="formulations")}
+    assert found == {k for k, (q, _) in FORMULATION_ITEMS.items() if q == "Q4787919"}
 
 
 @pytest.mark.parametrize(
@@ -190,10 +261,10 @@ def test_mixing_ratio_from_temperature_humidity_and_pressure() -> None:
 
 def test_epsilon_values_follow_their_sources() -> None:
     constants = CATALOG.constants
-    # ECMWF IFS CY49R1, Part IV, section 12.5: R_d / R_v.
-    assert constants["epsilon_ecmwf_ifs"].value == pytest.approx(
-        287.0597 / 461.5250, abs=1e-7
-    )
+    # ECMWF IFS CY49R1, Part IV: printed in section 7.5.2 (p. 136), defined
+    # as R_d / R_v from section 12.5.
+    ifs = constants["epsilon_ecmwf_ifs"]
+    assert (ifs.value, ifs.definition) == (0.621981, "R_d / R_v")
     # MetPy 1.7.1: M_w / M_d.
     assert constants["epsilon_metpy"].value == pytest.approx(
         18.015268 / 28.96546, abs=1e-7
@@ -230,6 +301,58 @@ def test_ice_and_water_meet_at_the_triple_point() -> None:
     assert water == pytest.approx(ice, rel=1e-6)
 
 
+PSYCHROLIB = FORMULATIONS["psychrolib_saturation_pressure"]
+
+
+def test_psychrolib_switches_from_ice_to_water_at_the_triple_point() -> None:
+    ice = FORMULATIONS["hyland_wexler1983_ice"]
+    water = FORMULATIONS["hyland_wexler1983"]
+    triple, freezing = Q_(273.16, "K"), Q_(273.15, "K")
+    # The branches meet at the triple point (611.657 Pa); at 0 degC, where
+    # ASHRAE switches, they leave a step of 0.06 Pa (the note says so).
+    assert water.evaluate(T=triple).magnitude == pytest.approx(
+        ice.evaluate(T=triple).magnitude, rel=1e-8
+    )
+    step = water.evaluate(T=freezing).magnitude - ice.evaluate(T=freezing).magnitude
+    assert round(step, 2) == 0.06
+    assert "step of 0.06 Pa" in (PSYCHROLIB.note or "")
+    below, above = PSYCHROLIB.evaluate(T=Q_([273.15, 273.17], "K")).magnitude
+    assert below == ice.evaluate(T=freezing).magnitude
+    assert above == water.evaluate(T=Q_(273.17, "K")).magnitude
+    # PsychroLib refuses temperatures outside -100 to 200 degC.
+    assert np.isnan(PSYCHROLIB.evaluate(T=Q_([-101.0, 201.0], "degC")).magnitude).all()
+
+
+@pytest.mark.parametrize(
+    ("celsius", "pascals", "rel", "abs_"),
+    # ASHRAE Handbook - Fundamentals (2017), chapter 1, table 3, as the
+    # tests of PsychroLib give it: within 300 ppm, except at -60 degC.
+    [
+        (-60.0, 1.08, None, 0.01),
+        (-20.0, 103.24, 3e-4, None),
+        (-5.0, 401.74, 3e-4, None),
+        (5.0, 872.6, 3e-4, None),
+        (25.0, 3169.7, 3e-4, None),
+        (50.0, 12351.3, 3e-4, None),
+        (100.0, 101418.0, 3e-4, None),
+        (150.0, 476101.4, 3e-4, None),
+    ],
+)
+def test_psychrolib_against_the_ashrae_table(
+    celsius: float, pascals: float, rel: float | None, abs_: float | None
+) -> None:
+    found = PSYCHROLIB.evaluate(T=Q_(celsius, "degC")).magnitude
+    assert found == pytest.approx(pascals, rel=rel, abs=abs_)
+
+
+def test_a_dew_point_from_psychrolib_converges_at_the_triple_point() -> None:
+    # Continuous at the switch: the inverse finds the temperature back.
+    frost_dew = dew_point(PSYCHROLIB)
+    t = Q_([-10.0, 0.0, 0.01, 0.02, 10.0], "degC")
+    back = frost_dew.evaluate(e=PSYCHROLIB.evaluate(T=t)).to("degC").magnitude
+    assert back == pytest.approx(t.magnitude, abs=1e-6)
+
+
 def test_supercooled_water_holds_more_vapour_than_ice() -> None:
     cold = Q_(np.array([-40.0, -20.0, -5.0]), "degC")
     ice = IAPWS_ICE.evaluate(T=cold)
@@ -245,11 +368,16 @@ def test_ice_formulations_against_iapws() -> None:
         ICE, IAPWS_ICE, {"ThermodynamicTemperature": grid}, outside="ignore"
     )
     deviations = comparison.relative_deviations
-    # Down to -40 degC, all but two stay within 0.2 % of IAPWS.
+    # Down to -40 degC, all but four stay within 0.2 % of IAPWS.
     rough = {"murray1967_ice", "marti_mauersberger1993"}
+    low = {"ecmwf_ifs_saturation_ice", "bechtold2015_magnus_ice"}
     for key, values in deviations.items():
-        if key not in rough:
+        if key not in rough | low:
             assert np.abs(values[1:]).max() < 0.002, key
+    # The Magnus form of the IFS sits 0.08 to 0.21 % below, down to -40 degC.
+    for key in low:
+        assert -0.0022 < deviations[key][1:].min()
+        assert deviations[key][1:].max() < -0.0008
     # Goff-Gratch, long the reference over ice, sits 0.15 to 0.27 % below.
     assert -0.0027 < deviations["goff_gratch1946_ice"].min()
     assert deviations["goff_gratch1946_ice"].max() < -0.0015
@@ -265,3 +393,61 @@ def test_hyland_wexler_over_ice_behaves_as_its90() -> None:
     grid = Q_(np.array([-80.0, -60.0, -40.0, -20.0, -1.0]), "degC")
     comparison = compare([hyland], IAPWS_ICE, {"ThermodynamicTemperature": grid})
     assert comparison.max_abs_deviation()["hyland_wexler1983_ice"] < 0.00033
+
+
+# --- WMO-No. 8 (2024), Annex 4.B --------------------------------------------
+
+WMO_F = FORMULATIONS["wmo_enhancement_factor"]
+WMO_ES_WATER = FORMULATIONS["wmo_es_water_moist_air"]
+WMO_ES_ICE = FORMULATIONS["wmo_es_ice_moist_air"]
+
+
+def test_wmo_enhancement_factor_stays_within_the_stated_effect_of_pressure() -> None:
+    # Note to Annex 4.B: the pressure dependence of f is 0 % to +0.6 %, the
+    # formula being meant for pressures around 1000 hPa.
+    f = WMO_F.evaluate(p=Q_(np.linspace(500.0, 1100.0, 61), "hPa")).magnitude
+    assert np.all(f > 1.0)
+    assert np.all(f < 1.006)
+
+
+@pytest.mark.parametrize(
+    ("moist", "pure", "celsius"),
+    [
+        ("wmo_es_water_moist_air", "sonntag1990_magnus", [-40.0, 0.0, 20.0, 50.0]),
+        ("wmo_es_ice_moist_air", "wmo2008_ice", [-60.0, -30.0, -5.0]),
+    ],
+)
+def test_wmo_saturation_in_moist_air_is_f_times_the_pure_phase(
+    moist: str, pure: str, celsius: list[float]
+) -> None:
+    # Equations 4.B.2 and 4.B.4: e'(p, t) = f(p) e(t).
+    t, p = Q_(np.array(celsius), "degC"), Q_(850.0, "hPa")
+    expected = (
+        WMO_F.evaluate(p=p).magnitude * FORMULATIONS[pure].evaluate(t=t).magnitude
+    )
+    assert FORMULATIONS[moist].evaluate(p=p, t=t).magnitude == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("hectopascal", [700.0, 1013.25])
+def test_wmo_dew_point_inverts_the_saturation_in_moist_air(hectopascal: float) -> None:
+    # Equation 4.B.6 is 4.B.2 solved for the temperature.
+    t, p = Q_(np.linspace(-40.0, 50.0, 10), "degC"), Q_(hectopascal, "hPa")
+    e = WMO_ES_WATER.evaluate(p=p, t=t)
+    dew = FORMULATIONS["wmo_dew_point_moist_air"].evaluate(e=e, p=p)
+    assert dew.to("degC").magnitude == pytest.approx(t.magnitude, abs=1e-9)
+
+
+def test_wmo_relative_humidity_is_the_ratio_to_saturation_in_percent() -> None:
+    # Equation 4.B.10: U = 100 e'/e'_w(p, t).
+    saturation = WMO_ES_WATER.evaluate(p=Q_(1000.0, "hPa"), t=Q_(20.0, "degC"))
+    humidity = FORMULATIONS["wmo_relative_humidity"]
+    assert humidity.evaluate(e=saturation, e_ws=saturation).to("percent").magnitude == (
+        pytest.approx(100.0)
+    )
+    half = humidity.evaluate(e=saturation / 2, e_ws=saturation)
+    assert half.to("percent").magnitude == pytest.approx(50.0)
+
+
+def test_the_wmo_dew_point_is_found_by_its_kind() -> None:
+    found = {f.key for f in CATALOG.search(kind="DewPointTemperature").formulations}
+    assert {"wmo_dew_point", "wmo_dew_point_moist_air"} <= found

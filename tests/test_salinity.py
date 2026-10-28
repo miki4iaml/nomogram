@@ -15,7 +15,13 @@ import pytest
 from nomogram.catalog import CatalogError, catalog, load_catalog
 from nomogram.inversion import invert
 from nomogram.model import ScaleConversionError, Variable
-from nomogram.relations import _conversion_chain, fingerprint
+from nomogram.relations import (
+    _common_bounds,
+    _conversion_chain,
+    _on_reference,
+    fingerprint,
+    report,
+)
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -24,16 +30,55 @@ F = CATALOG.formulations
 
 
 def test_reference_salinity_from_practical_salinity() -> None:
-    # TEOS-10 eq. 2.4.1: S_P = 35 gives S_R = 35.16504 g/kg exactly.
+    # TEOS-10 eq. 2.4.1: S_P = 35 gives S_R = 35.16504 g/kg exactly, a mass
+    # fraction in the unit of the scale (1): Practical Salinity is a number.
     pss78 = SCALES["pss78"]
-    assert pss78.to_reference(35.0) == pytest.approx(35.16504, abs=1e-12)
-    back, outside = pss78.from_reference(np.array([35.16504]))
+    assert pss78.unit == "UNITLESS"
+    assert pss78.to_reference(35.0) == pytest.approx(0.03516504, abs=1e-15)
+    back, outside = pss78.from_reference(np.array([0.03516504]))
     assert back == pytest.approx([35.0])
     assert not outside.any()
     # Beyond 2 < S_P < 42, no conversion.
     assert np.isnan(pss78.to_reference(np.array([1.0, 45.0]))).all()
     _, outside = pss78.from_reference(np.array([1.0]))
     assert outside.all()
+
+
+def test_an_interval_of_salinity_is_carried_to_the_reference_scale() -> None:
+    u_ps = 35.16504 / 35 / 1000  # S_R as a mass fraction, the unit of PSS-78
+    pss78 = SCALES["pss78"]
+    # Below S_P = 2 nothing converts: the interval starts there.
+    interval = pss78.interval_to_reference(0.0, 40.0)
+    assert interval == pytest.approx((2 * u_ps, 40 * u_ps))
+    assert pss78.interval_to_reference(45.0, 50.0) is None
+    # Knudsen to Cox to Reference Salinity, without bounds: an infinite end
+    # stays infinite.
+    knudsen = SCALES["knudsen1901"]
+    interval = knudsen.interval_to_reference(-np.inf, 35.0)
+    assert interval == pytest.approx((-np.inf, float(knudsen.to_reference(35.0))))
+    with pytest.raises(ScaleConversionError):
+        SCALES["absolute_salinity2010"].interval_to_reference(0.0, 40.0)
+
+
+def test_a_domain_beyond_its_scale_conversion_is_not_compared(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Stated valid only above S_P = 42, where PSS-78 does not convert.
+    dickson = F["dickson2007_vapour_pressure"]
+    assert _on_reference(dickson, {"S": (45.0, 50.0)}) is None
+    monkeypatch.setattr(
+        "nomogram.relations._valid_extent", lambda _: {"S": (45.0, 50.0)}
+    )
+    assert _common_bounds(dickson, F["weiss_price1980_vapour_pressure"]) is None
+
+
+def test_salinity_formulations_are_compared_on_the_reference_scale() -> None:
+    # Weiss and Price (1980) are stated valid up to 313 K, but their IPTS-48
+    # temperatures convert to ITS-90 up to 30 degC only: the comparison
+    # stops there instead of leaving a quarter of its grid without values.
+    text = report(CATALOG, ["weiss_price1980_vapour_pressure"], budget=1000)
+    assert "from dickson2007_vapour_pressure: " in text
+    assert "of the common domain only" not in text
 
 
 def test_knudsen_and_cox_salinities_from_chlorinity() -> None:
@@ -102,7 +147,8 @@ def test_chlorinity_salinities_convert_below_the_limits_of_pss78() -> None:
     # PSS-78 directly for 25 < S < 38; the conversion carried departs from
     # that by up to about 0.009 at 25, the disagreement the note records.
     s_k = np.array([25.0, 32.0, 38.0])
-    s_p = SCALES["pss78"].from_reference(knudsen.to_reference(s_k))[0]
+    # Knudsen converts in per mille, PSS-78 in 1.
+    s_p = SCALES["pss78"].from_reference(knudsen.to_reference(s_k) / 1000)[0]
     assert s_p - s_k == pytest.approx([-0.0086, -0.0025, 0.0026], abs=5e-5)
     assert "Lewis and Perkin" in (knudsen.note or "")
     assert "0.009" in (knudsen.note or "")

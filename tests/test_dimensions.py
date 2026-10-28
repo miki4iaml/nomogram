@@ -9,12 +9,13 @@ always agree.
 """
 
 import dataclasses
+import math
 import random
 from fractions import Fraction
 
 import pytest
 
-from nomogram.catalog import catalog
+from nomogram.catalog import catalog, load_catalog
 from nomogram.dimensions import (
     DimensionError,
     _dimension,
@@ -26,7 +27,7 @@ from nomogram.dimensions import (
 )
 from nomogram.inversion import dew_point
 from nomogram.model import Coefficient, Formulation, Variable
-from nomogram.units import ureg
+from nomogram.units import Q_, ureg
 
 CATALOG = catalog()
 WITH_COEFFICIENTS = [f for f in CATALOG.formulations.values() if f.coefficients]
@@ -108,14 +109,48 @@ def test_every_coefficient_of_the_catalog_has_a_unit(formulation: Formulation) -
     [
         ("sonntag1990_magnus", {"A": "", "B": "°C", "C": "hPa"}),
         ("buck1996", {"A": "", "B": "°C", "C": "hPa", "D": "°C"}),
-        ("sonntag1990", {"a0": "K", "a1": "", "a2": "1/K", "a3": "1/K²", "a4": ""}),
-        ("murphy_koop2005_ice", {"c0": "", "c1": "K", "c2": "", "c3": "1/K"}),
+        ("sonntag1990", {"a0": "K", "a1": "", "a2": "K⁻¹", "a3": "K⁻²", "a4": ""}),
+        ("murphy_koop2005_ice", {"c0": "", "c1": "K", "c2": "", "c3": "K⁻¹"}),
         ("iapws_r14_08_sublimation", {"a1": "", "b1": "", "T_t": "K", "p_t": "Pa"}),
     ],
 )
 def test_units_found_for_known_forms(key: str, expected: dict[str, str]) -> None:
     units = CATALOG.formulations[key].coefficient_units
     assert {name: unit_text(units[name].unit) for name in expected} == expected
+
+
+PI = """
+[formulations.f]
+label = "With pi"
+expression = "a * pi * t"
+fixed_units = true
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 2.0 }
+"""
+
+
+@pytest.mark.parametrize(
+    ("unit", "text"),
+    [
+        # Products as the SI Brochure writes them: never two solidi.
+        ("g * K / hPa / m ** 3", "g·K·hPa⁻¹·m⁻³"),
+        ("1 / delta_degC ** 2 / hPa", "°C⁻²·hPa⁻¹"),
+        # An exponent that is not whole, after a caret.
+        ("mmHg / permille ** 1.5", "mmHg·‰^-1.5"),
+        ("K ** -0.5", "K^-0.5"),
+        # A unit of the catalog keeps its symbol.
+        ("J / (kg * K)", "J/(kg·K)"),
+    ],
+)
+def test_units_are_written_as_products(unit: str, text: str) -> None:
+    assert unit_text(ureg.Unit(unit)) == text
+
+
+def test_pi_is_a_pure_number_in_unit_inference() -> None:
+    f = load_catalog([PI]).formulations["f"]
+    assert unit_text(f.coefficient_units["a"].unit) == "hPa·°C⁻¹"
+    assert f.evaluate(t=Q_(1, "degC")).to("hPa").magnitude == pytest.approx(2 * math.pi)
 
 
 def test_a_composition_keeps_the_units_of_its_parts() -> None:
@@ -298,7 +333,9 @@ def test_numerical_values_only_for_fixed_units() -> None:
         ("dimensionless", ""),
         ("delta_degC", "°C"),
         ("hPa", "hPa"),
-        ("1/K", "1/K"),
+        ("1/K", "K⁻¹"),
+        ("1/K**2", "K⁻²"),
+        ("1/hPa", "hPa⁻¹"),
     ],
 )
 def test_unit_text(unit: str | None, text: str) -> None:

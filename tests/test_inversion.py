@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+import sympy
 
 from nomogram.catalog import catalog, load_catalog
 from nomogram.comparison import compose
@@ -61,6 +62,21 @@ def test_round_trip_through_the_dew_point(formulation: Formulation) -> None:
     assert back.to("degC").magnitude == pytest.approx([0.5, 20.0, 40.0], abs=1e-6)
 
 
+def test_a_quantity_equation_keeps_the_unit_of_its_temperature() -> None:
+    # Clausius-Clapeyron with a constant latent heat: T in K, and no
+    # 273.15 offset coefficient, which only a numerical value equation needs.
+    source = FORMULATIONS[
+        "bechtold2015_saturation_vapour_pressure_constant_latent_heat"
+    ]
+    inverse = dew_point(source)
+    assert isinstance(inverse, Formulation)
+    assert not inverse.fixed_units
+    assert inverse.output.unit == "K"
+    assert "T_celsius_zero" not in inverse.expression
+    found = inverse.evaluate(e=Q_(6.112, "hPa"))
+    assert found.to("K").magnitude == pytest.approx(273.16)
+
+
 def test_iapws_inverse_reproduces_table_1_of_the_release() -> None:
     # 101325 Pa at 373.1243 K (IAPWS SR1-86(1992), Table 1).
     inverse = dew_point(FORMULATIONS["iapws_sr1_86"])
@@ -76,12 +92,18 @@ def test_buck_picks_the_right_branch_of_its_quadratic_solution() -> None:
     assert inverse.evaluate(e=vapour).magnitude == pytest.approx(25.0, abs=1e-6)
 
 
+#: The offset added when a result changes from K to degC or back.
+T0 = sympy.Symbol("T_celsius_zero", real=True)
+
+
 def test_kelvin_formulation_gets_an_explicit_celsius_offset() -> None:
     inverse = dew_point(FORMULATIONS["murray1967"])
     assert isinstance(inverse, Formulation)
     offset = next(c for c in inverse.coefficients if c.identifier == "T_celsius_zero")
     assert offset.value == 273.15
     assert "SI Brochure" in (offset.note or "")
+    # t = T - T0.
+    assert inverse.sympy_expression.coeff(T0) == -1
 
 
 def test_validity_domain_is_carried_through_the_function() -> None:
@@ -314,7 +336,7 @@ def test_no_usable_closed_form_falls_back_or_refuses(key: str) -> None:
         ),
         ({"solve_for": "T"}, "has no input 'T'"),
         ({"input_unit": "PA"}, "must keep the unit"),
-        ({"output_unit": "K"}, "K does not apply to DewPointTemperature"),
+        ({"output_unit": "HectoPA"}, "HectoPA does not apply to DewPointTemperature"),
         ({"output_unit": "DEG_F"}, "cannot express a result solved in DEG_C in DEG_F"),
         (
             {"output_kind": "TemperatureDifference", "output_unit": "K"},
@@ -333,6 +355,24 @@ def test_invalid_inversions_are_refused(kwargs: dict[str, str], message: str) ->
     vapour = Variable("e", "VapourPressure", kwargs.get("input_unit", "HectoPA"), "e")
     with pytest.raises(InversionError, match=message):
         invert(formulation, kwargs.get("solve_for", "t"), output=output, input=vapour)
+
+
+def test_a_dew_point_may_be_solved_in_kelvins() -> None:
+    # The same point as in degC: the closed form adds T0 = 273.15 K.
+    formulation = FORMULATIONS["sonntag1990_magnus"]
+    output = Variable("t_d", "DewPointTemperature", "K", "x")
+    vapour = Variable("e", "VapourPressure", "HectoPA", "e")
+    in_kelvins = invert(formulation, "t", output=output, input=vapour)
+    assert isinstance(in_kelvins, Formulation)
+    # T = t + T0.
+    assert in_kelvins.sympy_expression.coeff(T0) == 1
+    offset = next(
+        c for c in in_kelvins.coefficients if c.identifier == "T_celsius_zero"
+    )
+    assert offset.value == 273.15
+    e = Q_([6.112, 12.27, 23.37], "hPa")
+    expected = dew_point(formulation).evaluate(e=e).to("degC").magnitude
+    assert in_kelvins.evaluate(e=e).to("degC").magnitude == pytest.approx(expected)
 
 
 def test_forced_symbolic_without_closed_form_is_refused() -> None:

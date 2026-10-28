@@ -14,8 +14,10 @@ can also be proposed through an issue (see the
 ## Principles
 
 - **A formula is written once**, as an expression in restricted Python
-  syntax: numbers, declared identifiers, `+ - * / **`, parentheses and
-  the functions `exp`, `ln`, `log10` and `sqrt`. LaTeX, numeric
+  syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
+  functions `exp`, `ln`, `log10` and `sqrt`, the constant `pi` (a
+  reserved name, which no identifier may take), and a
+  [piecewise definition](#piecewise-definitions). LaTeX, numeric
   functions and symbolic results all derive from it.
 - **Everything is traced to a source.** A reference is `verified` only
   when the detail was **read in the source itself**; anything else is
@@ -109,14 +111,15 @@ All sections are optional; a key may be defined in one file only.
 |---|---|---|
 | `[catalog]` (one per file) | `name`, `format` | `label`, `requires`, `matches`, `keywords` |
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
-| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords` |
+| `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
-| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `matches` |
-| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind) | `description`, `matches`, `scale_type` (`ratio`, `interval`) |
+| `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions` |
+| `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
+| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
-| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
-| `[relations.<key>]` | `kind` (`equivalent`, `approximates`), `subject`, `object`, `citation` | `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
+| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
+| `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
 
 ### Formulations
@@ -148,6 +151,42 @@ All sections are optional; a key may be defined in one file only.
   apply to the input's kind.
 - Every declared identifier must be used by the expression, and every
   identifier of the expression must be declared.
+
+### Piecewise definitions
+
+A formula given by pieces, one expression per interval of an input, is
+written with `piecewise((expression, condition), ...)`:
+
+```toml
+expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_ice < T < T_0), (1, T >= T_0))"
+```
+
+- **A piecewise definition cuts the range of one input into intervals.**
+  Each condition is a comparison (`<`, `<=`, `>`, `>=`) or two chained in
+  one direction, bounding the same input for every branch; the bounds are
+  numbers, coefficients or constants. No `and`, `or` or `True`: where no
+  condition holds, the formulation gives NaN. Loading refuses intervals
+  that overlap, are empty, or bound two inputs.
+- Conditions are kept as written (a last condition is not turned into
+  "otherwise"), and are in the units and on the scale of the input, like
+  the expression. Bounds take the unit of their input (T_ice in K when T
+  is); in a quantity equation, a bound has a unit, so it is a coefficient
+  with a declared unit or a constant, never a bare number, and every
+  branch gives the same unit.
+- The formula is rendered on one line, in a left brace
+  (`\left\{0 \;\mathrm{if}\; T \leq T_{\mathrm{ice}},\; ...\right.`), the
+  same string for LaTeX, Markdown and matplotlib's mathtext, which has no
+  `cases` environment.
+- In a composition, the conditions bound inputs of the composed
+  formulation: a condition on a value an inner part computes is refused.
+- **Inversion has a limit:** a piecewise definition is inverted branch by
+  branch **only if each branch is strictly monotonic on its interval**
+  (nomogram checks it on samples), has a closed form, and the images of
+  the intervals do not overlap; the inverse is then piecewise too, its
+  conditions being those images. A constant branch, such as the 0 and 1
+  of a mixed-phase fraction, has no inverse. Otherwise the inverse is
+  numerical (see
+  [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
 
 ### Composed formulations
 
@@ -212,6 +251,205 @@ bounds = { t = [-40.0, 50.0] }
   outer formulation and the parts; the legend of a single formula says
   what it is composed of.
 
+### Formulations calling others
+
+When a source evaluates one formula at several arguments, the entry calls
+that formulation in its expression, as the source writes it. WMO-No. 8
+equation 4.B.11 takes the saturation vapour pressure in moist air at the
+dew point and at the air temperature:
+
+```toml
+[formulations.wmo_relative_humidity_from_dew_point]
+label = "Relative humidity with respect to water, from the dew point, WMO Guide (CIMO)"
+expression = "100 * e_w(p=p, t=t_d) / e_w(p=p, t=t)"
+calls = { e_w = "wmo_es_water_moist_air" }
+fixed_units = true
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature" },
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+]
+```
+
+- **`calls`** gives the formulations called, by the name the expression
+  uses. That name is neither a function, `pi` nor `piecewise`, nor an
+  identifier of the entry, and every formulation declared is called.
+- **A call names its arguments** by the identifiers of the inputs of the
+  formulation called, even when it has only one: `e_w(t=t_d)`. Every
+  input is given once, and each argument is an input of the entry, not
+  a number, an expression nor another call. A call stands anywhere in the
+  expression but in a `piecewise` definition, where the domains of the
+  formulation called would hold in every branch: such an entry is defined
+  by branches.
+- **An argument has the kind of the input it feeds, or a specialization
+  of it**, in the same unit. A point at which a formula is evaluated is
+  the exception: a dew or frost point, a wet- or ice-bulb temperature
+  may feed a Celsius or a thermodynamic temperature, still in the same
+  unit. A temperature difference never
+  feeds a temperature.
+- **An input takes the conventional scale of the inputs it feeds**. One
+  that feeds inputs on two scales is refused, and so is one that states
+  a scale other than that of the input it feeds.
+- **A result on another scale than the reference** (a dew point on
+  IPTS-68) makes the entry state that scale for its own output, in its
+  citation, so that evaluation converts the result back.
+- **`fixed_units`** is written by the entry; it is `true` as soon as a
+  formulation called holds only in its declared units.
+- **Identifiers stay free.** nomogram renames for the computation:
+  - the coefficients of each formulation called take their name as
+    written, qualified by the formulation that defines them
+    (`A__sonntag1990_magnus`), however it is reached (through a
+    composition, branches or another call), so that those of two
+    formulations never meet, and two calls of one formulation share them;
+  - a constant keeps its identifier when it is the same constant
+    everywhere; one of the same identifier but another constant (the
+    epsilon of another source) takes a name qualified by its key
+    (`epsilon__epsilon_ashrae2017`).
+
+  The display keeps the name as written, with its owner. `__` is kept
+  for these names: the entry's own identifiers may not contain it.
+- **Validity domains**: those of each formulation called apply to the
+  values each call receives (t_d and t above, each against −45 to 60 °C).
+  Those the entry states apply as well; they never replace them.
+- **Nothing is removed.** A factor common to two calls (the enhancement
+  factor above, the coefficient C of the Magnus form) may simplify away
+  from the computation; the inputs written stay inputs (p above), and the
+  coefficients stay listed.
+- The expression shown is the one written, with its calls,
+  `e_w(p, t_d)`; `Formulation.written_expression` holds it, with each call
+  kept as an opaque function, and `sympy_expression` the developed one,
+  for the computation. The `derivation` records the method `"calls"`,
+  the first formulation called as its `source`, and each call with its
+  formulation (two identical calls count once); the legend lists the
+  calls.
+- A formulation called may be composed, defined by branches, or call
+  others itself; formulations calling each other, directly or not, are
+  refused.
+- A formulation calling others takes part in `uses` and `used_by`, its
+  inputs in `search(input=...)` (a search for a dew point input finds
+  it), and the coefficients it calls in `search(symbol=...)`, by the name
+  they are written with.
+
+### Definitions, identities and derived formulations
+
+A formulation may be a definition, true by definition, or an identity,
+an exact consequence of definitions, rather than a fit or a model. It
+says so with `nature`, and is cited, as any formulation, to a text that
+prints it:
+
+```toml
+[formulations.latent_heat_fusion_identity]
+label = "Specific latent heat of fusion, as that of sublimation minus that of vaporization"
+nature = "identity"
+expression = "L_s - L_v"
+fixed_units = false
+conditions = "Both latent heats at the same temperature, the specific enthalpy of each phase depending on temperature only (Bechtold, equation 39)."
+...
+[[formulations.latent_heat_fusion_identity.citations]]
+reference = "bechtold2015"
+equation = "40"
+```
+
+- **`nature`**: `"definition"` or `"identity"`; absent for a formula a
+  source fits or models. A definition or an identity has no empirical
+  coefficient and no domain stated by a source. It is a quantity
+  equation, or a numerical value equation when its source prints it so
+  (the relative humidity of WMO-No. 8, 100 e'/e'_w in %).
+- **`conditions`**: under which it holds, as stated (the same
+  temperature); a written formulation or one calling others may have
+  them, a composition or a formulation by branches does not. The legend
+  shows them.
+- **Derived by nomogram**: a composition, a formulation by branches or
+  one calling others, without a citation of its own, is derived by
+  nomogram from formulations that are cited. The latent heat of fusion of
+  the IFS, which the IFS does not print, is the identity above composed
+  with its latent heats of sublimation and vaporization:
+
+  ```toml
+  [formulations.ecmwf_ifs_latent_heat_fusion]
+  label = "Specific latent heat of fusion, linear in temperature, from the latent heats of the ECMWF IFS"
+  composition = { outer = "latent_heat_fusion_identity", inner = { L_s = "ecmwf_ifs_latent_heat_sublimation", L_v = "ecmwf_ifs_latent_heat_vaporization" } }
+  ```
+
+  Its provenance is its derivation, never a citation:
+  `Formulation.derived` is true, the legend says that no source prints
+  it, and the indicators count such formulations. Cite a printed source
+  whenever one gives the formula; derive only when none does.
+- `search(nature="identity")` finds the identities,
+  `search(provenance="derived")` the formulations derived by nomogram,
+  `search(provenance="cited")` those a source gives.
+
+### Assumptions
+
+A formula holds under assumptions its source does not always state: an
+ideal gas, constant specific heats, the saturation vapour pressure of
+pure water rather than of moist air, a former Kelvin temperature. They
+are written, never turned into a validity domain without a criterion:
+
+```toml
+[formulations.mass_concentration_ideal_gas]
+...
+assumptions = [
+  { text = "Water vapour is an ideal gas: rho_v = e / (R_v T).", status = "deduced" },
+]
+
+[[formulations.ecmwf_ifs_latent_heat_vaporization.citations]]
+reference = "ecmwf_ifs_cy49r1"
+assumptions = ["The specific heat of liquid water is taken as constant, its value holding at the triple point (section 12.5, p. 246)."]
+```
+
+- An assumption the source states belongs to its citation, as a list of
+  texts: its status is *stated*.
+- Any other goes on the formulation, with its `status`:
+  `"stated-by-other"` (stated about the formula by another source, whose
+  `reference` is given), `"deduced"` (from the form of the formula, its
+  coefficients or its kinds) or `"suspected"` (to be checked).
+- `Formulation.assumptions` gives them all, stated first, then those of
+  the parts and branches of a formulation built from others, which holds
+  under them too, each once; the legend lists them with their status;
+  `search(assumption="ideal gas*")` finds the formulations that assume an
+  ideal gas. The source an assumption refers to is linked to the
+  formulation (`uses`, `used_by`) and found by `search(source=...)`.
+
+### Formulations by branches
+
+When the pieces of a [piecewise definition](#piecewise-definitions) are
+formulations that make sense alone, with their own sources, validity
+domains and accuracy, the formulation refers to them instead of copying
+their expressions:
+
+```toml
+[formulations.psychrolib_saturation_pressure]
+label = "Saturation pressure of water vapour over ice, then over water"
+branches = [
+  { formulation = "hyland_wexler1983_ice", where = "T <= 273.16" },
+  { formulation = "hyland_wexler1983", where = "T > 273.16" },
+]
+output = { identifier = "p_ws", kind = "VapourPressure", unit = "PA", description = "Saturation pressure" }
+```
+
+- **`branches`**: at least two `{ formulation, where }` tables; `where` is
+  the condition of a piecewise definition, an interval of one input, the
+  same for every branch. The expression is the piecewise definition the
+  branches make, written by the catalog; `expression`, `inputs`,
+  `coefficients`, `constants`, `domains` and `fixed_units` come from the
+  branches and are not written.
+- **`output`** is required: its kind is that of every branch or one they
+  specialize (over ice, over water: a vapour pressure), in their unit.
+  Branches give values on one scale, and are all numerical value
+  equations or all quantity equations.
+- Inputs are shared by identifier, alike in kind, unit and scale.
+  Coefficients and constants are gathered; one formulation may serve two
+  branches, but two formulations may not give a coefficient the same name.
+- **Validity domains**: those of each branch apply where its condition
+  holds. A domain stated by a source of the formulation replaces those
+  the sources of the branches state, as for a composition; physical
+  domains of the branches always apply.
+- The formulation's `derivation` records the method `"branches"` and the
+  formulation used under each condition; the legend of a single formula
+  lists them. `uses` and `used_by` link the formulation and its branches.
+
 ### Citations
 
 A formula is written once; each source that gives it is a citation, a
@@ -228,6 +466,8 @@ states:
 - `scales`: conventional scales the source states for inputs
   (`{ T = "its90" }`);
 - `accuracy`: the accuracy the source claims, as stated;
+- `assumptions`: the assumptions the source states for the formula,
+  as a list of texts (see [assumptions](#assumptions));
 - `note`;
 - `domains`: validity domains the source states, as
   `[[formulations.<key>.citations.domains]]` tables with `bounds` and
@@ -243,9 +483,10 @@ apply.
 
 A conventional reference scale (VIM 1.29) is a quantity-value scale
 defined by formal agreement; the international temperature scales are
-the first examples. Each applies to quantity kinds (`kinds`); each kind
-has one reference scale, on which inputs are taken and results given
-(`its90` for temperatures). Another scale of the same kinds names its
+the first examples. Each applies to quantity kinds (`kinds`) and to
+their specializations, never to a difference; each kind has one
+reference scale, specializations included, on which inputs are taken and
+results given (`its90` for temperatures). Another scale of the same kinds names its
 reference (`reference_scale`) and gives the conversion as a table of
 `[reference value, reference value - value]` pairs, in a declared
 `unit`, values increasing:
@@ -270,10 +511,10 @@ reference scale, and each relation is written once:
 label = "Practical Salinity Scale 1978 (PSS-78)"
 kinds = ["SeaWaterSalinity"]
 reference_scale = "reference_salinity2008"
-unit = "PERMILLE"
-conversion = "35.16504 / 35 * x"       # TEOS-10 eq. 2.4.1
-bounds = [2.0, 42.0]                   # the limits of PSS-78
-cf_standard_names = ["sea_water_practical_salinity"]
+unit = "UNITLESS"                       # S_P is a number: S_P = 35
+conversion = "35.16504 / 35 * x / 1000" # TEOS-10 eq. 2.4.1, S_R in 1
+bounds = [2.0, 42.0]                    # the limits of PSS-78
+cf_standard_names = [{ name = "sea_water_practical_salinity", relation = "close", verified = 2026-10-26 }]
 
 [scales.cox1967]
 label = "Cox salinity (JPOTS 1966, S = 1.80655 Cl)"
@@ -311,7 +552,11 @@ note = "Derived; sources disagree (TEOS-10 A.4, Lewis and Perkin 1981)."
   output.
 - A citation may state the scale of the output too
   (`scales = { S = "knudsen1901" }`): the result is converted back to the
-  reference scale.
+  reference scale. A scale declared on the output of an entry defined by
+  branches is the one its branches give.
+- A scale of numbers (unit `UNITLESS`, Practical Salinity) takes inputs
+  without unit: S_P = 35 is no ratio, and 35 per mille would read it a
+  thousand times too large.
 
 ### Quantity kinds and units
 
@@ -329,9 +574,100 @@ outside nomogram). A kind missing from QUDT can be
 declared in `[kinds]` as a specialization of a QUDT kind; it takes the
 scale type of its parent unless `scale_type` says otherwise (a quantity
 with a conventional origin is on an interval scale even under a
-ratio-scale parent; it is then never a difference). A missing
+ratio-scale parent; it is then never a difference). Its CF standard
+names, when CF has an equivalent, come from the frozen CF subset, where
+the extraction script keeps them (`LOCAL_KIND_CF_NAMES`); a search by a
+CF name finds the kind and the formulations that compute it, and
+`input=` those that take it as input.
+
+CF standard names are links to an external vocabulary, like Wikidata
+items: each carries its SKOS relation and the date it was checked, and
+becomes an `ExternalMatch` whose target is the name in the NERC
+Vocabulary Server (`nomogram.semantics.CF_NAMESPACE`, which publishes the
+CF table as SKOS concepts). `QuantityKind.cf_standard_names` and
+`ConventionalScale.cf_standard_names` give the names alone.
+
+```toml
+cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verified = 2026-10-26 }]
+```
+
+- `relation` is `exact`, `close`, `broad` or `narrow`, read from the
+  catalog's object to the CF name: `air_temperature` is *narrow* for the
+  thermodynamic temperature (the temperature of air only), a CF salinity
+  name is *close* for a salinity scale (it names the quantity on the
+  scale).
+- A bare name, as format 2 writes it (`cf_standard_names =
+  ["virtual_temperature"]`), is read as an exact match, checked on the
+  date the frozen CF subset was extracted. A missing
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
+
+### Physical constants
+
+A constant is one value from one source: two sources giving different
+values make two entries (`epsilon_ashrae2017`, `epsilon_ecmwf_ifs`), and a
+formulation lists the one it uses.
+
+```toml
+[constants.R_v_iapws95]
+identifier = "R_v"
+value = 461.51805
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of water vapour"
+reference = "iapws95"
+nature = "conventional"
+```
+
+- `nature` says how the value is known; every constant of the bundled
+  catalog states it:
+  - `exact`: fixed by definition, without uncertainty, as the defining
+    constants of the SI (SI Brochure, 2.2) and the constants derived from
+    them alone (QUDT `exactConstant`, CODATA "exact");
+  - `conventional`: attributed by agreement for a given purpose (VIM
+    2.12), such as the standard acceleration of free fall, or a value a
+    source adopts for its formulas;
+  - `measured`: a measurement result (VIM 2.10), such as a CODATA value.
+- `uncertainty` is the standard uncertainty the source gives, in the unit
+  of the constant; an exact constant has none.
+- `conditions` says what the value depends on, if anything (a latent
+  heat at 0 degC).
+- `value` is a number, or decimal text when trailing zeros are
+  significant: `value = "287.0500"` keeps the digits the source prints,
+  which a number loses whatever its notation (`287.0500` and
+  `2.870500e2` are both read as 287.05).
+
+A constant the source defines by a formula of other constants carries
+that formula; the value used stays the one printed, and the catalog
+checks that the two agree:
+
+```toml
+[constants.epsilon_ecmwf_ifs]
+identifier = "epsilon"
+value = 0.621981
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, R_d / R_v of the ECMWF IFS"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+definition = "R_d / R_v"
+constants = ["R_d_ecmwf_ifs", "R_v_ecmwf_ifs"]
+```
+
+- `definition` uses the identifiers of the constants listed in
+  `constants`, each one used, and gives the unit of the constant.
+- The formula is evaluated exactly (pi exact) on the values the
+  components print, and on their unrounded values (the definition of a
+  component that has one), since a source may derive a constant from
+  either: the ECMWF IFS derives R_d = R / M_d from the unrounded
+  R = N k, then c_pd = 7/2 R_d from the printed R_d. The printed value
+  agrees with one of the two results: within the uncertainty the source
+  gives; as a truncation for an exact constant (less than one unit of its
+  last digit below: CODATA's sigma); otherwise rounded to half a unit of
+  its last digit. Write the value as text when its trailing zeros count.
+- A source that departs from its own formula is entered as it prints:
+  `tolerance` (in the unit of the constant) says how far, and `note`, which
+  is then required, says by how much and why.
+- Constants cannot define each other in a cycle; a constant using a
+  constant of another family requires that family.
 
 ### External links
 
@@ -350,14 +686,15 @@ matches = [
 ## Relations
 
 A relation records what a **source states** between two formulations of
-the same quantity kind; nomogram verifies it
-(`nomogram.relations.verify`), but never invents one. A deviation
+the same quantity kind, which nomogram verifies
+(`nomogram.relations.verify`), or, without a citation, an equivalence or
+a proportionality that nomogram computes and proves. A deviation
 nomogram computes without a source is an observation
 (`nomogram.comparison.compare`), not a relation.
 
 ```toml
 [relations.ae96_aekr_gg46]
-kind = "approximates"                 # or "equivalent"
+kind = "approximates"                 # or "equivalent", "proportional"
 subject = "alduchov_eskridge1996"
 object = "goff1957"
 citation = "alduchov_eskridge1996"    # the source that states it
@@ -378,6 +715,29 @@ note = "Table III, r_g."
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or
   *unproven*.
+- **`proportional`**: the subject equals the object times a constant
+  factor. Proved on the ratio, simplified to a constant (*proven*), or
+  sampled on `bounds`, which every input of the subject needs: *held*
+  when moving a printed coefficient within its rounding takes its
+  variation away, *refuted* otherwise. Outputs on an interval scale (°C)
+  have no ratio: such a proportionality is refused. The verdict gives the factor, the coefficients it
+  is the ratio of (a coefficient of the object brought into the output
+  unit of the subject: 611.21 Pa is 6.1121 hPa), whether the two are
+  equal to the printed precision,
+  and whether a shift or a factor of a temperature or a salinity would
+  explain it (a matter of scale; a factor of an input the object is
+  proportional to cannot tell). An equivalence is a proportionality of
+  factor 1 (`RelationKind.broader`).
+- **Computed by nomogram**: an equivalence or a proportionality without
+  a `citation` is one nomogram computes; its verdict proves it or holds
+  it, and searching for "computed by nomogram" finds it. An approximation
+  always cites its source.
+- **Units**: the object is brought into the units of the subject by an
+  exact factor (a result in Pa compared with one in hPa, an input in hPa
+  fed by one in Pa). A conversion with an offset is stated in **`given`**,
+  whose expressions are taken as written: `given = { t = "T - 273.16" }`
+  feeds a Celsius temperature from a kelvin one, with 0 degC at 273.16 K
+  as Murray writes it; a bare identifier in another unit is refused.
 - A claim that cannot be checked as it stands is *unverified*, with the
   reason: an equivalence between formulations on different scales under
   `scale = "convert"`, an approximation evaluable at no point of its
@@ -477,11 +837,22 @@ After adding or changing a relation, refresh the registry of verdicts
 uv run python -m nomogram.catalog verify --record
 ```
 
+To see how far the catalog covers the design goals (formulations with a
+validity domain, inputs with their conventional scale, references
+checked against the source, links to CF and Wikidata...):
+
+```
+uv run python -m nomogram.catalog stats
+```
+
 `check` loads the file with the bundled families (as a personal catalog
 when it is not one of them), then reports, for each of its
 formulations, those of the same form (coefficients aside) and the
 maximum relative deviation **observed** against every formulation of the
-same kind, on the domain where both are valid. These are observations:
+same kind, on the domain where both are valid. Inputs are taken on the
+reference scale of their kind, as in an evaluation: the domain an input
+on a conventional scale is stated on is converted to the reference scale
+first, leaving out the values that do not convert. These are observations:
 only a relation with a citation states an approximation or an
 equivalence. A pair that comes out numerically identical deserves a
 look: an equivalence to state, or the same formulation written twice.

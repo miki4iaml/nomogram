@@ -31,18 +31,19 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
         "KINDS",
         {
             "ThermodynamicTemperature": KindSpec(
-                "ratio", delta=False, cf_standard_names=("air_temperature",)
+                "ratio", delta=False, cf_standard_names=(("air_temperature", "narrow"),)
             ),
             "CelsiusTemperature": KindSpec("interval", delta=False),
             "VapourPressure": KindSpec(
                 "ratio",
                 delta=False,
-                cf_standard_names=("water_vapor_partial_pressure_in_air",),
+                cf_standard_names=(("water_vapor_partial_pressure_in_air", "exact"),),
                 added_units=("PA", "HectoPA"),
             ),
         },
     )
     monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ())
+    monkeypatch.setattr(extract_semantics, "LOCAL_KIND_CF_NAMES", ())
     monkeypatch.setattr(
         extract_semantics,
         "UNITS",
@@ -115,6 +116,21 @@ def test_an_interval_scale_may_take_multiplicative_units(
     assert found["VapourPressure"]["applicable_units"] == ["HectoPA"]
 
 
+def test_a_kind_may_take_units_with_and_without_an_offset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A temperature point written in degC or in K, as the dew point is.
+    spec = extract_semantics.KINDS["CelsiusTemperature"]
+    kinds = dict(
+        extract_semantics.KINDS, CelsiusTemperature=spec._replace(offset_units="any")
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["CelsiusTemperature"]["applicable_units"] == ["DEG_C", "K"]
+    assert found["CelsiusTemperature"]["added_units"] == []
+
+
 def test_english_label_is_preferred_and_plain_label_accepted() -> None:
     kinds = run()["quantity_kinds"]
     assert isinstance(kinds, dict)
@@ -170,7 +186,7 @@ def test_missing_cf_name_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         extract_semantics.KINDS,
         "CelsiusTemperature",
-        KindSpec("interval", False, cf_standard_names=("no_such_name",)),
+        KindSpec("interval", False, cf_standard_names=(("no_such_name", "exact"),)),
     )
     with pytest.raises(ValueError, match="CF standard names not found: no_such_name"):
         run()
@@ -232,6 +248,18 @@ def test_cf_names_of_scales_are_extracted(monkeypatch: pytest.MonkeyPatch) -> No
     )
     monkeypatch.setattr(extract_semantics, "KINDS", kinds)
     monkeypatch.setattr(extract_semantics, "SCALE_CF_NAMES", ("air_temperature",))
+    names = run()["cf_standard_names"]
+    assert isinstance(names, dict)
+    assert "air_temperature" in names
+
+
+def test_cf_names_of_local_kinds_are_extracted(monkeypatch: pytest.MonkeyPatch) -> None:
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = kinds["ThermodynamicTemperature"]._replace(
+        cf_standard_names=()
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    monkeypatch.setattr(extract_semantics, "LOCAL_KIND_CF_NAMES", ("air_temperature",))
     names = run()["cf_standard_names"]
     assert isinstance(names, dict)
     assert "air_temperature" in names

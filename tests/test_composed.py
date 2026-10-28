@@ -31,6 +31,7 @@ value = 1.5
 unit = "UNITLESS"
 description = "A constant"
 reference = "src"
+nature = "conventional"
 
 [constants.g2]
 identifier = "g"
@@ -38,6 +39,7 @@ value = 2.0
 unit = "UNITLESS"
 description = "Another value of it"
 reference = "src"
+nature = "conventional"
 
 [formulations.outer]
 label = "Outer"
@@ -300,8 +302,12 @@ coefficients = { c = 1e-3 }
 label = "With g"
 composition = { outer = "outer_g", inner = { k = "factor_g{n}" } }
 """
-    with_g = load_catalog([PARTS, shared.replace("{n}", "1")]).formulations["with_g"]
+    built = load_catalog([PARTS, shared.replace("{n}", "1")])
+    with_g = built.formulations["with_g"]
     assert [k.key for k in with_g.constants] == ["g1"]
+    # Its table writes no constant: it links to those of its parts.
+    unit = f"units.{with_g.constants[0].unit}"
+    assert {"constants.g1", unit} <= set(built.uses("formulations.with_g").refs)
     with pytest.raises(CatalogError, match="constant g is g1 in one part and g2"):
         load_catalog([PARTS, shared.replace("{n}", "2")])
 

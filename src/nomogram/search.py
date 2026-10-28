@@ -40,9 +40,12 @@ from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Any, overload
 
+from nomogram.model import Formulation, _origin
+
 if TYPE_CHECKING:
     from nomogram.catalog import Catalog
-    from nomogram.model import Formulation, Variable
+    from nomogram.model import Variable
+    from nomogram.semantics import UnitDefinition
 
 __all__ = [
     "FIELDS",
@@ -77,6 +80,11 @@ FIELDS: Mapping[str, str] = {
         "the output kind of a formulation, or a quantity kind itself; with "
         "specializations=True (default), kinds specializing it as well"
     ),
+    "unit": (
+        "a unit an entry works in (variables, constants and declared coefficients "
+        "of a formulation; a constant, a scale), or a unit itself: QUDT name, "
+        "symbol, UCUM code, label or pint expression, compared whole"
+    ),
     "output": "the output variable of a formulation: identifier, symbols, kind, description",
     "input": "an input variable of a formulation: identifier, symbols, kind, description",
     "variable": "any variable, coefficient or constant of a formulation",
@@ -90,6 +98,12 @@ FIELDS: Mapping[str, str] = {
     "equation": "the equation number of a citation, with source= in the same citation",
     "family": "the family the entry belongs to",
     "keyword": "a keyword of a formulation or a family",
+    "nature": "the nature of a formulation: definition or identity",
+    "assumption": "an assumption of a formulation, stated or noted",
+    "provenance": (
+        "where a formulation comes from: cited (a source gives it), derived "
+        "(by nomogram, from others) or uncited (written without a source)"
+    ),
 }
 
 # Greek letters by character, after case folding; variants and the micro
@@ -203,11 +217,17 @@ def _symbol_words(tex: str) -> frozenset[str]:
     return frozenset(found)
 
 
+def _unit_forms(name: str, unit: UnitDefinition) -> tuple[str, ...]:
+    """The forms a unit is named by: QUDT name, symbol, UCUM code, label, pint."""
+    forms = (name, unit.symbol, unit.ucum, unit.label, unit.pint)
+    return tuple(form for form in forms if form)
+
+
 def _whole(*texts: str | None) -> frozenset[str]:
-    """Texts as single words, folded: symbols such as ``g/kg`` or ``°C``.
+    """Texts as single words, folded: symbols such as ``g/kg`` or ``°C``, DOIs, URLs.
 
     :func:`words` splits a text at such signs, and a term is never split:
-    kept whole, a symbol finds itself.
+    kept whole, a symbol or an address finds itself.
     """
     return frozenset(fold(t) for t in texts if t)
 
@@ -248,6 +268,7 @@ class _Record:
     kinds: tuple[str, ...] = ()
     citations: tuple[tuple[str, frozenset[str], str | None], ...] = ()
     symbols: tuple[tuple[str, frozenset[str]], ...] = ()
+    units: tuple[str, ...] = ()
 
 
 def _join(*parts: object) -> str:
@@ -270,6 +291,7 @@ class _Index:
     by_ref: Mapping[str, _Record]
     used_by: Mapping[str, tuple[str, ...]]
     descendants: Mapping[str, frozenset[str]]
+    unit_forms: Mapping[str, frozenset[str]]
 
 
 def _symbols_of(
@@ -285,6 +307,24 @@ def _symbols_of(
         if identifier in notation.symbols:
             found[key] = notation.symbols[identifier]
     return list(found.items())
+
+
+def _written_symbols(
+    catalog: Catalog, formulation: Formulation, identifier: str, *, owned: bool
+) -> list[tuple[str, str]]:
+    """Symbols of a coefficient or constant, also as written where it comes from.
+
+    A formulation that calls others holds their coefficients, and some of
+    their constants, renamed (``A__sonntag1990_magnus``): they are found by
+    the name they are written with too, in the notations of the formulation
+    that defines a coefficient.
+    """
+    found = _symbols_of(catalog, formulation, identifier)
+    owner, written = _origin(formulation, identifier)
+    if written != identifier:
+        source = catalog.formulations.get(owner, formulation) if owned else formulation
+        found += _symbols_of(catalog, source, written)
+    return found
 
 
 def _variable_words(
@@ -310,31 +350,35 @@ def _formulation(
         _kind_text(catalog, f.output.kind),
         *(_join(r.key, r.authors, r.title, r.year) for r in references),
         _matches_text(f.matches),
+        f.nature.value if f.nature is not None else None,
+        f.conditions,
+        *(a.text for a in f.assumptions),
     )
     inputs = tuple(_variable_words(catalog, f, v) for v in f.inputs)
     output = _variable_words(catalog, f, f.output)
+    coefficients = [
+        _written_symbols(catalog, f, c.identifier, owned=True) for c in f.coefficients
+    ]
+    constants = [
+        _written_symbols(catalog, f, k.identifier, owned=False) for k in f.constants
+    ]
     others = tuple(
-        frozenset().union(
-            *(_symbol_words(t) for _, t in _symbols_of(catalog, f, c.identifier))
-        )
-        | words(_join(c.note))
-        for c in f.coefficients
+        frozenset().union(*(_symbol_words(t) for _, t in found)) | words(_join(c.note))
+        for c, found in zip(f.coefficients, coefficients, strict=True)
     ) + tuple(
-        frozenset().union(
-            *(_symbol_words(t) for _, t in _symbols_of(catalog, f, k.identifier))
-        )
+        frozenset().union(*(_symbol_words(t) for _, t in found))
         | words(_join(k.key, k.description))
-        for k in f.constants
+        for k, found in zip(f.constants, constants, strict=True)
     )
     symbols = tuple(
         (notation, _symbol_words(tex))
-        for name in (
-            f.output.identifier,
-            *(v.identifier for v in f.inputs),
-            *(c.identifier for c in f.coefficients),
-            *(k.identifier for k in f.constants),
+        for found in (
+            _symbols_of(catalog, f, f.output.identifier),
+            *(_symbols_of(catalog, f, v.identifier) for v in f.inputs),
+            *coefficients,
+            *constants,
         )
-        for notation, tex in _symbols_of(catalog, f, name)
+        for notation, tex in found
     )
     citations = tuple(
         (
@@ -344,6 +388,14 @@ def _formulation(
         )
         for c in f.citations
     )
+    # A source an assumption refers to is a source of the formulation too.
+    citations += tuple(
+        (r, words(_join(r, catalog.references[r].authors)), None)
+        for r in dict.fromkeys(
+            a.reference for a in f.assumptions if a.reference is not None
+        )
+        if r in catalog.references and r not in f.references
+    )
     return _Record(
         entry=Entry("formulations", key, f.label, f),
         text=words(text),
@@ -352,11 +404,20 @@ def _formulation(
             "input": inputs,
             "variable": (output, *inputs, *others),
             "keyword": tuple(words(k) for k in f.keywords),
+            "nature": (words(f.nature.value),) if f.nature is not None else (),
+            "assumption": tuple(words(a.text) for a in f.assumptions),
+            "provenance": _provenance(f),
         },
         kinds=(f.output.kind,),
         citations=citations,
         symbols=symbols,
     )
+
+
+def _provenance(formulation: Formulation) -> tuple[frozenset[str], ...]:
+    if formulation.derived:
+        return (words("derived"),)
+    return (words("cited" if formulation.citations else "uncited"),)
 
 
 def _sourced(
@@ -400,7 +461,8 @@ def _records(catalog: Catalog) -> list[_Record]:
         records.append(
             _Record(
                 Entry("references", key, _join(r.authors, r.year, r.title), r),
-                words(_join(text, _matches_text(r.matches))),
+                words(_join(text, _matches_text(r.matches)))
+                | _whole(r.doi, r.url, f"https://doi.org/{r.doi}" if r.doi else None),
                 {},
                 citations=_sourced(catalog, key),
             )
@@ -410,7 +472,15 @@ def _records(catalog: Catalog) -> list[_Record]:
             _Record(
                 Entry("constants", key, k.description, k),
                 words(
-                    _join(key, k.identifier, k.description, _matches_text(k.matches))
+                    _join(
+                        key,
+                        k.identifier,
+                        k.description,
+                        k.nature.value if k.nature else None,
+                        k.conditions,
+                        k.note,
+                        _matches_text(k.matches),
+                    )
                 ),
                 {},
                 citations=_sourced(catalog, k.reference),
@@ -468,10 +538,11 @@ def _records(catalog: Catalog) -> list[_Record]:
         )
     for key, rel in catalog.relations.items():
         label = f"{rel.subject} {rel.kind.value} {rel.object}"
+        provenance = "computed by nomogram" if rel.computed else None
         records.append(
             _Record(
                 Entry("relations", key, label, rel),
-                words(_join(key, label, rel.note)),
+                words(_join(key, label, rel.note, provenance)),
                 {},
                 citations=_sourced(catalog, rel.citation),
             )
@@ -481,7 +552,7 @@ def _records(catalog: Catalog) -> list[_Record]:
         records.append(
             _Record(
                 Entry("cross_checks", key, label, check),
-                words(_join(key, label, check.note)),
+                words(_join(key, label, check.note)) | _whole(check.url),
                 {},
             )
         )
@@ -501,19 +572,13 @@ def _records(catalog: Catalog) -> list[_Record]:
             )
         )
     for name, unit in semantic_catalog().units.items():
-        text = _join(
-            name,
-            unit.label,
-            unit.symbol,
-            unit.ucum,
-            unit.pint,
-            _matches_text(unit.matches),
-        )
+        text = _join(*_unit_forms(name, unit), _matches_text(unit.matches))
         records.append(
             _Record(
                 Entry("units", name, unit.label, unit),
                 words(text) | _whole(unit.symbol),
                 {},
+                units=(name,),
             )
         )
     return [
@@ -528,6 +593,12 @@ def _records(catalog: Catalog) -> list[_Record]:
                     else {}
                 ),
             },
+            units=record.units
+            + tuple(
+                target.removeprefix("units.")
+                for target in catalog.links.get(record.entry.ref, ())
+                if target.startswith("units.")
+            ),
         )
         for record in records
     ]
@@ -535,6 +606,8 @@ def _records(catalog: Catalog) -> list[_Record]:
 
 def index(catalog: Catalog) -> _Index:
     """Build the search index of a catalog (see :meth:`Catalog.search`)."""
+    from nomogram.semantics import semantic_catalog
+
     records = tuple(_records(catalog))
     by_ref = {r.entry.ref: r for r in records}
     used_by: dict[str, list[str]] = {}
@@ -552,6 +625,10 @@ def index(catalog: Catalog) -> _Index:
         by_ref=by_ref,
         used_by={k: tuple(v) for k, v in used_by.items()},
         descendants={k: frozenset(v) for k, v in descendants.items()},
+        unit_forms={
+            name: frozenset(_unit_forms(name, unit))
+            for name, unit in semantic_catalog().units.items()
+        },
     )
 
 
@@ -577,7 +654,36 @@ def _notation_matches(key: str, pattern: str) -> bool:
 
 
 def _all_match(terms: list[str], found: frozenset[str]) -> bool:
-    return all(any(fnmatchcase(word, term) for word in found) for term in terms)
+    # A word equal to a term matches it, wildcard signs included: an
+    # address holding [0] finds itself.
+    return all(
+        term in found or any(fnmatchcase(word, term) for word in found)
+        for term in terms
+    )
+
+
+def _units(forms: Mapping[str, frozenset[str]], pattern: str) -> frozenset[str]:
+    """The units a ``unit=`` pattern names, by QUDT name.
+
+    The pattern is compared whole with the forms of each unit: split into
+    words, ``K`` would match ``J-PER-KiloGM-K``. A form written exactly as
+    the pattern comes first, case included (``mPa`` is not ``MPa``), then
+    a form equal to it without case or accents, then wildcards: UCUM's
+    ``[ppm]`` or pint's ``J/(kg*K)`` are not read as wildcards.
+    """
+    wanted = pattern.strip()
+    folded = fold(wanted)
+    for matches in (
+        lambda form: form == wanted,
+        lambda form: fold(form) == folded,
+        lambda form: fnmatchcase(fold(form), folded),
+    ):
+        found = frozenset(
+            name for name, written in forms.items() if any(map(matches, written))
+        )
+        if found:
+            return found
+    return frozenset()
 
 
 def _keep(
@@ -586,6 +692,7 @@ def _keep(
     section: str | None,
     filters: Mapping[str, str],
     kinds: frozenset[str] | None,
+    units: frozenset[str] | None,
 ) -> bool:
     if section is not None and not fnmatchcase(record.entry.section, section):
         return False
@@ -593,8 +700,10 @@ def _keep(
         return False
     if kinds is not None and not set(record.kinds) & kinds:
         return False
+    if units is not None and not set(record.units) & units:
+        return False
     for name, pattern in filters.items():
-        if name in ("kind", "source", "equation", "symbol", "notation"):
+        if name in ("kind", "unit", "source", "equation", "symbol", "notation"):
             continue
         values = record.fields.get(name)
         wanted = _terms(pattern, symbol=name in _SYMBOLIC)
@@ -646,20 +755,32 @@ def search(
         if specializations:
             matched = {d for name in matched for d in built.descendants[name]}
         kinds = frozenset(matched)
+    units = _units(built.unit_forms, filters["unit"]) if "unit" in filters else None
     folded = [t for term in terms for t in _terms(term)]
     chosen = tuple(
         r.entry
         for r in built.records
-        if _keep(r, folded, fold(section) if section else None, filters, kinds)
+        if _keep(r, folded, fold(section) if section else None, filters, kinds, units)
     )
     return Selection(chosen, catalog)
 
 
-def _ref(entry: str | Entry) -> str:
-    return entry.ref if isinstance(entry, Entry) else entry
+def _ref(entry: str | Entry | Formulation) -> str:
+    value: object = entry  # checked at run time, whatever the caller passes
+    if isinstance(value, Entry):
+        return value.ref
+    if isinstance(value, Formulation):
+        return f"formulations.{value.key}"
+    if isinstance(value, str):
+        return value
+    msg = (
+        "expected a reference 'section.key', an Entry or a Formulation, "
+        f"not {type(value).__name__}"
+    )
+    raise TypeError(msg)
 
 
-def uses(catalog: Catalog, entry: str | Entry) -> Selection:
+def uses(catalog: Catalog, entry: str | Entry | Formulation) -> Selection:
     """See :meth:`nomogram.catalog.Catalog.uses`."""
     built = catalog._search_index
     ref = _ref(entry)
@@ -670,7 +791,7 @@ def uses(catalog: Catalog, entry: str | Entry) -> Selection:
     return Selection(tuple(built.by_ref[t].entry for t in targets), catalog)
 
 
-def used_by(catalog: Catalog, entry: str | Entry) -> Selection:
+def used_by(catalog: Catalog, entry: str | Entry | Formulation) -> Selection:
     """See :meth:`nomogram.catalog.Catalog.used_by`."""
     built = catalog._search_index
     ref = _ref(entry)
