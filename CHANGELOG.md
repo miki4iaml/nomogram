@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-28
+
 ### Added
 
 - Pre-commit hook `check-image-metadata`: an image carries no metadata
@@ -281,7 +283,7 @@ and this project adheres to
   keyword arguments (`ylim=(-1, 1)`, `title`...), set once the curves are
   drawn; limits given to `plot_deviations` make the curves beyond them off
   scale, each legend entry saying how far it goes. The example of the
-  README zooms in on 1 %, with full axes and a short legend.
+  README zooms in on 0 to 60 degC and 1 %.
 - The display options `axis_detail` and `legend_detail` set,
   independently, how much the axes and the legend of a plot say:
   `"short"` gives the symbol and unit on an axis, and the first citation
@@ -1018,7 +1020,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...develop
+[0.4.0]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/miki4iaml/nomogram/compare/v0.1.0...v0.1.1

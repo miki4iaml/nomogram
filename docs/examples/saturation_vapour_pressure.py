@@ -33,13 +33,11 @@ def main(output: str) -> None:
         formulations, reference, {"ThermodynamicTemperature": temperatures}
     )
     with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
-        ax = nomo.plot.plot_deviations(table, ylim=(-1.0, 1.0))  # extra viz
+        ax = nomo.plot.plot_deviations(table, xlim=(0, 60), ylim=(-1.0, 1.0))
 
-    # Formatting only: the legend under the plot, in two columns.
+    # Formatting only: the legend in the lower left corner, in two columns.
     ax.grid(alpha=0.3)
-    ax.legend(
-        fontsize="small", loc="upper center", bbox_to_anchor=(0.5, -0.17), ncols=2
-    )
+    ax.legend(fontsize="small", loc="lower left", ncols=2)
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
     ax.figure.set_size_inches(11, 8.5)
     ax.figure.tight_layout()
