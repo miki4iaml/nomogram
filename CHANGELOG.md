@@ -43,6 +43,12 @@ and this project adheres to
   in the two forms of WMO-No. 8 (3.2 and 3.1), with the gas constant of
   dry air it gives; the dry adiabatic gradient (Bechtold 2015, 38, with
   its g = 9.81 m s-2). The assumptions each source states are recorded.
+- The reference atmosphere of ITU-R P.835-7, temperature (2a-2g) and
+  pressure (3a-3g) against the geopotential height up to 84.852 km'; each
+  pressure layer written as the general form of the U.S. Standard
+  Atmosphere with its values as coefficients. The pressure altitude by
+  inversion of that pressure (numerical: the source's layers meet with
+  small jumps), and the NWS formula in feet.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.

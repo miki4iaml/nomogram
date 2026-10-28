@@ -178,6 +178,50 @@ def test_the_two_forms_of_the_reduction_to_sea_level() -> None:
     assert 0.03 < exponential.magnitude - decimal.magnitude < 0.05
 
 
+def test_the_reference_atmosphere_of_itu_r_p835() -> None:
+    heights = Q_([0.0, 11.0, 20.0, 84.852], "km")
+    temperature = FORMULATIONS["itu_r_p835_temperature"].evaluate(H=heights)
+    assert temperature.magnitude == pytest.approx([288.15, 216.65, 216.65, 186.946])
+    pressure = FORMULATIONS["itu_r_p835_pressure"]
+    assert pressure.evaluate(H=Q_(0.0, "km")).magnitude == pytest.approx(1013.25)
+    # The source's layers meet with small jumps: 3a ends at 226.3206 hPa,
+    # 3b starts at 226.3226 hPa.
+    end = pressure.evaluate(H=Q_(11.0, "km")).magnitude
+    start = pressure.evaluate(H=Q_(11.000001, "km")).magnitude
+    assert end == pytest.approx(226.3206, abs=1e-4)
+    assert 0 < (start - end) / end < 2e-5
+
+
+def test_a_layer_of_p835_is_the_general_form_of_the_us_standard_atmosphere() -> None:
+    # 3a with k = 34.1632 against 33a with the constants of 1976
+    # (g0' M0 / R* = 34.163195 K/km').
+    p835 = FORMULATIONS["itu_r_p835_pressure"].evaluate(H=Q_(5.0, "km"))
+    ussa = FORMULATIONS["ussa1976_pressure_layer_gradient"].evaluate(
+        P_b=Q_(1013.25, "hPa"),
+        T_b=Q_(288.15, "K"),
+        L=Q_(-6.5, "K/km"),
+        H=Q_(5.0, "km"),
+        H_b=Q_(0.0, "km"),
+    )
+    assert p835.to("hPa").magnitude == pytest.approx(ussa.to("hPa").magnitude, rel=1e-6)
+
+
+def test_pressure_altitude_by_inversion_and_from_the_nws() -> None:
+    from nomogram.inversion import invert
+    from nomogram.model import Variable
+
+    altitude = invert(
+        FORMULATIONS["itu_r_p835_pressure"],
+        "H",
+        output=Variable("H_p", "PressureAltitude", "KiloM", "Pressure altitude"),
+        input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+    )
+    p835 = altitude.evaluate(P=Q_(500, "hPa")).to("m").magnitude
+    nws = FORMULATIONS["nws_pressure_altitude"].evaluate(P=Q_(500, "hPa"))
+    assert p835 == pytest.approx(5574.44, abs=0.01)
+    assert p835 - nws.to("m").magnitude == pytest.approx(2.33, abs=0.01)
+
+
 def test_the_dry_adiabatic_gradient() -> None:
     # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
     gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()

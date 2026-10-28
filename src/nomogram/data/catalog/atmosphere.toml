@@ -69,6 +69,13 @@ url = "https://ntrs.nasa.gov/citations/19770009539"
 status = "verified"
 note = "Read on the page images of the scanned report: tables 1 and 2 (p. 2), the adopted constants, among them R* = 8.31432 x 10^3 N m/(kmol K) and g0' = 9.80665 m2/(s2 m'); table 4 (p. 3), the seven layers H_b and L_M,b; equations 20 to 22 (p. 9), M0 = 28.9644 kg/kmol and the molecular-scale temperature T_M = T M0/M; equations 33a and 33b (p. 12), the pressure of a layer of constant gradient and of an isothermal layer. A reference model, identical to the ICAO standard atmosphere up to 32 km; dated, kept to check the formulas."
 
+[references.nws_wxcalc_pressure_altitude]
+authors = "National Weather Service"
+title = "Pressure Altitude (calculation sheet)"
+url = "https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf"
+status = "verified"
+note = "Read on 2026-10-28: h_alt = (1 - (P_sta/1013.25)^0.190284) x 145366.45, the station pressure in millibars and the pressure altitude in feet; h_m = 0.3048 h_alt. Undated; no domain stated."
+
 [references.era5_documentation]
 authors = "ECMWF, Copernicus Climate Change Service"
 year = 2026
@@ -637,3 +644,68 @@ reference = "bechtold2015"
 equation = "38"
 notation = { dTdz = '\frac{\mathrm{d}T}{\mathrm{d}z}', c_pd = 'c_{p\mathrm{d}}' }
 assumptions = ["Hydrostatic equilibrium, dp = -rho g dz.", "An adiabatic ascent without phase change."]
+
+# The reference atmosphere: a conventional model, not a description of
+# the atmosphere. ITU-R P.835-7 derives it from the U.S. Standard
+# Atmosphere, 1976, identical to the ICAO standard atmosphere up to
+# 32 km. Each layer of its pressure is the general form of the U.S.
+# Standard Atmosphere (equations 33a and 33b) with the values of the
+# layer: written with them as coefficients, the formulas keep the form
+# the source prints. A pressure altitude is the inverse of the pressure.
+
+[formulations.itu_r_p835_temperature]
+label = "Temperature of the ITU-R reference atmosphere, from the geopotential height (ITU-R P.835)"
+expression = "piecewise((T_0 + L_0 * H, 0 <= H <= 11), (T_1, 11 < H <= 20), (T_2 + L_2 * (H - 20), 20 < H <= 32), (T_3 + L_3 * (H - 32), 32 < H <= 47), (T_4, 47 < H <= 51), (T_5 + L_5 * (H - 51), 51 < H <= 71), (T_6 + L_6 * (H - 71), 71 < H <= 84.852))"
+fixed_units = true
+note = "Equations 2a to 2g, for geopotential heights from 0 to 84.852 km' (86 km of geometric height); above, from 86 to 100 km of geometric height, equations 4a and 4b (not entered). T_b are the temperatures at the base of the layers, L_b their gradients in K/km' (table 4 of the U.S. Standard Atmosphere, 1976)."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" }
+inputs = [
+  { identifier = "H", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { T_0 = 288.15, L_0 = -6.5, T_1 = 216.65, T_2 = 216.65, L_2 = 1.0, T_3 = 228.65, L_3 = 2.8, T_4 = 270.65, T_5 = 270.65, L_5 = -2.8, T_6 = 214.65, L_6 = -2.0 }
+keywords = ["standard atmosphere", "reference atmosphere", "temperature profile"]
+
+[[formulations.itu_r_p835_temperature.citations]]
+reference = "itu_r_p835_7"
+equation = "2a-2g"
+
+[[formulations.itu_r_p835_temperature.citations.domains]]
+bounds = { H = [0.0, 84.852] }
+criterion = "The first height regime of the reference atmosphere, geopotential heights from 0 to 84.852 km' (Annex 1, 1.1)."
+
+[formulations.itu_r_p835_pressure]
+label = "Pressure of the ITU-R reference atmosphere, from the geopotential height (ITU-R P.835)"
+expression = "piecewise((P_0 * (T_0 / (T_0 + L_0 * H))**(k / L_0), 0 <= H <= 11), (P_1 * exp(-k * (H - 11) / T_1), 11 < H <= 20), (P_2 * (T_2 / (T_2 + L_2 * (H - 20)))**(k / L_2), 20 < H <= 32), (P_3 * (T_3 / (T_3 + L_3 * (H - 32)))**(k / L_3), 32 < H <= 47), (P_4 * exp(-k * (H - 47) / T_4), 47 < H <= 51), (P_5 * (T_5 / (T_5 + L_5 * (H - 51)))**(k / L_5), 51 < H <= 71), (P_6 * (T_6 / (T_6 + L_6 * (H - 71)))**(k / L_6), 71 < H <= 84.852))"
+fixed_units = true
+note = "Equations 3a to 3g, for geopotential heights from 0 to 84.852 km'; above, equation 5 (not entered). Each layer is equation 33a or 33b of the U.S. Standard Atmosphere, 1976, with P_b the pressure at its base, T_b its base temperature, L_b its gradient and k = 34.1632 K/km', the source's g0' M0 / R* (34.163195 from the constants of the U.S. Standard Atmosphere): 3a is 1013.25 [288.15/(288.15 - 6.5 H)]^(-34.1632/6.5)."
+output = { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Pressure" }
+inputs = [
+  { identifier = "H", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { P_0 = 1013.25, T_0 = 288.15, L_0 = -6.5, P_1 = 226.3226, T_1 = 216.65, P_2 = 54.74980, T_2 = 216.65, L_2 = 1.0, P_3 = 8.680422, T_3 = 228.65, L_3 = 2.8, P_4 = 1.109106, T_4 = 270.65, P_5 = 0.6694167, T_5 = 270.65, L_5 = -2.8, P_6 = 0.03956649, T_6 = 214.65, L_6 = -2.0, k = 34.1632 }
+keywords = ["standard atmosphere", "reference atmosphere", "pressure profile", "pressure altitude"]
+
+[[formulations.itu_r_p835_pressure.citations]]
+reference = "itu_r_p835_7"
+equation = "3a-3g"
+units = { T_0 = "K" }
+
+[[formulations.itu_r_p835_pressure.citations.domains]]
+bounds = { H = [0.0, 84.852] }
+criterion = "The first height regime of the reference atmosphere, geopotential heights from 0 to 84.852 km' (Annex 1, 1.1)."
+
+[formulations.nws_pressure_altitude]
+label = "Pressure altitude from the station pressure, in feet (NWS)"
+expression = "C * (1 - (P / P_0)**n)"
+fixed_units = true
+note = "The pressure in millibars (hPa), the pressure altitude in feet. The sheet states no domain."
+output = { identifier = "h", kind = "PressureAltitude", unit = "FT", description = "Pressure altitude" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Station pressure" },
+]
+coefficients = { C = 145366.45, P_0 = 1013.25, n = 0.190284 }
+keywords = ["pressure altitude", "altimetry", "aviation"]
+
+[[formulations.nws_pressure_altitude.citations]]
+reference = "nws_wxcalc_pressure_altitude"
+notation = { h = '\mathrm{h}_{\mathrm{alt}}', P = '\mathrm{P}_{\mathrm{sta}}' }

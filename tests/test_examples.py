@@ -68,6 +68,14 @@ def test_display_guide_code_runs() -> None:
     assert "6{,}112" in str(namespace["french"])
 
 
+def test_vertical_guide_code_gives_the_value_it_states() -> None:
+    guide = ROOT / "docs" / "vertical.md"
+    namespace: dict[str, object] = {}
+    for block in python_blocks(guide):
+        exec(compile(block, str(guide), "exec"), namespace)  # noqa: S102
+    assert magnitude(namespace["at_500_hPa"]) == pytest.approx(5574.44, abs=0.005)
+
+
 def test_search_guide_code_runs() -> None:
     guide = ROOT / "docs" / "search.md"
     namespace: dict[str, object] = {}
