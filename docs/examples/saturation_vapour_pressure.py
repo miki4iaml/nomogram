@@ -32,12 +32,16 @@ def main(output: str) -> None:
     table = nomo.comparison.compare(
         formulations, reference, {"ThermodynamicTemperature": temperatures}
     )
-    ax = nomo.plot.plot_deviations(table)
+    with nomo.display.display_options(axis_detail="full", legend_detail="short"):
+        ax = nomo.plot.plot_deviations(table, ylim=(-1.0, 1.0))  # extra viz
 
-    # Formatting only.
+    # Formatting only: the legend under the plot, in two columns.
     ax.grid(alpha=0.3)
+    ax.legend(
+        fontsize="small", loc="upper center", bbox_to_anchor=(0.5, -0.17), ncols=2
+    )
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
-    ax.figure.set_size_inches(11, 6.5)
+    ax.figure.set_size_inches(11, 8.5)
     ax.figure.tight_layout()
     # No metadata in the image (the image metadata hook refuses it).
     ax.figure.savefig(output, dpi=90, metadata={"Software": None})

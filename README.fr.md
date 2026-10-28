@@ -59,8 +59,9 @@ Python 3.12 ou plus récent. Les tracés demandent l'extra `viz`
 ## Exemple
 
 Toutes les formulations de la pression de vapeur saturante du catalogue
-comparées à la référence IAPWS ; les courbes s'arrêtent là où une
-formulation sort de son domaine de validité déclaré
+comparées à la référence IAPWS, à 1 % près ; les courbes s'arrêtent là où
+une formulation sort de son domaine de validité déclaré, et la légende dit
+jusqu'où vont celles qui sortent du tracé
 ([script](docs/examples/saturation_vapour_pressure.py)) :
 
 ```python
@@ -76,7 +77,8 @@ temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 table = nomo.comparison.compare(
     formulations, reference, {"ThermodynamicTemperature": temperatures}
 )
-nomo.plot.plot_deviations(table)  # extra viz
+with nomo.display.display_options(axis_detail="full", legend_detail="short"):
+    nomo.plot.plot_deviations(table, ylim=(-1.0, 1.0))  # extra viz
 ```
 
 ![Écart des formulations de la pression de vapeur saturante à IAPWS](docs/images/saturation-vapour-pressure.png)

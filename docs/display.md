@@ -151,7 +151,11 @@ entry says how far it goes (*off scale, up to 26.7 %*). The largest
 deviations, sorted, are split at their largest such jump in the upper
 half, so at least half of the curves stay on scale. In the figure of the
 README, the two forms with a constant latent heat reach 27 %, and the
-others stay within 4.3 %. `off_scale=False` holds every curve. On axes
+others stay within 4.3 %. `off_scale=False` holds every curve. Keyword
+arguments set properties of the axes once the curves are drawn
+(`Axes.set` of matplotlib): `ylim=(-1, 1)` zooms in, and every curve
+leaving these limits is off scale, its legend entry saying how far it
+goes; `xlim`, `title` and the others likewise. On axes
 given through `ax`, which may hold curves of one's own, the limits are
 left as they are unless `off_scale=True`; `plot_values` likewise leaves
 their scale unless `yscale` names one.
