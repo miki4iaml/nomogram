@@ -85,6 +85,15 @@ url = "https://www.cnrm.meteo.fr/gmapdoc/IMG/pdf/ykfpos46t1.pdf"
 status = "verified"
 note = "Section 3 read (pp. 8-11): vertical interpolations and extrapolations of the post-processing of ARPEGE and the IFS, by variable. Wind (3.2.1): linear in the logarithm of the pressure in the lower layers (quadratic above with the ECMWF option LOLDPP=.T.), constant below the lowest level. Temperature (3.2.2): linear in the pressure with the ECMWF option, quadratic in its logarithm with Meteo-France's; surface temperature (1) and extrapolation below the surface (2, 3). Geopotential height (3.2.3): a departure from a standard atmosphere, extrapolated below the surface by (6). Moisture and relative humidity (3.2.5): linear in the pressure, constant below the lowest level. Mean sea level pressure (3.3.1, 7, 8). ERA5 is post-processed by FULL-POS (ERA5 data documentation)."
 
+[references.trenberth1993]
+authors = "Trenberth, K. E.; Berry, J. C.; Buja, L. E."
+year = 1993
+title = "Vertical interpolation and truncation of model-coordinate data"
+container = "NCAR Technical Note NCAR/TN-396+STR"
+url = "https://opensky.ucar.edu/islandora/object/technotes:168"
+status = "verified"
+note = "Section 3.1, ECMWF vertical interpolation and extrapolation, read on the page images (pp. 8-13): the surface temperature (5) with the standard lapse rate 0.0065 K/m, alpha = 0.0065 R_d/g (6); in a dry hydrostatic atmosphere of that lapse rate, the temperature (9), the geopotential (10) and the mean sea level pressure (11), exact, and their approximations for small alpha, (12), (15) and (16); the modifications for very warm or cold surfaces (13, 14) and for high orography (17-19); u, v, omega and RH held constant below ground. Downloaded by the user from OpenSky."
+
 [references.metpy171_interpolate]
 authors = "MetPy developers"
 year = 2025
@@ -894,6 +903,12 @@ notation = { T_s = '\mathrm{T}_{\mathrm{surf}}', T_L = '\mathrm{T}_{Le}', p_s = 
 units = { Gamma = "K-PER-M" }
 assumptions = ["The standard gradient of the temperature in the troposphere, 0.0065 K/m, between the model level and the surface."]
 
+[[formulations.fullpos_surface_temperature.citations]]
+reference = "trenberth1993"
+equation = "5"
+notation = { T_s = 'T_*', T_L = '\mathrm{T}_{NL}', p_s = '\mathrm{p}_{\mathrm{s}}', p_L = '\mathrm{p}_{NL}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+
 [formulations.fullpos_mean_sea_level_pressure]
 label = "Mean sea level pressure through the standard gradient (FULL-POS, ECMWF)"
 expression = "p_s * exp(Phi_s / (R_d * T_s) * (1 - Gamma * Phi_s / (g_n * T_s) / 2 + (Gamma * Phi_s / (g_n * T_s))**2 / 3))"
@@ -916,3 +931,142 @@ equation = "8, 9"
 notation = { p_0 = '\Pi_{\mathrm{MSL}}', p_s = '\Pi_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = '\mathrm{T}_{\mathrm{surf}}', Gamma = '\Gamma', g_n = "g" }
 units = { Gamma = "K-PER-M" }
 assumptions = ["The standard gradient of the temperature, 0.0065 K/m, below the surface."]
+
+[[formulations.fullpos_mean_sea_level_pressure.citations]]
+reference = "trenberth1993"
+equation = "12"
+notation = { p_0 = '\mathrm{p}_{\mathrm{msl}}', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = 'T_*', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+note = "Written with alpha = 0.0065 R_d / g, the approximation of equation 11 for small alpha."
+
+# The exact forms these approximate, and the extrapolation under the
+# surface. In a dry hydrostatic atmosphere of constant lapse rate Gamma,
+# T = T_s (p/p_s)^alpha with alpha = Gamma R_d / g (Trenberth et al. 1993,
+# 9 to 11); ECMWF uses the expansions to the third order (12, 15, 16), as
+# does FULL-POS, whose documentation prints log(Pi_s/Pi_L) in its
+# equations 3 and 6, where the physics and Trenberth et al. give ln(p/p_s).
+
+[formulations.ecmwf_mean_sea_level_pressure_exact]
+label = "Mean sea level pressure through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
+expression = "p_s * (1 + Gamma * Phi_s / (g_n * T_s))**(g_n / (Gamma * R_d))"
+fixed_units = false
+note = "Equation 11, p_s (1 + alpha Phi_s / (R_d T_s))^(1/alpha) with alpha = Gamma R_d / g: the pressure at sea level of a dry hydrostatic column below the surface whose temperature increases downwards by Gamma."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "PA", description = "Mean sea level pressure" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["sea level pressure", "reduction", "ECMWF"]
+
+[[formulations.ecmwf_mean_sea_level_pressure_exact.citations]]
+reference = "trenberth1993"
+equation = "11"
+notation = { p_0 = '\mathrm{p}_{\mathrm{msl}}', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = 'T_*', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]
+
+[formulations.ecmwf_temperature_below_ground]
+label = "Temperature below the surface, third-order expansion (ECMWF, FULL-POS)"
+expression = "T_s * (1 + Gamma * R_d / g_n * ln(p / p_s) + (Gamma * R_d / g_n * ln(p / p_s))**2 / 2 + (Gamma * R_d / g_n * ln(p / p_s))**3 / 6)"
+fixed_units = false
+note = "Equation 16 of Trenberth et al. (1993), the expansion of T_s (p/p_s)^alpha, with alpha = Gamma R_d / g. Its ERA5 description reads 'a cubic polynomial extrapolation'. For high orography, Phi_s/g of 2000 m and more, alpha is modified (17 to 19)."
+conditions = "A surface below 2000 m: Phi_s / g < 2000 m."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "temperature", "ECMWF", "ERA5"]
+
+[[formulations.ecmwf_temperature_below_ground.citations]]
+reference = "trenberth1993"
+equation = "16"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+
+[[formulations.ecmwf_temperature_below_ground.citations]]
+reference = "yessad2018_fullpos"
+equation = "2, 3"
+notation = { T = '\mathrm{T}_{\mathrm{extrapolated}}', T_s = '\mathrm{T}_{\mathrm{surf}}', p = '\Pi_L', p_s = '\Pi_{\mathrm{s}}', Gamma = '\Gamma', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+note = "Equation 3 is printed y = Gamma R_d/g log(Pi_s/Pi_L), which would make the temperature decrease below the surface; equations 1 and 8 of the same document, and Trenberth et al. (1993, 16), give ln(p/p_s), the form entered."
+
+[formulations.ecmwf_temperature_below_ground_exact]
+label = "Temperature below the surface through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
+expression = "T_s * (p / p_s)**(Gamma * R_d / g_n)"
+fixed_units = false
+note = "Equation 9, T_s (p/p_s)^alpha with alpha = Gamma R_d / g, which equations 16 and FULL-POS's 2 expand to the third order."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "temperature", "ECMWF"]
+
+[[formulations.ecmwf_temperature_below_ground_exact.citations]]
+reference = "trenberth1993"
+equation = "9"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]
+
+[formulations.ecmwf_geopotential_below_ground]
+label = "Geopotential below the surface, second-order expansion (ECMWF, FULL-POS)"
+expression = "Phi_s - R_d * T_s * ln(p / p_s) * (1 + Gamma * R_d / g_n * ln(p / p_s) / 2 + (Gamma * R_d / g_n * ln(p / p_s))**2 / 6)"
+fixed_units = false
+note = "Equation 15 of Trenberth et al. (1993), the expansion of equation 10; FULL-POS extrapolates the geopotential height so with the standard gradient in all cases."
+output = { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "geopotential", "ECMWF", "ERA5"]
+
+[[formulations.ecmwf_geopotential_below_ground.citations]]
+reference = "trenberth1993"
+equation = "15"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+
+[[formulations.ecmwf_geopotential_below_ground.citations]]
+reference = "yessad2018_fullpos"
+equation = "6"
+notation = { T_s = '\mathrm{T}_{\mathrm{surf}}', p = '\Pi_L', p_s = '\Pi_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+note = "Printed gz = Phi_s - R_d T_surf log(Pi_s/Pi_L) (1 + y/2 + y^2/6), which would raise the geopotential below the surface; Trenberth et al. (1993, 15) give ln(p/p_s), the form entered. The height is then Phi / g."
+
+[formulations.ecmwf_geopotential_below_ground_exact]
+label = "Geopotential below the surface through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
+expression = "Phi_s - R_d * T_s / (Gamma * R_d / g_n) * ((p / p_s)**(Gamma * R_d / g_n) - 1)"
+fixed_units = false
+note = "Equation 10, Phi_s - (R_d T_s / alpha) ((p/p_s)^alpha - 1), with alpha = Gamma R_d / g."
+output = { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "geopotential", "ECMWF"]
+
+[[formulations.ecmwf_geopotential_below_ground_exact.citations]]
+reference = "trenberth1993"
+equation = "10"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]

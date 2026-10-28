@@ -501,6 +501,11 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         # A quantity equation: an undeclared coefficient is a pure number.
         ("fullpos_surface_temperature", "Gamma"): "stated",
         ("fullpos_mean_sea_level_pressure", "Gamma"): "stated",
+        ("ecmwf_mean_sea_level_pressure_exact", "Gamma"): "stated",
+        ("ecmwf_temperature_below_ground", "Gamma"): "stated",
+        ("ecmwf_temperature_below_ground_exact", "Gamma"): "stated",
+        ("ecmwf_geopotential_below_ground", "Gamma"): "stated",
+        ("ecmwf_geopotential_below_ground_exact", "Gamma"): "stated",
         ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
         ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
