@@ -289,6 +289,14 @@ and this project adheres to
   columns beyond ten curves; `"standard"` (default) the names and
   labels; `"full"` adds a second line: the scale of an axis, the full
   label of the reference, the first citation of each formulation.
+- Option sets for figures: the display option `off_scale_notes` says
+  whether the legend entry of a curve off scale tells how far it goes,
+  and the preset `DisplayOptions.DOCUMENTATION` (full axes, short legend
+  entries, no off-scale notes) gives the figures of nomogram's
+  documentation, the README's included. `plot_deviations` and
+  `plot_values` take a set for one call (`options=`), as `render` does.
+  An x range given to `plot_deviations` (`xlim`) narrows what its y axis
+  holds to the points shown.
 
 ### Changed
 

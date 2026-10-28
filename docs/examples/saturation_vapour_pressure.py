@@ -32,7 +32,7 @@ def main(output: str) -> None:
     table = nomo.comparison.compare(
         formulations, reference, {"ThermodynamicTemperature": temperatures}
     )
-    with nomo.display.display_options(axis_detail="full", legend_detail="short"):
+    with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
         ax = nomo.plot.plot_deviations(table, ylim=(-1.0, 1.0))  # extra viz
 
     # Formatting only: the legend under the plot, in two columns.

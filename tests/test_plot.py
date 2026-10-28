@@ -408,6 +408,58 @@ def test_limits_given_zoom_in_and_say_which_curves_leave() -> None:
     assert values.get_xlabel() == "t"
 
 
+def test_an_x_range_narrows_what_the_y_axis_holds() -> None:
+    # From 0 to 40 degC, the forms with a constant latent heat reach 4.3 %
+    # rather than 27 %, and the others stay within 0.5 %.
+    temperatures = Q_(np.linspace(-60, 110, 69), "degC")
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
+    for window in ((0, 40), (40, 0), (None, 40)):
+        ax = plot_deviations(table, xlim=window)
+        low, high = ax.get_ylim()
+        assert -0.5 < low < -0.4
+        assert 0.2 < high < 0.25
+        off = [e for e in legend(ax) if "off scale" in e]
+        assert len(off) == 2
+        assert "(off scale, up to 4.33 %)" in off[1]
+    # Curves of one's own keep the limits: only off_scale=True sets them.
+    _, ax = plt.subplots()
+    assert plot_deviations(table, ax=ax, xlim=(0, 40)).get_ylim()[1] > 26
+
+
+def test_off_scale_notes_can_be_left_out() -> None:
+    # The preset of the documentation: full axes, short legend entries,
+    # curves off scale without a note.
+    assert DisplayOptions.DOCUMENTATION == DisplayOptions(
+        axis_detail="full", legend_detail="short", off_scale_notes=False
+    )
+    temperatures = Q_(np.linspace(-60, 110, 69), "degC")
+    table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
+    with display_options(DisplayOptions.DOCUMENTATION):
+        zoomed = plot_deviations(table, ylim=(-1.0, 1.0))
+        automatic = plot_deviations(table)
+    assert zoomed.get_ylim() == (-1.0, 1.0)
+    assert automatic.get_ylim()[1] < 5
+    for ax in (zoomed, automatic):
+        assert "Bechtold (2015), eq. 54" in legend(ax)
+        assert not [e for e in legend(ax) if "off scale" in e]
+
+
+def test_options_for_one_call(comparison: Comparison) -> None:
+    preset = DisplayOptions.DOCUMENTATION
+    with display_options(preset):
+        block = plot_deviations(comparison)
+        values_block = plot_values(comparison)
+    call = plot_deviations(comparison, options=preset)
+    values_call = plot_values(comparison, options=preset)
+    assert legend(call) == legend(block)
+    assert call.get_xlabel() == block.get_xlabel()
+    assert call.get_ylabel() == block.get_ylabel()
+    assert legend(values_call) == legend(values_block)
+    assert values_call.get_ylabel() == values_block.get_ylabel()
+    # For that call only.
+    assert plot_deviations(comparison).get_xlabel() != call.get_xlabel()
+
+
 def test_a_curve_equal_to_the_reference_to_rounding_splits_nothing() -> None:
     x = Q_(np.array([1.0, 2.0]), "K")
     deviations = {
@@ -422,6 +474,9 @@ def test_a_curve_equal_to_the_reference_to_rounding_splits_nothing() -> None:
         deviations,
     )
     assert not [t for t in legend(plot_deviations(found)) if "off scale" in t]
+    # Within the x range, every curve is the reference: matplotlib's limits.
+    ax = plot_deviations(found, xlim=(1.5, 2.5))
+    assert ax.get_ylim()[0] < ax.get_ylim()[1]
 
 
 def test_labels_of_two_lines_stay_on_the_figure(comparison: Comparison) -> None:

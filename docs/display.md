@@ -155,7 +155,10 @@ others stay within 4.3 %. `off_scale=False` holds every curve. Keyword
 arguments set properties of the axes once the curves are drawn
 (`Axes.set` of matplotlib): `ylim=(-1, 1)` zooms in, and every curve
 leaving these limits is off scale, its legend entry saying how far it
-goes; `xlim`, `title` and the others likewise. On axes
+goes; `xlim=(0, 40)` narrows the x axis, and the y axis then holds what
+the curves show within it; `title` and the others likewise. With the
+display option `off_scale_notes=False`, legend entries say nothing of
+the curves off scale, which still leave the axis. On axes
 given through `ax`, which may hold curves of one's own, the limits are
 left as they are unless `off_scale=True`; `plot_values` likewise leaves
 their scale unless `yscale` names one.
@@ -189,6 +192,43 @@ figure, ax = plt.subplots()
 mark = sign(figure)  # bottom right corner; sign(figure, axes=ax) follows its x label
 mark.remove()  # unsigned again
 ```
+
+### Option sets
+
+An option set is a `DisplayOptions`: one of nomogram's presets, or one
+of one's own. It is given to `display_options` for a block, with fields
+to change if need be, or to a plot for one call (`options=`).
+`DisplayOptions.DOCUMENTATION` is the set of the figures of nomogram's
+documentation, the README's included: full axes, short legend entries,
+and curves off scale without a note (`off_scale_notes=False`), so that a
+figure stands alone without crowding.
+
+```python
+import dataclasses
+
+from nomogram.display import DisplayOptions
+
+with display_options(DisplayOptions.DOCUMENTATION, legend_detail="standard"):
+    ax = nomo.plot.plot_deviations(table, xlim=(0, 40))
+mine = dataclasses.replace(DisplayOptions.DOCUMENTATION, legend_detail="standard")
+ax = nomo.plot.plot_values(table, options=mine)
+settings = {"axis_detail": "short", "off_scale_notes": False}  # from a file
+ax = nomo.plot.plot_deviations(table, options=DisplayOptions(**settings))
+```
+
+A set never changes: another one is made from it. `dataclasses.asdict`
+gives its fields as a dictionary, to keep in a file of one's own, and a
+field name misspelt or a value unknown raises an error rather than being
+ignored.
+
+The options cover what nomogram decides or adds to a figure: labels,
+legend entries, curves off scale. The rest stays with matplotlib and the
+caller. The visual style (colours, fonts, sizes, grid) follows
+matplotlib's style sheets and `rcParams`, which nomogram leaves as they
+are; the limits, the title and the other properties of the axes are
+keyword arguments of the call; the axes returned take everything else,
+the place of the legend included, which depends too much on each figure
+to be chosen for it.
 
 ## Typography
 

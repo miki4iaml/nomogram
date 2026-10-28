@@ -15,8 +15,10 @@ Axis labels mark the reference scale of a kind (ITS-90 for temperatures)
 only when the comparison converted the values to it (``scale="convert"``,
 the default of :func:`nomogram.comparison.compare`). How much the axes
 and the legend say follows the display options ``axis_detail`` and
-``legend_detail``, each short, standard or full
-(:class:`nomogram.display.DisplayOptions`).
+``legend_detail``, each short, standard or full, and
+``off_scale_notes`` (:class:`nomogram.display.DisplayOptions`); the
+preset ``DisplayOptions.DOCUMENTATION`` gives the figures of nomogram's
+documentation.
 
 A curve whose deviation stands far above those of the others is drawn off
 scale, so that it does not flatten them (:func:`plot_deviations`); values
@@ -40,7 +42,9 @@ import numpy as np
 from nomogram.comparison import TEMPERATURE_POINTS, Comparison, same_state
 from nomogram.dimensions import unit_text
 from nomogram.display import (
+    DisplayOptions,
     axis_label,
+    display_options,
     get_display_options,
     reference_scale,
     sentence_case,
@@ -331,6 +335,19 @@ def _beyond(curves: Mapping[str, Any], low: Any, high: Any) -> dict[str, float]:
     return found
 
 
+def _within(curves: Mapping[str, Any], x: Any, window: Any) -> Mapping[str, Any]:
+    """The points of the curves shown within x limits given, if any.
+
+    An end given as ``None`` does not bound; the limits may be reversed.
+    """
+    if window is None:
+        return curves
+    left = -np.inf if window[0] is None else window[0]
+    right = np.inf if window[1] is None else window[1]
+    shown = (x >= min(left, right)) & (x <= max(left, right))
+    return {key: values[shown] for key, values in curves.items()}
+
+
 def _off_scale_label(label: str, peak: float) -> str:
     """The legend entry of a curve off scale: how far it goes, on its first line."""
     head, newline, tail = label.partition("\n")
@@ -353,6 +370,7 @@ def plot_deviations(
     ax: Any = None,
     signature: bool = True,
     off_scale: bool | None = None,
+    options: DisplayOptions | None = None,
     **axes: Any,
 ) -> Any:
     """Plot the relative deviation of each formulation from the reference, in %.
@@ -363,7 +381,10 @@ def plot_deviations(
     half of the curves stay on scale. On axes given through ``ax``, which
     may hold other curves, the limits are left to the caller unless
     ``off_scale`` is true. Limits given (``ylim=(-1, 1)``) replace those
-    chosen: the curves leaving them are off scale.
+    chosen: the curves leaving them are off scale. An x range given
+    (``xlim``) narrows what the y axis holds to the points shown. The
+    display option ``off_scale_notes`` says whether legend entries tell
+    how far the curves off scale go.
 
     Parameters
     ----------
@@ -381,11 +402,15 @@ def plot_deviations(
         Draw off scale the curves standing far above the others; ``False``
         holds every curve on the y axis. By default, only on axes the
         function creates.
+    options : DisplayOptions, optional
+        Display options for this call, such as a preset
+        (``DisplayOptions.DOCUMENTATION``); those in force otherwise
+        (:func:`nomogram.display.display_options`).
     **axes
         Properties of the axes, set once the curves are drawn
-        (:meth:`matplotlib.axes.Axes.set`): ``ylim=(-1, 1)`` zooms in, each
-        curve beyond saying in the legend how far it goes; ``xlim``,
-        ``title``...
+        (:meth:`matplotlib.axes.Axes.set`): ``ylim=(-1, 1)`` zooms in, the
+        curves beyond going off scale; ``xlim=(0, 80)`` narrows the x axis,
+        and the y axis holds what it shows; ``title``...
 
     Returns
     -------
@@ -399,43 +424,54 @@ def plot_deviations(
     ValueError
         If the input to plot along x cannot be determined.
     """
-    x_label, x = _abscissa(comparison, input_kind)
-    created = ax is None
-    ax = _axes(ax)
-    curves = {
-        key: 100 * np.broadcast_to(np.asarray(deviation, dtype=float), x.shape)
-        for key, deviation in comparison.relative_deviations.items()
-        if key != comparison.reference
-    }
-    limits = axes.get("ylim")
-    if limits is not None:
-        off = _beyond(curves, *limits)
-    elif created if off_scale is None else off_scale:
-        off = _off_scale(curves)
-    else:
-        off = {}
-    names = _names(comparison, curves)
-    for index, (key, values) in enumerate(curves.items()):
-        label = _off_scale_label(names[key], off[key]) if key in off else names[key]
-        ax.plot(x, values, label=label, **_style(index))
-    ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
-    if off and limits is None:
-        kept = np.concatenate(
-            [v[np.isfinite(v)] for k, v in curves.items() if k not in off]
-        )
-        low, high = min(0.0, float(kept.min())), max(0.0, float(kept.max()))
-        margin = 0.05 * (high - low)
-        ax.set_ylim(low - margin, high + margin)
-    ax.set_xlabel(x_label)
-    label = _label(comparison, comparison.reference)
-    cited = _cited(comparison, comparison.reference)
-    name = f"Relative deviation from {cited or label}"
-    ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
-    ax.set(**axes)
-    _legend(ax)
-    if created and signature:
-        sign(ax.figure, axes=ax)
-    return ax
+    with display_options(options):
+        x_label, x = _abscissa(comparison, input_kind)
+        created = ax is None
+        ax = _axes(ax)
+        curves = {
+            key: 100 * np.broadcast_to(np.asarray(deviation, dtype=float), x.shape)
+            for key, deviation in comparison.relative_deviations.items()
+            if key != comparison.reference
+        }
+        automatic = created if off_scale is None else off_scale
+        window = axes.get("xlim")
+        shown = _within(curves, x, window)
+        limits = axes.get("ylim")
+        if limits is not None:
+            off = _beyond(shown, *limits)
+        elif automatic:
+            off = _off_scale(shown)
+        else:
+            off = {}
+        names = _names(comparison, curves)
+        notes = get_display_options().off_scale_notes
+        for index, (key, values) in enumerate(curves.items()):
+            label = names[key]
+            if key in off and notes:
+                label = _off_scale_label(label, off[key])
+            ax.plot(x, values, label=label, **_style(index))
+        ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
+        if limits is None and (off or (automatic and window is not None)):
+            kept = np.concatenate(
+                [
+                    np.zeros(1),
+                    *(v[np.isfinite(v)] for k, v in shown.items() if k not in off),
+                ]
+            )
+            low, high = float(kept.min()), float(kept.max())
+            if high > low:
+                margin = 0.05 * (high - low)
+                ax.set_ylim(low - margin, high + margin)
+        ax.set_xlabel(x_label)
+        label = _label(comparison, comparison.reference)
+        cited = _cited(comparison, comparison.reference)
+        name = f"Relative deviation from {cited or label}"
+        ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
+        ax.set(**axes)
+        _legend(ax)
+        if created and signature:
+            sign(ax.figure, axes=ax)
+        return ax
 
 
 def plot_values(
@@ -446,6 +482,7 @@ def plot_values(
     ax: Any = None,
     signature: bool = True,
     yscale: Literal["auto", "linear", "log"] = "auto",
+    options: DisplayOptions | None = None,
     **axes: Any,
 ) -> Any:
     """Plot the values of each formulation, the reference included.
@@ -468,6 +505,10 @@ def plot_values(
         Scale of the y axis; ``"auto"`` is logarithmic when every value is
         positive and they span more than two decades, linear otherwise, and
         leaves the scale of axes given through ``ax`` as it is.
+    options : DisplayOptions, optional
+        Display options for this call, such as a preset
+        (``DisplayOptions.DOCUMENTATION``); those in force otherwise
+        (:func:`nomogram.display.display_options`).
     **axes
         Properties of the axes, set once the curves are drawn
         (:meth:`matplotlib.axes.Axes.set`): ``ylim``, ``xlim``, ``title``...
@@ -488,47 +529,48 @@ def plot_values(
     if yscale not in ("auto", "linear", "log"):
         msg = f"yscale must be auto, linear or log, not {yscale!r}"
         raise ValueError(msg)
-    x_label, x = _abscissa(comparison, input_kind, notation)
-    created = ax is None
-    ax = _axes(ax)
-    curves = {
-        key: np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), x.shape)
-        for key, quantity in comparison.values.items()
-    }
-    names = _names(comparison, curves)
-    for index, (key, values) in enumerate(curves.items()):
-        style = (
-            {"color": "black", "linestyle": "--"}
-            if key == comparison.reference
-            else _style(index)
-        )
-        ax.plot(x, values, label=names[key], **style)
-    if yscale != "auto":
-        ax.set_yscale(yscale)
-    elif created:
-        # Points of an interval scale (degC) have no ratio: never logarithmic.
-        offset = is_offset_unit(comparison.values[comparison.reference].units)
-        ax.set_yscale("linear" if offset else _values_scale(curves.values()))
-    reference = comparison.formulations.get(comparison.reference)
-    unit = unit_text(comparison.values[comparison.reference].units)
-    if reference is not None:
-        output = reference.output
-        ax.set_ylabel(
-            _axis_text(
-                _kind_name(output.kind),
-                symbol(output, notation, unit=False)[1:-1],
-                unit,
-                _scale(comparison, output.kind),
+    with display_options(options):
+        x_label, x = _abscissa(comparison, input_kind, notation)
+        created = ax is None
+        ax = _axes(ax)
+        curves = {
+            key: np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), x.shape)
+            for key, quantity in comparison.values.items()
+        }
+        names = _names(comparison, curves)
+        for index, (key, values) in enumerate(curves.items()):
+            style = (
+                {"color": "black", "linestyle": "--"}
+                if key == comparison.reference
+                else _style(index)
             )
-        )
-    else:
-        ax.set_ylabel(axis_label(None, None, unit))
-    ax.set_xlabel(x_label)
-    ax.set(**axes)
-    _legend(ax)
-    if created and signature:
-        sign(ax.figure, axes=ax)
-    return ax
+            ax.plot(x, values, label=names[key], **style)
+        if yscale != "auto":
+            ax.set_yscale(yscale)
+        elif created:
+            # Points of an interval scale (degC) have no ratio: never logarithmic.
+            offset = is_offset_unit(comparison.values[comparison.reference].units)
+            ax.set_yscale("linear" if offset else _values_scale(curves.values()))
+        reference = comparison.formulations.get(comparison.reference)
+        unit = unit_text(comparison.values[comparison.reference].units)
+        if reference is not None:
+            output = reference.output
+            ax.set_ylabel(
+                _axis_text(
+                    _kind_name(output.kind),
+                    symbol(output, notation, unit=False)[1:-1],
+                    unit,
+                    _scale(comparison, output.kind),
+                )
+            )
+        else:
+            ax.set_ylabel(axis_label(None, None, unit))
+        ax.set_xlabel(x_label)
+        ax.set(**axes)
+        _legend(ax)
+        if created and signature:
+            sign(ax.figure, axes=ax)
+        return ax
 
 
 def sign(figure: Any, *, axes: Any = None, height: float = SIGNATURE_HEIGHT) -> Any:

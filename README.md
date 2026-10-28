@@ -59,8 +59,8 @@ Python 3.12 or later. Plots need the `viz` extra (matplotlib):
 
 Every saturation vapour pressure formulation of the catalog against the
 IAPWS reference, within 1 %; curves stop where a formulation leaves its
-stated validity domain, and the legend says how far those leaving the
-plot go ([script](docs/examples/saturation_vapour_pressure.py)):
+stated validity domain, and the figure takes the option set of nomogram's
+documentation ([script](docs/examples/saturation_vapour_pressure.py)):
 
 ```python
 import numpy as np
@@ -75,7 +75,7 @@ temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 table = nomo.comparison.compare(
     formulations, reference, {"ThermodynamicTemperature": temperatures}
 )
-with nomo.display.display_options(axis_detail="full", legend_detail="short"):
+with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
     nomo.plot.plot_deviations(table, ylim=(-1.0, 1.0))  # extra viz
 ```
 
