@@ -866,3 +866,53 @@ reference = "metpy171_interpolate"
 
 [[formulations.log_pressure_interpolation_geopotential_height.citations]]
 reference = "earthkit_meteo121"
+
+# Below the surface (FULL-POS, the post-processing of ERA5): the
+# temperature of the surface from the lowest levels, and the pressure
+# reduced to mean sea level through the standard gradient. FULL-POS gives
+# no value of R_d and g: those of the IFS are taken.
+
+[formulations.fullpos_surface_temperature]
+label = "Surface temperature from a model level, through the standard gradient (FULL-POS)"
+expression = "T_L + Gamma * R_d / g_n * (p_s / p_L - 1) * T_L"
+fixed_units = false
+note = "Equation 1: the temperature at the surface from the temperature of a model level above it (level NLEXTRAP, at height HEXTRAP), with the standard gradient of the troposphere, 0.0065 K/m. Below the lowest level and the surface, FULL-POS interpolates linearly between the two temperatures; under the surface, it extrapolates from this one."
+output = { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" }
+inputs = [
+  { identifier = "T_L", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the model level" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "p_L", kind = "Pressure", unit = "PA", description = "Pressure of the model level" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["surface temperature", "extrapolation", "FULL-POS", "ERA5"]
+
+[[formulations.fullpos_surface_temperature.citations]]
+reference = "yessad2018_fullpos"
+equation = "1"
+notation = { T_s = '\mathrm{T}_{\mathrm{surf}}', T_L = '\mathrm{T}_{Le}', p_s = '\Pi_{\mathrm{s}}', p_L = '\Pi_{Le}', Gamma = '\left(\frac{dT}{dz}\right)^{\mathrm{st}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["The standard gradient of the temperature in the troposphere, 0.0065 K/m, between the model level and the surface."]
+
+[formulations.fullpos_mean_sea_level_pressure]
+label = "Mean sea level pressure through the standard gradient (FULL-POS, ECMWF)"
+expression = "p_s * exp(Phi_s / (R_d * T_s) * (1 - Gamma * Phi_s / (g_n * T_s) / 2 + (Gamma * Phi_s / (g_n * T_s))**2 / 3))"
+fixed_units = false
+note = "Equations 8 and 9 (routine PPPMER), x = Gamma Phi_s / (g T_surf), in the usual case where Gamma is the standard gradient 0.0065 K/m. FULL-POS changes Gamma and T_surf over high and warm surfaces, where the temperature at sea level T_surf + Gamma Phi_s / g would exceed 290.5 K (equation 7), and over cold ones below 255 K; it sets the pressure to the surface pressure where |Phi_s| < 0.001 J/kg."
+conditions = "The usual case: T_surf between 255 K and 290.5 K, and T_surf + 0.0065 Phi_s / g at most 290.5 K."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "PA", description = "Mean sea level pressure" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature, from equation 1" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["sea level pressure", "reduction", "FULL-POS", "ERA5"]
+
+[[formulations.fullpos_mean_sea_level_pressure.citations]]
+reference = "yessad2018_fullpos"
+equation = "8, 9"
+notation = { p_0 = '\Pi_{\mathrm{MSL}}', p_s = '\Pi_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = '\mathrm{T}_{\mathrm{surf}}', Gamma = '\Gamma', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["The standard gradient of the temperature, 0.0065 K/m, below the surface."]

@@ -264,6 +264,27 @@ def test_interpolation_schemes_on_the_reference_atmosphere() -> None:
     assert (z_in_ln_p - levels[700]).magnitude == pytest.approx(-48.4, abs=0.1)
 
 
+def test_fullpos_below_the_surface() -> None:
+    # The surface temperature through the standard gradient, 2000 Pa below
+    # the model level: about 180 m, 1.17 K warmer.
+    surface = FORMULATIONS["fullpos_surface_temperature"].evaluate(
+        T_L=Q_(285, "K"), p_s=Q_(95000, "Pa"), p_L=Q_(93000, "Pa")
+    )
+    assert surface.magnitude == pytest.approx(286.166, abs=1e-3)
+    # FULL-POS (ECMWF) and WMO reduce to sea level through the same gradient
+    # of 0.0065 K/m: 0.0014 hPa apart for a dry station at 500 m.
+    fullpos = FORMULATIONS["fullpos_mean_sea_level_pressure"].evaluate(
+        p_s=Q_(950, "hPa"),
+        Phi_s=Q_(500 * 9.80665, "m**2/s**2"),
+        T_s=Q_(288.15, "K"),
+    )
+    wmo = FORMULATIONS["wmo_sea_level_pressure"].evaluate(
+        p_s=Q_(950, "hPa"), H_p=Q_(500, "m"), T_s=Q_(288.15, "K"), e_s=Q_(0, "hPa")
+    )
+    assert fullpos.to("hPa").magnitude == pytest.approx(1007.683, abs=1e-3)
+    assert abs(fullpos.to("hPa").magnitude - wmo.magnitude) < 0.002
+
+
 def test_the_dry_adiabatic_gradient() -> None:
     # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
     gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()

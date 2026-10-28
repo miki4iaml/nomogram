@@ -498,6 +498,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         # Temperatures of P.835 appear in ratios only: T_0 in K fixes the
         # units of the others, of the gradients and of k.
         ("itu_r_p835_pressure", "T_0"): "stated",
+        # A quantity equation: an undeclared coefficient is a pure number.
+        ("fullpos_surface_temperature", "Gamma"): "stated",
+        ("fullpos_mean_sea_level_pressure", "Gamma"): "stated",
         ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
         ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
