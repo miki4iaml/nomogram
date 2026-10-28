@@ -238,6 +238,9 @@ KINDS: dict[str, KindSpec] = {
     "Speed": KindSpec(
         "ratio", delta=False, cf_standard_names=(("wind_speed", "narrow"),)
     ),
+    # The parent of the geodetic latitude (catalog), in normal gravity
+    # formulas.
+    "PlaneAngle": KindSpec("ratio", delta=False),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -287,6 +290,9 @@ UNITS: dict[str, str] = {
     "M2-PER-SEC2": "m^2/s^2",
     "K-PER-M": "K/m",
     "FT": "ft",
+    # Angles: the latitude, in radians where sin or cos take it.
+    "RAD": "radian",
+    "DEG": "degree",
 }
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
@@ -319,6 +325,7 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "air_pressure_at_mean_sea_level",
     "height_above_reference_ellipsoid",
     "geoid_height_above_reference_ellipsoid",
+    "latitude",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
@@ -341,6 +348,10 @@ SYMBOLS: dict[str, str] = {
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
 #: property: its links are imported as close matches.
 WIKIDATA_RELATION = "close"
+
+#: UDUNITS names CF gives to angles of a direction: latitudes are in
+#: degree_north, longitudes in degree_east (CF conventions, 4.1 and 4.2).
+_UDUNITS_ALIASES: dict[str, str] = {"degree_north": "degree", "degree_east": "degree"}
 
 _UDUNITS_FACTOR = re.compile(r"^([A-Za-z]+)(-?\d+)?$")
 _UDUNITS_NUMBER = re.compile(r"^\d+(\.\d+)?([eE]-?\d+)?$")
@@ -372,6 +383,7 @@ def udunits_to_pint(expression: str) -> str:
         return "dimensionless"
     factors = []
     for factor in expression.split():
+        factor = _UDUNITS_ALIASES.get(factor, factor)
         if _UDUNITS_NUMBER.match(factor):
             factors.append(factor)  # a scale factor, such as 1e-3 (per mille)
             continue

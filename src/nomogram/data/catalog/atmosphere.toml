@@ -52,6 +52,23 @@ url = "https://www.ecmwf.int/en/elibrary/81625-ifs-documentation-cy49r1-part-iii
 status = "verified"
 note = "Section 2.1, equation 2.6: the geopotential, defined by the hydrostatic equation with the virtual temperature and the gas constant of dry air. Section 2.2.1, equation 2.20: its discrete analogue between two half levels, the hypsometric equation. The numbering is the same in CY41R2, whose documentation ERA5 follows, and in CY50R1."
 
+[references.itu_r_p835_7]
+authors = "International Telecommunication Union, Radiocommunication Sector"
+year = 2024
+title = "Recommendation ITU-R P.835-7: Reference standard atmospheres"
+url = "https://www.itu.int/rec/R-REC-P.835/en"
+status = "verified"
+note = "Annex 1, 1.1 (pp. 2-3), read on the page images: the conversions between geopotential height H (km') and geometric height Z (km) adopted by the U.S. Standard Atmosphere, 1976, equations 1a and 1b with 6356.766 km; temperature 2a to 2g and pressure 3a to 3g in seven layers up to 84.852 km'; temperature 4a, 4b and pressure 5 from 86 to 100 km."
+
+[references.era5_documentation]
+authors = "ECMWF, Copernicus Climate Change Service"
+year = 2026
+title = "ERA5: data documentation; ERA5: compute pressure and geopotential on model levels, geopotential height and geometric height"
+container = "Copernicus Knowledge Base, ECMWF Confluence"
+url = "https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation"
+status = "verified"
+note = "Pages read on 2026-10-28. Data documentation, 'Spatial reference systems and Earth model': the IFS assumes a spherical Earth of radius 6371.229 km; ERA5 is referenced in the vertical to the EGM96 geoid over land and to mean sea level over the ocean, assumed to coincide with the geoid; ERA5 follows the IFS documentation of cycle CY41R2. Page on heights: geopotential height = geopotential / 9.80665 m s-2, 'a fixed value in the IFS'; geometric height approximated by alt = Re h / (Re - h), neglecting horizontal variations of gravity, relative to the geoid."
+
 # --- Quantity kinds ---------------------------------------------------
 
 # Altitude and height are QUDT kinds (CF: above the geoid, above the
@@ -112,6 +129,15 @@ label = "Geoid Height"
 specialization_of = "Length"
 description = "Height of the geoid above a reference ellipsoid (CF), the geoid undulation N, positive or negative; the ellipsoidal height of a point is about its altitude plus N."
 cf_standard_names = [{ name = "geoid_height_above_reference_ellipsoid", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeodeticLatitude]
+label = "Geodetic Latitude"
+specialization_of = "PlaneAngle"
+description = "Angle between the equatorial plane and the normal to the reference ellipsoid, positive northward; the latitude of the normal gravity formulas (WMO-No. 8, Volume I, 12.5.5.2). In radians where sin or cos take it."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q34027", relation = "broad", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "latitude", relation = "broad", verified = 2026-10-28 }]
 
 # Temperature gradients: CF's lapse rate is -dT/dz, the gradient of the
 # standard atmosphere's layers dT/dz. Siblings, so that one never feeds an
@@ -258,3 +284,161 @@ inputs = [
   { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Altitude" },
   { identifier = "z_s", kind = "SurfaceAltitude", unit = "KiloM", description = "Altitude of the surface" },
 ]
+
+# Geopotential height and geometric height. WMO defines the geopotential
+# height from the geopotential and the normal gravity at 45 degrees; the
+# conversions from a geometric height differ by their Earth's radius:
+# 6356.766 km in the U.S. Standard Atmosphere (ITU-R P.835), 6371.229 km
+# in the IFS (ERA5), a radius and a normal gravity depending on the
+# latitude in WMO-No. 8.
+
+[formulations.geopotential_height_definition]
+label = "Geopotential height, from the geopotential"
+nature = "definition"
+expression = "Phi / g_n"
+fixed_units = false
+note = "The geopotential divided by the standard acceleration of free fall (CF). WMO divides by the normal gravity at 45 degrees latitude, taken in the definition as 9.80665 m s-2 (equation 12.12); ERA5 by 9.80665 m s-2, 'a fixed value in the IFS'."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height" }
+inputs = [
+  { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["geopotential", "geopotential height"]
+
+[[formulations.geopotential_height_definition.citations]]
+reference = "wmo2024"
+equation = "12.12"
+notation = { Z = "Z_1", Phi = '\Phi_1', g_n = '\gamma_{45}' }
+
+[[formulations.geopotential_height_definition.citations]]
+reference = "era5_documentation"
+notation = { Z = "h", Phi = "z" }
+
+[formulations.itu_r_p835_geopotential_height]
+label = "Geopotential height from the geometric altitude, U.S. Standard Atmosphere 1976 (ITU-R P.835)"
+expression = "r_0 * z / (r_0 + z)"
+fixed_units = true
+note = "The conversion adopted by the U.S. Standard Atmosphere, 1976, with its radius 6356.766 km, which ITU-R P.835 uses to compute its reference atmosphere at a geometric height."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric altitude" },
+]
+coefficients = { r_0 = 6356.766 }
+keywords = ["geopotential height", "standard atmosphere"]
+
+[[formulations.itu_r_p835_geopotential_height.citations]]
+reference = "itu_r_p835_7"
+equation = "1a"
+notation = { Z = "H", z = "Z" }
+
+[formulations.itu_r_p835_geometric_altitude]
+label = "Geometric altitude from the geopotential height, U.S. Standard Atmosphere 1976 (ITU-R P.835)"
+expression = "r_0 * Z / (r_0 - Z)"
+fixed_units = true
+note = "The inverse of equation 1a, printed by the source."
+output = { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric altitude" }
+inputs = [
+  { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { r_0 = 6356.766 }
+keywords = ["geopotential height", "standard atmosphere"]
+
+[[formulations.itu_r_p835_geometric_altitude.citations]]
+reference = "itu_r_p835_7"
+equation = "1b"
+notation = { Z = "H", z = "Z" }
+
+[formulations.era5_geometric_altitude]
+label = "Geometric altitude from the geopotential height, spherical Earth of the IFS (ERA5)"
+expression = "R_e * Z / (R_e - Z)"
+fixed_units = true
+note = "ERA5's approximation, neglecting horizontal variations of gravity, relative to the geoid. R_e = 6371.229 km is the radius of the spherical Earth the IFS assumes, given in the data documentation; the page on heights names it without a value. The form of ITU-R P.835 equation 1b, with another radius."
+output = { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric altitude" }
+inputs = [
+  { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { R_e = 6371.229 }
+keywords = ["geopotential height", "ERA5", "IFS"]
+
+[[formulations.era5_geometric_altitude.citations]]
+reference = "era5_documentation"
+notation = { z = '\mathrm{alt}', Z = "h", R_e = '\mathrm{Re}' }
+
+[formulations.wmo_geopotential_height_from_normal_gravity]
+label = "Geopotential height from the geometric height, a normal gravity and an effective radius (WMO Guide)"
+expression = "gamma / g_n * R * z / (R + z)"
+fixed_units = false
+note = "The form of equations 12.13 and 12.15, for a GPS radiosonde: 12.13 with the normal gravity gamma_SMT of 12.14 and the effective radius R_SMT tabulated in the Smithsonian tables (List, 1968); 12.15 (Mahoney, on WGS 84) with gamma_s of 12.16 and the radius R given with it. The conversion depends on gravity alone, not on the temperature and humidity profile."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric height above the geoid" },
+  { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity at the latitude" },
+  { identifier = "R", kind = "Length", unit = "KiloM", description = "Effective radius of the Earth at the latitude" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["geopotential height", "radiosonde", "GPS"]
+
+[[formulations.wmo_geopotential_height_from_normal_gravity.citations]]
+reference = "wmo2024"
+equation = "12.13, 12.15"
+notation = { Z = "Z_1", z = "z_1", gamma = '\gamma_{\mathrm{s}}', g_n = '\gamma_{45}' }
+
+[formulations.wmo_normal_gravity_smithsonian]
+label = "Normal gravity at the latitude, Smithsonian Meteorological Tables (WMO Guide)"
+expression = "g_0 * (1 - a_1 * cos(2 * phi) + a_2 * cos(2 * phi)**2)"
+fixed_units = true
+note = "The value of the Smithsonian tables (List, 1968), computed on the International Ellipsoid 1935; 'not explicitly derived in the published scientific literature, although it was recommended for meteorological use by the International Association of Geodesy in 1949'."
+output = { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity" }
+inputs = [
+  { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
+]
+coefficients = { g_0 = 9.80616, a_1 = 0.0026373, a_2 = 0.0000059 }
+keywords = ["normal gravity", "latitude"]
+
+[[formulations.wmo_normal_gravity_smithsonian.citations]]
+reference = "wmo2024"
+equation = "12.14"
+notation = { gamma = '\gamma_{\mathrm{SMT}}', phi = '\varphi' }
+
+[formulations.wmo_normal_gravity_wgs84]
+label = "Normal gravity on the surface of the ellipsoid at the latitude, WGS 84 (WMO Guide)"
+expression = "gamma_e * (1 + k * sin(phi)**2) / sqrt(1 - e2 * sin(phi)**2)"
+fixed_units = true
+note = "The normal gravity on the surface of an ellipsoid of revolution of Mahoney's expression, based on WGS 84."
+output = { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity on the ellipsoid" }
+inputs = [
+  { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
+]
+coefficients = { gamma_e = 9.780325, k = 0.00193185, e2 = 0.00669435 }
+keywords = ["normal gravity", "latitude", "WGS 84"]
+
+[[formulations.wmo_normal_gravity_wgs84.citations]]
+reference = "wmo2024"
+equation = "12.16"
+notation = { gamma = '\gamma_{\mathrm{s}}', phi = '\varphi' }
+
+[formulations.wmo_effective_radius_mahoney]
+label = "Effective radius of the Earth at the latitude, Mahoney (WMO Guide)"
+expression = "a / (b_1 - b_2 * sin(phi)**2)"
+fixed_units = true
+note = "Given with equation 12.15 (text below equation 12.16, p. 443), 'giving results for R similar to the values in the Smithsonian tables'."
+output = { identifier = "R", kind = "Length", unit = "KiloM", description = "Effective radius of the Earth" }
+inputs = [
+  { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
+]
+coefficients = { a = { value = 6378.137, unit = "KiloM", unit_basis = "added", note = "The source writes the number alone; its Figure 12.6 gives the radius of the Earth in km." }, b_1 = 1.006803, b_2 = 0.006706 }
+keywords = ["Earth radius", "latitude", "WGS 84"]
+
+[[formulations.wmo_effective_radius_mahoney.citations]]
+reference = "wmo2024"
+equation = "12.15"
+notation = { phi = '\varphi' }
+
+[formulations.wmo_geopotential_height_wgs84]
+label = "Geopotential height from the geometric height and the latitude, on WGS 84 (WMO Guide)"
+composition = { outer = "wmo_geopotential_height_from_normal_gravity", inner = { gamma = "wmo_normal_gravity_wgs84", R = "wmo_effective_radius_mahoney" } }
+
+[[formulations.wmo_geopotential_height_wgs84.citations]]
+reference = "wmo2024"
+equation = "12.15"
+notation = { Z = "Z_1", z = "z_1", g_n = '\gamma_{45}', phi = '\varphi' }

@@ -257,8 +257,10 @@ Read on 14 October 2026.
   (Q17130615) and of *QNH* (Q3233965) are both "QNE", another Q code,
   which names neither quantity; *lapse rate* (Q66900467)
   is labelled "gradient adiabatique dans l'atmosphère" in French,
-  narrower than a lapse rate. *Geopotential height* (Q12432978) has no
-  French label.
+  narrower than a lapse rate. *Geopotential height* (Q12432978) had no
+  French label. All four were corrected the same day from nomogram's
+  account ("altitude-pression", with "QNE" kept as an alias, "QNH",
+  "gradient vertical de température", "hauteur géopotentielle").
 
 ## External links
 

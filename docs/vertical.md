@@ -64,6 +64,27 @@ dT/dz, as the layers of a standard atmosphere write it.
   with the actual temperature (WMO-No. 8, Volume III, 2.9.1; Volume I,
   3.7).
 
+## From one coordinate to another
+
+| From → to | Formulation | Source |
+|---|---|---|
+| geopotential → geopotential height | `geopotential_height_definition`, Z = Φ / g_n | WMO-No. 8, equation 12.12; CF; ERA5 |
+| geometric altitude ↔ geopotential height, radius 6356.766 km | `itu_r_p835_geopotential_height`, `itu_r_p835_geometric_altitude` | ITU-R P.835-7, equations 1a and 1b (the U.S. Standard Atmosphere, 1976) |
+| geopotential height → geometric altitude, radius 6371.229 km | `era5_geometric_altitude` | ERA5 documentation (the spherical Earth of the IFS) |
+| geometric height and latitude → geopotential height | `wmo_geopotential_height_wgs84`, composed of `wmo_geopotential_height_from_normal_gravity`, `wmo_normal_gravity_wgs84` and `wmo_effective_radius_mahoney` | WMO-No. 8, equations 12.15 and 12.16 |
+| latitude → normal gravity | `wmo_normal_gravity_wgs84`, `wmo_normal_gravity_smithsonian` | WMO-No. 8, equations 12.16 and 12.14 |
+| altitude and surface altitude → height | `height_above_surface` | CF |
+
+The conversions differ by their Earth: 10 km of geopotential height are
+15.7 m higher geometrically on the sphere of the IFS, a little more on
+the smaller radius of the standard atmosphere. For a GPS radiosonde, WMO
+takes the latitude into account: 30 km of geometric height give
+29.7785 km of geopotential height at the Equator and 29.932 km at 80°N.
+WMO's equation 12.13 has the same form as 12.15, with the normal gravity
+of 12.14 and an effective radius tabulated in the Smithsonian tables:
+`wmo_geopotential_height_from_normal_gravity` takes such a radius as an
+input.
+
 ## One word, several quantities
 
 | Term | Community | Kind | Source |
@@ -78,8 +99,9 @@ dT/dz, as the layers of a standard atmosphere write it.
 | flight level | aviation (SERA) | `PressureAltitude` | SERA, Art. 2, point 78 |
 
 Symbols differ too. WMO-No. 8 writes z for the geometric height and Z
-for the geopotential height (12.5.5.2); the IFS writes φ for the
-geopotential. Each formulation keeps its source's symbols in the
+for the geopotential height (12.5.5.2); ITU-R P.835 writes H for the
+geopotential height and Z for the geometric height; the IFS writes φ for
+the geopotential, and ERA5 z for it and h for the geopotential height. Each formulation keeps its source's symbols in the
 notation of its citation.
 
 ## Units

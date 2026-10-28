@@ -15,10 +15,13 @@ can also be proposed through an issue (see the
 
 - **A formula is written once**, as an expression in restricted Python
   syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
-  functions `exp`, `ln`, `log10` and `sqrt`, the constant `pi` (a
-  reserved name, which no identifier may take), and a
+  functions `exp`, `ln`, `log10`, `sqrt`, `sin` and `cos`, the constant
+  `pi` (a reserved name, which no identifier may take), and a
   [piecewise definition](#piecewise-definitions). LaTeX, numeric
-  functions and symbolic results all derive from it.
+  functions and symbolic results all derive from it. An angle in the
+  argument of `sin` or `cos` is in radians: a variable in degrees there
+  is refused, since pint counts the degree as a pure number worth
+  pi/180 (a latitude given in degrees is converted when evaluated).
 - **Everything is traced to a source.** A reference is `verified` only
   when the detail was **read in the source itself**; anything else is
   `to-confirm`, with a note saying what remains to check. A formula

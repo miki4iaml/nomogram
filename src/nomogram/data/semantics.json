@@ -72,6 +72,10 @@
       "canonical_units": "1",
       "pint": "dimensionless"
     },
+    "latitude": {
+      "canonical_units": "degree_north",
+      "pint": "degree"
+    },
     "mass_concentration_of_water_vapor_in_air": {
       "canonical_units": "kg m-3",
       "pint": "kg * m ** -3"
@@ -548,6 +552,20 @@
       "scale_type": "ratio",
       "specialization_of": null
     },
+    "PlaneAngle": {
+      "added_units": [],
+      "applicable_units": [
+        "DEG",
+        "RAD"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/PlaneAngle",
+      "label": "Plane Angle",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "Pressure": {
       "added_units": [],
       "applicable_units": [
@@ -946,6 +964,24 @@
       "symbol": "atm",
       "ucum": "atm",
       "udunits": "atm"
+    },
+    "DEG": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/DEG",
+      "label": "Degree",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q28390",
+          "verified": "2026-10-28"
+        }
+      ],
+      "multiplier": 0.017453292519943295,
+      "offset": 0.0,
+      "pint": "degree",
+      "symbol": "\u00b0",
+      "ucum": "deg",
+      "udunits": "\u00b0"
     },
     "DEG_C": {
       "dimension_vector": "A0E0L0I0M0H1T0D0",
@@ -1600,6 +1636,24 @@
       "symbol": "ppm",
       "ucum": "[ppm]",
       "udunits": null
+    },
+    "RAD": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/RAD",
+      "label": "Radian",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q33680",
+          "verified": "2026-10-28"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "radian",
+      "symbol": "rad",
+      "ucum": "rad",
+      "udunits": "rad"
     },
     "UNITLESS": {
       "dimension_vector": "A0E0L0I0M0H0T0D1",

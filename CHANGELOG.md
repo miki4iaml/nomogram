@@ -25,6 +25,18 @@ and this project adheres to
   `docs/vertical.md`.
 - The standard acceleration of free fall, g_n = 9.80665 m s-2 (3rd CGPM,
   1901), a conventional constant.
+- From one vertical coordinate to another: the geopotential height from
+  the geopotential (WMO-No. 8, 12.12); between geometric altitude and
+  geopotential height with the radius of the U.S. Standard Atmosphere
+  (ITU-R P.835-7, 1a and 1b) and with the spherical Earth of the IFS
+  (ERA5); for a GPS radiosonde, from the geometric height and the
+  latitude on WGS 84 (WMO-No. 8, 12.15 and 12.16), composed of a normal
+  gravity, an effective radius and the generic form of 12.13 and 12.15;
+  the normal gravity of the Smithsonian tables (12.14). Kind
+  `GeodeticLatitude` (CF `latitude`, broader).
+- Functions `sin` and `cos` in expressions. An angle in their argument
+  is in radians: a variable in degrees there is refused, pint counting
+  the degree as a pure number.
 - From QUDT 3.5.2: the kinds `Length`, `AccelerationOfGravity`,
   `TemperatureGradient`, `Velocity` and `Speed` (with the CF names of the
   wind), and the units m s-2, m2 s-2 (added to `SpecificEnergy`, CF's
