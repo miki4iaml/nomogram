@@ -80,12 +80,14 @@ def main(output: str) -> None:
         "log_pressure_interpolation_specific_humidity": "q in ln p (MetPy)",
         "pressure_interpolation_specific_humidity": "q in p (FULL-POS)",
         "metpy171_isentropic_specific_humidity": "q in θ (MetPy, isentropic)",
+        "log_pressure_interpolation_log_specific_humidity": "ln q in ln p (nomogram)",
     }
     routes = {
         "metpy171_relative_humidity_dew_point_log_pressure": "Td, T in ln p (Skew-T)",
         "metpy171_relative_humidity_dew_point_pressure": "Td, T in p (MetPy indices)",
         "metpy171_relative_humidity_specific_humidity_log_pressure": "q, T in ln p",
         "metpy171_relative_humidity_isentropic": "q in θ (isentropic)",
+        "relative_humidity_log_specific_humidity_log_pressure": "ln q, T in ln p (nomogram)",
         "pressure_interpolation_relative_humidity": "RH in p (FULL-POS)",
     }
     grid = {"Pressure": Q_(np.linspace(850, 500, 141), "hPa")}

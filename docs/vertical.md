@@ -232,6 +232,7 @@ they compare side by side:
 | dew point and temperature linear in p | `metpy171_relative_humidity_dew_point_pressure` |
 | specific humidity and temperature linear in ln p | `metpy171_relative_humidity_specific_humidity_log_pressure` |
 | specific humidity linear in θ, temperature linear in ln p | `metpy171_relative_humidity_isentropic` |
+| ln q and temperature linear in ln p, a scheme nomogram writes without a source | `relative_humidity_log_specific_humidity_log_pressure` |
 | relative humidity linear in p | `pressure_interpolation_relative_humidity` |
 
 Between 850 and 500 hPa of the ITU-R reference atmosphere, its profile
@@ -295,12 +296,14 @@ humidities = {
     "log_pressure_interpolation_specific_humidity": "q in ln p (MetPy)",
     "pressure_interpolation_specific_humidity": "q in p (FULL-POS)",
     "metpy171_isentropic_specific_humidity": "q in θ (MetPy, isentropic)",
+    "log_pressure_interpolation_log_specific_humidity": "ln q in ln p (nomogram)",
 }
 routes = {
     "metpy171_relative_humidity_dew_point_log_pressure": "Td, T in ln p (Skew-T)",
     "metpy171_relative_humidity_dew_point_pressure": "Td, T in p (MetPy indices)",
     "metpy171_relative_humidity_specific_humidity_log_pressure": "q, T in ln p",
     "metpy171_relative_humidity_isentropic": "q in θ (isentropic)",
+    "relative_humidity_log_specific_humidity_log_pressure": "ln q, T in ln p (nomogram)",
     "pressure_interpolation_relative_humidity": "RH in p (FULL-POS)",
 }
 grid = {"Pressure": Q_(np.linspace(850, 500, 141), "hPa")}
@@ -323,6 +326,7 @@ At 700 hPa, where the relative humidity of the reference atmosphere is
 
 | Relative humidity from | At 700 hPa | Error |
 |---|---|---|
+| ln q and temperature linear in ln p | 47.36 % | +0.03 point |
 | dew point and temperature linear in ln p | 50.01 % | +2.67 points |
 | dew point and temperature linear in p | 49.76 % | +2.43 points |
 | relative humidity linear in p | 49.76 % | +2.43 points |
@@ -334,8 +338,11 @@ chord between two levels lies above it, and the relative humidity drawn
 from it is 12 to 13 points too high halfway. The dew point decreases
 nearly linearly, the saturation vapour pressure being nearly exponential
 in it: interpolated, it stays within 3 points, as does the relative
-humidity interpolated directly. The relative humidity follows from the
-variable interpolated, not from the formula that then gives it. This
+humidity interpolated directly. Its logarithm, linear in ln p
+(`log_pressure_interpolation_log_specific_humidity`, written by nomogram:
+no source was found), follows the specific humidity within 0.03 point.
+The relative humidity follows from the variable interpolated, not from
+the formula that then gives it. This
 layer, 350 hPa thick, and this humidity, exponential by construction
 (P.835, equation 6), magnify the differences: between the close levels
 of a radiosonde they shrink, and inversions or dry layers can reorder

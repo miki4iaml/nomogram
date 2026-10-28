@@ -104,6 +104,11 @@ and this project adheres to
   practices, composed from them: `docs/vertical.md` compares them on the
   ITU-R reference atmosphere, in a figure, and reproduces MetPy's mixed
   parcel from the formulations.
+- The specific humidity between two levels, its logarithm linear in that
+  of the pressure, a scheme nomogram writes without a source, and the
+  relative humidity that follows: within 0.03 point of the reference
+  atmosphere's at 700 hPa, where the chords in q are 12 to 13 points too
+  humid.
 - `nomogram.comparison.partial` fixes some inputs of a formulation, as
   `functools.partial` fixes arguments: the two levels of an
   interpolation scheme, so that schemes compare along the target
