@@ -81,7 +81,7 @@ with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
     nomo.plot.plot_deviations(table, xlim=(0, 60), ylim=(-1.0, 1.0))  # extra viz
 ```
 
-![Écart des formulations de la pression de vapeur saturante à IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.4.0/docs/images/saturation-vapour-pressure.png)
+![Écart des formulations de la pression de vapeur saturante à IAPWS](docs/images/saturation-vapour-pressure.png)
 
 ## Utilisation
 

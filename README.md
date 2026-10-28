@@ -79,7 +79,7 @@ with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
     nomo.plot.plot_deviations(table, xlim=(0, 60), ylim=(-1.0, 1.0))  # extra viz
 ```
 
-![Deviation of saturation vapour pressure formulations from IAPWS](https://raw.githubusercontent.com/miki4iaml/nomogram/v0.4.0/docs/images/saturation-vapour-pressure.png)
+![Deviation of saturation vapour pressure formulations from IAPWS](docs/images/saturation-vapour-pressure.png)
 
 ## Usage
 

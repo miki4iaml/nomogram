@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- On PyPI, the links and images of the README lead to the files of the
+  release; relative, they led nowhere. The release workflow makes them
+  absolute, at the release's tag, before building, and checks the built
+  description (`scripts/absolute_links.py`); the README of the repository
+  keeps its relative links, its figure included.
+
 ## [0.4.0] - 2026-10-28
 
 ### Added
