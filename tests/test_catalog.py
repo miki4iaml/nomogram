@@ -450,7 +450,28 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         for name, unit in f.coefficient_units.items()
         if unit.origin != "inferred"
     }
-    assert origins == {
+    # Formulations reaching MetPy's saturation vapour pressure, by a call or
+    # through a part, keep the units its citation states.
+    reaching = (
+        "metpy171_psychrometric_vapour_pressure",
+        "metpy171_saturation_mixing_ratio",
+        "metpy171_relative_humidity_from_dew_point",
+        "metpy171_relative_humidity_from_specific_humidity",
+    )
+    assert {
+        k: v
+        for k, v in origins.items()
+        if k[1].endswith("__metpy171_saturation_vapour_pressure")
+    } == {
+        (key, f"{name}__metpy171_saturation_vapour_pressure"): "stated"
+        for key in reaching
+        for name in ("e_s0", "T_0")
+    }
+    assert {
+        k: v
+        for k, v in origins.items()
+        if not k[1].endswith("__metpy171_saturation_vapour_pressure")
+    } == {
         ("iapws_sr1_86", "T_c"): "stated",
         ("iapws_sr1_86", "p_c"): "stated",
         ("iapws_r14_08_sublimation", "T_t"): "stated",
@@ -512,14 +533,6 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
         ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
-        (
-            "metpy171_psychrometric_vapour_pressure",
-            "e_s0__metpy171_saturation_vapour_pressure",
-        ): "stated",
-        (
-            "metpy171_psychrometric_vapour_pressure",
-            "T_0__metpy171_saturation_vapour_pressure",
-        ): "stated",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "A"): "added",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "B"): "added",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "C"): "added",
