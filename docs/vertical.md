@@ -112,6 +112,48 @@ below the station, of assumed gradient 0.0065 K/gpm, "feasible for
 stations below 750 m"; WMO gives it in two forms, which differ by
 6.4 × 10⁻⁴ in the exponent, 0.04 hPa for a station at 500 m.
 
+## The reference atmosphere and the pressure altitude
+
+A standard atmosphere is a conventional model, "this virtual
+atmosphere" WMO uses to compute the QNH, not a description of the actual
+one. Its texts in force are ICAO Doc 7488 and ISO 2533, not freely
+available; ITU-R P.835-7 gives its temperature and pressure up to
+84.852 km', derived from the U.S. Standard Atmosphere, 1976, itself
+identical to the ICAO standard atmosphere up to 32 km.
+
+| Quantity | Formulation | Source |
+|---|---|---|
+| temperature against geopotential height | `itu_r_p835_temperature` | ITU-R P.835-7, equations 2a to 2g |
+| pressure against geopotential height | `itu_r_p835_pressure` | ITU-R P.835-7, equations 3a to 3g |
+| pressure altitude, in feet | `nws_pressure_altitude` | NWS calculation sheet |
+
+Each layer of the pressure is the general form of the U.S. Standard
+Atmosphere (equation 33a, or 33b when isothermal) with the values of the
+layer, kept as coefficients so that the formula keeps the form P.835
+prints. The layers meet with small jumps (226.3206 hPa at the top of the
+first, 226.3226 hPa at the bottom of the second). A pressure altitude is
+the inverse of this pressure; the jumps make the images of two layers
+overlap by a few thousandths of a hectopascal, so the inverse is
+numerical, within the 0 to 84.852 km' P.835 states:
+
+```python
+from nomogram.catalog import catalog
+from nomogram.inversion import invert
+from nomogram.model import Variable
+from nomogram.units import Q_
+
+altitude = invert(
+    catalog().formulations["itu_r_p835_pressure"],
+    "H",
+    output=Variable("H_p", "PressureAltitude", "KiloM", "Pressure altitude"),
+    input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+)
+at_500_hPa = altitude.evaluate(P=Q_(500, "hPa")).to("m")  # 5574.44 m
+```
+
+The formula of the NWS, with rounded constants, gives 5572.10 m at
+500 hPa: 2.3 m lower.
+
 ## One word, several quantities
 
 | Term | Community | Kind | Source |

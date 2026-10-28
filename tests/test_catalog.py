@@ -495,6 +495,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         # The kilometre of R = a / (b_1 - b_2 sin^2 phi), from WMO's figure.
         ("wmo_effective_radius_mahoney", "a"): "added",
         ("wmo_geopotential_height_wgs84", "a"): "added",
+        # Temperatures of P.835 appear in ratios only: T_0 in K fixes the
+        # units of the others, of the gradients and of k.
+        ("itu_r_p835_pressure", "T_0"): "stated",
         ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
         ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",

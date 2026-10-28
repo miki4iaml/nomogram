@@ -46,6 +46,8 @@ NEEDED = {
     # R = a / (b_1 - b_2 sin^2 phi): b_1 and b_2 could carry the kilometre.
     ("wmo_effective_radius_mahoney", "a"),
     ("wmo_geopotential_height_wgs84", "a"),
+    # Temperatures appear in ratios only: one must be declared.
+    ("itu_r_p835_pressure", "T_0"),
 }
 
 
