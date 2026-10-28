@@ -362,7 +362,8 @@ def _reference_state(height: Any, pressure: float) -> dict[str, Any]:
     """Temperature, specific humidity and dew point of P.835 at a pressure."""
     h = height.evaluate(P=Q_(pressure, "hPa"))
     t = FORMULATIONS["itu_r_p835_temperature"].evaluate(H=h)
-    rho = FORMULATIONS["itu_r_p835_water_vapour_density"].evaluate(z=h.to("km"))
+    z = FORMULATIONS["itu_r_p835_geometric_altitude"].evaluate(Z=h)
+    rho = FORMULATIONS["itu_r_p835_water_vapour_density"].evaluate(z=z)
     e = FORMULATIONS["itu_r_p453_vapour_pressure_from_density"].evaluate(rho=rho, T=t)
     r = FORMULATIONS["metpy171_mixing_ratio"].evaluate(e=e, p=Q_(pressure, "hPa"))
     q = FORMULATIONS["specific_humidity_from_mixing_ratio"].evaluate(r=r)
@@ -399,12 +400,12 @@ def test_relative_humidity_between_two_levels_by_each_practice_of_metpy() -> Non
     dew = {"T_d_1": low["T_d"], "T_d_2": high["T_d"]}
     humid = {"q_1": low["q"], "q_2": high["q"]}
     routes = {
-        "metpy171_relative_humidity_dew_point_log_pressure": (dew, 2.68),
-        "metpy171_relative_humidity_dew_point_pressure": (dew, 2.44),
-        "metpy171_relative_humidity_specific_humidity_log_pressure": (humid, 13.37),
-        "metpy171_relative_humidity_isentropic": (humid, 12.19),
+        "metpy171_relative_humidity_dew_point_log_pressure": (dew, 2.67),
+        "metpy171_relative_humidity_dew_point_pressure": (dew, 2.43),
+        "metpy171_relative_humidity_specific_humidity_log_pressure": (humid, 13.38),
+        "metpy171_relative_humidity_isentropic": (humid, 12.20),
     }
-    assert truth.to("percent").magnitude == pytest.approx(47.37, abs=0.01)
+    assert truth.to("percent").magnitude == pytest.approx(47.34, abs=0.01)
     for key, (values, error) in routes.items():
         rh = FORMULATIONS[key].evaluate(**levels, **values)
         assert (rh - truth).to("percent").magnitude == pytest.approx(error, abs=0.01), (

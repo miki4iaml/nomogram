@@ -1984,7 +1984,7 @@ inputs = [
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
 ]
 constants = ["kappa_metpy", "p_0_metpy"]
-keywords = ["potential temperature", "adiabatic", "Exner function", "MetPy"]
+keywords = ["potential temperature", "adiabatic", "Exner function", "mixed layer", "MetPy"]
 
 [[formulations.metpy171_temperature_from_potential_temperature.citations]]
 reference = "metpy171"
@@ -2061,7 +2061,7 @@ note = "dewpoint, calc/thermo.py line 1717: zero_degc + 243.5 val / (17.67 - val
 [formulations.metpy171_dew_point_from_mixing_ratio]
 label = "Dew point from the mixing ratio and the pressure, MetPy"
 composition = { outer = "metpy171_dew_point", inner = { e = "metpy171_vapour_pressure" } }
-keywords = ["humidity", "dew point", "mixing ratio", "mixed parcel", "MetPy"]
+keywords = ["humidity", "dew point", "mixing ratio", "mixed layer", "MetPy"]
 
 [formulations.metpy171_virtual_temperature]
 label = "Virtual temperature from the temperature and the mixing ratio, MetPy constants"

@@ -101,7 +101,14 @@ and this project adheres to
   potential temperature between two levels whose temperature is linear in
   ln p, on which MetPy places an isentropic surface (after Ziv and Alpert
   1994). The relative humidity between two levels by each of these
-  practices, composed from them: `docs/vertical.md` compares them.
+  practices, composed from them: `docs/vertical.md` compares them on the
+  ITU-R reference atmosphere, in a figure, and reproduces MetPy's mixed
+  parcel from the formulations.
+- `nomogram.comparison.partial` fixes some inputs of a formulation, as
+  `functools.partial` fixes arguments: the two levels of an
+  interpolation scheme, so that schemes compare along the target
+  pressure. `compose` and `partial` take a `label`, for the legends of
+  plots.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.
