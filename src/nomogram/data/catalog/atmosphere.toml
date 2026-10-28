@@ -1241,6 +1241,24 @@ reference = "metpy171_interpolate"
 [[formulations.log_pressure_interpolation_specific_humidity.citations]]
 reference = "earthkit_meteo121"
 
+[formulations.log_pressure_interpolation_log_specific_humidity]
+label = "Specific humidity between two levels, its logarithm linear in the logarithm of the pressure"
+expression = "q_1 * (q_2 / q_1) ** (ln(p / p_1) / ln(p_2 / p_1))"
+fixed_units = false
+note = "Written by nomogram, no source found: ln q linear in ln p, so that q is a power of p between the two levels, exact where it is one. A humidity that decreases nearly exponentially with height, as the pressure does, is followed so where a chord in q or ln p lies above it (docs/vertical.md)."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+assumptions = [
+  { text = "The specific humidity is a power of the pressure between the two levels.", status = "deduced" },
+]
+keywords = ["vertical interpolation", "humidity", "logarithm of pressure", "logarithm of humidity"]
+
 [formulations.log_pressure_interpolation_mixing_ratio]
 label = "Mixing ratio between two levels, linear in the logarithm of the pressure"
 expression = "r_1 + (r_2 - r_1) * ln(p / p_1) / ln(p_2 / p_1)"
@@ -1371,6 +1389,12 @@ label = "Relative humidity between two levels, specific humidity linear in the p
 composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "metpy171_isentropic_specific_humidity", T = "log_pressure_interpolation_temperature" } }
 note = "MetPy's gallery example of isentropic analysis: the specific humidity brought to the isentropic surface, then the relative humidity from the pressure and temperature there; drawn against the pressure."
 keywords = ["vertical interpolation", "relative humidity", "isentropic"]
+
+[formulations.relative_humidity_log_specific_humidity_log_pressure]
+label = "Relative humidity between two levels, ln q and temperature linear in ln p"
+composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "log_pressure_interpolation_log_specific_humidity", T = "log_pressure_interpolation_temperature" } }
+note = "The logarithm of the specific humidity interpolated, a scheme written by nomogram, then MetPy's relative humidity."
+keywords = ["vertical interpolation", "relative humidity", "specific humidity", "logarithm of humidity"]
 
 [cross_checks.metpy171_isentropic]
 implementation = "MetPy"
