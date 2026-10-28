@@ -30,7 +30,13 @@ from nomogram.display import (
     reference_scale,
 )
 from nomogram.expression import LATEX_COMMANDS
-from nomogram.plot import plot_deviations, plot_profile, plot_values, sign
+from nomogram.plot import (
+    plot_deviations,
+    plot_profile,
+    plot_profiles,
+    plot_values,
+    sign,
+)
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -803,3 +809,44 @@ def test_a_pressure_profile_goes_down_on_a_logarithmic_axis() -> None:
     assert plot_profile(table, ax=own, options=DisplayOptions.SYMPY).get_yscale() == (
         "linear"
     )
+
+
+def test_profiles_of_several_kinds_share_the_vertical_coordinate() -> None:
+    pressures = Q_(np.array([1000.0, 850.0, 500.0, 200.0]), "hPa")
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    tables = [
+        compare([altitude], altitude, {"Pressure": pressures}),
+        compare(
+            [theta],
+            theta,
+            {"Pressure": pressures, "ThermodynamicTemperature": Q_(273.0, "K")},
+        ),
+    ]
+    left, right = plot_profiles(tables, ylim=(1000, 300))
+    assert left.get_shared_y_axes().joined(left, right)
+    assert right.get_yscale() == "log"
+    assert right.get_ylim() == pytest.approx((1000, 300))
+    assert left.get_ylabel().startswith("Pressure")
+    assert right.get_ylabel() == ""
+    assert "temperature" in right.get_xlabel().lower()
+    (mark,) = signatures(left.figure)
+    assert mark.figure is right.figure
+
+
+def test_profiles_need_one_vertical_coordinate() -> None:
+    temperature = FORMULATIONS["itu_r_p835_temperature"]
+    by_height = compare(
+        [temperature], temperature, {"GeopotentialHeight": Q_([0.0, 5.0], "km")}
+    )
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    by_pressure = compare(
+        [altitude], altitude, {"Pressure": Q_([1000.0, 500.0], "hPa")}
+    )
+    with pytest.raises(ValueError, match="one input kind"):
+        plot_profiles([by_height, by_pressure])
+    with pytest.raises(ValueError, match="at least one"):
+        plot_profiles([])
+    (single,) = plot_profiles([by_height], signature=False)
+    assert single.get_yscale() == "linear"
+    assert not signatures(single.figure)

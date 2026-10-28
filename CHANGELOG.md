@@ -53,9 +53,15 @@ and this project adheres to
   every source that uses it: the wind linear in ln p (FULL-POS, MetPy,
   earthkit-meteo); the temperature linear in ln p (MetPy,
   earthkit-meteo), linear in p (FULL-POS, ECMWF option) and linear in
-  altitude; the specific humidity linear in p (FULL-POS); the
-  geopotential height linear in ln p. `docs/vertical.md` compares them
-  on the ITU-R reference atmosphere.
+  altitude; the specific humidity and the relative humidity linear in p
+  (FULL-POS); the geopotential height linear in ln p. `docs/vertical.md`
+  compares them on the ITU-R reference atmosphere.
+- The water vapour of the ITU-R reference atmosphere (P.835-7, 6 and 8),
+  against the geometric height.
+- The Celsius temperature from the thermodynamic temperature, t = T - T0
+  (SI Brochure, 2.3.1), with the exact constant T0 = 273.15 K: in a
+  composition, it lets a temperature in kelvins feed an input in degrees
+  Celsius.
 - Extrapolation below the surface, as ECMWF post-processes ERA5 (FULL-POS;
   Trenberth et al. 1993, NCAR TN-396): the surface temperature from a
   model level through the standard lapse rate; the temperature, the
@@ -68,6 +74,8 @@ and this project adheres to
   formulation along x against the vertical coordinate along y; a pressure
   goes downwards on a logarithmic axis labelled with plain numbers, a
   height upwards. With the option sets, as the other plots.
+  `nomogram.plot.plot_profiles` draws several side by side, one panel per
+  quantity, on a shared vertical coordinate.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.

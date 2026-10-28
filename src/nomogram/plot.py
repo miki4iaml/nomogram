@@ -57,6 +57,7 @@ __all__ = [
     "SIGNATURE_HEIGHT",
     "plot_deviations",
     "plot_profile",
+    "plot_profiles",
     "plot_values",
     "sign",
 ]
@@ -651,14 +652,8 @@ def plot_profile(
                 else _style(index)
             )
             ax.plot(values, y, label=names[key], **style)
-        if created and kind is not None and feeds(kind, "Pressure"):
-            from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
-
-            ax.set_yscale("log")
-            ax.yaxis.set_major_locator(LogLocator(subs=(1.0, 2.0, 3.0, 5.0)))
-            ax.yaxis.set_major_formatter(ScalarFormatter())
-            ax.yaxis.set_minor_formatter(NullFormatter())
-            ax.invert_yaxis()
+        if created:
+            _vertical_axis(ax, kind)
         ax.set_xlabel(_values_label(comparison, notation))
         ax.set_ylabel(y_label)
         ax.set(**axes)
@@ -666,6 +661,104 @@ def plot_profile(
         if created and signature:
             sign(ax.figure, axes=ax)
         return ax
+
+
+def plot_profiles(
+    comparisons: Iterable[Comparison],
+    *,
+    input_kind: str | None = None,
+    notation: Notation | None = None,
+    signature: bool = True,
+    options: DisplayOptions | None = None,
+    **axes: Any,
+) -> tuple[Any, ...]:
+    """Plot vertical profiles side by side, one panel per comparison.
+
+    Quantities of different kinds share no axis of values: a temperature,
+    a specific humidity and a relative humidity each get a panel, drawn as
+    by :func:`plot_profile`, and the panels share the vertical coordinate.
+
+    Parameters
+    ----------
+    comparisons : iterable of Comparison
+        Results of :func:`nomogram.comparison.compare` over one vertical
+        coordinate, in the order of the panels, from left to right.
+    input_kind : str, optional
+        Quantity kind of the vertical coordinate.
+    notation : Notation, optional
+        Notation of the symbols of the values; the display options in force
+        otherwise (:mod:`nomogram.display`).
+    signature : bool
+        Sign the figure with the logo (:func:`sign`), under the last panel.
+    options : DisplayOptions, optional
+        Display options for this call, such as a preset
+        (``DisplayOptions.DOCUMENTATION``); those in force otherwise
+        (:func:`nomogram.display.display_options`).
+    **axes
+        Properties set on every panel once the curves are drawn
+        (:meth:`matplotlib.axes.Axes.set`), such as ``ylim=(850, 500)``;
+        those of one panel, on the axes returned.
+
+    Returns
+    -------
+    tuple of matplotlib.axes.Axes
+        The panels, from left to right.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed (extra ``viz``).
+    ValueError
+        If there is no comparison, or the vertical coordinate is not one
+        kind, determined, for every panel.
+    """
+    comparisons = list(comparisons)
+    if not comparisons:
+        msg = "plot_profiles needs at least one comparison"
+        raise ValueError(msg)
+    with display_options(options):
+        kinds = {input_kind or _varying_kind(c) for c in comparisons}
+        if len(kinds) != 1 or None in kinds:
+            msg = (
+                "the panels share their vertical coordinate: compare over one "
+                "input kind, or give input_kind"
+            )
+            raise ValueError(msg)
+        (kind,) = kinds
+        width = max(6.4, 3.2 * len(comparisons))
+        _, panels = _pyplot().subplots(
+            1,
+            len(comparisons),
+            sharey=True,
+            squeeze=False,
+            layout="tight",
+            figsize=(width, 4.8),
+        )
+        row = tuple(panels[0])
+        for index, (comparison, ax) in enumerate(zip(comparisons, row, strict=True)):
+            plot_profile(comparison, input_kind=kind, notation=notation, ax=ax)
+            if index:
+                ax.set_ylabel("")
+        # Shared: the scale and the direction set on one panel hold for all.
+        _vertical_axis(row[0], kind)
+        for ax in row:
+            ax.set(**axes)
+        if signature:
+            sign(row[0].figure, axes=row[-1])
+        return row
+
+
+def _vertical_axis(ax: Any, kind: str | None) -> None:
+    """A pressure downwards on a logarithmic axis, labelled with plain numbers."""
+    if kind is None or not feeds(kind, "Pressure"):
+        return
+    from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
+
+    ax.set_yscale("log")
+    ax.yaxis.set_major_locator(LogLocator(subs=(1.0, 2.0, 3.0, 5.0)))
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.invert_yaxis()
 
 
 def _varying_kind(comparison: Comparison) -> str | None:
