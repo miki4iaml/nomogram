@@ -1376,6 +1376,102 @@ composition = { outer = "potential_temperature_interpolation_specific_humidity",
 note = "As a function of the pressure: on the isentropic surface MetPy places at p, the potential temperature is that of the levels' profile at p, so that this curve is MetPy's, drawn against the pressure rather than the potential temperature."
 keywords = ["isentropic", "humidity", "vertical interpolation"]
 
+# The pressure of an isentropic level between two pressure levels, by the
+# relations between temperature and pressure Ziv and Alpert (1994)
+# compare. Method (c), the temperature linear in ln p, has no closed form
+# (metpy171_potential_temperature_between_levels); the others follow. The
+# source gives no value of R, c_p and g: those of Bechtold (2015) are taken.
+
+[formulations.potential_temperature_interpolation_pressure]
+label = "Pressure of an isentropic level between two levels, linear in the potential temperature"
+expression = "p_1 + (theta - theta_1) * (p_2 - p_1) / (theta_2 - theta_1)"
+fixed_units = false
+note = "Method (a) of Ziv and Alpert (1994), whose users they name: Bleck (1974), Hoskins et al. (1985), Neeman and Alpert (1990). The worst of the five against radiosondes."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the second level" },
+]
+keywords = ["isentropic", "vertical interpolation", "potential temperature"]
+
+[[formulations.potential_temperature_interpolation_pressure.citations]]
+reference = "ziv_alpert1994"
+equation = "4"
+notation = { p_1 = "p_d", p_2 = "p_u", theta = '\theta', theta_1 = '\theta_d', theta_2 = '\theta_u' }
+assumptions = ["A constant stability factor between the two levels (Table 1)."]
+
+[formulations.ziv_alpert1994_isentropic_pressure_exner]
+label = "Pressure of an isentropic level between two levels, the potential temperature linear in p^kappa (Ziv and Alpert)"
+expression = "((theta - theta_1) * (p_2 ** (R_d / c_pd) - p_1 ** (R_d / c_pd)) / (theta_2 - theta_1) + p_1 ** (R_d / c_pd)) ** (c_pd / R_d)"
+fixed_units = true
+note = "Method (b), whose users Ziv and Alpert name: Bleck (1973), Davis and Emanuel (1991). kappa = R_d / c_pd with the constants of Bechtold (2015): the source gives none."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the second level" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015"]
+keywords = ["isentropic", "vertical interpolation", "potential temperature", "Exner function"]
+
+[[formulations.ziv_alpert1994_isentropic_pressure_exner.citations]]
+reference = "ziv_alpert1994"
+equation = "6"
+notation = { p_1 = "p_d", p_2 = "p_u", theta = '\theta', theta_1 = '\theta_d', theta_2 = '\theta_u', R_d = "R", c_pd = "c_p" }
+assumptions = ["A constant temperature between the two levels (Table 1)."]
+
+[formulations.ziv_alpert1994_isentropic_pressure_constant_lapse_rate]
+label = "Pressure of an isentropic level between two levels of constant lapse rate (Ziv and Alpert)"
+expression = "(theta * p_2 ** (R_d * (T_1 - T_2) / (g * (Z_2 - Z_1))) / (T_2 * p_0 ** (R_d / c_pd))) ** (1 / (R_d * ((T_1 - T_2) / (g * (Z_2 - Z_1)) - 1 / c_pd)))"
+fixed_units = true
+note = "Method (d): the temperature linear in height, T = T_u (p/p_u)^(R Gamma/g) with Gamma from the geopotential heights of the levels (11), so that theta = A p^B (12); the only method that needs more than temperatures. Shen et al. (1986) use it between pressure and sigma levels. Constants of Bechtold (2015): the source gives none."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+  { identifier = "Z_1", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the first level" },
+  { identifier = "Z_2", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the second level" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015", "g_bechtold2015"]
+keywords = ["isentropic", "vertical interpolation", "potential temperature", "lapse rate"]
+
+[[formulations.ziv_alpert1994_isentropic_pressure_constant_lapse_rate.citations]]
+reference = "ziv_alpert1994"
+equation = "12"
+notation = { p_2 = "p_u", theta = '\theta', T_1 = "T_d", T_2 = "T_u", Z_1 = "z_d", Z_2 = "z_u", R_d = "R", c_pd = "c_p" }
+note = "Equation 12 defines A = T p_0^kappa / p_u^(R Gamma/g), T being T_u, as equation 11 shows."
+assumptions = ["A constant lapse rate between the two levels (Table 1)."]
+
+[formulations.ziv_alpert1994_isentropic_pressure_temperature_exner]
+label = "Pressure of an isentropic level between two levels, the temperature linear in p^kappa (Ziv and Alpert)"
+expression = "((p_0 ** (R_d / c_pd) * (T_2 - T_1) / (p_2 ** (R_d / c_pd) - p_1 ** (R_d / c_pd)) - theta) / (p_0 ** (R_d / c_pd) * (p_1 ** (R_d / c_pd) * (T_2 - T_1) / (p_2 ** (R_d / c_pd) - p_1 ** (R_d / c_pd)) - T_1))) ** (-c_pd / R_d)"
+fixed_units = true
+note = "Method (e), T = T_d + (p^kappa - p_d^kappa)(T_u - T_d)/(p_u^kappa - p_d^kappa) (14), whose user Ziv and Alpert name: Schaack et al. (1990). Constants of Bechtold (2015): the source gives none."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015"]
+keywords = ["isentropic", "vertical interpolation", "potential temperature", "Exner function"]
+
+[[formulations.ziv_alpert1994_isentropic_pressure_temperature_exner.citations]]
+reference = "ziv_alpert1994"
+equation = "15"
+notation = { p_1 = "p_d", p_2 = "p_u", theta = '\theta', T_1 = "T_d", T_2 = "T_u", R_d = "R", c_pd = "c_p" }
+note = "Equations 15 and 16 print (T_u - T_d)(p_u - p_d)^-1 where equation 14, from which the text derives them, gives (T_u - T_d)/(p_u^kappa - p_d^kappa): the form entered, the only one of consistent dimensions."
+assumptions = ["A dry-adiabatic lapse rate between the two levels (Table 1)."]
+
 # The relative humidity between two levels, by each practice: the
 # variables interpolated, then the relative humidity of MetPy from them.
 

@@ -6,6 +6,7 @@
 import math
 from typing import Any
 
+import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
@@ -429,6 +430,63 @@ def test_a_variable_linear_in_the_potential_temperature_as_metpy_tests_it() -> N
         **two_levels, q_1=Q_(80, "g/kg"), q_2=Q_(40, "g/kg")
     )
     assert q.to("g/kg").magnitude == pytest.approx(69.197, abs=2e-3)
+
+
+def test_the_pressure_of_an_isentropic_level_by_the_methods_of_ziv_and_alpert() -> None:
+    # The isentropic level of the ITU-R reference atmosphere at 700 hPa,
+    # placed from its levels at 850 and 500 hPa: theta linear in p puts it
+    # 24 hPa lower, the temperature linear in height, its own profile,
+    # within 0.2 hPa (Bechtold's g of 9.81 against the 9.80665 of P.835);
+    # the temperature linear in ln p, MetPy's by iteration, 8.4 hPa lower.
+    from nomogram.inversion import invert
+    from nomogram.model import Variable
+
+    height = invert(
+        FORMULATIONS["itu_r_p835_pressure"],
+        "H",
+        output=Variable("H", "GeopotentialHeight", "KiloM", "Geopotential height"),
+        input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+    )
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    h, t, th = {}, {}, {}
+    for p in (850, 700, 500):
+        h[p] = height.evaluate(P=Q_(p, "hPa"))
+        t[p] = FORMULATIONS["itu_r_p835_temperature"].evaluate(H=h[p])
+        th[p] = theta.evaluate(T=t[p], p=Q_(p, "hPa"))
+    levels: dict[str, Any] = {"p_1": Q_(850, "hPa"), "p_2": Q_(500, "hPa")}
+    thetas = {"theta_1": th[850], "theta_2": th[500]}
+    temperatures = {"T_1": t[850], "T_2": t[500]}
+    methods = {
+        "potential_temperature_interpolation_pressure": ({**levels, **thetas}, 723.99),
+        "ziv_alpert1994_isentropic_pressure_exner": ({**levels, **thetas}, 708.62),
+        "ziv_alpert1994_isentropic_pressure_constant_lapse_rate": (
+            {"p_2": levels["p_2"], **temperatures, "Z_1": h[850], "Z_2": h[500]},
+            699.85,
+        ),
+        "ziv_alpert1994_isentropic_pressure_temperature_exner": (
+            {**levels, **temperatures},
+            695.62,
+        ),
+    }
+    for key, (values, expected) in methods.items():
+        p = FORMULATIONS[key].evaluate(theta=th[700], **values)
+        assert p.to("hPa").magnitude == pytest.approx(expected, abs=0.01), key
+        if "p_1" in values:
+            # At the potential temperature of the first level, its pressure.
+            at_first = FORMULATIONS[key].evaluate(theta=th[850], **values)
+            assert at_first.to("hPa").magnitude == pytest.approx(850.0), key
+    # Method (c) has no closed form: the potential temperature of its
+    # profile, against the pressure, is solved on a fine grid.
+    grid = Q_(np.linspace(500.0, 850.0, 35001), "hPa")
+    profile = FORMULATIONS["metpy171_potential_temperature_between_levels"].evaluate(
+        p=grid, **levels, **temperatures
+    )
+    target = FORMULATIONS["metpy171_potential_temperature"].evaluate(
+        T=t[700], p=Q_(700, "hPa")
+    )
+    # theta decreases as p increases: np.interp needs it increasing.
+    solved = np.interp(target.magnitude, profile.magnitude[::-1], grid.magnitude[::-1])
+    assert solved == pytest.approx(708.39, abs=0.02)
 
 
 def test_the_dry_adiabatic_gradient() -> None:

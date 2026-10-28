@@ -377,6 +377,26 @@ specific humidity is `metpy171_isentropic_specific_humidity`: the
 isentropic curve above is MetPy's, drawn against the pressure rather
 than the potential temperature.
 
+Four of their relations give the pressure of the level in closed form;
+the source gives no value of R, c_p and g, those of Bechtold (2015) are
+taken. Between 850 and 500 hPa of the ITU-R reference atmosphere, the
+isentropic level of its 700 hPa (297.38 K) is placed at:
+
+| Relation between temperature and pressure | Formulation | Pressure | Error |
+|---|---|---|---|
+| (a) θ linear in p | `potential_temperature_interpolation_pressure` | 723.99 hPa | +24.0 hPa |
+| (b) θ linear in p^κ | `ziv_alpert1994_isentropic_pressure_exner` | 708.62 hPa | +8.6 hPa |
+| (c) T linear in ln p, by iteration (NMC, MetPy) | `metpy171_potential_temperature_between_levels` | 708.39 hPa | +8.4 hPa |
+| (d) T linear in height | `ziv_alpert1994_isentropic_pressure_constant_lapse_rate` | 699.85 hPa | −0.15 hPa |
+| (e) T linear in p^κ | `ziv_alpert1994_isentropic_pressure_temperature_exner` | 695.62 hPa | −4.4 hPa |
+
+The reference atmosphere has a constant lapse rate in this layer: (d) is
+its own profile, within the g of 9.81 m s⁻² it takes. Ziv and Alpert's
+equation 15, for (e), prints (p_u − p_d)⁻¹ where their equation 14 gives
+(p_u^κ − p_d^κ)⁻¹; the citation records it. Their stability factor
+∂θ/∂p, in K/Pa, waits for a quantity kind: QUDT ties that unit to
+`PressureBasedTemperature` only.
+
 ### Mixed layer
 
 MetPy's mixed parcel mixes a layer: its potential temperature and its
