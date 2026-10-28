@@ -3,6 +3,8 @@
 
 """Tests for the atmosphere family: vertical coordinates and their kinds."""
 
+from typing import Any
+
 import pytest
 
 from nomogram.catalog import catalog
@@ -164,7 +166,7 @@ def test_the_thickness_of_a_layer_by_wmo_and_by_the_ifs() -> None:
 def test_the_two_forms_of_the_reduction_to_sea_level() -> None:
     # Equations 3.1 and 3.2 of WMO-No. 8: the same formula for the source,
     # 6.4 x 10^-4 apart in the exponent.
-    station = {
+    station: dict[str, Any] = {
         "p_s": Q_(950, "hPa"),
         "H_p": Q_(500, "m"),
         "T_s": Q_(288.15, "K"),
