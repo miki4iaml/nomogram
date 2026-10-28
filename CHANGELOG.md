@@ -116,6 +116,10 @@ and this project adheres to
   in p^kappa, the temperature linear in height or in p^kappa; the fifth,
   the temperature linear in ln p, is MetPy's potential temperature between
   two levels. A misprint of their equation 15 is recorded and corrected.
+- The pressure altitude of the ISO standard atmosphere in closed form,
+  layer by layer from -1 450 to 47 000 m (ISO 2533, Addendum 1, 1985),
+  checked against its printed hypsometrical tables. ISO 2533 (1975) cited
+  on the conversions between geopotential and geometric altitudes.
 - `nomogram.comparison.partial` fixes some inputs of a formulation, as
   `functools.partial` fixes arguments: the two levels of an
   interpolation scheme, so that schemes compare along the target

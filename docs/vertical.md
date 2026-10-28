@@ -116,15 +116,20 @@ stations below 750 m"; WMO gives it in two forms, which differ by
 
 A standard atmosphere is a conventional model, "this virtual
 atmosphere" WMO uses to compute the QNH, not a description of the actual
-one. Its texts in force are ICAO Doc 7488 and ISO 2533, not freely
-available; ITU-R P.835-7 gives its temperature and pressure up to
-84.852 km', derived from the U.S. Standard Atmosphere, 1976, itself
-identical to the ICAO standard atmosphere up to 32 km.
+one. Its texts in force are ICAO Doc 7488 and ISO 2533 (1975), neither
+freely available; ISO 2533 states itself identical with the ICAO and WMO
+standard atmospheres from −2 to 32 km. ITU-R P.835-7 gives the
+temperature and pressure up to 84.852 km', derived from the U.S.
+Standard Atmosphere, 1976, itself identical to the ICAO standard
+atmosphere up to 32 km; its conversion between geopotential and
+geometric altitudes, with r = 6 356 766 m, is that of ISO 2533
+(equations 8 and 9).
 
 | Quantity | Formulation | Source |
 |---|---|---|
 | temperature against geopotential height | `itu_r_p835_temperature` | ITU-R P.835-7, equations 2a to 2g |
 | pressure against geopotential height | `itu_r_p835_pressure` | ITU-R P.835-7, equations 3a to 3g |
+| pressure altitude, in closed form up to 47 km | `iso2533_pressure_altitude` | ISO 2533, Addendum 1 (1985), 2.1 to 2.4 |
 | pressure altitude, in feet | `nws_pressure_altitude` | NWS calculation sheet |
 
 Each layer of the pressure is the general form of the U.S. Standard
@@ -152,7 +157,10 @@ at_500_hPa = altitude.evaluate(P=Q_(500, "hPa")).to("m")  # 5574.44 m
 ```
 
 The formula of the NWS, with rounded constants, gives 5572.10 m at
-500 hPa: 2.3 m lower.
+500 hPa: 2.3 m lower. ISO 2533's Addendum 1 gives the pressure altitude
+in closed form, layer by layer from −1 450 to 47 000 m, from which its
+hypsometrical tables are printed: 5574.43 m at 500 hPa, 1 cm from the
+inversion of P.835.
 
 `nomogram.plot.plot_profile` draws such a profile, the vertical
 coordinate along y (a pressure downwards on a logarithmic axis, a height
@@ -494,7 +502,9 @@ notation of its citation.
 There is no geopotential metre in nomogram: a geopotential height is in
 metres, the kind carrying the meaning. WMO's standard geopotential
 metre, "0.980665 of the dynamic metre", gives the same numbers as
-Φ / g_n in metres. Pressure altitudes may be in feet.
+Φ / g_n in metres. ISO 2533 dates it: 9.806 65 m² s⁻², adopted by WMO
+from 1 July 1972 in place of the geopotential metre of 9.8 m² s⁻², whose
+numbers differed by 0.07 %. Pressure altitudes may be in feet.
 
 ## In ERA5 and the IFS
 

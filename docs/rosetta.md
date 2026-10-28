@@ -111,8 +111,10 @@ standard geopotential metres, not in m² s⁻²); aviation reckons an
 altitude from mean sea level and a height from a specified datum (SERA,
 the ICAO definitions), CF from the geoid and from the surface; a
 pressure altitude is a geopotential height of the standard atmosphere,
-not of the actual one. [vertical.md](vertical.md) gives the kind of each
-coordinate, the trade terms and their sources.
+not of the actual one. Even the geopotential metre changed: 9.8 m² s⁻²
+until 30 June 1972, the standard geopotential metre of 9.806 65 m² s⁻²
+since (ISO 2533, after WMO). [vertical.md](vertical.md) gives the kind of
+each coordinate, the trade terms and their sources.
 
 The names of tools are not quantities either. MetPy's "isentropic
 interpolation" is a change of vertical coordinate to the potential
