@@ -123,6 +123,65 @@ def test_normal_gravity_at_the_latitude() -> None:
     assert "sin" in wgs84.latex()
 
 
+def test_pressure_through_the_layers_of_the_standard_atmosphere() -> None:
+    # U.S. Standard Atmosphere 1976: P_1 = 22 632.06 Pa at 11 km' (a layer
+    # of -6.5 K/km' from 101 325 Pa and 288.15 K), P_2 = 5 474.889 Pa at
+    # 20 km' (an isothermal layer at 216.65 K).
+    gradient = FORMULATIONS["ussa1976_pressure_layer_gradient"]
+    p_1 = gradient.evaluate(
+        P_b=Q_(101325, "Pa"),
+        T_b=Q_(288.15, "K"),
+        L=Q_(-6.5, "K/km"),
+        H=Q_(11, "km"),
+        H_b=Q_(0, "km"),
+    )
+    assert p_1.to("Pa").magnitude == pytest.approx(22632.06, abs=0.01)
+    isothermal = FORMULATIONS["ussa1976_pressure_layer_isothermal"]
+    p_2 = isothermal.evaluate(
+        P_b=p_1, T_b=Q_(216.65, "K"), H=Q_(20, "km"), H_b=Q_(11, "km")
+    )
+    assert p_2.to("Pa").magnitude == pytest.approx(5474.889, abs=0.01)
+
+
+def test_the_thickness_of_a_layer_by_wmo_and_by_the_ifs() -> None:
+    # 1000 to 500 hPa at a mean virtual temperature of 255 K: the IFS gives
+    # the geopotential, WMO the pressure; their gas constants of dry air
+    # differ by 3 x 10^-5.
+    ifs = FORMULATIONS["ecmwf_ifs_hypsometric_geopotential"]
+    phi = ifs.evaluate(
+        Phi_1=Q_(0, "m**2/s**2"),
+        p_1=Q_(1000, "hPa"),
+        p_2=Q_(500, "hPa"),
+        T_v=Q_(255, "K"),
+    )
+    thickness = FORMULATIONS["geopotential_height_definition"].evaluate(Phi=phi)
+    assert thickness.to("m").magnitude == pytest.approx(5173.9, abs=0.1)
+    wmo = FORMULATIONS["wmo_hypsometric_pressure"]
+    p_2 = wmo.evaluate(p_1=Q_(1000, "hPa"), dZ=thickness, T_v=Q_(255, "K"))
+    assert p_2.to("hPa").magnitude == pytest.approx(500, rel=1e-4)
+
+
+def test_the_two_forms_of_the_reduction_to_sea_level() -> None:
+    # Equations 3.1 and 3.2 of WMO-No. 8: the same formula for the source,
+    # 6.4 x 10^-4 apart in the exponent.
+    station = {
+        "p_s": Q_(950, "hPa"),
+        "H_p": Q_(500, "m"),
+        "T_s": Q_(288.15, "K"),
+        "e_s": Q_(10, "hPa"),
+    }
+    exponential = FORMULATIONS["wmo_sea_level_pressure"].evaluate(**station)
+    decimal = FORMULATIONS["wmo_sea_level_pressure_log10"].evaluate(**station)
+    assert exponential.magnitude == pytest.approx(1007.44, abs=0.01)
+    assert 0.03 < exponential.magnitude - decimal.magnitude < 0.05
+
+
+def test_the_dry_adiabatic_gradient() -> None:
+    # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
+    gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()
+    assert gradient.to("K/km").magnitude == pytest.approx(-9.76, abs=0.01)
+
+
 def test_the_standard_acceleration_of_free_fall() -> None:
     g_n = CATALOG.constants["g_n_cgpm1901"]
     assert g_n.value == 9.80665

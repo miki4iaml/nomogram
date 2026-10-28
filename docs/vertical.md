@@ -85,6 +85,33 @@ of 12.14 and an effective radius tabulated in the Smithsonian tables:
 `wmo_geopotential_height_from_normal_gravity` takes such a radius as an
 input.
 
+## Pressure and height in a hydrostatic atmosphere
+
+| Quantity | Formulation | Source |
+|---|---|---|
+| pressure at the top of a layer, from its thickness and mean virtual temperature | `wmo_hypsometric_pressure` | WMO-No. 8, equation 12.17 |
+| geopotential at the top of a layer, from the pressures and the virtual temperature | `ecmwf_ifs_hypsometric_geopotential` | IFS, Part III, equation 2.20 |
+| pressure in a layer of constant temperature gradient | `ussa1976_pressure_layer_gradient` | U.S. Standard Atmosphere 1976, equation 33a |
+| pressure in an isothermal layer | `ussa1976_pressure_layer_isothermal` | U.S. Standard Atmosphere 1976, equation 33b |
+| pressure reduced to sea level | `wmo_sea_level_pressure`, `wmo_sea_level_pressure_log10` | WMO-No. 8, equations 3.2 and 3.1 |
+| dry adiabatic gradient of temperature | `bechtold2015_dry_adiabatic_gradient` | Bechtold (2015), equation 38 |
+
+All rest on the hydrostatic equation and the ideal gas law; each
+citation records the assumptions its source states. The thickness of a
+layer depends on its mean virtual temperature: WMO and the IFS give the
+same 5173.9 m from 1000 to 500 hPa at 255 K, to the 3 × 10⁻⁵ by which
+their gas constants of dry air differ. The layer formulas of the
+standard atmosphere hold for any layer whose temperature varies
+linearly with the geopotential height, or not at all: below 80 km, its
+molecular-scale temperature is the temperature, and in moist air the
+virtual temperature. The unknown of any of them (a thickness, a
+pressure, a height) comes by inversion.
+
+The reduction to sea level goes through a fictitious column of air
+below the station, of assumed gradient 0.0065 K/gpm, "feasible for
+stations below 750 m"; WMO gives it in two forms, which differ by
+6.4 × 10⁻⁴ in the exponent, 0.04 hPa for a station at 500 m.
+
 ## One word, several quantities
 
 | Term | Community | Kind | Source |

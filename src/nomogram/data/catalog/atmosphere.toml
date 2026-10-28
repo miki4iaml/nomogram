@@ -60,6 +60,15 @@ url = "https://www.itu.int/rec/R-REC-P.835/en"
 status = "verified"
 note = "Annex 1, 1.1 (pp. 2-3), read on the page images: the conversions between geopotential height H (km') and geometric height Z (km) adopted by the U.S. Standard Atmosphere, 1976, equations 1a and 1b with 6356.766 km; temperature 2a to 2g and pressure 3a to 3g in seven layers up to 84.852 km'; temperature 4a, 4b and pressure 5 from 86 to 100 km."
 
+[references.ussa1976]
+authors = "NOAA, NASA, US Air Force"
+year = 1976
+title = "U.S. Standard Atmosphere, 1976"
+container = "NOAA-S/T 76-1562; NASA-TM-X-74335"
+url = "https://ntrs.nasa.gov/citations/19770009539"
+status = "verified"
+note = "Read on the page images of the scanned report: tables 1 and 2 (p. 2), the adopted constants, among them R* = 8.31432 x 10^3 N m/(kmol K) and g0' = 9.80665 m2/(s2 m'); table 4 (p. 3), the seven layers H_b and L_M,b; equations 20 to 22 (p. 9), M0 = 28.9644 kg/kmol and the molecular-scale temperature T_M = T M0/M; equations 33a and 33b (p. 12), the pressure of a layer of constant gradient and of an isothermal layer. A reference model, identical to the ICAO standard atmosphere up to 32 km; dated, kept to check the formulas."
+
 [references.era5_documentation]
 authors = "ECMWF, Copernicus Climate Change Service"
 year = 2026
@@ -187,6 +196,40 @@ description = "QFE: the pressure at the official elevation of the aerodrome (WMO
 matches = [
   { target = "http://www.wikidata.org/entity/Q12717817", relation = "close", verified = 2026-10-28 },
 ]
+
+# --- Constants --------------------------------------------------------
+
+[constants.R_star_ussa1976]
+identifier = "R_star"
+value = 8.31432
+unit = "J-PER-MOL-K"
+description = "Gas constant adopted by the U.S. Standard Atmosphere, 1976 (8.31432 x 10^3 N m/(kmol K)), the value of the 1962 Standard"
+reference = "ussa1976"
+nature = "conventional"
+
+[constants.M_0_ussa1976]
+identifier = "M_0"
+value = 0.0289644
+unit = "KiloGM-PER-MOL"
+description = "Mean molecular weight of air at sea level of the U.S. Standard Atmosphere, 1976 (28.9644 kg/kmol), from the composition of its table 3"
+reference = "ussa1976"
+nature = "conventional"
+
+[constants.R_d_wmo2024]
+identifier = "R"
+value = 287.05
+unit = "J-PER-KiloGM-K"
+description = "Gas constant of dry air of WMO-No. 8 (2024), Volume I, 3.7.2, with the reduction of pressure to sea level"
+reference = "wmo2024"
+nature = "conventional"
+
+[constants.g_bechtold2015]
+identifier = "g"
+value = 9.81
+unit = "M-PER-SEC2"
+description = "Gravity acceleration of Bechtold (2015), section 8.4, in the hydrostatic approximation"
+reference = "bechtold2015"
+nature = "conventional"
 
 # --- Trade terms ------------------------------------------------------
 
@@ -442,3 +485,155 @@ composition = { outer = "wmo_geopotential_height_from_normal_gravity", inner = {
 reference = "wmo2024"
 equation = "12.15"
 notation = { Z = "Z_1", z = "z_1", g_n = '\gamma_{45}', phi = '\varphi' }
+
+# The hydrostatic atmosphere: the thickness of a layer from its mean
+# virtual temperature (WMO, IFS), the pressure through a layer whose
+# temperature varies linearly or not at all (U.S. Standard Atmosphere,
+# its general form), the reduction of a station pressure to sea level
+# (WMO), the dry adiabatic gradient (Bechtold).
+
+[formulations.wmo_hypsometric_pressure]
+label = "Pressure at the top of a layer, from its thickness and mean virtual temperature (WMO Guide)"
+expression = "p_1 * exp(-g_n * dZ / (R * T_v))"
+fixed_units = false
+note = "Equation 12.17, ln(p_{i+1}/p_i) = -9.80665 dZ/(R* T_v), solved for the upper pressure: GPS radiosondes compute their pressures so, upwards from the surface pressure. The source calls R* the gas constant for dry air without giving its value; WMO-No. 8 gives 287.05 J kg-1 K-1 in 3.7.2."
+output = { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure at the top of the layer" }
+inputs = [
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure at the bottom of the layer" },
+  { identifier = "dZ", kind = "GeopotentialThickness", unit = "M", description = "Thickness of the layer in geopotential height" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Mean virtual temperature of the layer" },
+]
+constants = ["g_n_cgpm1901", "R_d_wmo2024"]
+keywords = ["hypsometric equation", "thickness", "radiosonde"]
+
+[[formulations.wmo_hypsometric_pressure.citations]]
+reference = "wmo2024"
+equation = "12.17"
+notation = { p_1 = "p_i", p_2 = "p_{i+1}", dZ = '\mathrm{d}Z', R = "R^*" }
+assumptions = ["The hydrostatic relationship, in a discrete form, with the mean virtual temperature of the layer."]
+
+[formulations.ecmwf_ifs_hypsometric_geopotential]
+label = "Geopotential at the top of a layer, from the pressures and the mean virtual temperature (IFS)"
+expression = "Phi_1 + R_d * T_v * ln(p_1 / p_2)"
+fixed_units = false
+note = "Equation 2.20, the discrete analogue of the hydrostatic equation 2.6 between two half levels, phi_{k+1/2} - phi_{k-1/2} = -R_dry (T_v)_k ln(p_{k+1/2}/p_{k-1/2}), half level k+1/2 being the lower one; written here from the lower level to the upper one. The same numbering in CY41R2 (ERA5) and CY50R1."
+output = { identifier = "Phi_2", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the top of the layer" }
+inputs = [
+  { identifier = "Phi_1", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the bottom of the layer" },
+  { identifier = "p_1", kind = "Pressure", unit = "PA", description = "Pressure at the bottom of the layer" },
+  { identifier = "p_2", kind = "Pressure", unit = "PA", description = "Pressure at the top of the layer" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature of the layer" },
+]
+constants = ["R_d_ecmwf_ifs"]
+keywords = ["hypsometric equation", "geopotential", "IFS"]
+
+[[formulations.ecmwf_ifs_hypsometric_geopotential.citations]]
+reference = "ecmwf_ifs_cy49r1_part3"
+equation = "2.20"
+notation = { Phi_1 = '\phi_{k+1/2}', Phi_2 = '\phi_{k-1/2}', p_1 = "p_{k+1/2}", p_2 = "p_{k-1/2}", T_v = '(T_{\mathrm{v}})_k', R_d = '\mathrm{R}_{\mathrm{dry}}' }
+assumptions = ["The hydrostatic equation (2.6), with the virtual temperature of the layer."]
+
+[formulations.ussa1976_pressure_layer_gradient]
+label = "Pressure in a layer of constant temperature gradient (U.S. Standard Atmosphere 1976)"
+expression = "P_b * (T_b / (T_b + L * (H - H_b)))**(g_n * M_0 / (R_star * L))"
+fixed_units = false
+note = "Equation 33a, for a layer whose molecular-scale temperature varies linearly with the geopotential height. The molecular-scale temperature T M0/M equals the temperature below 80 km; in moist air, it is the virtual temperature. Equation 33b holds when the gradient is zero."
+conditions = "A gradient L different from zero."
+output = { identifier = "P", kind = "Pressure", unit = "PA", description = "Pressure at the geopotential height" }
+inputs = [
+  { identifier = "P_b", kind = "Pressure", unit = "PA", description = "Pressure at the base of the layer" },
+  { identifier = "T_b", kind = "ThermodynamicTemperature", unit = "K", description = "Molecular-scale temperature at the base of the layer" },
+  { identifier = "L", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Gradient of the molecular-scale temperature with geopotential height" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the base of the layer" },
+]
+constants = ["g_n_cgpm1901", "M_0_ussa1976", "R_star_ussa1976"]
+keywords = ["barometric formula", "standard atmosphere", "lapse rate"]
+
+[[formulations.ussa1976_pressure_layer_gradient.citations]]
+reference = "ussa1976"
+equation = "33a"
+notation = { T_b = '\mathrm{T}_{M,b}', L = '\mathrm{L}_{M,b}', g_n = "g_0'", R_star = "R^*" }
+assumptions = ["The hydrostatic equation (5), with g dZ replaced by g0' dH (16) and M/T by M0/T_M (22).", "A constant gradient of the molecular-scale temperature through the layer."]
+
+[formulations.ussa1976_pressure_layer_isothermal]
+label = "Pressure in an isothermal layer (U.S. Standard Atmosphere 1976)"
+expression = "P_b * exp(-g_n * M_0 * (H - H_b) / (R_star * T_b))"
+fixed_units = false
+note = "Equation 33b, for a layer whose molecular-scale temperature is constant."
+output = { identifier = "P", kind = "Pressure", unit = "PA", description = "Pressure at the geopotential height" }
+inputs = [
+  { identifier = "P_b", kind = "Pressure", unit = "PA", description = "Pressure at the base of the layer" },
+  { identifier = "T_b", kind = "ThermodynamicTemperature", unit = "K", description = "Molecular-scale temperature of the layer" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the base of the layer" },
+]
+constants = ["g_n_cgpm1901", "M_0_ussa1976", "R_star_ussa1976"]
+keywords = ["barometric formula", "standard atmosphere", "isothermal"]
+
+[[formulations.ussa1976_pressure_layer_isothermal.citations]]
+reference = "ussa1976"
+equation = "33b"
+notation = { T_b = '\mathrm{T}_{M,b}', g_n = "g_0'", R_star = "R^*" }
+assumptions = ["The hydrostatic equation (5), with g dZ replaced by g0' dH (16) and M/T by M0/T_M (22).", "A constant molecular-scale temperature through the layer."]
+
+[formulations.wmo_sea_level_pressure]
+label = "Pressure reduced to sea level, exponential form (WMO Guide)"
+expression = "p_s * exp(g_n * H_p / (R * (T_s + a * H_p / 2 + e_s * C_h)))"
+fixed_units = true
+note = "Equation 3.2, the exponential form of equation 3.1 (WMO, 1964). T_s + a H_p/2 + e_s C_h is the mean virtual temperature of a fictitious column of air below the station, with an assumed gradient a; C_h e_s accounts for the humidity."
+conditions = "Stations below 750 m (WMO-No. 8, 3.7.2)."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "HectoPA", description = "Pressure reduced to sea level" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "HectoPA", description = "Station pressure" },
+  { identifier = "H_p", kind = "GeopotentialHeight", unit = "M", description = "Station elevation, in geopotential metres" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Station temperature" },
+  { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure at the station" },
+]
+coefficients = { a = 0.0065, C_h = 0.12 }
+constants = ["g_n_cgpm1901", "R_d_wmo2024"]
+keywords = ["sea level pressure", "reduction", "station pressure"]
+
+[[formulations.wmo_sea_level_pressure.citations]]
+reference = "wmo2024"
+equation = "3.2"
+notation = { p_0 = "p_0", p_s = "p_S", H_p = "H_p", T_s = "T_S", e_s = "e_S", C_h = "C_h" }
+assumptions = ["A fictitious column of air from sea level to the station, of assumed gradient a = 0.0065 K/gpm."]
+
+[formulations.wmo_sea_level_pressure_log10]
+label = "Pressure reduced to sea level, decimal form (WMO Guide)"
+expression = "p_s * 10**(K_p * H_p / (T_s + a * H_p / 2 + e_s * C_h))"
+fixed_units = true
+note = "Equation 3.1, log10(p_0/p_s) = K_p H_p / T_mv, from WMO (1964), p. 22, equation 2. Its K_p = 0.0148275 K/gpm differs from g_n / (R ln 10) = 0.014837 K/gpm, with R = 287.05 J kg-1 K-1, by 6.4 x 10^-4: the two forms the source calls the same formula differ by that much in the exponent."
+conditions = "Stations below 750 m (WMO-No. 8, 3.7.2)."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "HectoPA", description = "Pressure reduced to sea level" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "HectoPA", description = "Station pressure" },
+  { identifier = "H_p", kind = "GeopotentialHeight", unit = "M", description = "Station elevation, in geopotential metres" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Station temperature" },
+  { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure at the station" },
+]
+coefficients = { K_p = 0.0148275, a = 0.0065, C_h = 0.12 }
+keywords = ["sea level pressure", "reduction", "station pressure"]
+
+[[formulations.wmo_sea_level_pressure_log10.citations]]
+reference = "wmo2024"
+equation = "3.1"
+notation = { p_0 = "p_0", p_s = "p_S", H_p = "H_p", T_s = "T_S", e_s = "e_S", K_p = "K_p", C_h = "C_h" }
+assumptions = ["A fictitious column of air from sea level to the station, of assumed gradient a = 0.0065 K/gpm."]
+
+[formulations.bechtold2015_dry_adiabatic_gradient]
+label = "Dry adiabatic gradient of temperature (Bechtold 2015)"
+expression = "-g / c_pd"
+fixed_units = false
+note = "Equation 38, from the conservation of the dry static energy (37) in hydrostatic equilibrium: a temperature decrease of 0.98 K per 100 m."
+output = { identifier = "dTdz", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Dry adiabatic gradient of temperature" }
+inputs = []
+constants = ["g_bechtold2015", "c_pd_bechtold2015"]
+keywords = ["dry adiabatic lapse rate", "lapse rate"]
+
+[[formulations.bechtold2015_dry_adiabatic_gradient.citations]]
+reference = "bechtold2015"
+equation = "38"
+notation = { dTdz = '\frac{\mathrm{d}T}{\mathrm{d}z}', c_pd = 'c_{p\mathrm{d}}' }
+assumptions = ["Hydrostatic equilibrium, dp = -rho g dz.", "An adiabatic ascent without phase change."]
