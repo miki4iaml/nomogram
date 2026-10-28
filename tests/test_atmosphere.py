@@ -264,6 +264,61 @@ def test_interpolation_schemes_on_the_reference_atmosphere() -> None:
     assert (z_in_ln_p - levels[700]).magnitude == pytest.approx(-48.4, abs=0.1)
 
 
+def test_fullpos_below_the_surface() -> None:
+    # The surface temperature through the standard gradient, 2000 Pa below
+    # the model level: about 180 m, 1.17 K warmer.
+    surface = FORMULATIONS["fullpos_surface_temperature"].evaluate(
+        T_L=Q_(285, "K"), p_s=Q_(95000, "Pa"), p_L=Q_(93000, "Pa")
+    )
+    assert surface.magnitude == pytest.approx(286.166, abs=1e-3)
+    # FULL-POS (ECMWF) and WMO reduce to sea level through the same gradient
+    # of 0.0065 K/m: 0.0014 hPa apart for a dry station at 500 m.
+    fullpos = FORMULATIONS["fullpos_mean_sea_level_pressure"].evaluate(
+        p_s=Q_(950, "hPa"),
+        Phi_s=Q_(500 * 9.80665, "m**2/s**2"),
+        T_s=Q_(288.15, "K"),
+    )
+    wmo = FORMULATIONS["wmo_sea_level_pressure"].evaluate(
+        p_s=Q_(950, "hPa"), H_p=Q_(500, "m"), T_s=Q_(288.15, "K"), e_s=Q_(0, "hPa")
+    )
+    assert fullpos.to("hPa").magnitude == pytest.approx(1007.683, abs=1e-3)
+    assert abs(fullpos.to("hPa").magnitude - wmo.magnitude) < 0.002
+
+
+def test_ecmwf_extrapolation_below_the_surface() -> None:
+    # A surface at 850 hPa, 280 K and 1400 m; the 1000 hPa level lies
+    # below it: warmer, and lower. The third-order expansions of ECMWF and
+    # FULL-POS stay within 10^-4 K and 1 cm of the exact forms.
+    below: dict[str, Any] = {
+        "p": Q_(1000, "hPa"),
+        "p_s": Q_(850, "hPa"),
+        "T_s": Q_(280, "K"),
+    }
+    expanded = FORMULATIONS["ecmwf_temperature_below_ground"].evaluate(**below)
+    exact = FORMULATIONS["ecmwf_temperature_below_ground_exact"].evaluate(**below)
+    assert expanded.magnitude == pytest.approx(288.793, abs=1e-3)
+    assert abs(expanded.magnitude - exact.magnitude) < 1e-4
+    surface = Q_(1400 * 9.80665, "m**2/s**2")
+    height = FORMULATIONS["geopotential_height_definition"]
+    phi = FORMULATIONS["ecmwf_geopotential_below_ground"].evaluate(
+        **below, Phi_s=surface
+    )
+    phi_exact = FORMULATIONS["ecmwf_geopotential_below_ground_exact"].evaluate(
+        **below, Phi_s=surface
+    )
+    z = height.evaluate(Phi=phi).to("m").magnitude
+    assert z == pytest.approx(47.16, abs=0.01)
+    assert abs(z - height.evaluate(Phi=phi_exact).to("m").magnitude) < 0.01
+    station: dict[str, Any] = {
+        "p_s": Q_(850, "hPa"),
+        "Phi_s": surface,
+        "T_s": Q_(280, "K"),
+    }
+    approx = FORMULATIONS["fullpos_mean_sea_level_pressure"].evaluate(**station)
+    msl = FORMULATIONS["ecmwf_mean_sea_level_pressure_exact"].evaluate(**station)
+    assert abs((approx - msl).to("hPa").magnitude) < 0.01
+
+
 def test_the_dry_adiabatic_gradient() -> None:
     # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
     gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()

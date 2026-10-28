@@ -56,6 +56,14 @@ and this project adheres to
   altitude; the specific humidity linear in p (FULL-POS); the
   geopotential height linear in ln p. `docs/vertical.md` compares them
   on the ITU-R reference atmosphere.
+- Extrapolation below the surface, as ECMWF post-processes ERA5 (FULL-POS;
+  Trenberth et al. 1993, NCAR TN-396): the surface temperature from a
+  model level through the standard lapse rate; the temperature, the
+  geopotential and the mean sea level pressure of a dry column of uniform
+  lapse rate, in their exact forms and in the third-order expansions the
+  operational code uses. The FULL-POS documentation prints an inverted
+  logarithm in two of these equations; the citations record it and the
+  corrected form, given by Trenberth et al.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.

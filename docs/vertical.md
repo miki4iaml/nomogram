@@ -187,6 +187,34 @@ The height is linear in ln p only in an isothermal layer (the hypsometric
 equation); FULL-POS interpolates instead a departure from a standard
 atmosphere, whose own height is computed exactly.
 
+## Below the surface
+
+ERA5's pressure levels below the surface are extrapolated by FULL-POS, by
+ECMWF's procedure, which Trenberth et al. (1993, NCAR TN-396) document:
+the wind, ω and the relative humidity are held at their values of the
+lowest model level; the temperature and the geopotential follow a dry
+hydrostatic column of uniform lapse rate, 0.0065 K/m, from a surface
+temperature.
+
+| Quantity | Formulation | Sources |
+|---|---|---|
+| surface temperature from a model level | `fullpos_surface_temperature` | FULL-POS (1); Trenberth et al. (5) |
+| temperature below the surface | `ecmwf_temperature_below_ground`, exact `ecmwf_temperature_below_ground_exact` | Trenberth et al. (16, exact 9); FULL-POS (2, 3) |
+| geopotential below the surface | `ecmwf_geopotential_below_ground`, exact `ecmwf_geopotential_below_ground_exact` | Trenberth et al. (15, exact 10); FULL-POS (6) |
+| mean sea level pressure | `fullpos_mean_sea_level_pressure`, exact `ecmwf_mean_sea_level_pressure_exact` | FULL-POS (8, 9); Trenberth et al. (12, exact 11) |
+
+The operational forms are third-order expansions of the exact ones: under
+a surface at 850 hPa and 280 K, they stay within 10⁻⁵ K, 2 mm and
+0.002 hPa of them at 1000 hPa. The reduction to sea level agrees with
+WMO's (equation 3.2), which assumes the same gradient. Over very warm or
+cold surfaces, and above 2000 m, both sources change the gradient: these
+cases are not entered.
+
+The FULL-POS documentation prints log(Π_s/Π_L) in its equations 3 and 6,
+which would make the extrapolated column colder and higher than the
+surface; its own equations 1 and 8 and Trenberth et al. give ln(p/p_s),
+the form entered. The citations say so.
+
 ## One word, several quantities
 
 | Term | Community | Kind | Source |
