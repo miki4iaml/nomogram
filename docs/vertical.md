@@ -206,10 +206,16 @@ The height is linear in ln p only in an isothermal layer (the hypsometric
 equation); FULL-POS interpolates instead a departure from a standard
 atmosphere, whose own height is computed exactly.
 
-Radiosondes report their significant levels so that the temperature is
-linear in ln p between them (WMO Manual on Codes, as Ziv and Alpert 1994
-recall): between two such levels, the scheme in ln p is the sounding
-itself.
+A radiosonde reported in TEMP gives significant levels chosen so that
+they alone reconstruct the profiles (WMO-No. 306, Volume I.1, Regulation
+35.3.1.3): the temperature interpolated linearly on a T-log P diagram,
+that is in ln p, stays within 1 °C of the observed one (2 °C above the
+first significant level above 300 hPa or the first tropopause), and the
+relative humidity interpolated linearly within 15 points, the coordinate
+not stated. Between two such levels, the scheme in ln p is the sounding
+itself, to that tolerance. WMO-No. 8 (2024, Volume I, 12.9) asks now for
+profiles at 100 m resolution in BUFR, which makes the selection of
+significant levels redundant.
 
 ## Humidity between two levels
 

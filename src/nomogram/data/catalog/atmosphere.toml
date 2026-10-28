@@ -44,6 +44,14 @@ url = "https://library.wmo.int/viewer/68661/download?file=WMO-8-vIII-2024_en.pdf
 status = "verified"
 note = "Chapter 2, 2.9.1 (p. 49): QFE, the pressure at the official elevation of the aerodrome; QNH, the pressure at which an altimeter is set so that it indicates the official elevation of the aerodrome on the ground, computed from the QFE through the pressure-altitude relationship of the ICAO standard atmosphere, 'this virtual atmosphere', and not the actual state of the atmosphere; hence QNH differs from the pressure reduced to sea level of Volume I, 3.7. Equation 2.8: QNH = A + B x QFE."
 
+[references.wmo306_vol1_1_2019]
+authors = "World Meteorological Organization"
+year = 2019
+title = "Manual on Codes (WMO-No. 306), Volume I.1, Part A: Alphanumeric Codes"
+url = "https://library.wmo.int/idurl/4/35713"
+status = "verified"
+note = "2019 edition, downloaded by the user. FM 35 TEMP, Regulations 35.3.1.1 to 35.3.1.3 (pp. A-67, A-68): the significant levels of a radiosonde report alone reconstruct its temperature and humidity profiles within the criteria: the temperature by linear interpolation on a T-log P diagram within 1 degC up to the first significant level above 300 hPa or the first tropopause, whichever is lower, 2 degC above (35.3.1.3 a); the relative humidity by linear interpolation within 15 per cent of relative humidity (b), the coordinate not stated; a ratio of the pressures of two successive levels above 0.6 for diagrams other than T-log P (c). Dew points from the saturation vapour pressure over water of the Technical Regulations (35.3.1.1). WMO-No. 8 (2024), Volume I, 12.9, calls this reporting suited to the 1970s: profiles at 100 m resolution in BUFR make the selection of significant levels redundant."
+
 [references.ecmwf_ifs_cy49r1_part3]
 authors = "ECMWF"
 year = 2024
@@ -828,6 +836,11 @@ reference = "metpy171_interpolate"
 
 [[formulations.log_pressure_interpolation_temperature.citations]]
 reference = "earthkit_meteo121"
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "wmo306_vol1_1_2019"
+equation = "35.3.1.3"
+note = "Regulation 35.3.1.3 (a): the significant levels of a TEMP report are chosen so that the temperature interpolated linearly on a T-log P diagram between two adjacent levels departs from the observed one by at most 1 degC, 2 degC above the first significant level above 300 hPa or the first tropopause."
 
 [[formulations.log_pressure_interpolation_temperature.citations]]
 reference = "ziv_alpert1994"
