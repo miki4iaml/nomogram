@@ -376,7 +376,7 @@ def test_relative_humidity_between_two_levels_by_each_practice_of_metpy() -> Non
     # the dew point interpolated, by a Skew-T or a stability index, is
     # 2.4 to 2.7 points too humid; the specific humidity, in ln p or in the
     # potential temperature, 12 to 13 points, a chord above a decrease
-    # close to exponential.
+    # close to exponential, which its logarithm in ln p follows.
     from nomogram.inversion import invert
     from nomogram.model import Variable
 
@@ -404,6 +404,7 @@ def test_relative_humidity_between_two_levels_by_each_practice_of_metpy() -> Non
         "metpy171_relative_humidity_dew_point_pressure": (dew, 2.43),
         "metpy171_relative_humidity_specific_humidity_log_pressure": (humid, 13.38),
         "metpy171_relative_humidity_isentropic": (humid, 12.20),
+        "relative_humidity_log_specific_humidity_log_pressure": (humid, 0.03),
     }
     assert truth.to("percent").magnitude == pytest.approx(47.34, abs=0.01)
     for key, (values, error) in routes.items():
