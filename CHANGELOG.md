@@ -34,6 +34,15 @@ and this project adheres to
   gravity, an effective radius and the generic form of 12.13 and 12.15;
   the normal gravity of the Smithsonian tables (12.14). Kind
   `GeodeticLatitude` (CF `latitude`, broader).
+- The hydrostatic atmosphere: the hypsometric equation with the mean
+  virtual temperature of the layer, in the pressure form of WMO-No. 8
+  (12.17) and the geopotential form of the IFS (Part III, 2.20); the
+  pressure in a layer of constant temperature gradient and in an
+  isothermal layer (U.S. Standard Atmosphere 1976, 33a and 33b, with its
+  constants R* and M0); the reduction of a station pressure to sea level
+  in the two forms of WMO-No. 8 (3.2 and 3.1), with the gas constant of
+  dry air it gives; the dry adiabatic gradient (Bechtold 2015, 38, with
+  its g = 9.81 m s-2). The assumptions each source states are recorded.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.
