@@ -217,8 +217,19 @@ bounds = { t = [-40.0, 50.0] }
   inner output must be of the input's kind or a specialization of it,
   in the same unit.
 - **`bind`** (optional) renames inputs of inner formulations, for example
-  `{ theta = "t" }`. Inputs of the same identifier in several parts are
-  one input: same kind, unit and scale, or the entry is refused.
+  `{ theta = "t" }`. A table under the identifier an inner formulation
+  computes renames the inputs of that part only, so that one formulation
+  may compute two inputs at different arguments, such as a potential
+  temperature at two levels:
+  `bind = { theta_1 = { T = "T_1", p = "p_1" }, theta_2 = { T = "T_2", p = "p_2" } }`.
+  Inputs of the same identifier in several parts are one input: same
+  kind and unit, and same scale, or the entry is refused.
+- **Conventional scales**: an inner output feeds an input on the same
+  scale. A part on no scale at all, such as an interpolation or a
+  definition, feeds an input on any: its inputs of a kind the scale
+  applies to take that scale, so that evaluation brings them onto it. An
+  input on no scale, met with the same input on a scale in another part,
+  takes that scale.
 - The entry writes no `expression`, `fixed_units`, `inputs`,
   `coefficients`, `constants` nor `domains`: the inner expressions are
   substituted into the outer one, and the result is an ordinary

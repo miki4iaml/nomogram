@@ -1713,6 +1713,70 @@ class _Builder:
             raise CatalogError(msg)
         return formulations[name]
 
+    @staticmethod
+    def bindings(
+        place: str, table: Any, inner: Mapping[str, Formulation]
+    ) -> dict[str, dict[str, str]]:
+        """The renamings of the inputs of each inner formulation, by its identifier.
+
+        ``bind = { theta = "t" }`` renames an input of every inner
+        formulation; ``bind = { theta_1 = { T = "T_1" } }`` those of the
+        formulation computing ``theta_1`` only, so that one formulation may
+        compute two inputs at different arguments.
+        """
+        if table is None:
+            table = {}
+        if not isinstance(table, dict):
+            msg = f"{place}.bind: expected a table"
+            raise CatalogError(msg)
+        every: dict[str, str] = {}
+        own: dict[str, dict[str, str]] = {}
+
+        def target(where: str, name: Any) -> str:
+            if not isinstance(name, str) or not name:
+                msg = f"{where}: expected the identifier of an input"
+                raise CatalogError(msg)
+            if name in inner:
+                msg = f"{where}: {name!r} is computed by {inner[name].key}"
+                raise CatalogError(msg)
+            return name
+
+        for source, name in table.items():
+            if isinstance(name, dict):
+                part = inner.get(source)
+                if part is None:
+                    msg = f"{place}.bind.{source}: no inner formulation computes {source!r}"
+                    raise CatalogError(msg)
+                names = {v.identifier for v in part.inputs}
+                for input_name, renamed in name.items():
+                    if input_name not in names:
+                        msg = (
+                            f"{place}.bind.{source}: {input_name!r} is not an "
+                            f"input of {part.key}"
+                        )
+                        raise CatalogError(msg)
+                    own.setdefault(source, {})[input_name] = target(
+                        f"{place}.bind.{source}", renamed
+                    )
+                continue
+            if not any(
+                source in {v.identifier for v in p.inputs} for p in inner.values()
+            ):
+                msg = (
+                    f"{place}.bind: {source!r} is not an input of an inner formulation"
+                )
+                raise CatalogError(msg)
+            every[source] = target(f"{place}.bind", name)
+        renames = {}
+        for identifier, part in inner.items():
+            rename = {**every, **own.get(identifier, {})}
+            renames[identifier] = {
+                v.identifier: rename[v.identifier]
+                for v in part.inputs
+                if v.identifier in rename
+            }
+        return renames
+
     def composed(
         self, key: str, table: Any, formulations: Mapping[str, Formulation]
     ) -> Formulation:
@@ -1741,6 +1805,7 @@ class _Builder:
             if isinstance(node, sympy.Piecewise)
         }
         inner: dict[str, Formulation] = {}
+        scaled: dict[str, Variable] = {}
         for identifier, name in c["inner"].items():
             w = f"{place}.inner.{identifier}"
             part = self.part(w, name, formulations)
@@ -1769,33 +1834,21 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             if part.output.scale != target.scale:
-                msg = (
-                    f"{w}: {part.key} gives a value on scale "
-                    f"{getattr(part.output.scale, 'key', None)}, but {identifier} "
-                    f"is on {getattr(target.scale, 'key', None)}"
-                )
-                raise CatalogError(msg)
+                # A part on no scale (an interpolation, a definition) passes
+                # values on any: its temperatures take the scale it feeds.
+                if part.output.scale is None and not any(
+                    v.scale is not None for v in part.inputs
+                ):
+                    scaled[identifier] = target
+                else:
+                    msg = (
+                        f"{w}: {part.key} gives a value on scale "
+                        f"{getattr(part.output.scale, 'key', None)}, but {identifier} "
+                        f"is on {getattr(target.scale, 'key', None)}"
+                    )
+                    raise CatalogError(msg)
             inner[identifier] = part
-        bind = dict(c["bind"] or {})
-        for source, name in bind.items():
-            if not any(
-                source in {v.identifier for v in p.inputs} for p in inner.values()
-            ):
-                msg = (
-                    f"{place}.bind: {source!r} is not an input of an inner formulation"
-                )
-                raise CatalogError(msg)
-            if name in inner:
-                msg = f"{place}.bind: {name!r} is computed by {inner[name].key}"
-                raise CatalogError(msg)
-        renames = {
-            identifier: {
-                v.identifier: bind[v.identifier]
-                for v in part.inputs
-                if v.identifier in bind
-            }
-            for identifier, part in inner.items()
-        }
+        renames = self.bindings(place, c["bind"], inner)
 
         # Inputs: those of the outer formulation it still needs, then those of
         # the inner ones; one identifier is one input, alike in every part.
@@ -1804,22 +1857,26 @@ class _Builder:
         pieces = [(outer, v) for v in outer.inputs if v.identifier not in inner]
         for identifier, part in inner.items():
             rename = renames[identifier]
-            pieces += [
-                (
-                    part,
-                    dataclasses.replace(
-                        v, identifier=rename.get(v.identifier, v.identifier)
-                    ),
+            fed = scaled.get(identifier)
+            for v in part.inputs:
+                v = dataclasses.replace(
+                    v, identifier=rename.get(v.identifier, v.identifier)
                 )
-                for v in part.inputs
-            ]
+                if (
+                    fed is not None
+                    and fed.scale is not None
+                    and fed.scale.applies_to(v.kind, self.kinds)
+                ):
+                    v = dataclasses.replace(
+                        v, scale=fed.scale, scale_basis=fed.scale_basis
+                    )
+                pieces.append((part, v))
         for piece, variable in pieces:
             came_from.setdefault(variable.identifier, piece.key)
             known = inputs.setdefault(variable.identifier, variable)
-            if (known.kind, known.unit, known.scale) != (
-                variable.kind,
-                variable.unit,
-                variable.scale,
+            if (known.kind, known.unit) != (variable.kind, variable.unit) or (
+                None not in (known.scale, variable.scale)
+                and known.scale != variable.scale
             ):
                 msg = (
                     f"{where}: input {variable.identifier} of {piece.key} differs "
@@ -1827,6 +1884,12 @@ class _Builder:
                     "another part; rename it with bind"
                 )
                 raise CatalogError(msg)
+            if known.scale is None and variable.scale is not None:
+                # An input on no scale takes any: that of the other part.
+                inputs[variable.identifier] = dataclasses.replace(
+                    known, scale=variable.scale, scale_basis=variable.scale_basis
+                )
+                came_from[variable.identifier] = piece.key
 
         # Part, and formulation that defines it, of each coefficient.
         owner: dict[str, tuple[str, str]] = {}
