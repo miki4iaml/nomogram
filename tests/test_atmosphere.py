@@ -3,6 +3,7 @@
 
 """Tests for the atmosphere family: vertical coordinates and their kinds."""
 
+import math
 from typing import Any
 
 import pytest
@@ -317,6 +318,44 @@ def test_ecmwf_extrapolation_below_the_surface() -> None:
     approx = FORMULATIONS["fullpos_mean_sea_level_pressure"].evaluate(**station)
     msl = FORMULATIONS["ecmwf_mean_sea_level_pressure_exact"].evaluate(**station)
     assert abs((approx - msl).to("hPa").magnitude) < 0.01
+
+
+def test_the_water_vapour_of_the_reference_atmosphere() -> None:
+    # P.835 equation 6: 7.5 g/m3 at the ground, a scale height of 2 km;
+    # equation 8 above, the density of a mixing ratio of 2 x 10^-6.
+    density = FORMULATIONS["itu_r_p835_water_vapour_density"]
+    rho = density.evaluate(z=Q_([0.0, 2.0], "km")).magnitude
+    assert rho == pytest.approx([7.5, 7.5 * math.exp(-1)])
+    upper = FORMULATIONS["itu_r_p835_water_vapour_density_upper"].evaluate(
+        P=Q_(100, "hPa"), T=Q_(216.7, "K")
+    )
+    assert upper.magnitude == pytest.approx(2e-4)
+
+
+def test_relative_humidity_linear_in_pressure() -> None:
+    # FULL-POS (3.2.5): halfway in pressure, halfway in relative humidity.
+    rh = FORMULATIONS["pressure_interpolation_relative_humidity"].evaluate(
+        p=Q_(675, "hPa"),
+        p_1=Q_(850, "hPa"),
+        p_2=Q_(500, "hPa"),
+        RH_1=Q_(60, "percent"),
+        RH_2=Q_(40, "percent"),
+    )
+    assert rh.magnitude == pytest.approx(50.0)
+
+
+def test_a_temperature_in_kelvins_feeds_a_celsius_input() -> None:
+    # A composition never inserts an offset: the definition t = T - T0 does.
+    from nomogram.comparison import compose
+
+    celsius = FORMULATIONS["celsius_temperature_definition"]
+    assert celsius.evaluate(T=Q_(273.15, "K")).magnitude == pytest.approx(0.0)
+    in_kelvins = compose(FORMULATIONS["wmo_es_water_moist_air"], {"t": celsius})
+    direct = FORMULATIONS["wmo_es_water_moist_air"].evaluate(
+        t=Q_(20, "degC"), p=Q_(1000, "hPa")
+    )
+    converted = in_kelvins.evaluate(T=Q_(293.15, "K"), p=Q_(1000, "hPa"))
+    assert converted.magnitude == pytest.approx(direct.magnitude)
 
 
 def test_the_dry_adiabatic_gradient() -> None:

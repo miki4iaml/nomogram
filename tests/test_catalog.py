@@ -498,6 +498,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         # Temperatures of P.835 appear in ratios only: T_0 in K fixes the
         # units of the others, of the gradients and of k.
         ("itu_r_p835_pressure", "T_0"): "stated",
+        # The mixing ratio 2 x 10^-6 of rho = r P C / T, a pure number that
+        # inference would give the unit of C.
+        ("itu_r_p835_water_vapour_density_upper", "r"): "stated",
         # A quantity equation: an undeclared coefficient is a pure number.
         ("fullpos_surface_temperature", "Gamma"): "stated",
         ("fullpos_mean_sea_level_pressure", "Gamma"): "stated",
@@ -744,7 +747,7 @@ def test_bundled_constants_state_their_nature() -> None:
     natures = {k.nature for k in CATALOG.constants.values()}
     assert natures == {ConstantNature.EXACT, ConstantNature.CONVENTIONAL}
     si = [c for k, c in CATALOG.constants.items() if k.endswith("_si2019")]
-    assert {c.identifier for c in si} == {"c", "h", "k", "N_A"}
+    assert {c.identifier for c in si} == {"c", "h", "k", "N_A", "T_0"}
     assert all(c.nature is ConstantNature.EXACT for c in si)
 
 

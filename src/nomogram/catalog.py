@@ -292,8 +292,8 @@ class Catalog:
         >>> c = catalog()
         >>> "formulations.buck1981_magnus" in c.search("buck*", section="formulations")
         True
-        >>> c.search(variable="rho*").refs[:2]
-        ('formulations.mass_concentration_ideal_gas', 'formulations.itu_r_p453_vapour_pressure_from_density')
+        >>> "formulations.mass_concentration_ideal_gas" in c.search(variable="rho*")
+        True
         """
         from nomogram.search import search
 
