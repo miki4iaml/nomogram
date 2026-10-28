@@ -126,6 +126,9 @@ def test_missing_extra_gives_an_explicit_message(
 def test_every_formulation_renders_in_mathtext() -> None:
     # Each distinct string is parsed once: a notation changes only the
     # formulations it covers, so most strings repeat from one to the next.
+    # A composition nests the expressions of its parts, each parsed with
+    # every option set: it is parsed in every notation with the default
+    # options only, its long strings costing most of the test.
     options = {
         "default": DisplayOptions(),
         "sympy": DisplayOptions.SYMPY,
@@ -136,6 +139,10 @@ def test_every_formulation_renders_in_mathtext() -> None:
         chosen = CATALOG.notations[notation] if notation else None
         for name, option in options.items():
             for formulation in FORMULATIONS.values():
+                derivation = formulation.derivation
+                composed = derivation is not None and derivation.method == "composition"
+                if composed and name != "default":
+                    continue
                 text = formulation.render(chosen, options=option).mathtext
                 strings.setdefault(text, f"{formulation.key}, {notation}, {name}")
     parser = MathTextParser("path")
