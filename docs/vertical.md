@@ -154,6 +154,39 @@ at_500_hPa = altitude.evaluate(P=Q_(500, "hPa")).to("m")  # 5574.44 m
 The formula of the NWS, with rounded constants, gives 5572.10 m at
 500 hPa: 2.3 m lower.
 
+## Interpolation between two levels
+
+Each interpolation scheme is a formulation, cited by every source that
+uses it: schemes compare like any other formulations. The
+post-processing of ARPEGE and the IFS (FULL-POS, which produces ERA5's
+pressure levels) chooses the scheme by variable; MetPy and earthkit-meteo
+leave the choice to the user, linear in the coordinate or in its
+logarithm.
+
+| Scheme | Formulation | Sources |
+|---|---|---|
+| wind linear in ln p | `log_pressure_interpolation_wind` | FULL-POS (3.2.1), MetPy, earthkit-meteo |
+| temperature linear in ln p | `log_pressure_interpolation_temperature` | MetPy, earthkit-meteo |
+| temperature linear in p | `pressure_interpolation_temperature` | FULL-POS, ECMWF option (3.2.2) |
+| specific humidity linear in p | `pressure_interpolation_specific_humidity` | FULL-POS (3.2.5) |
+| temperature linear in altitude | `height_interpolation_temperature` | MetPy, earthkit-meteo |
+| geopotential height linear in ln p | `log_pressure_interpolation_geopotential_height` | MetPy, earthkit-meteo |
+
+The physics tells them apart. In a layer whose temperature varies
+linearly with height, as in the ITU-R reference atmosphere between 850
+and 500 hPa, the temperature at 700 hPa is 268.571 K:
+
+| Scheme | At 700 hPa | Error |
+|---|---|---|
+| temperature linear in altitude | 268.571 K | none |
+| temperature linear in ln p | 268.886 K | +0.31 K |
+| temperature linear in p | 267.208 K | −1.36 K |
+| geopotential height linear in ln p | 2963.8 m | −48.4 m |
+
+The height is linear in ln p only in an isothermal layer (the hypsometric
+equation); FULL-POS interpolates instead a departure from a standard
+atmosphere, whose own height is computed exactly.
+
 ## One word, several quantities
 
 | Term | Community | Kind | Source |

@@ -76,6 +76,31 @@ url = "https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf"
 status = "verified"
 note = "Read on 2026-10-28: h_alt = (1 - (P_sta/1013.25)^0.190284) x 145366.45, the station pressure in millibars and the pressure altitude in feet; h_m = 0.3048 h_alt. Undated; no domain stated."
 
+[references.yessad2018_fullpos]
+authors = "Yessad, K."
+year = 2018
+title = "FULL-POS in the cycle 46t1 of ARPEGE/IFS"
+container = "Meteo-France, CNRM/GMAP/ALGO, technical documentation"
+url = "https://www.cnrm.meteo.fr/gmapdoc/IMG/pdf/ykfpos46t1.pdf"
+status = "verified"
+note = "Section 3 read (pp. 8-11): vertical interpolations and extrapolations of the post-processing of ARPEGE and the IFS, by variable. Wind (3.2.1): linear in the logarithm of the pressure in the lower layers (quadratic above with the ECMWF option LOLDPP=.T.), constant below the lowest level. Temperature (3.2.2): linear in the pressure with the ECMWF option, quadratic in its logarithm with Meteo-France's; surface temperature (1) and extrapolation below the surface (2, 3). Geopotential height (3.2.3): a departure from a standard atmosphere, extrapolated below the surface by (6). Moisture and relative humidity (3.2.5): linear in the pressure, constant below the lowest level. Mean sea level pressure (3.3.1, 7, 8). ERA5 is post-processed by FULL-POS (ERA5 data documentation)."
+
+[references.metpy171_interpolate]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.interpolate (src/metpy/interpolate/one_dimension.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/interpolate/one_dimension.py"
+status = "verified"
+note = "Read in the source: interpolate_1d computes var[below] + (var[above] - var[below]) (x - xp[below]) / (xp[above] - xp[below]), a linear interpolation between the two levels around x; log_interpolate_1d calls it on the logarithms of x and xp. Released 2025-08-29."
+
+[references.earthkit_meteo121]
+authors = "ECMWF"
+year = 2026
+title = "earthkit-meteo 1.2.1, earthkit.meteo.vertical"
+url = "https://pypi.org/project/earthkit-meteo/1.2.1/"
+status = "verified"
+note = "Read in the source of the wheel (Apache-2.0): vertical/array/monotonic.py, interpolate_monotonic weighs the two levels around the target by (1 - f) and f, f being (c - c_bottom)/(c_top - c_bottom) for interpolation='linear' and the same on logarithms for 'log'; vertical/array/vertical.py, geometric_height_from_geopotential_height computes R_earth gh / (R_earth - gh); constants g = 9.80665, R_earth = 6371229 m, Rd = 287.0597."
+
 [references.era5_documentation]
 authors = "ECMWF, Copernicus Climate Change Service"
 year = 2026
@@ -709,3 +734,135 @@ keywords = ["pressure altitude", "altimetry", "aviation"]
 [[formulations.nws_pressure_altitude.citations]]
 reference = "nws_wxcalc_pressure_altitude"
 notation = { h = '\mathrm{h}_{\mathrm{alt}}', P = '\mathrm{P}_{\mathrm{sta}}' }
+
+# Interpolation between two levels: each scheme is a formulation, cited by
+# every source that uses it, so that schemes compare like any other
+# formulations. The post-processing of ARPEGE and the IFS (FULL-POS)
+# chooses the scheme by variable; MetPy and earthkit-meteo leave it to the
+# user, linear in the coordinate or in its logarithm.
+
+[formulations.log_pressure_interpolation_wind]
+label = "Wind component between two levels, linear in the logarithm of the pressure"
+expression = "u_1 + (u_2 - u_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "FULL-POS interpolates the wind so in the lower layers (quadratically above with the ECMWF option) and keeps it constant below the lowest level; MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log') interpolate any variable so."
+output = { identifier = "u", kind = "Velocity", unit = "M-PER-SEC", description = "Wind component at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "u_1", kind = "Velocity", unit = "M-PER-SEC", description = "Wind component at the first level" },
+  { identifier = "u_2", kind = "Velocity", unit = "M-PER-SEC", description = "Wind component at the second level" },
+]
+keywords = ["vertical interpolation", "wind", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_wind.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.1"
+
+[[formulations.log_pressure_interpolation_wind.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_wind.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.log_pressure_interpolation_temperature]
+label = "Temperature between two levels, linear in the logarithm of the pressure"
+expression = "T_1 + (T_2 - T_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'). In a layer whose temperature varies linearly with height, the temperature is a power of the pressure: linear in ln p only approximately."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+keywords = ["vertical interpolation", "temperature", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.pressure_interpolation_temperature]
+label = "Temperature between two levels, linear in the pressure (FULL-POS, ECMWF option)"
+expression = "T_1 + (T_2 - T_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "FULL-POS with the ECMWF option (LOLDPP=.T., routine PPT_OLD); Meteo-France's option interpolates quadratically in the logarithm of the pressure."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+keywords = ["vertical interpolation", "temperature", "pressure", "FULL-POS"]
+
+[[formulations.pressure_interpolation_temperature.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.2"
+
+[formulations.pressure_interpolation_specific_humidity]
+label = "Specific humidity between two levels, linear in the pressure (FULL-POS)"
+expression = "q_1 + (q_2 - q_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "FULL-POS interpolates moisture so (routine PPQ), and relative humidity likewise, keeping them constant below the lowest level."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "GM-PER-KiloGM", description = "Specific humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "GM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "GM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "pressure", "FULL-POS"]
+
+[[formulations.pressure_interpolation_specific_humidity.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.5"
+
+[formulations.height_interpolation_temperature]
+label = "Temperature between two levels, linear in the altitude"
+expression = "T_1 + (T_2 - T_1) * (z - z_1) / (z_2 - z_1)"
+fixed_units = false
+note = "The interpolation of MetPy (interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='linear') on heights; exact for a layer of constant gradient, the layers of a standard atmosphere."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target altitude" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "M", description = "Target altitude" },
+  { identifier = "z_1", kind = "Altitude", unit = "M", description = "Altitude of the first level" },
+  { identifier = "z_2", kind = "Altitude", unit = "M", description = "Altitude of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+keywords = ["vertical interpolation", "temperature", "altitude"]
+
+[[formulations.height_interpolation_temperature.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.height_interpolation_temperature.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.log_pressure_interpolation_geopotential_height]
+label = "Geopotential height between two levels, linear in the logarithm of the pressure"
+expression = "Z_1 + (Z_2 - Z_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'); exact for an isothermal layer, where the hypsometric equation makes the height linear in ln p."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "Z_1", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the first level" },
+  { identifier = "Z_2", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the second level" },
+]
+keywords = ["vertical interpolation", "geopotential height", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_geopotential_height.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_geopotential_height.citations]]
+reference = "earthkit_meteo121"

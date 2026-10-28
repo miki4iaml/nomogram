@@ -49,6 +49,13 @@ and this project adheres to
   Atmosphere with its values as coefficients. The pressure altitude by
   inversion of that pressure (numerical: the source's layers meet with
   small jumps), and the NWS formula in feet.
+- Interpolation between two levels, each scheme a formulation cited by
+  every source that uses it: the wind linear in ln p (FULL-POS, MetPy,
+  earthkit-meteo); the temperature linear in ln p (MetPy,
+  earthkit-meteo), linear in p (FULL-POS, ECMWF option) and linear in
+  altitude; the specific humidity linear in p (FULL-POS); the
+  geopotential height linear in ln p. `docs/vertical.md` compares them
+  on the ITU-R reference atmosphere.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.

@@ -222,6 +222,44 @@ def test_pressure_altitude_by_inversion_and_from_the_nws() -> None:
     assert p835 - nws.to("m").magnitude == pytest.approx(2.33, abs=0.01)
 
 
+def test_interpolation_schemes_on_the_reference_atmosphere() -> None:
+    # Between 850 and 500 hPa of the ITU-R reference atmosphere, a layer of
+    # constant gradient: linear in height is exact, linear in ln p is
+    # 0.31 K too warm at 700 hPa, linear in p (FULL-POS, ECMWF option)
+    # 1.36 K too cold; the height linear in ln p is 48 m too low, exact only
+    # for an isothermal layer.
+    from nomogram.inversion import invert
+    from nomogram.model import Variable
+
+    height = invert(
+        FORMULATIONS["itu_r_p835_pressure"],
+        "H",
+        output=Variable("H", "GeopotentialHeight", "KiloM", "Geopotential height"),
+        input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+    )
+    temperature = FORMULATIONS["itu_r_p835_temperature"]
+    levels = {p: height.evaluate(P=Q_(p, "hPa")).to("m") for p in (850, 700, 500)}
+    t = {p: temperature.evaluate(H=h) for p, h in levels.items()}
+    pressures = {"p": Q_(700, "hPa"), "p_1": Q_(850, "hPa"), "p_2": Q_(500, "hPa")}
+    two_levels = {"T_1": t[850], "T_2": t[500]}
+    truth = t[700].magnitude
+    in_ln_p = FORMULATIONS["log_pressure_interpolation_temperature"]
+    in_p = FORMULATIONS["pressure_interpolation_temperature"]
+    in_z = FORMULATIONS["height_interpolation_temperature"]
+    assert in_ln_p.evaluate(**pressures, **two_levels).magnitude - truth == (
+        pytest.approx(0.31, abs=0.01)
+    )
+    assert in_p.evaluate(**pressures, **two_levels).magnitude - truth == (
+        pytest.approx(-1.36, abs=0.01)
+    )
+    at_z = in_z.evaluate(z=levels[700], z_1=levels[850], z_2=levels[500], **two_levels)
+    assert at_z.magnitude == pytest.approx(truth, abs=1e-6)
+    z_in_ln_p = FORMULATIONS["log_pressure_interpolation_geopotential_height"].evaluate(
+        **pressures, Z_1=levels[850], Z_2=levels[500]
+    )
+    assert (z_in_ln_p - levels[700]).magnitude == pytest.approx(-48.4, abs=0.1)
+
+
 def test_the_dry_adiabatic_gradient() -> None:
     # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
     gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()
