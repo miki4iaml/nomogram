@@ -87,6 +87,8 @@ from nomogram.model import (
     _origin,
 )
 from nomogram.relations import (
+    _head,
+    _shape,
     _unit_factor,
     match_inputs,
     record,
@@ -2800,6 +2802,11 @@ class _Builder:
                 for name in part.rename.values()
                 if name not in inputs
             }
+        elif formulation.parts:
+            # A composition: checked on the parts substituted as written,
+            # since SymPy may simplify a factor of two calls of a part away.
+            tree = ast.parse(formulation.expression, mode="eval")
+            used = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
         unused = sorted(set(names) - used)
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
@@ -2853,8 +2860,19 @@ class _Builder:
                 built[key] = self.composed(key, tables[key], built)
         formulations = {key: built[key] for key in tables}
         # Two sources of one formulation make one entry with two citations.
+        # Only formulations of the same head (kinds, units, coefficients),
+        # then of the same shape, may be one: the costly signature, which
+        # tries every order of the inputs, is computed for those alone.
+        heads = Counter(_head(f) for f in formulations.values())
+        shapes = {
+            key: _shape(f) for key, f in formulations.items() if heads[_head(f)] > 1
+        }
+        alike = Counter(shapes.values())
         seen: dict[str, str] = {}
-        for key, formulation in formulations.items():
+        for key, shape in shapes.items():
+            if alike[shape] < 2:
+                continue
+            formulation = formulations[key]
             fingerprint = signature(formulation)
             if fingerprint in seen:
                 first = seen[fingerprint]

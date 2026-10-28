@@ -62,7 +62,7 @@ import numpy as np
 import sympy
 
 from nomogram.comparison import same_state
-from nomogram.expression import Piecewise, parse_expression
+from nomogram.expression import Piecewise, compile_numeric, parse_expression
 from nomogram.model import (
     CheckCase,
     ConstantNature,
@@ -194,46 +194,97 @@ def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
     every order is tried and the smallest text kept, so that the result
     does not depend on the identifiers chosen by the source.
     """
-    expr = formulation.sympy_expression
-    if keep_coefficients:
-        pairs = [(c.identifier, c.value) for c in formulation.coefficients]
-        pairs += [(k.identifier, k.value) for k in formulation.constants]
-        expr = expr.xreplace(
-            {sympy.Symbol(n, real=True): sympy.Rational(repr(v)) for n, v in pairs}
-        )
-    else:
-        names = [c.identifier for c in formulation.coefficients]
-        names += [k.identifier for k in formulation.constants]
-        expr = expr.xreplace(
-            {sympy.Symbol(n, real=True): sympy.Symbol("c") for n in names}
-        )
-    groups: dict[tuple[str, str], list[str]] = {}
-    for variable in formulation.inputs:
-        groups.setdefault((variable.kind, variable.unit), []).append(
-            variable.identifier
-        )
-    ordered = sorted(groups)
+    expr = _numbers(formulation, keep_coefficients=keep_coefficients)
+    groups = _input_groups(formulation)
     texts: list[str] = []
     for orders in itertools.product(
-        *(itertools.permutations(groups[k]) for k in ordered)
+        *(itertools.permutations(groups[k]) for k in sorted(groups))
     ):
         renaming = {}
         for index, name in enumerate(n for order in orders for n in order):
             renaming[sympy.Symbol(name, real=True)] = sympy.Symbol(f"x{index}")
         texts.append(str(sympy.srepr(expr.xreplace(renaming))))
-    head = [
+    return _head(formulation, keep_coefficients=keep_coefficients) + "|" + min(texts)
+
+
+def _numbers(formulation: Formulation, *, keep_coefficients: bool) -> Any:
+    """The expression, its coefficients and constants as exact rationals or ``c``."""
+    expr = formulation.sympy_expression
+    if keep_coefficients:
+        pairs = [(c.identifier, c.value) for c in formulation.coefficients]
+        pairs += [(k.identifier, k.value) for k in formulation.constants]
+        return expr.xreplace(
+            {sympy.Symbol(n, real=True): sympy.Rational(repr(v)) for n, v in pairs}
+        )
+    names = [c.identifier for c in formulation.coefficients]
+    names += [k.identifier for k in formulation.constants]
+    return expr.xreplace({sympy.Symbol(n, real=True): sympy.Symbol("c") for n in names})
+
+
+def _shape(formulation: Formulation) -> str:
+    """A fingerprint that does not depend on the names of the inputs.
+
+    The values of the formulation for every order of distinct probe values
+    among the inputs of one kind and unit, sorted: equal for two writings
+    of one formulation, and cheap where the signature rewrites the
+    expression for every order. Formulations of different fingerprints are
+    no duplicates; equal ones still need their signatures compared.
+    """
+    groups = _input_groups(formulation)
+    function = compile_numeric(formulation.sympy_expression, formulation.names)
+    fixed = [c.value for c in formulation.coefficients]
+    fixed += [float(k.value) for k in formulation.constants]
+    position = {v.identifier: i for i, v in enumerate(formulation.inputs)}
+    values = []
+    with np.errstate(all="ignore"):
+        for orders in itertools.product(
+            *(itertools.permutations(groups[g]) for g in sorted(groups))
+        ):
+            arguments = [0.0] * len(position)
+            for index, order in enumerate(orders):
+                for rank, name in enumerate(order):
+                    arguments[position[name]] = 250.0 + 10.0 * (rank + 1) + 3.0 * index
+            try:
+                value = float(function(*arguments, *fixed))
+            except (ArithmeticError, TypeError, ValueError):
+                value = float("nan")
+            values.append(f"{value:.9g}")
+    return _head(formulation) + "|" + ",".join(sorted(values))
+
+
+def _input_groups(formulation: Formulation) -> dict[tuple[str, str], list[str]]:
+    """The identifiers of the inputs, by quantity kind and unit."""
+    groups: dict[tuple[str, str], list[str]] = {}
+    for variable in formulation.inputs:
+        groups.setdefault((variable.kind, variable.unit), []).append(
+            variable.identifier
+        )
+    return groups
+
+
+def _head(formulation: Formulation, *, keep_coefficients: bool = True) -> str:
+    """What two writings of one formulation share before their expression.
+
+    The kind and unit of the output and of the inputs, and the values and
+    units of the coefficients and constants: cheap to compute, so that the
+    canonical expression is needed only where heads meet.
+    """
+    groups = _input_groups(formulation)
+    parts = [
         formulation.output.kind,
         formulation.output.unit,
         str(formulation.fixed_units),
     ]
-    head += [f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in ordered]
+    parts += [
+        f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in sorted(groups)
+    ]
     if keep_coefficients:
         # The units of coefficients and constants set the factor that brings
         # a quantity equation into its output unit.
         units = [f"{c.value!r} {c.unit}" for c in formulation.coefficients]
         units += [f"{k.value!r} {k.unit}" for k in formulation.constants]
-        head.append(" ".join(sorted(units)))
-    return "|".join(head) + "|" + min(texts)
+        parts.append(" ".join(sorted(units)))
+    return "|".join(parts)
 
 
 def signature(formulation: Formulation) -> str:

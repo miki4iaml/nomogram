@@ -605,6 +605,29 @@ composition = { outer = "outer", inner = { k = "factor", e = "pressure_old" } }
     assert t.scale.key == "old"
 
 
+def test_a_factor_that_cancels_between_two_calls_of_a_part_stays_declared() -> None:
+    ratio = """
+[formulations.ratio]
+label = "Ratio of a pressure at two temperatures"
+expression = "e(t=t_1) / e(t=t_2)"
+calls = { e = "pressure" }
+fixed_units = true
+output = { identifier = "k", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "t_1", kind = "CelsiusTemperature", unit = "DEG_C", description = "first" },
+  { identifier = "t_2", kind = "CelsiusTemperature", unit = "DEG_C", description = "second" },
+]
+
+[formulations.scaled_ratio]
+label = "A pressure times that ratio"
+composition = { outer = "outer", inner = { k = "ratio" } }
+"""
+    f = load_catalog([PARTS, ratio]).formulations["scaled_ratio"]
+    # SymPy simplifies a away, the substituted expression keeps it.
+    assert "a__pressure" in {c.identifier for c in f.coefficients}
+    assert "a__pressure" not in {s.name for s in f.sympy_expression.free_symbols}
+
+
 def test_a_composition_links_to_the_kinds_and_scales_of_its_variables() -> None:
     built = load_catalog([PARTS, stated_in_part()])
     # Its table writes no variable: they come from its parts.
