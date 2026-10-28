@@ -91,6 +91,17 @@ and this project adheres to
   and agrees with the values MetPy prints in its docstrings and tests.
 - The density of moist air from the pressure and the virtual
   temperature (Bechtold 2015, 23).
+- Humidity between two levels as MetPy practises it, each scheme a
+  formulation citing the code that applies it: the dew point linear in
+  ln p (its layers; what a Skew-T draws) and in p (its stability
+  indices), the specific humidity and the mixing ratio linear in ln p, the
+  mixing ratio linear in p (Galvez-Davison index), the potential
+  temperature linear in ln p (its mixed parcel), the specific humidity
+  linear in the potential temperature (its isentropic analysis). The
+  potential temperature between two levels whose temperature is linear in
+  ln p, on which MetPy places an isentropic surface (after Ziv and Alpert
+  1994). The relative humidity between two levels by each of these
+  practices, composed from them: `docs/vertical.md` compares them.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.
@@ -104,6 +115,13 @@ and this project adheres to
 - An inversion no longer waits for SymPy to check the closed forms it
   finds, which nomogram checks numerically anyway: the dew point of
   MetPy's saturation vapour pressure is found in 4 s rather than 24 s.
+- Loading the catalog compares the canonical forms of two formulations,
+  to refuse duplicates, only where cheaper fingerprints meet: the bundled
+  catalog loads in about 1.1 s rather than 3 s.
+- An expression nomogram derives from others (a composition, branches,
+  calls) is no longer bounded in length as a written one is: its parts
+  bound it. A factor that SymPy simplifies away between two calls of a
+  part of a composition stays declared.
 
 ### Fixed
 

@@ -457,6 +457,10 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         "metpy171_saturation_mixing_ratio",
         "metpy171_relative_humidity_from_dew_point",
         "metpy171_relative_humidity_from_specific_humidity",
+        "metpy171_relative_humidity_dew_point_log_pressure",
+        "metpy171_relative_humidity_dew_point_pressure",
+        "metpy171_relative_humidity_specific_humidity_log_pressure",
+        "metpy171_relative_humidity_isentropic",
     )
     assert {
         k: v
