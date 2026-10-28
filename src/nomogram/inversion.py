@@ -207,7 +207,9 @@ def _closed_form(
     constant, varying = lhs.as_independent(x, as_Add=True)
     z = sympy.Dummy("z", real=True)
     try:
-        solutions = sympy.solve(varying - z, x)
+        # Each solution is checked numerically below: SymPy's own check,
+        # which simplifies every candidate, took up to 20 s for nothing.
+        solutions = sympy.solve(varying - z, x, check=False)
     except NotImplementedError:
         return None
     rhs = sympy.logcombine(sympy.log(y) - constant, force=True)

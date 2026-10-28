@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- An inversion no longer waits for SymPy to check the closed forms it
+  finds, which nomogram checks numerically anyway: the dew point of
+  MetPy's saturation vapour pressure is found in 4 s rather than 24 s.
+
 ### Fixed
 
 - On PyPI, the links and images of the README lead to the files of the

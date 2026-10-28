@@ -117,23 +117,27 @@ def test_missing_extra_gives_an_explicit_message(
         plot_deviations(comparison)
 
 
-@pytest.mark.parametrize("notation", [None, *sorted(CATALOG.notations)])
-@pytest.mark.parametrize(
-    "options",
-    [
-        DisplayOptions(),
-        DisplayOptions.SYMPY,
-        DisplayOptions(mul_symbol="dot", values=True),
-    ],
-    ids=["default", "sympy", "values"],
-)
-def test_every_formulation_renders_in_mathtext(
-    notation: str | None, options: DisplayOptions
-) -> None:
+def test_every_formulation_renders_in_mathtext() -> None:
+    # Each distinct string is parsed once: a notation changes only the
+    # formulations it covers, so most strings repeat from one to the next.
+    options = {
+        "default": DisplayOptions(),
+        "sympy": DisplayOptions.SYMPY,
+        "values": DisplayOptions(mul_symbol="dot", values=True),
+    }
+    strings: dict[str, str] = {}
+    for notation in [None, *sorted(CATALOG.notations)]:
+        chosen = CATALOG.notations[notation] if notation else None
+        for name, option in options.items():
+            for formulation in FORMULATIONS.values():
+                text = formulation.render(chosen, options=option).mathtext
+                strings.setdefault(text, f"{formulation.key}, {notation}, {name}")
     parser = MathTextParser("path")
-    chosen = CATALOG.notations[notation] if notation else None
-    for formulation in FORMULATIONS.values():
-        parser.parse(formulation.render(chosen, options=options).mathtext)
+    for text, where in strings.items():
+        try:
+            parser.parse(text)
+        except ValueError as error:
+            pytest.fail(f"{where}: {error}")
 
 
 @pytest.mark.parametrize("command", sorted(LATEX_COMMANDS))
