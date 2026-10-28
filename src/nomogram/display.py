@@ -136,6 +136,9 @@ class DisplayOptions:
         formulation, author, year and equation (``"short"``); its label
         (``"standard"``, default); its label, then its first citation on
         a second line (``"full"``).
+    off_scale_notes : bool
+        Whether the legend entry of a curve drawn off scale says how far it
+        goes (:func:`nomogram.plot.plot_deviations`).
     """
 
     mul_symbol: MulSymbol = "times"
@@ -145,10 +148,14 @@ class DisplayOptions:
     axis_labels: AxisLabels = "si"
     axis_detail: LabelDetail = "standard"
     legend_detail: LabelDetail = "standard"
+    off_scale_notes: bool = True
 
     #: SymPy's own rendering: juxtaposition, default symbols; numbers are
     #: still joined by ×.
     SYMPY: ClassVar[DisplayOptions]
+    #: The figures of nomogram's documentation: full axes, short legend
+    #: entries, no off-scale notes, so that a figure stands alone uncrowded.
+    DOCUMENTATION: ClassVar[DisplayOptions]
 
     def __post_init__(self) -> None:
         if self.mul_symbol not in _MUL_SYMBOLS:
@@ -173,6 +180,9 @@ class DisplayOptions:
 
 
 DisplayOptions.SYMPY = DisplayOptions(mul_symbol=None, upright=False)
+DisplayOptions.DOCUMENTATION = DisplayOptions(
+    axis_detail="full", legend_detail="short", off_scale_notes=False
+)
 
 _DEFAULT = DisplayOptions()
 _OPTIONS: ContextVar[DisplayOptions] = ContextVar(

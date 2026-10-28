@@ -15,8 +15,10 @@ Axis labels mark the reference scale of a kind (ITS-90 for temperatures)
 only when the comparison converted the values to it (``scale="convert"``,
 the default of :func:`nomogram.comparison.compare`). How much the axes
 and the legend say follows the display options ``axis_detail`` and
-``legend_detail``, each short, standard or full
-(:class:`nomogram.display.DisplayOptions`).
+``legend_detail``, each short, standard or full, and
+``off_scale_notes`` (:class:`nomogram.display.DisplayOptions`); the
+preset ``DisplayOptions.DOCUMENTATION`` gives the figures of nomogram's
+documentation.
 
 A curve whose deviation stands far above those of the others is drawn off
 scale, so that it does not flatten them (:func:`plot_deviations`); values
@@ -331,6 +333,19 @@ def _beyond(curves: Mapping[str, Any], low: Any, high: Any) -> dict[str, float]:
     return found
 
 
+def _within(curves: Mapping[str, Any], x: Any, window: Any) -> Mapping[str, Any]:
+    """The points of the curves shown within x limits given, if any.
+
+    An end given as ``None`` does not bound; the limits may be reversed.
+    """
+    if window is None:
+        return curves
+    left = -np.inf if window[0] is None else window[0]
+    right = np.inf if window[1] is None else window[1]
+    shown = (x >= min(left, right)) & (x <= max(left, right))
+    return {key: values[shown] for key, values in curves.items()}
+
+
 def _off_scale_label(label: str, peak: float) -> str:
     """The legend entry of a curve off scale: how far it goes, on its first line."""
     head, newline, tail = label.partition("\n")
@@ -363,7 +378,10 @@ def plot_deviations(
     half of the curves stay on scale. On axes given through ``ax``, which
     may hold other curves, the limits are left to the caller unless
     ``off_scale`` is true. Limits given (``ylim=(-1, 1)``) replace those
-    chosen: the curves leaving them are off scale.
+    chosen: the curves leaving them are off scale. An x range given
+    (``xlim``) narrows what the y axis holds to the points shown. The
+    display option ``off_scale_notes`` says whether legend entries tell
+    how far the curves off scale go.
 
     Parameters
     ----------
@@ -383,9 +401,9 @@ def plot_deviations(
         function creates.
     **axes
         Properties of the axes, set once the curves are drawn
-        (:meth:`matplotlib.axes.Axes.set`): ``ylim=(-1, 1)`` zooms in, each
-        curve beyond saying in the legend how far it goes; ``xlim``,
-        ``title``...
+        (:meth:`matplotlib.axes.Axes.set`): ``ylim=(-1, 1)`` zooms in, the
+        curves beyond going off scale; ``xlim=(0, 80)`` narrows the x axis,
+        and the y axis holds what it shows; ``title``...
 
     Returns
     -------
@@ -407,25 +425,35 @@ def plot_deviations(
         for key, deviation in comparison.relative_deviations.items()
         if key != comparison.reference
     }
+    automatic = created if off_scale is None else off_scale
+    window = axes.get("xlim")
+    shown = _within(curves, x, window)
     limits = axes.get("ylim")
     if limits is not None:
-        off = _beyond(curves, *limits)
-    elif created if off_scale is None else off_scale:
-        off = _off_scale(curves)
+        off = _beyond(shown, *limits)
+    elif automatic:
+        off = _off_scale(shown)
     else:
         off = {}
     names = _names(comparison, curves)
+    notes = get_display_options().off_scale_notes
     for index, (key, values) in enumerate(curves.items()):
-        label = _off_scale_label(names[key], off[key]) if key in off else names[key]
+        label = names[key]
+        if key in off and notes:
+            label = _off_scale_label(label, off[key])
         ax.plot(x, values, label=label, **_style(index))
     ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
-    if off and limits is None:
+    if limits is None and (off or (automatic and window is not None)):
         kept = np.concatenate(
-            [v[np.isfinite(v)] for k, v in curves.items() if k not in off]
+            [
+                np.zeros(1),
+                *(v[np.isfinite(v)] for k, v in shown.items() if k not in off),
+            ]
         )
-        low, high = min(0.0, float(kept.min())), max(0.0, float(kept.max()))
-        margin = 0.05 * (high - low)
-        ax.set_ylim(low - margin, high + margin)
+        low, high = float(kept.min()), float(kept.max())
+        if high > low:
+            margin = 0.05 * (high - low)
+            ax.set_ylim(low - margin, high + margin)
     ax.set_xlabel(x_label)
     label = _label(comparison, comparison.reference)
     cited = _cited(comparison, comparison.reference)

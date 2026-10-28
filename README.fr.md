@@ -60,8 +60,8 @@ Python 3.12 ou plus récent. Les tracés demandent l'extra `viz`
 
 Toutes les formulations de la pression de vapeur saturante du catalogue
 comparées à la référence IAPWS, à 1 % près ; les courbes s'arrêtent là où
-une formulation sort de son domaine de validité déclaré, et la légende dit
-jusqu'où vont celles qui sortent du tracé
+une formulation sort de son domaine de validité déclaré, et la figure prend
+le jeu d'options de la documentation de nomogram
 ([script](docs/examples/saturation_vapour_pressure.py)) :
 
 ```python
@@ -77,7 +77,7 @@ temperatures = Q_(np.linspace(-60, 110, 341), "degC")
 table = nomo.comparison.compare(
     formulations, reference, {"ThermodynamicTemperature": temperatures}
 )
-with nomo.display.display_options(axis_detail="full", legend_detail="short"):
+with nomo.display.display_options(nomo.display.DisplayOptions.DOCUMENTATION):
     nomo.plot.plot_deviations(table, ylim=(-1.0, 1.0))  # extra viz
 ```
 
