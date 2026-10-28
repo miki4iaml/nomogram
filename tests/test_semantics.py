@@ -43,7 +43,7 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 def test_sources_are_recorded() -> None:
     assert CATALOG.qudt_version == "3.5.2"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 10, 26)
+    assert CATALOG.extracted == datetime.date(2026, 10, 28)
 
 
 def test_catalog_is_read_once() -> None:
@@ -126,7 +126,7 @@ def test_radio_refractivity_kinds_and_units() -> None:
         "PPM",
         "UNITLESS",
     }
-    assert set(kinds["Height"].applicable_units) == {"M", "KiloM"}
+    assert set(kinds["Height"].applicable_units) == {"M", "KiloM", "FT"}
     assert kinds["Height"].cf_standard_names == ("height",)
     # QUDT writes PPM; nomogram displays ppm, as ITU-R P.453 does.
     assert units["PPM"].symbol == "ppm"
@@ -149,10 +149,23 @@ def test_a_dew_point_is_given_in_degc_or_in_k() -> None:
     assert not kind.added_units
 
 
+def test_kinds_of_vertical_coordinates_and_of_the_wind() -> None:
+    kinds = CATALOG.quantity_kinds
+    assert set(kinds["Length"].applicable_units) == {"M", "KiloM", "FT"}
+    assert kinds["AccelerationOfGravity"].applicable_units == ("M-PER-SEC2",)
+    assert kinds["TemperatureGradient"].applicable_units == ("K-PER-M",)
+    # The wind is the air's velocity: narrower than the kinds.
+    assert kinds["Velocity"].cf_standard_names == ("eastward_wind", "northward_wind")
+    assert kinds["Speed"].cf_standard_names == ("wind_speed",)
+    assert {m.relation for m in kinds["Speed"].matches[1:]} == {MatchRelation.NARROW}
+    assert CATALOG.units["M2-PER-SEC2"].symbol == "m²/s²"
+
+
 def test_specific_energy_is_in_joules_per_kilogram() -> None:
     kind = CATALOG.quantity_kinds["SpecificEnergy"]
-    assert kind.applicable_units == ("J-PER-KiloGM", "KiloJ-PER-KiloGM")
-    assert not kind.added_units
+    assert kind.applicable_units == ("J-PER-KiloGM", "KiloJ-PER-KiloGM", "M2-PER-SEC2")
+    # CF gives the geopotential in m2 s-2, a unit QUDT declares elsewhere.
+    assert kind.added_units == ("M2-PER-SEC2",)
 
 
 def test_air_temperature_names_both_temperatures() -> None:
@@ -184,7 +197,7 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
 
 def test_external_links_carry_their_relation_and_verification_date() -> None:
     kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
-    checked = datetime.date(2026, 10, 26)
+    checked = datetime.date(2026, 10, 28)
     assert kind.matches == (
         ExternalMatch(
             "http://www.wikidata.org/entity/Q76378808", MatchRelation.CLOSE, checked

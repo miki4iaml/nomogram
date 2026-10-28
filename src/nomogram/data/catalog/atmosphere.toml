@@ -1,0 +1,260 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Vertical coordinates of the atmosphere: altitude and height, the
+# surface, geopotential and geopotential height, pressure altitude,
+# ellipsoidal heights; the pressures that go with them; temperature
+# gradients and lapse rates. Each kind is defined after a text in force:
+# CF standard names, WMO-No. 8 (2024), the IFS documentation, and for
+# aviation the SERA regulation, which takes over the ICAO definitions.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "atmosphere"
+label = "Vertical coordinates of the atmosphere"
+format = 2
+requires = ["moist-air"]
+keywords = ["vertical coordinate", "altitude", "height", "geopotential", "pressure altitude", "lapse rate"]
+
+# --- References -------------------------------------------------------
+
+[references.cf_standard_names_95]
+authors = "CF Conventions"
+year = 2026
+title = "CF Standard Name Table, version 95"
+url = "https://cfconventions.org/Data/cf-standard-names/95/src/cf-standard-name-table.xml"
+status = "verified"
+note = "Definitions read in the XML table: altitude (the geometric height above the geoid), height (above the surface), surface_altitude, geopotential, geopotential_height (the geopotential divided by the standard acceleration due to gravity), atmosphere_layer_thickness_expressed_as_geopotential_height_difference, air_temperature_lapse_rate (the negative derivative with respect to height), surface_air_pressure, air_pressure_at_mean_sea_level, height_above_reference_ellipsoid and geoid_height_above_reference_ellipsoid."
+
+[references.sera2012]
+authors = "European Commission"
+year = 2012
+title = "Commission Implementing Regulation (EU) No 923/2012 laying down the common rules of the air (SERA), Article 2: Definitions"
+container = "EASA, Easy Access Rules for Standardised European Rules of the Air (SERA), revision of August 2025"
+url = "https://www.easa.europa.eu/en/downloads/68174/en"
+status = "verified"
+note = "Article 2 read in the consolidated text: points 39 (altitude, measured from mean sea level), 78 (flight level, a surface of constant atmospheric pressure related to the pressure datum 1013.2 hPa), 84 (height, measured from a specified datum), 101 (pressure-altitude, an atmospheric pressure expressed in terms of the altitude that corresponds to it in the Standard Atmosphere of Annex 8 to the Chicago Convention) and 134 (transition altitude). The regulation takes over the ICAO definitions, whose Annexes are not freely available; WMO-No. 49, Volume II, which reproduced them, was abrogated at the end of 2023."
+
+[references.wmo2024_vol3]
+authors = "World Meteorological Organization"
+year = 2024
+title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume III: Observing Systems"
+url = "https://library.wmo.int/viewer/68661/download?file=WMO-8-vIII-2024_en.pdf&type=pdf&navigator=1"
+status = "verified"
+note = "Chapter 2, 2.9.1 (p. 49): QFE, the pressure at the official elevation of the aerodrome; QNH, the pressure at which an altimeter is set so that it indicates the official elevation of the aerodrome on the ground, computed from the QFE through the pressure-altitude relationship of the ICAO standard atmosphere, 'this virtual atmosphere', and not the actual state of the atmosphere; hence QNH differs from the pressure reduced to sea level of Volume I, 3.7. Equation 2.8: QNH = A + B x QFE."
+
+[references.ecmwf_ifs_cy49r1_part3]
+authors = "ECMWF"
+year = 2024
+title = "IFS Documentation CY49R1 - Part III: Dynamics and Numerical Procedures"
+url = "https://www.ecmwf.int/en/elibrary/81625-ifs-documentation-cy49r1-part-iii-dynamics-and-numerical-procedures"
+status = "verified"
+note = "Section 2.1, equation 2.6: the geopotential, defined by the hydrostatic equation with the virtual temperature and the gas constant of dry air. Section 2.2.1, equation 2.20: its discrete analogue between two half levels, the hypsometric equation. The numbering is the same in CY41R2, whose documentation ERA5 follows, and in CY50R1."
+
+# --- Quantity kinds ---------------------------------------------------
+
+# Altitude and height are QUDT kinds (CF: above the geoid, above the
+# surface). A geopotential height must not feed an altitude input, nor an
+# ellipsoidal height: the first differs from it by 25 m at 8 km, the
+# second by the geoid height, tens of metres.
+
+[kinds.SurfaceAltitude]
+label = "Surface Altitude"
+specialization_of = "Altitude"
+description = "Altitude of the surface of the Earth, the lower boundary of the atmosphere (CF). The elevation of a WMO station is the altitude of the ground beneath its raingauge or its thermometer screen (WMO-No. 8, Volume I, 1.3.3.2)."
+cf_standard_names = [{ name = "surface_altitude", relation = "exact", verified = 2026-10-26 }]
+
+[kinds.Geopotential]
+label = "Geopotential"
+specialization_of = "SpecificEnergy"
+scale_type = "interval"
+description = "Sum of the specific gravitational potential energy relative to the geoid and the specific centripetal potential energy (CF); the IFS defines it by the hydrostatic equation (Part III, equation 2.6). Its zero is the geoid, about the mean sea level: an interval scale."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1423347", relation = "close", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "geopotential", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeopotentialHeight]
+label = "Geopotential Height"
+specialization_of = "Length"
+scale_type = "interval"
+description = "Geopotential divided by the standard acceleration of free fall, 9.80665 m s-2 (CF; WMO-No. 8, Volume I, equation 12.12). Numerically close to the altitude, not to the height above the surface (CF), but never equal to it: 25 m apart at 8 km, 220 m at 32 km (WMO-No. 8, Volume I, table 12.10). WMO writes it in standard geopotential metres, 0.980665 dynamic metre; nomogram in metres, the kind carrying the meaning."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q12432978", relation = "close", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "geopotential_height", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeopotentialThickness]
+label = "Geopotential Thickness"
+specialization_of = "Length"
+description = "Difference of geopotential height between two levels of the atmosphere (CF): the thickness of a layer, which the hypsometric equation gives."
+cf_standard_names = [{ name = "atmosphere_layer_thickness_expressed_as_geopotential_height_difference", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.PressureAltitude]
+label = "Pressure Altitude"
+specialization_of = "GeopotentialHeight"
+scale_type = "interval"
+description = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101): a geopotential height of the standard atmosphere, not of the actual one. Flight levels are surfaces of constant pressure related to 1013.2 hPa (point 78)."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q17130615", relation = "close", verified = 2026-10-28 },
+]
+
+[kinds.EllipsoidalHeight]
+label = "Ellipsoidal Height"
+specialization_of = "Length"
+scale_type = "interval"
+description = "Height above a reference ellipsoid (CF), as satellite positioning gives it. It differs from the altitude by about the geoid height, tens of metres: it never feeds an altitude input."
+cf_standard_names = [{ name = "height_above_reference_ellipsoid", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeoidHeight]
+label = "Geoid Height"
+specialization_of = "Length"
+description = "Height of the geoid above a reference ellipsoid (CF), the geoid undulation N, positive or negative; the ellipsoidal height of a point is about its altitude plus N."
+cf_standard_names = [{ name = "geoid_height_above_reference_ellipsoid", relation = "exact", verified = 2026-10-28 }]
+
+# Temperature gradients: CF's lapse rate is -dT/dz, the gradient of the
+# standard atmosphere's layers dT/dz. Siblings, so that one never feeds an
+# input of the other: their signs are opposite.
+
+[kinds.LapseRate]
+label = "Lapse Rate of Air Temperature"
+specialization_of = "TemperatureGradient"
+description = "Negative derivative of the air temperature with respect to height, -dT/dz (CF): positive when the temperature decreases upwards. A temperature difference per length; never fed by a vertical temperature gradient, of opposite sign."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q66900467", relation = "close", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "air_temperature_lapse_rate", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.VerticalTemperatureGradient]
+label = "Vertical Gradient of Air Temperature"
+specialization_of = "TemperatureGradient"
+description = "Derivative of the air temperature with respect to height, dT/dz: negative when the temperature decreases upwards, as the layers of a standard atmosphere write it. Never fed by a lapse rate, of opposite sign."
+
+# Pressures of the surface and of the sea level; the altimeter settings
+# of aviation, which go through the standard atmosphere.
+
+[kinds.SurfaceAirPressure]
+label = "Surface Air Pressure"
+specialization_of = "Pressure"
+description = "Air pressure at the lower boundary of the atmosphere (CF): the surface pressure of models. A station reports its pressure at an elevation specified apart (WMO-No. 8, Volume I, 1.3.3.2)."
+cf_standard_names = [{ name = "surface_air_pressure", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.SeaLevelPressure]
+label = "Air Pressure at Mean Sea Level"
+specialization_of = "Pressure"
+description = "Air pressure reduced to mean sea level (MSLP, PMSL; CF), through a fictitious column of air below the station (WMO-No. 8, Volume I, 3.7). Not the QNH, which the standard atmosphere gives (Volume III, 2.9.1)."
+cf_standard_names = [{ name = "air_pressure_at_mean_sea_level", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.AltimeterSetting]
+label = "Altimeter Setting (QNH)"
+specialization_of = "Pressure"
+description = "QNH: the pressure at which an aircraft altimeter is set so that it indicates the official elevation of the aerodrome when on the ground there, computed from the QFE through the standard atmosphere (WMO-No. 8, Volume III, 2.9.1)."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q21938048", relation = "close", verified = 2026-10-28 },
+]
+
+[kinds.AerodromePressure]
+label = "Aerodrome Pressure (QFE)"
+specialization_of = "Pressure"
+description = "QFE: the pressure at the official elevation of the aerodrome (WMO-No. 8, Volume III, 2.9.1)."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q12717817", relation = "close", verified = 2026-10-28 },
+]
+
+# --- Trade terms ------------------------------------------------------
+
+[trade_terms.geopotential]
+term = "geopotential"
+language = "en"
+
+[[trade_terms.geopotential.meanings]]
+community = "CF, numerical weather prediction (IFS)"
+kind = "Geopotential"
+definition = "Specific potential energy relative to the geoid, in m2 s-2 (CF); defined by the hydrostatic equation in the IFS."
+sources = ["cf_standard_names_95", "ecmwf_ifs_cy49r1_part3"]
+
+[[trade_terms.geopotential.meanings]]
+community = "WMO upper-air observations"
+kind = "GeopotentialHeight"
+definition = "Given in standard geopotential metres (WMO-No. 8, Volume I, chapter 1, list of units, item (o)): the geopotential height of CF."
+sources = ["wmo2024"]
+
+[trade_terms.altitude]
+term = "altitude"
+language = "en"
+
+[[trade_terms.altitude.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "Altitude"
+definition = "Vertical distance of a level, a point or an object considered as a point, measured from mean sea level (SERA, Article 2, point 39)."
+sources = ["sera2012"]
+
+[[trade_terms.altitude.meanings]]
+community = "CF, meteorology"
+kind = "Altitude"
+definition = "Geometric height above the geoid, the reference geopotential surface, similar to mean sea level (CF)."
+sources = ["cf_standard_names_95"]
+
+[trade_terms.height]
+term = "height"
+language = "en"
+
+[[trade_terms.height.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "Height"
+definition = "Vertical distance of a level, a point or an object considered as a point, measured from a specified datum (SERA, Article 2, point 84)."
+sources = ["sera2012"]
+
+[[trade_terms.height.meanings]]
+community = "CF, meteorology"
+kind = "Height"
+definition = "Vertical distance above the surface (CF)."
+sources = ["cf_standard_names_95"]
+
+[trade_terms.elevation]
+term = "elevation"
+language = "en"
+
+[[trade_terms.elevation.meanings]]
+community = "WMO surface observations"
+kind = "SurfaceAltitude"
+definition = "Height above mean sea level of the ground on which the raingauge stands or, without one, of the ground beneath the thermometer screen; the elevation to which the station pressure relates is specified apart (WMO-No. 8, Volume I, 1.3.3.2)."
+sources = ["wmo2024"]
+
+[trade_terms.pressure_altitude]
+term = "pressure altitude"
+language = "en"
+
+[[trade_terms.pressure_altitude.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "PressureAltitude"
+definition = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101)."
+sources = ["sera2012"]
+
+[trade_terms.flight_level]
+term = "flight level"
+language = "en"
+
+[[trade_terms.flight_level.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "PressureAltitude"
+definition = "A surface of constant atmospheric pressure related to the pressure datum 1013.2 hPa and separated from the others by specific pressure intervals (SERA, Article 2, point 78)."
+sources = ["sera2012"]
+
+# --- Formulations -----------------------------------------------------
+
+# Heights: an altitude z is above the geoid (about the mean sea level), a
+# height h above the surface; h = z - z_s needs the altitude z_s of the
+# surface, which nomogram never computes (it comes from a terrain model).
+
+[formulations.height_above_surface]
+label = "Height above the surface"
+expression = "z - z_s"
+fixed_units = false
+note = "Definition (CF: height is the vertical distance above the surface). The altitude of the surface comes from a terrain model, outside nomogram."
+output = { identifier = "h", kind = "Height", unit = "KiloM", description = "Height above the surface" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Altitude" },
+  { identifier = "z_s", kind = "SurfaceAltitude", unit = "KiloM", description = "Altitude of the surface" },
+]

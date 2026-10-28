@@ -58,7 +58,7 @@ year = 2024
 title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I"
 doi = "10.59327/WMO/CIMO/1"
 status = "verified"
-note = "Annex 4.A read (2024 edition, pp. 193-196): definitions 4.A.1 to 4.A.21, among them e' = x_v p (4.A.6) and the relative humidities U_w and U_i (4.A.15, 4.A.17), which do not apply when the pressure is below the saturation vapour pressure of the pure phase. Annex 4.B read (pp. 197-198): formulae 4.B.1 (water, -45 to 60 degC) and 4.B.3 (ice, -65 to 0 degC), written e_w(t) and e_i(t); 'sufficiently accurate for all normal meteorological applications', not suitable below -45 degC (water) and -65 degC (ice). Section 4.3.1.1 read (p. 167): the psychrometric formulae 4.1 and 4.2; section 4.3.3.1 (p. 175): the coefficients of screen psychrometers. No uncertainty is stated for them; the 0.6 % of the annex's note is the pressure dependence of the enhancement factor f(p)."
+note = "Annex 4.A read (2024 edition, pp. 193-196): definitions 4.A.1 to 4.A.21, among them e' = x_v p (4.A.6) and the relative humidities U_w and U_i (4.A.15, 4.A.17), which do not apply when the pressure is below the saturation vapour pressure of the pure phase. Annex 4.B read (pp. 197-198): formulae 4.B.1 (water, -45 to 60 degC) and 4.B.3 (ice, -65 to 0 degC), written e_w(t) and e_i(t); 'sufficiently accurate for all normal meteorological applications', not suitable below -45 degC (water) and -65 degC (ice). Section 4.3.1.1 read (p. 167): the psychrometric formulae 4.1 and 4.2; section 4.3.3.1 (p. 175): the coefficients of screen psychrometers. No uncertainty is stated for them; the 0.6 % of the annex's note is the pressure dependence of the enhancement factor f(p). Vertical coordinates read: chapter 1, list of units (p. 14), item (o), the geopotential of upper-air observations in standard geopotential metres, 0.980665 dynamic metre, and the note that heights refer to a stated reference (MSL, station altitude, the 1013.2 hPa plane); 1.3.3.2 (p. 7), the elevation of a station; 3.7.2 (p. 142), the reduction of pressure to sea level, equations 3.1 and 3.2; 12.5.5.2 (pp. 442-444), equations 12.11 to 12.18: geopotential and geopotential height from a geometric height and the normal gravity, the hypsometric equation with the mean virtual temperature."
 
 [references.wmo_etqtc2025]
 authors = "World Meteorological Organization, INFCOM SC-MINT Expert Team on Quality, Traceability and Calibration (ET-QTC)"
@@ -93,7 +93,7 @@ title = "The International System of Units (SI), 9th edition"
 container = "BIPM, version 4.01 (June 2026)"
 doi = "10.59161/AUEZ1291"
 status = "verified"
-note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Read on the PDF of version 4.01."
+note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Appendix 1 (p. 154): the declaration of the 3rd CGPM (1901), whose third point adopts 980.665 cm/s2 for the standard acceleration due to gravity. Read on the PDF of version 4.01."
 
 [references.codata2022]
 authors = "Mohr, P. J.; Newell, D. B.; Taylor, B. N.; Tiesinga, E."
@@ -151,6 +151,17 @@ reference = "bipm_si9"
 nature = "exact"
 matches = [
   { target = "http://www.wikidata.org/entity/Q5962", relation = "close", verified = 2026-10-24 },
+]
+
+[constants.g_n_cgpm1901]
+identifier = "g_n"
+value = 9.80665
+unit = "M-PER-SEC2"
+description = "Standard acceleration of free fall, 980.665 cm/s2, declared by the 3rd CGPM (1901); the conventional gravity of geopotential heights and of the standard atmosphere"
+reference = "bipm_si9"
+nature = "conventional"
+matches = [
+  { target = "http://www.wikidata.org/entity/Q13400897", relation = "close", verified = 2026-10-28 },
 ]
 
 [constants.N_A_si2019]

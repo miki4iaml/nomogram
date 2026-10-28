@@ -167,8 +167,9 @@ KINDS: dict[str, KindSpec] = {
     # ambiguous across trades (see docs/rosetta.md).
     "AbsoluteHumidity": KindSpec("ratio", delta=False),
     # Energy per unit mass, in which latent heats are given; QUDT declares
-    # J/kg for it.
-    "SpecificEnergy": KindSpec("ratio", delta=False),
+    # J/kg for it. The parent of the geopotential (catalog), which CF
+    # gives in m2 s-2: QUDT declares that unit for SpecificModulus only.
+    "SpecificEnergy": KindSpec("ratio", delta=False, added_units=("M2-PER-SEC2",)),
     # Radio refractivity (ITU-R P.453): the refractive index, the parent of
     # the dimensionless kinds nomogram defines, and heights above the
     # surface (CF: "the vertical distance above the surface").
@@ -219,6 +220,24 @@ KINDS: dict[str, KindSpec] = {
     "InverseTemperature": KindSpec("ratio", delta=False),
     "SpecificHeatCapacityAtConstantPressure": KindSpec("ratio", delta=False),
     "MassRatio": KindSpec("ratio", delta=False),
+    # Vertical coordinates: the parent of the geopotential height
+    # (catalog), which must not feed an altitude input: the two differ by
+    # 19 m at 11 km.
+    "Length": KindSpec("ratio", delta=False),
+    # The acceleration of free fall, local or conventional (g_n).
+    "AccelerationOfGravity": KindSpec("ratio", delta=False),
+    # dT/dz; the catalog declares the lapse rate, -dT/dz, apart from it.
+    "TemperatureGradient": KindSpec("ratio", delta=False),
+    # The wind: the components of the velocity of the air, and its speed.
+    # QUDT's Velocity is an exact match of LinearVelocity.
+    "Velocity": KindSpec(
+        "ratio",
+        delta=False,
+        cf_standard_names=(("eastward_wind", "narrow"), ("northward_wind", "narrow")),
+    ),
+    "Speed": KindSpec(
+        "ratio", delta=False, cf_standard_names=(("wind_speed", "narrow"),)
+    ),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -261,6 +280,13 @@ UNITS: dict[str, str] = {
     # ASHRAE (via PsychroLib): the coefficients of equations 33 and 35.
     "KiloJ-PER-KiloGM": "kJ/kg",
     "KiloJ-PER-KiloGM-K": "kJ/(kg*K)",
+    # Vertical coordinates and the hydrostatic atmosphere: gravity, the
+    # geopotential (CF writes m2 s-2), temperature gradients, and the foot
+    # of pressure altitudes and flight levels.
+    "M-PER-SEC2": "m/s^2",
+    "M2-PER-SEC2": "m^2/s^2",
+    "K-PER-M": "K/m",
+    "FT": "ft",
 }
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
@@ -284,6 +310,15 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "mole_fraction_of_water_vapor_in_air",
     "sea_water_salinity",
     "surface_altitude",
+    # Vertical coordinates (atmosphere family).
+    "geopotential",
+    "geopotential_height",
+    "atmosphere_layer_thickness_expressed_as_geopotential_height_difference",
+    "air_temperature_lapse_rate",
+    "surface_air_pressure",
+    "air_pressure_at_mean_sea_level",
+    "height_above_reference_ellipsoid",
+    "geoid_height_above_reference_ellipsoid",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.

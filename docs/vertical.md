@@ -1,0 +1,108 @@
+# Vertical coordinates
+
+A value placed in the vertical needs two things: its coordinate, and the
+reference from which it is reckoned. WMO puts it this way: "Height,
+level or altitude are presented with respect to a well-defined
+reference. Typical references are MSL, station altitude or the
+1 013.2 hPa plane" (WMO-No. 8, 2024, Volume I, chapter 1).
+
+nomogram gives each coordinate its own quantity kind, defined after a
+text in force: the CF standard names, WMO-No. 8 (2024), the IFS
+documentation, and for aviation the SERA regulation (EU) No 923/2012,
+which takes over the ICAO definitions (the ICAO Annexes are not freely
+available). A result feeds an input of its own kind or of one of its
+ancestors, never another (see [catalog.md](catalog.md)): coordinates that
+look alike but differ by metres never mix silently.
+
+The kinds live in the `atmosphere` family, with their references, and
+the terms each community uses in `trade_terms`.
+
+## Which kind for which coordinate
+
+| Coordinate | Kind | Reckoned from | CF standard name | Defined in |
+|---|---|---|---|---|
+| Altitude (geometric) | `Altitude` (QUDT) | the geoid, about mean sea level | `altitude` | CF; SERA, Art. 2, point 39 (from mean sea level) |
+| Altitude of the surface, elevation of a station | `SurfaceAltitude` | the geoid | `surface_altitude` | CF; WMO-No. 8, Volume I, 1.3.3.2 |
+| Height above the surface | `Height` (QUDT) | the surface | `height` | CF; SERA, Art. 2, point 84 (from a specified datum) |
+| Geopotential | `Geopotential` | the geoid | `geopotential` (m² s⁻²) | CF; IFS CY49R1, Part III, equation 2.6 |
+| Geopotential height | `GeopotentialHeight` | the geoid | `geopotential_height` | CF; WMO-No. 8, Volume I, equation 12.12 |
+| Thickness of a layer | `GeopotentialThickness` | its lower level | `atmosphere_layer_thickness_expressed_as_geopotential_height_difference` | CF |
+| Pressure altitude, flight level | `PressureAltitude` | the standard atmosphere | none | SERA, Art. 2, points 101 and 78 |
+| Ellipsoidal height (satellite positioning) | `EllipsoidalHeight` | a reference ellipsoid | `height_above_reference_ellipsoid` | CF |
+| Geoid height | `GeoidHeight` | a reference ellipsoid | `geoid_height_above_reference_ellipsoid` | CF |
+| Pressure of an isobaric level | `Pressure` (QUDT) | | `air_pressure` (narrower) | CF |
+| Surface pressure | `SurfaceAirPressure` | | `surface_air_pressure` | CF |
+| Pressure at mean sea level | `SeaLevelPressure` | | `air_pressure_at_mean_sea_level` | CF; WMO-No. 8, Volume I, 3.7 |
+| QNH, QFE | `AltimeterSetting`, `AerodromePressure` | | none | WMO-No. 8, Volume III, 2.9.1 |
+
+Temperature gradients come in two signs: `LapseRate`, −dT/dz, as CF
+defines `air_temperature_lapse_rate`, and `VerticalTemperatureGradient`,
+dT/dz, as the layers of a standard atmosphere write it.
+
+## What never mixes
+
+- **Geopotential height and altitude.** The geopotential height is the
+  geopotential divided by the standard acceleration of free fall,
+  g_n = 9.80665 m s⁻² (3rd CGPM, 1901). It is numerically close to the
+  altitude, never equal: 25 m apart at 8 km, 220 m at 32 km (WMO-No. 8,
+  Volume I, table 12.10). Going from one to the other needs gravity,
+  which depends on latitude and height (WMO-No. 8, Volume I, 12.5.5.2).
+- **Pressure altitude and altitude.** A pressure altitude is "an
+  atmospheric pressure expressed in terms of altitude which corresponds
+  to that pressure in the Standard Atmosphere" (SERA, Art. 2, point 101):
+  a geopotential height of the standard atmosphere, not of the actual
+  one. It feeds the formulas of the standard atmosphere, never an
+  altitude.
+- **Ellipsoidal height and altitude.** Satellite positioning gives a
+  height above an ellipsoid; the altitude is about that height minus the
+  geoid height, which reaches tens of metres.
+- **Lapse rate and vertical temperature gradient.** The same quantity
+  with opposite signs: two sibling kinds.
+- **QNH and pressure at mean sea level.** The QNH is computed from the
+  QFE through the ICAO standard atmosphere, "this virtual atmosphere";
+  the pressure reduced to sea level, through a fictitious column of air
+  with the actual temperature (WMO-No. 8, Volume III, 2.9.1; Volume I,
+  3.7).
+
+## One word, several quantities
+
+| Term | Community | Kind | Source |
+|---|---|---|---|
+| geopotential | CF, the IFS | `Geopotential`, in m² s⁻² | CF; IFS, Part III |
+| geopotential | WMO upper-air observations | `GeopotentialHeight`, in standard geopotential metres | WMO-No. 8, Volume I, chapter 1 |
+| altitude | aviation (SERA) | `Altitude`, from mean sea level | SERA, Art. 2, point 39 |
+| altitude | CF | `Altitude`, from the geoid | CF |
+| height | aviation (SERA) | `Height`, from a specified datum | SERA, Art. 2, point 84 |
+| height | CF | `Height`, from the surface | CF |
+| elevation | WMO surface observations | `SurfaceAltitude` | WMO-No. 8, Volume I, 1.3.3.2 |
+| flight level | aviation (SERA) | `PressureAltitude` | SERA, Art. 2, point 78 |
+
+Symbols differ too. WMO-No. 8 writes z for the geometric height and Z
+for the geopotential height (12.5.5.2); the IFS writes φ for the
+geopotential. Each formulation keeps its source's symbols in the
+notation of its citation.
+
+## Units
+
+There is no geopotential metre in nomogram: a geopotential height is in
+metres, the kind carrying the meaning. WMO's standard geopotential
+metre, "0.980665 of the dynamic metre", gives the same numbers as
+Φ / g_n in metres. Pressure altitudes may be in feet.
+
+## In ERA5 and the IFS
+
+The IFS takes the Earth as a sphere of radius 6371.229 km. ERA5 refers
+heights to the EGM96 geoid over land and to mean sea level over the
+ocean, assumed to coincide with the geoid; its geopotential height is
+the geopotential divided by 9.80665 m s⁻², "a fixed value in the IFS"
+(ERA5 data documentation and its page on computing heights). ERA5
+follows the documentation of IFS cycle CY41R2; the equations used here
+have the same numbers in CY49R1 and CY50R1.
+
+## Search
+
+`search("geopotential height")`, a CF name (`geopotential_height`) or a
+Wikidata item (`Q12432978`) finds the kind; a term (`search("flight
+level")`) finds the trade term, whose meanings name the kinds;
+`search(family="atmosphere")` lists the family; `used_by` on a reference
+(`references.sera2012`) lists what it defines.
