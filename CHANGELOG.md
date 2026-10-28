@@ -293,9 +293,10 @@ and this project adheres to
   whether the legend entry of a curve off scale tells how far it goes,
   and the preset `DisplayOptions.DOCUMENTATION` (full axes, short legend
   entries, no off-scale notes) gives the figures of nomogram's
-  documentation, the README's included. An x range given to
-  `plot_deviations` (`xlim`) narrows what its y axis holds to the points
-  shown.
+  documentation, the README's included. `plot_deviations` and
+  `plot_values` take a set for one call (`options=`), as `render` does.
+  An x range given to `plot_deviations` (`xlim`) narrows what its y axis
+  holds to the points shown.
 
 ### Changed
 

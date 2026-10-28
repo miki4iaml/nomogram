@@ -444,6 +444,22 @@ def test_off_scale_notes_can_be_left_out() -> None:
         assert not [e for e in legend(ax) if "off scale" in e]
 
 
+def test_options_for_one_call(comparison: Comparison) -> None:
+    preset = DisplayOptions.DOCUMENTATION
+    with display_options(preset):
+        block = plot_deviations(comparison)
+        values_block = plot_values(comparison)
+    call = plot_deviations(comparison, options=preset)
+    values_call = plot_values(comparison, options=preset)
+    assert legend(call) == legend(block)
+    assert call.get_xlabel() == block.get_xlabel()
+    assert call.get_ylabel() == block.get_ylabel()
+    assert legend(values_call) == legend(values_block)
+    assert values_call.get_ylabel() == values_block.get_ylabel()
+    # For that call only.
+    assert plot_deviations(comparison).get_xlabel() != call.get_xlabel()
+
+
 def test_a_curve_equal_to_the_reference_to_rounding_splits_nothing() -> None:
     x = Q_(np.array([1.0, 2.0]), "K")
     deviations = {

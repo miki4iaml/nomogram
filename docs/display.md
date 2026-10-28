@@ -195,19 +195,31 @@ mark.remove()  # unsigned again
 
 ### Option sets
 
-An option set is a `DisplayOptions`, one of nomogram's presets or one of
-one's own, given to `display_options` for a block, with fields to change
-if need be. `DisplayOptions.DOCUMENTATION` is the set of the figures of
-nomogram's documentation, the README's included: full axes, short legend
-entries, and curves off scale without a note (`off_scale_notes=False`),
-so that a figure stands alone without crowding.
+An option set is a `DisplayOptions`: one of nomogram's presets, or one
+of one's own. It is given to `display_options` for a block, with fields
+to change if need be, or to a plot for one call (`options=`).
+`DisplayOptions.DOCUMENTATION` is the set of the figures of nomogram's
+documentation, the README's included: full axes, short legend entries,
+and curves off scale without a note (`off_scale_notes=False`), so that a
+figure stands alone without crowding.
 
 ```python
+import dataclasses
+
 from nomogram.display import DisplayOptions
 
 with display_options(DisplayOptions.DOCUMENTATION, legend_detail="standard"):
     ax = nomo.plot.plot_deviations(table, xlim=(0, 40))
+mine = dataclasses.replace(DisplayOptions.DOCUMENTATION, legend_detail="standard")
+ax = nomo.plot.plot_values(table, options=mine)
+settings = {"axis_detail": "short", "off_scale_notes": False}  # from a file
+ax = nomo.plot.plot_deviations(table, options=DisplayOptions(**settings))
 ```
+
+A set never changes: another one is made from it. `dataclasses.asdict`
+gives its fields as a dictionary, to keep in a file of one's own, and a
+field name misspelt or a value unknown raises an error rather than being
+ignored.
 
 The options cover what nomogram decides or adds to a figure: labels,
 legend entries, curves off scale. The rest stays with matplotlib and the
