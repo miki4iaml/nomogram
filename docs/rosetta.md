@@ -105,6 +105,15 @@ extrapolated to sea level) and for a height above ground in its equation
 distinct kinds) and gives each source its own symbols in the notation of
 its citation.
 
+Vertical coordinates collide most: WMO calls "geopotential" in its
+upper-air observations what CF calls the geopotential height (in
+standard geopotential metres, not in m² s⁻²); aviation reckons an
+altitude from mean sea level and a height from a specified datum (SERA,
+the ICAO definitions), CF from the geoid and from the surface; a
+pressure altitude is a geopotential height of the standard atmosphere,
+not of the actual one. [vertical.md](vertical.md) gives the kind of each
+coordinate, the trade terms and their sources.
+
 Over sea water, "about 98 %" is said of three close quantities: the
 vapour pressure of sea water relative to pure water at the same
 temperature (`RelativeVapourPressureOfSeaWater`), the activity of water
@@ -205,6 +214,21 @@ silently.
     a unit, as CF (canonical unit 1) and TEOS-10 do, and the Knudsen and
     Cox salinities, mass ratios, in per mille.
 
+17. QUDT 3.5.2 has no kind for the geopotential or the geopotential
+    height, and no geopotential metre; nomogram declares `Geopotential`
+    under `SpecificEnergy` and `GeopotentialHeight` under `Length` (not
+    under `Altitude`, which it must not feed), in metres. QUDT declares
+    m² s⁻², CF's unit of the geopotential, for `SpecificModulus` only:
+    nomogram adds it to `SpecificEnergy`.
+18. `quantitykind:TemperatureGradient` specializes no kind, and QUDT has
+    no K/km. CF's `air_temperature_lapse_rate` is the negative derivative
+    with respect to height: nomogram declares `LapseRate` (−dT/dz) and
+    `VerticalTemperatureGradient` (dT/dz) as siblings under it.
+19. QUDT has no kind for the wind speed; `quantitykind:Speed` ("the
+    magnitude of velocity") and `quantitykind:Velocity` (an exact match
+    of `LinearVelocity`) carry CF's `wind_speed`, `eastward_wind` and
+    `northward_wind`, narrower since the wind is the air's.
+
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,
 `sea_water_reference_salinity`, `sea_water_absolute_salinity` and
@@ -229,6 +253,12 @@ Read on 14 October 2026.
 - *Arden Buck equation* (Q4787919) is described as a group of
   correlations: Buck 1981 and Buck 1996 are narrower than it, which is
   why links carry a relation.
+- Read on 28 October 2026: the French labels of *pressure altitude*
+  (Q17130615) and of *QNH* (Q3233965) are both "QNE", another Q code,
+  which names neither quantity; *lapse rate* (Q66900467)
+  is labelled "gradient adiabatique dans l'atmosphère" in French,
+  narrower than a lapse rate. *Geopotential height* (Q12432978) has no
+  French label.
 
 ## External links
 

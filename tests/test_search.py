@@ -348,8 +348,8 @@ def test_uses_and_used_by() -> None:
     )
     assert refs(built_on_buck) == {"formulations.itu_r_p453_es_water"}
     entry = CATALOG.search(key="radio", section="families")[0]
-    assert refs(CATALOG.uses(entry)) == {"families.moist-air"}
-    assert "families.radio" in (CATALOG.used_by("families.moist-air")).refs
+    assert refs(CATALOG.uses(entry)) == {"families.atmosphere"}
+    assert "families.radio" in (CATALOG.used_by("families.atmosphere")).refs
     assert (
         "cross_checks.itu_rpy_p453"
         in (CATALOG.used_by("formulations.itu_r_p453_refractivity")).refs

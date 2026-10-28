@@ -8,6 +8,28 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Family `atmosphere`: the vertical coordinates, each a quantity kind
+  defined after a text in force (CF standard names, WMO-No. 8 2024, the
+  IFS documentation, and for aviation the SERA regulation, which takes
+  over the ICAO definitions). Geopotential, geopotential height and the
+  thickness of a layer, pressure altitude, ellipsoidal and geoid heights,
+  the lapse rate (-dT/dz) and the vertical temperature gradient (dT/dz)
+  as siblings, surface and mean-sea-level pressures, QNH and QFE. Kinds
+  that differ by metres never feed each other (a geopotential height
+  never feeds an altitude). Trade terms give what each community means
+  by geopotential, altitude, height, elevation, pressure altitude and
+  flight level. The surface altitude and the height above the surface
+  move to this family, which `radio` now requires. Guide
+  `docs/vertical.md`.
+- The standard acceleration of free fall, g_n = 9.80665 m s-2 (3rd CGPM,
+  1901), a conventional constant.
+- From QUDT 3.5.2: the kinds `Length`, `AccelerationOfGravity`,
+  `TemperatureGradient`, `Velocity` and `Speed` (with the CF names of the
+  wind), and the units m s-2, m2 s-2 (added to `SpecificEnergy`, CF's
+  unit of the geopotential), K m-1 and ft.
+
 ### Changed
 
 - An inversion no longer waits for SymPy to check the closed forms it

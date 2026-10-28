@@ -127,4 +127,8 @@ Names come to entries from several sources: identifiers, notations,
 QUDT labels, CF standard names, Wikidata items of the links, Greek
 letter names. New sources (labels in other languages, a thesaurus of
 domains) add names to the same entries: searches keep their form and
-find more.
+find more. The vertical coordinates of the `atmosphere` family are
+found in the same way: by the kind's name, its CF name or its Wikidata
+item, and by the terms of each community (`search("flight level")`
+finds the trade term, whose meaning names `PressureAltitude`); see
+[vertical.md](vertical.md).
