@@ -44,6 +44,22 @@ url = "https://library.wmo.int/viewer/68661/download?file=WMO-8-vIII-2024_en.pdf
 status = "verified"
 note = "Chapter 2, 2.9.1 (p. 49): QFE, the pressure at the official elevation of the aerodrome; QNH, the pressure at which an altimeter is set so that it indicates the official elevation of the aerodrome on the ground, computed from the QFE through the pressure-altitude relationship of the ICAO standard atmosphere, 'this virtual atmosphere', and not the actual state of the atmosphere; hence QNH differs from the pressure reduced to sea level of Volume I, 3.7. Equation 2.8: QNH = A + B x QFE."
 
+[references.iso2533_1975]
+authors = "International Organization for Standardization"
+year = 1975
+title = "Standard Atmosphere (ISO 2533:1975)"
+container = "ISO, Geneva, first edition, 1975-05-15"
+status = "verified"
+note = "Read: section 2 (pp. 1-3), the primary constants (Table 1: g_n = 9.806 65 m s-2, M = 28.964 420 kg/kmol, R* = 8 314.32 J K-1 kmol-1, R = 287.052 87 J K-1 kg-1, p_n = 101 325 Pa, T_n = 288.15 K), the static atmosphere and the perfect gas law (1-3), the geopotential and the geometric altitudes (6-9) with r = 6 356 766 m, the temperature by layers (11). Identical with the ICAO and WMO standard atmospheres from -2 to 32 km (title); after the ICAO 1964 and USA 1962 standard atmospheres from -2 to 50 km, an interim standard atmosphere from 50 to 80 km. A footnote dates the standard geopotential metre, 9.806 65 m2 s-2, adopted by WMO from 1 July 1972 in place of the geopotential metre of 9.8 m2 s-2. Copy obtained by the user."
+
+[references.iso2533_add1_1985]
+authors = "International Organization for Standardization"
+year = 1985
+title = "Standard Atmosphere, Addendum 1: Hypsometrical tables (ISO 2533:1975/Add 1:1985)"
+container = "ISO, Geneva, 1985-02-15"
+status = "verified"
+note = "Read: section 2 (pp. 2-4), the formulae of its tables between geopotential altitude and pressure, from equations 12 and 13 of ISO 2533, in hectopascals and in millimetres of mercury, for -1 450 to 11 000 m (2.1), 11 000 to 20 000 m (2.2), 20 000 to 32 000 m (2.3) and 32 000 to 47 000 m (2.4). After the hypsometrical tables of the USSR standard and the U.S. Standard Atmosphere, 1976. Copy obtained by the user."
+
 [references.wmo306_vol1_1_2019]
 authors = "World Meteorological Organization"
 year = 2019
@@ -456,6 +472,12 @@ reference = "itu_r_p835_7"
 equation = "1a"
 notation = { Z = "H", z = "Z" }
 
+[[formulations.itu_r_p835_geopotential_height.citations]]
+reference = "iso2533_1975"
+equation = "8"
+notation = { Z = "H", z = "h", r_0 = "r" }
+note = "With r = 6 356 766 m, the nominal radius of the Earth for which the acceleration of free fall and its vertical gradient at mean sea level are close to their values at 45 deg 32' 33''."
+
 [formulations.itu_r_p835_geometric_altitude]
 label = "Geometric altitude from the geopotential height, U.S. Standard Atmosphere 1976 (ITU-R P.835)"
 expression = "r_0 * Z / (r_0 - Z)"
@@ -472,6 +494,11 @@ keywords = ["geopotential height", "standard atmosphere"]
 reference = "itu_r_p835_7"
 equation = "1b"
 notation = { Z = "H", z = "Z" }
+
+[[formulations.itu_r_p835_geometric_altitude.citations]]
+reference = "iso2533_1975"
+equation = "9"
+notation = { Z = "H", z = "h", r_0 = "r" }
 
 [formulations.era5_geometric_altitude]
 label = "Geometric altitude from the geopotential height, spherical Earth of the IFS (ERA5)"
@@ -768,6 +795,23 @@ units = { T_0 = "K" }
 [[formulations.itu_r_p835_pressure.citations.domains]]
 bounds = { H = [0.0, 84.852] }
 criterion = "The first height regime of the reference atmosphere, geopotential heights from 0 to 84.852 km' (Annex 1, 1.1)."
+
+[formulations.iso2533_pressure_altitude]
+label = "Pressure altitude from the pressure, ISO standard atmosphere (ISO 2533, Addendum 1)"
+expression = "piecewise(((a_1 - p**n_1) / b_1, 226.32 <= p <= 1200), ((a_2 - log10(p)) / b_2, 54.7487 <= p < 226.32), ((a_3 - p**n_3) / (b_3 * p**n_3), 8.68016 <= p < 54.7487), ((a_4 - p**n_4) / (b_4 * p**n_4), 1.10906 <= p < 8.68016))"
+fixed_units = true
+note = "The geopotential altitude of the standard atmosphere at a pressure, in closed form layer by layer, from -1 450 to 47 000 m: the pressure altitude, which an inversion of itu_r_p835_pressure gives numerically. The pressure in hectopascals, the altitude in standard geopotential metres. The source bounds each formula by altitudes; the pressures at the bounds, 1 200.00, 226.32, 54.7487, 8.68016 and 1.10906 hPa, are those its own formulae of the pressure give there."
+output = { identifier = "H_p", kind = "PressureAltitude", unit = "M", description = "Pressure altitude" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+coefficients = { a_1 = 3.731444, b_1 = 0.841728e-4, n_1 = 0.1902631, a_2 = 3.1080387, b_2 = 0.6848325e-4, a_3 = 1.2386515, b_3 = 0.5085177e-5, n_3 = 0.02927125, a_4 = 1.9630052, b_4 = 0.2013664e-4, n_4 = 0.08195949 }
+keywords = ["pressure altitude", "standard atmosphere", "altimetry", "hypsometric"]
+
+[[formulations.iso2533_pressure_altitude.citations]]
+reference = "iso2533_add1_1985"
+equation = "2.1.1, 2.2.1, 2.3.1, 2.4.1"
+notation = { H_p = "H" }
 
 [formulations.nws_pressure_altitude]
 label = "Pressure altitude from the station pressure, in feet (NWS)"

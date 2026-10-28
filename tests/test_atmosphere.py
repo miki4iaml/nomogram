@@ -489,6 +489,33 @@ def test_the_pressure_of_an_isentropic_level_by_the_methods_of_ziv_and_alpert() 
     assert solved == pytest.approx(708.39, abs=0.02)
 
 
+def test_the_pressure_altitude_of_the_iso_standard_atmosphere() -> None:
+    # The printed hypsometrical tables of ISO 2533 Addendum 1, to the metre:
+    # table 1 at 5.00, 5.10 and 5.20 hPa, table 2 at 1000, 1020, 1049 hPa.
+    altitude = FORMULATIONS["iso2533_pressure_altitude"]
+    printed = {
+        5.00: 35776,
+        5.10: 35638,
+        5.20: 35502,
+        1000.0: 111,
+        1020.0: -56,
+        1049.0: -293,
+    }
+    found = altitude.evaluate(p=Q_(list(printed), "hPa")).to("m").magnitude
+    # Within a unit of the last digit printed (35 776.5 m printed 35 776).
+    assert found == pytest.approx(list(printed.values()), abs=1.0)
+    # Its layers meet: the pressures at their bounds come from its formulae.
+    for bound in (226.32, 54.7487, 8.68016):
+        below, above = altitude.evaluate(p=Q_([bound * (1 + 1e-9), bound], "hPa"))
+        assert (above - below).to("m").magnitude == pytest.approx(0.0, abs=0.01)
+    # The inversion of the ITU-R reference atmosphere, within 2 cm.
+    assert altitude.evaluate(p=Q_(500, "hPa")).to("m").magnitude == pytest.approx(
+        5574.44, abs=0.02
+    )
+    outside = altitude.evaluate(p=Q_([1.0, 1300.0], "hPa")).magnitude
+    assert np.isnan(outside).all()
+
+
 def test_the_dry_adiabatic_gradient() -> None:
     # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
     gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()
