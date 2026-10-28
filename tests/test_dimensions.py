@@ -48,6 +48,8 @@ NEEDED = {
     ("wmo_geopotential_height_wgs84", "a"),
     # Temperatures appear in ratios only: one must be declared.
     ("itu_r_p835_pressure", "T_0"),
+    # rho = r P C / T: r or C must carry a unit.
+    ("itu_r_p835_water_vapour_density_upper", "r"),
 }
 
 

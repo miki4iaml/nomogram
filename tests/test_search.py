@@ -111,6 +111,8 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.itu_r_p453_vapour_pressure_from_density",
         "formulations.wmo_vapour_concentration_definition",
         "formulations.bechtold2015_virtual_temperature_definition",
+        "formulations.itu_r_p835_water_vapour_density",
+        "formulations.itu_r_p835_water_vapour_density_upper",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern

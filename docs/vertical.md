@@ -187,6 +187,7 @@ logarithm.
 | temperature linear in ln p | `log_pressure_interpolation_temperature` | MetPy, earthkit-meteo |
 | temperature linear in p | `pressure_interpolation_temperature` | FULL-POS, ECMWF option (3.2.2) |
 | specific humidity linear in p | `pressure_interpolation_specific_humidity` | FULL-POS (3.2.5) |
+| relative humidity linear in p | `pressure_interpolation_relative_humidity` | FULL-POS (3.2.5) |
 | temperature linear in altitude | `height_interpolation_temperature` | MetPy, earthkit-meteo |
 | geopotential height linear in ln p | `log_pressure_interpolation_geopotential_height` | MetPy, earthkit-meteo |
 

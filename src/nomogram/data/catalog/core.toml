@@ -93,7 +93,7 @@ title = "The International System of Units (SI), 9th edition"
 container = "BIPM, version 4.01 (June 2026)"
 doi = "10.59161/AUEZ1291"
 status = "verified"
-note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Appendix 1 (p. 154): the declaration of the 3rd CGPM (1901), whose third point adopts 980.665 cm/s2 for the standard acceleration due to gravity. Read on the PDF of version 4.01."
+note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Section 2.3.1 (p. 130): the Celsius temperature t = T - T0, T0 = 273.15 K. Appendix 1 (p. 154): the declaration of the 3rd CGPM (1901), whose third point adopts 980.665 cm/s2 for the standard acceleration due to gravity. Read on the PDF of version 4.01."
 
 [references.codata2022]
 authors = "Mohr, P. J.; Newell, D. B.; Taylor, B. N.; Tiesinga, E."
@@ -163,6 +163,14 @@ nature = "conventional"
 matches = [
   { target = "http://www.wikidata.org/entity/Q13400897", relation = "close", verified = 2026-10-28 },
 ]
+
+[constants.T_0_si2019]
+identifier = "T_0"
+value = 273.15
+unit = "K"
+description = "Reference temperature of the Celsius temperature, t = T - T0, close to the ice point"
+reference = "bipm_si9"
+nature = "exact"
 
 [constants.N_A_si2019]
 identifier = "N_A"
@@ -307,3 +315,22 @@ differences = [
   [380.0, -0.045],
   [390.0, -0.046],
 ]
+
+# --- Formulations -----------------------------------------------------
+
+[formulations.celsius_temperature_definition]
+label = "Celsius temperature, from the thermodynamic temperature"
+nature = "definition"
+expression = "T - T_0"
+fixed_units = true
+note = "The quantity equation t = T - T0, T0 = 273.15 K, which the SI Brochure writes t/degC = T/K - 273.15 for numerical values. In a composition, it lets a temperature in kelvins feed an input in degrees Celsius: a composition never inserts an offset by itself."
+output = { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+constants = ["T_0_si2019"]
+keywords = ["Celsius temperature", "kelvin", "definition"]
+
+[[formulations.celsius_temperature_definition.citations]]
+reference = "bipm_si9"
+note = "Section 2.3.1 (p. 130)."

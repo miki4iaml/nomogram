@@ -1070,3 +1070,63 @@ equation = "10"
 notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
 units = { Gamma = "K-PER-M" }
 assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]
+
+# The water vapour of the ITU-R reference atmosphere (P.835-7, Annex 1,
+# 1.2), against the geometric height; its equation 7, e = rho T / 216.7,
+# is equation 10 of ITU-R P.453 (itu_r_p453_vapour_pressure_from_density).
+
+[formulations.itu_r_p835_water_vapour_density]
+label = "Water vapour density of the ITU-R reference atmosphere, from the geometric height (ITU-R P.835)"
+expression = "rho_0 * exp(-z / h_0)"
+fixed_units = true
+note = "Equation 6, a negative exponential 'in the absence of reliable local data', up to the geometric height where the mixing ratio e/P reaches 2 x 10^-6; above, equation 8 (itu_r_p835_water_vapour_density_upper)."
+conditions = "Up to the geometric height where e(Z)/P(Z) = 2 x 10^-6."
+output = { identifier = "rho", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Water vapour density" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric height" },
+]
+coefficients = { rho_0 = 7.5, h_0 = 2.0 }
+keywords = ["reference atmosphere", "water vapour", "humidity profile"]
+
+[[formulations.itu_r_p835_water_vapour_density.citations]]
+reference = "itu_r_p835_7"
+equation = "6"
+notation = { rho = '\rho', z = "Z" }
+
+[formulations.itu_r_p835_water_vapour_density_upper]
+label = "Water vapour density of the ITU-R reference atmosphere above the mixing ratio of 2 x 10^-6 (ITU-R P.835)"
+expression = "r * P * C / T"
+fixed_units = true
+note = "Equation 8, above the geometric height where equation 6 reaches the mixing ratio e/P = 2 x 10^-6: the density for that mixing ratio, the pressure and the temperature of the reference atmosphere."
+output = { identifier = "rho", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Water vapour density" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { r = 2e-6, C = 216.7 }
+keywords = ["reference atmosphere", "water vapour", "humidity profile"]
+
+[[formulations.itu_r_p835_water_vapour_density_upper.citations]]
+reference = "itu_r_p835_7"
+equation = "8"
+notation = { rho = '\rho' }
+units = { r = "UNITLESS" }
+
+[formulations.pressure_interpolation_relative_humidity]
+label = "Relative humidity between two levels, linear in the pressure (FULL-POS)"
+expression = "RH_1 + (RH_2 - RH_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "FULL-POS applies to the relative humidity the interpolation of moisture (routine PPQ). Interpolated so, apart from the temperature, the relative humidity is not consistent with it: the vapour pressure it implies with the interpolated temperature differs from the one the interpolated specific humidity gives (docs/vertical.md)."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "RH_1", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity at the first level" },
+  { identifier = "RH_2", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity at the second level" },
+]
+keywords = ["vertical interpolation", "relative humidity", "pressure", "FULL-POS"]
+
+[[formulations.pressure_interpolation_relative_humidity.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.5"
