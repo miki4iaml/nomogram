@@ -102,6 +102,39 @@ url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/interpolate/one_di
 status = "verified"
 note = "Read in the source: interpolate_1d computes var[below] + (var[above] - var[below]) (x - xp[below]) / (xp[above] - xp[below]), a linear interpolation between the two levels around x; log_interpolate_1d calls it on the logarithms of x and xp. Released 2025-08-29."
 
+[references.metpy171_calc_tools]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.calc.tools (src/metpy/calc/tools.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/calc/tools.py"
+status = "verified"
+note = "Read in the source: get_layer brings the variables to the bounds of a layer with log_interpolate_1d, linear in the logarithm of the pressure (line 637); mixed_layer, and through it mixed_parcel, take their layer from it. Released 2025-08-29."
+
+[references.metpy171_plots]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.plots, thermodynamic diagrams (src/metpy/plots/skewt.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/plots/skewt.py"
+status = "verified"
+note = "Read in the source: SkewT, Emagram and Stuve plot a profile with matplotlib's plot, straight segments between the levels in the coordinates of the diagram (the temperature against ln p, skewed or not; against p^0.286 for the Stuve diagram); plot_mixing_lines draws lines of constant mixing ratio, the dew point of vapor_pressure(p, r); the adiabats come from dry_lapse and moist_lapse. No tephigram. Released 2025-08-29."
+
+[references.metpy171_isentropic_example]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, gallery example Isentropic Analysis (examples/isentropic_example.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/examples/isentropic_example.py"
+status = "verified"
+note = "Read in the source: isentropic_interpolation_as_dataset brings the specific humidity of NARR data to the 296 K surface, then relative_humidity_from_specific_humidity gives the relative humidity there, from the pressure and temperature of the surface. Released 2025-08-29."
+
+[references.ziv_alpert1994]
+authors = "Ziv, B.; Alpert, P."
+year = 1994
+title = "Isobaric to isentropic interpolation errors and implication to potential vorticity analysis"
+container = "Journal of Applied Meteorology, 33(6), 694-703"
+doi = "10.1175/1520-0450(1994)033<0694:ITIIEA>2.0.CO;2"
+status = "to-confirm"
+note = "The method MetPy cites for its isentropic interpolation: the temperature linear in ln p between two levels, the pressure of the surface found by iteration. Not read: the publisher's site refused the download (2026-10-28)."
+
 [references.earthkit_meteo121]
 authors = "ECMWF"
 year = 2026
@@ -1130,3 +1163,226 @@ keywords = ["vertical interpolation", "relative humidity", "pressure", "FULL-POS
 [[formulations.pressure_interpolation_relative_humidity.citations]]
 reference = "yessad2018_fullpos"
 equation = "3.2.5"
+
+# Humidity between two levels as MetPy practises it. MetPy builds no
+# variable of its own: its indices interpolate the dew point or the
+# mixing ratio linearly in p, its layers bring their variables to their
+# bounds linearly in ln p, its thermodynamic diagrams join the levels by
+# straight segments (the dew point linear in ln p on a Skew-T), and its
+# isentropic analysis interpolates linearly in the potential temperature.
+
+[formulations.log_pressure_interpolation_dew_point]
+label = "Dew point between two levels, linear in the logarithm of the pressure"
+expression = "T_d_1 + (T_d_2 - T_d_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "MetPy brings the dew point to the bounds of a layer so (get_layer, log_interpolate_1d); a Skew-T or an emagram, joining the levels by straight segments against ln p, draws the dew point so between them."
+output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_d_1", kind = "DewPointTemperature", unit = "K", description = "Dew point at the first level" },
+  { identifier = "T_d_2", kind = "DewPointTemperature", unit = "K", description = "Dew point at the second level" },
+]
+keywords = ["vertical interpolation", "dew point", "logarithm of pressure", "Skew-T"]
+
+[[formulations.log_pressure_interpolation_dew_point.citations]]
+reference = "metpy171_calc_tools"
+
+[[formulations.log_pressure_interpolation_dew_point.citations]]
+reference = "metpy171_plots"
+
+[formulations.pressure_interpolation_dew_point]
+label = "Dew point between two levels, linear in the pressure"
+expression = "T_d_1 + (T_d_2 - T_d_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "MetPy's stability indices take the dew point at 850 and 700 hPa so (interpolate_1d), when the sounding has no level there."
+output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_d_1", kind = "DewPointTemperature", unit = "K", description = "Dew point at the first level" },
+  { identifier = "T_d_2", kind = "DewPointTemperature", unit = "K", description = "Dew point at the second level" },
+]
+keywords = ["vertical interpolation", "dew point", "pressure", "stability index"]
+
+[[formulations.pressure_interpolation_dew_point.citations]]
+reference = "metpy171"
+note = "k_index, total_totals_index, cross_totals and showalter_index, calc/thermo.py lines 4846-5460, through interpolate_1d."
+
+[[formulations.pressure_interpolation_dew_point.citations]]
+reference = "metpy171_interpolate"
+
+[formulations.log_pressure_interpolation_specific_humidity]
+label = "Specific humidity between two levels, linear in the logarithm of the pressure"
+expression = "q_1 + (q_2 - q_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "The interpolation MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log') apply to any variable, the specific humidity included."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_specific_humidity.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_specific_humidity.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.log_pressure_interpolation_mixing_ratio]
+label = "Mixing ratio between two levels, linear in the logarithm of the pressure"
+expression = "r_1 + (r_2 - r_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "MetPy's mixed parcel brings the mixing ratio to the bounds of its layer so (mixed_layer, get_layer)."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "r_1", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the first level" },
+  { identifier = "r_2", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "mixing ratio", "logarithm of pressure", "mixed layer"]
+
+[[formulations.log_pressure_interpolation_mixing_ratio.citations]]
+reference = "metpy171_calc_tools"
+
+[formulations.pressure_interpolation_mixing_ratio]
+label = "Mixing ratio between two levels, linear in the pressure"
+expression = "r_1 + (r_2 - r_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "MetPy's Galvez-Davison index takes the mixing ratio at 950, 850, 700 and 500 hPa so (interpolate_1d)."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "r_1", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the first level" },
+  { identifier = "r_2", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "mixing ratio", "pressure", "stability index"]
+
+[[formulations.pressure_interpolation_mixing_ratio.citations]]
+reference = "metpy171"
+note = "galvez_davison_index, calc/thermo.py line 4922, through interpolate_1d."
+
+[formulations.log_pressure_interpolation_potential_temperature]
+label = "Potential temperature between two levels, linear in the logarithm of the pressure"
+expression = "theta_1 + (theta_2 - theta_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "MetPy's mixed parcel brings the potential temperature to the bounds of its layer so (mixed_layer, get_layer)."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the second level" },
+]
+keywords = ["vertical interpolation", "potential temperature", "logarithm of pressure", "mixed layer"]
+
+[[formulations.log_pressure_interpolation_potential_temperature.citations]]
+reference = "metpy171_calc_tools"
+
+[formulations.potential_temperature_interpolation_specific_humidity]
+label = "Specific humidity between two levels, linear in the potential temperature"
+expression = "q_1 + (q_2 - q_1) * (theta - theta_1) / (theta_2 - theta_1)"
+fixed_units = false
+note = "MetPy's isentropic interpolation brings every other variable to an isentropic surface so: its docstring says linear with temperature, its code interpolates in the potential temperature of the levels (interpolate_1d(isentlevels, pres_theta, ...)); its gallery example brings the specific humidity so."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the target potential temperature" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Target potential temperature" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "potential temperature", "isentropic"]
+
+[[formulations.potential_temperature_interpolation_specific_humidity.citations]]
+reference = "metpy171"
+note = "isentropic_interpolation, calc/thermo.py line 3027 (the interpolation at line 3186)."
+
+[[formulations.potential_temperature_interpolation_specific_humidity.citations]]
+reference = "metpy171_isentropic_example"
+
+[[formulations.potential_temperature_interpolation_specific_humidity.citations]]
+reference = "ziv_alpert1994"
+
+# The potential temperature between two levels whose temperature is
+# linear in ln p: the profile on which MetPy, after Ziv and Alpert (1994),
+# finds the pressure of an isentropic surface, by iteration. Its inverse
+# in p is that pressure.
+
+[formulations.metpy171_potential_temperature_between_levels]
+label = "Potential temperature between two levels, the temperature linear in ln p (MetPy, after Ziv and Alpert)"
+composition = { outer = "metpy171_potential_temperature", inner = { T = "log_pressure_interpolation_temperature" } }
+note = "MetPy's isentropic interpolation solves this for the pressure of the target potential temperature, by Newton's method (calc/thermo.py, _isen_iter)."
+keywords = ["isentropic", "potential temperature", "vertical interpolation"]
+
+[[formulations.metpy171_potential_temperature_between_levels.citations]]
+reference = "metpy171"
+note = "isentropic_interpolation, calc/thermo.py line 3027: 'Pressure is calculated on isentropic surfaces by assuming that temperature varies linearly with the natural log of pressure'."
+
+[[formulations.metpy171_potential_temperature_between_levels.citations]]
+reference = "ziv_alpert1994"
+
+[formulations.metpy171_isentropic_specific_humidity]
+label = "Specific humidity between two levels, linear in the potential temperature, the temperature linear in ln p (MetPy)"
+composition = { outer = "potential_temperature_interpolation_specific_humidity", inner = { theta = "metpy171_potential_temperature_between_levels", theta_1 = "metpy171_potential_temperature", theta_2 = "metpy171_potential_temperature" }, bind = { theta_1 = { T = "T_1", p = "p_1" }, theta_2 = { T = "T_2", p = "p_2" } } }
+note = "As a function of the pressure: on the isentropic surface MetPy places at p, the potential temperature is that of the levels' profile at p, so that this curve is MetPy's, drawn against the pressure rather than the potential temperature."
+keywords = ["isentropic", "humidity", "vertical interpolation"]
+
+# The relative humidity between two levels, by each practice: the
+# variables interpolated, then the relative humidity of MetPy from them.
+
+[formulations.metpy171_relative_humidity_dew_point_log_pressure]
+label = "Relative humidity between two levels, dew point and temperature linear in ln p (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_dew_point", inner = { T_d = "log_pressure_interpolation_dew_point", T = "log_pressure_interpolation_temperature" } }
+note = "What a Skew-T or an emagram shows between two levels, and what MetPy's layers take at their bounds."
+keywords = ["vertical interpolation", "relative humidity", "dew point", "Skew-T"]
+
+[formulations.metpy171_relative_humidity_dew_point_pressure]
+label = "Relative humidity between two levels, dew point and temperature linear in p (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_dew_point", inner = { T_d = "pressure_interpolation_dew_point", T = "pressure_interpolation_temperature" } }
+note = "What MetPy's stability indices take at a missing level."
+keywords = ["vertical interpolation", "relative humidity", "dew point", "stability index"]
+
+[formulations.metpy171_relative_humidity_specific_humidity_log_pressure]
+label = "Relative humidity between two levels, specific humidity and temperature linear in ln p (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "log_pressure_interpolation_specific_humidity", T = "log_pressure_interpolation_temperature" } }
+note = "MetPy's log_interpolate_1d applied to the specific humidity and the temperature."
+keywords = ["vertical interpolation", "relative humidity", "specific humidity"]
+
+[formulations.metpy171_relative_humidity_isentropic]
+label = "Relative humidity between two levels, specific humidity linear in the potential temperature (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "metpy171_isentropic_specific_humidity", T = "log_pressure_interpolation_temperature" } }
+note = "MetPy's gallery example of isentropic analysis: the specific humidity brought to the isentropic surface, then the relative humidity from the pressure and temperature there; drawn against the pressure."
+keywords = ["vertical interpolation", "relative humidity", "isentropic"]
+
+[cross_checks.metpy171_isentropic]
+implementation = "MetPy"
+version = "1.7.1"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1"
+checked = 2026-10-28
+note = "Values of MetPy's test suite (tests/calc/test_thermo.py), which its continuous integration runs, for levels at 1000, 950, 900 and 850 hPa at 296, 292, 290 and 288 K: the 297 K surface lies between 950 and 900 hPa, at 936.213 hPa (test_isentropic_pressure_interp), at 291.4579 K (test_isentropic_pressure_tmp_out_interp). MetPy was not run here."
+
+[[cross_checks.metpy171_isentropic.cases]]
+formulation = "metpy171_potential_temperature_between_levels"
+inputs = { p = 936.213, p_1 = 950.0, p_2 = 900.0, T_1 = 292.0, T_2 = 290.0 }
+value = 297.0
+call = "isentropic_interpolation([296., 297.] * units.kelvin, lev, tmpk): pressure 936.213 hPa at 297 K, to 3 decimals"
+rtol = 5e-7
+
+[[cross_checks.metpy171_isentropic.cases]]
+formulation = "log_pressure_interpolation_temperature"
+inputs = { p = 936.213, p_1 = 950.0, p_2 = 900.0, T_1 = 292.0, T_2 = 290.0 }
+value = 291.4579
+call = "isentropic_interpolation([296., 297.] * units.kelvin, lev, tmpk, temperature_out=True): 291.4579 K at 297 K, to 3 decimals"
+rtol = 5e-6

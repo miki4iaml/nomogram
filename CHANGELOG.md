@@ -76,6 +76,39 @@ and this project adheres to
   height upwards. With the option sets, as the other plots.
   `nomogram.plot.plot_profiles` draws several side by side, one panel per
   quantity, on a shared vertical coordinate.
+- Composed formulations: `bind` may rename the inputs of one part only,
+  so that one formulation computes two inputs at different arguments (a
+  potential temperature at two levels). A part on no conventional scale,
+  such as an interpolation or a definition, feeds an input on any scale:
+  its temperatures take that scale.
+- The thermodynamics of MetPy 1.7.1 that its vertical tools use, with its
+  constants: the potential temperature and its inverse, the vapour
+  pressure from the mixing ratio and the mixing ratio from the vapour
+  pressure, the saturation mixing ratio, the dew point (Bolton's
+  coefficients), the virtual temperature, the density of moist air, and
+  the relative humidity from the mixing ratio, the specific humidity or
+  the dew point. Each names the printed equation it takes the form of,
+  and agrees with the values MetPy prints in its docstrings and tests.
+- The density of moist air from the pressure and the virtual
+  temperature (Bechtold 2015, 23).
+- Humidity between two levels as MetPy practises it, each scheme a
+  formulation citing the code that applies it: the dew point linear in
+  ln p (its layers; what a Skew-T draws) and in p (its stability
+  indices), the specific humidity and the mixing ratio linear in ln p, the
+  mixing ratio linear in p (Galvez-Davison index), the potential
+  temperature linear in ln p (its mixed parcel), the specific humidity
+  linear in the potential temperature (its isentropic analysis). The
+  potential temperature between two levels whose temperature is linear in
+  ln p, on which MetPy places an isentropic surface (after Ziv and Alpert
+  1994). The relative humidity between two levels by each of these
+  practices, composed from them: `docs/vertical.md` compares them on the
+  ITU-R reference atmosphere, in a figure, and reproduces MetPy's mixed
+  parcel from the formulations.
+- `nomogram.comparison.partial` fixes some inputs of a formulation, as
+  `functools.partial` fixes arguments: the two levels of an
+  interpolation scheme, so that schemes compare along the target
+  pressure. `compose` and `partial` take a `label`, for the legends of
+  plots.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.
@@ -89,6 +122,13 @@ and this project adheres to
 - An inversion no longer waits for SymPy to check the closed forms it
   finds, which nomogram checks numerically anyway: the dew point of
   MetPy's saturation vapour pressure is found in 4 s rather than 24 s.
+- Loading the catalog compares the canonical forms of two formulations,
+  to refuse duplicates, only where cheaper fingerprints meet: the bundled
+  catalog loads in about 1.1 s rather than 3 s.
+- An expression nomogram derives from others (a composition, branches,
+  calls) is no longer bounded in length as a written one is: its parts
+  bound it. A factor that SymPy simplifies away between two calls of a
+  part of a composition stays declared.
 
 ### Fixed
 

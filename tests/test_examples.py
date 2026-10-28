@@ -15,6 +15,7 @@ matplotlib.use("Agg")
 
 ROOT = Path(__file__).parents[1]
 SCRIPT = ROOT / "docs" / "examples" / "saturation_vapour_pressure.py"
+HUMIDITY = ROOT / "docs" / "examples" / "humidity_between_levels.py"
 READMES = [ROOT / "README.md", ROOT / "README.fr.md"]
 DISPLAY = ROOT / "docs" / "display.md"
 
@@ -68,12 +69,57 @@ def test_display_guide_code_runs() -> None:
     assert "6{,}112" in str(namespace["french"])
 
 
-def test_vertical_guide_code_gives_the_value_it_states() -> None:
+def test_vertical_guide_code_gives_the_values_it_states() -> None:
+    import matplotlib.pyplot as plt
+
     guide = ROOT / "docs" / "vertical.md"
     namespace: dict[str, object] = {}
     for block in python_blocks(guide):
         exec(compile(block, str(guide), "exec"), namespace)  # noqa: S102
+    plt.close("all")
     assert magnitude(namespace["at_500_hPa"]) == pytest.approx(5574.44, abs=0.005)
+    # MetPy's mixed parcel, as its docstring prints it.
+    parcel_t = namespace["parcel_t"].to("degC")  # type: ignore[attr-defined]
+    parcel_t_d = namespace["parcel_t_d"].to("degC")  # type: ignore[attr-defined]
+    assert magnitude(parcel_t) == pytest.approx(28.750033, abs=5e-7)
+    assert magnitude(parcel_t_d) == pytest.approx(18.1504239, abs=1e-6)
+    # The relative humidity at 700 hPa, by each practice.
+    relative = namespace["tables"][2]  # type: ignore[index]
+    at_700 = 60  # 850 to 500 hPa by steps of 2.5 hPa
+    values = {
+        key.split("(")[0]: 100 * float(value.to("").magnitude[at_700])
+        for key, value in relative.values.items()
+    }
+    assert values.pop(relative.reference) == pytest.approx(47.34, abs=0.005)
+    assert values == pytest.approx(
+        {
+            "metpy171_relative_humidity_dew_point_log_pressure": 50.01,
+            "metpy171_relative_humidity_dew_point_pressure": 49.76,
+            "pressure_interpolation_relative_humidity": 49.76,
+            "metpy171_relative_humidity_isentropic": 59.54,
+            "metpy171_relative_humidity_specific_humidity_log_pressure": 60.72,
+        },
+        abs=0.005,
+    )
+
+
+def test_humidity_example_is_the_script_that_draws_the_image() -> None:
+    script = code_lines(HUMIDITY.read_text(encoding="utf-8"))
+    blocks = python_blocks(ROOT / "docs" / "vertical.md")
+    shown = next(b for b in blocks if "plot_profiles(tables" in b)
+    for line in code_lines(shown):
+        assert any(line in candidate for candidate in script), line
+
+
+def test_humidity_example_writes_its_plot(tmp_path: Path) -> None:
+    spec = importlib.util.spec_from_file_location("humidity_between_levels", HUMIDITY)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    output = tmp_path / "plot.png"
+    module.main(str(output))
+    assert output.read_bytes().startswith(b"\x89PNG")
 
 
 def test_search_guide_code_runs() -> None:

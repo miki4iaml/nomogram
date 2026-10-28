@@ -131,4 +131,8 @@ find more. The vertical coordinates of the `atmosphere` family are
 found in the same way: by the kind's name, its CF name or its Wikidata
 item, and by the terms of each community (`search("flight level")`
 finds the trade term, whose meaning names `PressureAltitude`); see
-[vertical.md](vertical.md).
+[vertical.md](vertical.md). The practices of a tool come the same way:
+MetPy's interpolations are formulations citing the code read, so that
+`search(source="metpy171*")` lists them, `search(keyword="isentropic")`
+finds its isentropic analysis, and the relative humidities composed from
+them are found with the others, by their kind.

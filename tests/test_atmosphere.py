@@ -358,6 +358,78 @@ def test_a_temperature_in_kelvins_feeds_a_celsius_input() -> None:
     assert converted.magnitude == pytest.approx(direct.magnitude)
 
 
+def _reference_state(height: Any, pressure: float) -> dict[str, Any]:
+    """Temperature, specific humidity and dew point of P.835 at a pressure."""
+    h = height.evaluate(P=Q_(pressure, "hPa"))
+    t = FORMULATIONS["itu_r_p835_temperature"].evaluate(H=h)
+    z = FORMULATIONS["itu_r_p835_geometric_altitude"].evaluate(Z=h)
+    rho = FORMULATIONS["itu_r_p835_water_vapour_density"].evaluate(z=z)
+    e = FORMULATIONS["itu_r_p453_vapour_pressure_from_density"].evaluate(rho=rho, T=t)
+    r = FORMULATIONS["metpy171_mixing_ratio"].evaluate(e=e, p=Q_(pressure, "hPa"))
+    q = FORMULATIONS["specific_humidity_from_mixing_ratio"].evaluate(r=r)
+    t_d = FORMULATIONS["metpy171_dew_point"].evaluate(e=e)
+    return {"T": t, "q": q, "T_d": t_d.to("K")}
+
+
+def test_relative_humidity_between_two_levels_by_each_practice_of_metpy() -> None:
+    # Between 850 and 500 hPa of the ITU-R reference atmosphere, at 700 hPa:
+    # the dew point interpolated, by a Skew-T or a stability index, is
+    # 2.4 to 2.7 points too humid; the specific humidity, in ln p or in the
+    # potential temperature, 12 to 13 points, a chord above a decrease
+    # close to exponential.
+    from nomogram.inversion import invert
+    from nomogram.model import Variable
+
+    height = invert(
+        FORMULATIONS["itu_r_p835_pressure"],
+        "H",
+        output=Variable("H", "GeopotentialHeight", "KiloM", "Geopotential height"),
+        input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+    )
+    low, mid, high = (_reference_state(height, p) for p in (850, 700, 500))
+    truth = FORMULATIONS["metpy171_relative_humidity_from_specific_humidity"].evaluate(
+        q=mid["q"], p=Q_(700, "hPa"), T=mid["T"]
+    )
+    levels: dict[str, Any] = {
+        "p": Q_(700, "hPa"),
+        "p_1": Q_(850, "hPa"),
+        "p_2": Q_(500, "hPa"),
+        "T_1": low["T"],
+        "T_2": high["T"],
+    }
+    dew = {"T_d_1": low["T_d"], "T_d_2": high["T_d"]}
+    humid = {"q_1": low["q"], "q_2": high["q"]}
+    routes = {
+        "metpy171_relative_humidity_dew_point_log_pressure": (dew, 2.67),
+        "metpy171_relative_humidity_dew_point_pressure": (dew, 2.43),
+        "metpy171_relative_humidity_specific_humidity_log_pressure": (humid, 13.38),
+        "metpy171_relative_humidity_isentropic": (humid, 12.20),
+    }
+    assert truth.to("percent").magnitude == pytest.approx(47.34, abs=0.01)
+    for key, (values, error) in routes.items():
+        rh = FORMULATIONS[key].evaluate(**levels, **values)
+        assert (rh - truth).to("percent").magnitude == pytest.approx(error, abs=0.01), (
+            key
+        )
+
+
+def test_a_variable_linear_in_the_potential_temperature_as_metpy_tests_it() -> None:
+    # MetPy's test_isentropic_pressure_addition_args_interp: levels at 950
+    # and 900 hPa, 292 and 290 K; at 297 K, a variable of 80 and 40 there
+    # is 69.197. The specific humidities here carry its numbers.
+    two_levels: dict[str, Any] = {
+        "p": Q_(936.213, "hPa"),
+        "p_1": Q_(950, "hPa"),
+        "p_2": Q_(900, "hPa"),
+        "T_1": Q_(292, "K"),
+        "T_2": Q_(290, "K"),
+    }
+    q = FORMULATIONS["metpy171_isentropic_specific_humidity"].evaluate(
+        **two_levels, q_1=Q_(80, "g/kg"), q_2=Q_(40, "g/kg")
+    )
+    assert q.to("g/kg").magnitude == pytest.approx(69.197, abs=2e-3)
+
+
 def test_the_dry_adiabatic_gradient() -> None:
     # Bechtold (2015), equation 38: a decrease of 0.98 K per 100 m.
     gradient = FORMULATIONS["bechtold2015_dry_adiabatic_gradient"].evaluate()

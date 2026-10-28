@@ -206,6 +206,199 @@ The height is linear in ln p only in an isothermal layer (the hypsometric
 equation); FULL-POS interpolates instead a departure from a standard
 atmosphere, whose own height is computed exactly.
 
+## Humidity between two levels
+
+A humidity between two levels depends on the variable interpolated and
+on the coordinate it is interpolated in. MetPy 1.7.1, read in its code,
+builds no variable of its own for that; FULL-POS, which produces ERA5's
+pressure levels, interpolates the humidities linearly in p:
+
+| Practice | Variable interpolated | Formulation |
+|---|---|---|
+| MetPy, Skew-T and emagram: straight segments drawn between the levels | dew point, linear in ln p | `log_pressure_interpolation_dew_point` |
+| MetPy, bounds of a layer (`get_layer`, mixed parcel) | any, linear in ln p | `log_pressure_interpolation_specific_humidity`, `_mixing_ratio`, `_potential_temperature` |
+| MetPy, stability indices (K, Total Totals, Showalter; Galvez-Davison) | dew point, mixing ratio, linear in p | `pressure_interpolation_dew_point`, `pressure_interpolation_mixing_ratio` |
+| MetPy, isentropic analysis | specific humidity, linear in the potential temperature | `potential_temperature_interpolation_specific_humidity` |
+| FULL-POS (3.2.5) | specific and relative humidity, linear in p | `pressure_interpolation_specific_humidity`, `pressure_interpolation_relative_humidity` |
+
+The relative humidity each practice leads to is a formulation of its
+own, composed of the schemes and of MetPy's relative humidity, so that
+they compare side by side:
+`search(kind="RelativeHumidity", keyword="vertical interpolation")`.
+
+| Relative humidity between two levels, from | Formulation |
+|---|---|
+| dew point and temperature linear in ln p | `metpy171_relative_humidity_dew_point_log_pressure` |
+| dew point and temperature linear in p | `metpy171_relative_humidity_dew_point_pressure` |
+| specific humidity and temperature linear in ln p | `metpy171_relative_humidity_specific_humidity_log_pressure` |
+| specific humidity linear in θ, temperature linear in ln p | `metpy171_relative_humidity_isentropic` |
+| relative humidity linear in p | `pressure_interpolation_relative_humidity` |
+
+Between 850 and 500 hPa of the ITU-R reference atmosphere, its profile
+composed against the pressure is the truth; each scheme takes the true
+values at the two levels, fixed by `nomogram.comparison.partial` so that
+the schemes compare along the pressure, as
+[`docs/examples/humidity_between_levels.py`](examples/humidity_between_levels.py)
+draws them:
+
+```python
+from nomogram.comparison import compare, compose, partial
+
+f = catalog().formulations
+height = invert(
+    f["itu_r_p835_pressure"],
+    "H",
+    output=Variable("H", "GeopotentialHeight", "KiloM", "Geopotential height"),
+    input=Variable("p", "Pressure", "HectoPA", "Pressure"),
+)
+temperature = compose(f["itu_r_p835_temperature"], {"H": height}, label="P.835")
+altitude = compose(f["itu_r_p835_geometric_altitude"], {"Z": height})
+density = compose(f["itu_r_p835_water_vapour_density"], {"z": altitude})
+vapour = compose(
+    f["itu_r_p453_vapour_pressure_from_density"],
+    {"rho": density, "T": temperature},
+)
+mixing = compose(f["metpy171_mixing_ratio"], {"e": vapour})
+humidity = compose(
+    f["specific_humidity_from_mixing_ratio"], {"r": mixing}, label="P.835"
+)
+relative = compose(
+    f["metpy171_relative_humidity_from_specific_humidity"],
+    {"q": humidity, "T": temperature},
+    label="P.835",
+)
+dew_point = compose(f["metpy171_dew_point"], {"e": vapour})
+
+levels = {"p_1": Q_(850, "hPa"), "p_2": Q_(500, "hPa")}
+for name, profile in [
+    ("T", temperature),
+    ("q", humidity),
+    ("T_d", dew_point),
+    ("RH", relative),
+]:
+    levels[f"{name}_1"] = profile.evaluate(p=levels["p_1"])
+    levels[f"{name}_2"] = profile.evaluate(p=levels["p_2"])
+
+
+def between(key: str, label: str) -> nomo.comparison.Partial:
+    """A scheme or a route, its levels fixed."""
+    names = {v.identifier for v in f[key].inputs}
+    fixed = {n: v for n, v in levels.items() if n in names}
+    return partial(f[key], label=label, **fixed)
+
+
+temperatures = {
+    "log_pressure_interpolation_temperature": "T in ln p (MetPy)",
+    "pressure_interpolation_temperature": "T in p (FULL-POS)",
+}
+humidities = {
+    "log_pressure_interpolation_specific_humidity": "q in ln p (MetPy)",
+    "pressure_interpolation_specific_humidity": "q in p (FULL-POS)",
+    "metpy171_isentropic_specific_humidity": "q in θ (MetPy, isentropic)",
+}
+routes = {
+    "metpy171_relative_humidity_dew_point_log_pressure": "Td, T in ln p (Skew-T)",
+    "metpy171_relative_humidity_dew_point_pressure": "Td, T in p (MetPy indices)",
+    "metpy171_relative_humidity_specific_humidity_log_pressure": "q, T in ln p",
+    "metpy171_relative_humidity_isentropic": "q in θ (isentropic)",
+    "pressure_interpolation_relative_humidity": "RH in p (FULL-POS)",
+}
+grid = {"Pressure": Q_(np.linspace(850, 500, 141), "hPa")}
+tables = [
+    compare([between(k, label) for k, label in schemes.items()], truth, grid)
+    for schemes, truth in [
+        (temperatures, temperature),
+        (humidities, humidity),
+        (routes, relative),
+    ]
+]
+documentation = nomo.display.DisplayOptions.DOCUMENTATION
+axes = nomo.plot.plot_profiles(tables, options=documentation)  # extra viz
+```
+
+![Temperature, specific humidity and relative humidity between 850 and 500 hPa, by each practice](images/humidity-between-levels.png)
+
+At 700 hPa, where the relative humidity of the reference atmosphere is
+47.34 %:
+
+| Relative humidity from | At 700 hPa | Error |
+|---|---|---|
+| dew point and temperature linear in ln p | 50.01 % | +2.67 points |
+| dew point and temperature linear in p | 49.76 % | +2.43 points |
+| relative humidity linear in p | 49.76 % | +2.43 points |
+| specific humidity linear in θ | 59.54 % | +12.20 points |
+| specific humidity and temperature linear in ln p | 60.72 % | +13.38 points |
+
+The specific humidity decreases nearly exponentially with height: a
+chord between two levels lies above it, and the relative humidity drawn
+from it is 12 to 13 points too high halfway. The dew point decreases
+nearly linearly, the saturation vapour pressure being nearly exponential
+in it: interpolated, it stays within 3 points, as does the relative
+humidity interpolated directly. The relative humidity follows from the
+variable interpolated, not from the formula that then gives it. This
+layer, 350 hPa thick, and this humidity, exponential by construction
+(P.835, equation 6), magnify the differences: between the close levels
+of a radiosonde they shrink, and inversions or dry layers can reorder
+them.
+
+### Isentropic coordinates
+
+MetPy brings data onto a surface of constant potential temperature:
+the temperature linear in ln p between the two levels around it (Ziv and
+Alpert 1994), the pressure of the surface found by iteration, then every
+other variable linear in the potential temperature of the levels; its
+docstring says linear with temperature, its code interpolates in θ.
+`metpy171_potential_temperature_between_levels` is that potential
+temperature against the pressure. On the surface MetPy places at p, the
+specific humidity is `metpy171_isentropic_specific_humidity`: the
+isentropic curve above is MetPy's, drawn against the pressure rather
+than the potential temperature.
+
+### Mixed layer
+
+MetPy's mixed parcel mixes a layer: its potential temperature and its
+mixing ratio, which an adiabatic mixing conserves, are averaged by mass
+(an integral over the pressure), then brought back to a temperature and
+a dew point at the bottom of the layer. The average is a computation on
+data, done here with numpy; the rest are formulations. With the first
+levels of the sounding of MetPy's docstring and a layer of 50 hPa:
+
+```python
+p = Q_([1008.0, 1000.0, 950.0], "hPa")
+T = Q_([29.3, 28.1, 23.5], "degC")
+rh = Q_([0.85, 0.65, 0.36], "")
+e = compose(
+    f["vapour_pressure_from_relative_humidity"],
+    {"e_s": f["metpy171_saturation_vapour_pressure"]},
+)
+T_d = compose(f["metpy171_dew_point"], {"e": e}).evaluate(RH=rh, T=T, scale="ignore")
+theta = f["metpy171_potential_temperature"].evaluate(T=T, p=p)
+r = f["metpy171_saturation_mixing_ratio"].evaluate(p=p, T=T_d, scale="ignore")
+# The top of the layer, 958 hPa, from the levels around it, in ln p.
+top = {"p": Q_(958, "hPa"), "p_1": p[1], "p_2": p[2]}
+theta_top = f["log_pressure_interpolation_potential_temperature"].evaluate(
+    **top, theta_1=theta[1], theta_2=theta[2]
+)
+r_top = f["log_pressure_interpolation_mixing_ratio"].evaluate(
+    **top, r_1=r[1], r_2=r[2]
+)
+# Averages by mass: integrals over the pressure, by trapezoids.
+layer = [1008.0, 1000.0, 958.0]
+mean_theta = Q_(-np.trapezoid([*theta[:2].m, theta_top.m], layer) / 50, "K")
+mean_r = Q_(-np.trapezoid([*r[:2].m, r_top.m], layer) / 50, "")
+parcel_t = f["metpy171_temperature_from_potential_temperature"].evaluate(
+    theta=mean_theta, p=p[0]
+)  # 28.750033 degC
+parcel_t_d = f["metpy171_dew_point_from_mixing_ratio"].evaluate(
+    p=p[0], r=mean_r, scale="ignore"
+)  # 18.1504239 degC
+```
+
+These are the values MetPy prints, 28.750033 °C and 18.1504239 °C.
+`scale="ignore"` evaluates the dew point as MetPy codes it, without
+bringing Bolton's coefficients from IPTS-68 onto ITS-90, a few
+millikelvins.
+
 ## Below the surface
 
 ERA5's pressure levels below the surface are extrapolated by FULL-POS, by
@@ -276,4 +469,7 @@ have the same numbers in CY49R1 and CY50R1.
 Wikidata item (`Q12432978`) finds the kind; a term (`search("flight
 level")`) finds the trade term, whose meanings name the kinds;
 `search(family="atmosphere")` lists the family; `used_by` on a reference
-(`references.sera2012`) lists what it defines.
+(`references.sera2012`) lists what it defines. The keywords
+`vertical interpolation`, `isentropic` and `mixed layer` find the
+schemes and what is built from them, and `search(source="metpy171*")`
+what MetPy's code was read for.
