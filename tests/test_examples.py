@@ -98,6 +98,7 @@ def test_vertical_guide_code_gives_the_values_it_states() -> None:
             "pressure_interpolation_relative_humidity": 49.76,
             "metpy171_relative_humidity_isentropic": 59.54,
             "metpy171_relative_humidity_specific_humidity_log_pressure": 60.72,
+            "relative_humidity_log_specific_humidity_log_pressure": 47.36,
         },
         abs=0.005,
     )
