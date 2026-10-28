@@ -52,7 +52,7 @@ and this project adheres to
 - Interpolation between two levels, each scheme a formulation cited by
   every source that uses it: the wind linear in ln p (FULL-POS, MetPy,
   earthkit-meteo); the temperature linear in ln p (MetPy,
-  earthkit-meteo), linear in p (FULL-POS, ECMWF option) and linear in
+  earthkit-meteo, NMC after Ziv and Alpert 1994), linear in p (FULL-POS, ECMWF option) and linear in
   altitude; the specific humidity and the relative humidity linear in p
   (FULL-POS); the geopotential height linear in ln p. `docs/vertical.md`
   compares them on the ITU-R reference atmosphere.

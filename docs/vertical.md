@@ -206,6 +206,11 @@ The height is linear in ln p only in an isothermal layer (the hypsometric
 equation); FULL-POS interpolates instead a departure from a standard
 atmosphere, whose own height is computed exactly.
 
+Radiosondes report their significant levels so that the temperature is
+linear in ln p between them (WMO Manual on Codes, as Ziv and Alpert 1994
+recall): between two such levels, the scheme in ln p is the sounding
+itself.
+
 ## Humidity between two levels
 
 A humidity between two levels depends on the variable interpolated and
@@ -344,10 +349,15 @@ them.
 ### Isentropic coordinates
 
 MetPy brings data onto a surface of constant potential temperature:
-the temperature linear in ln p between the two levels around it (Ziv and
-Alpert 1994), the pressure of the surface found by iteration, then every
-other variable linear in the potential temperature of the levels; its
-docstring says linear with temperature, its code interpolates in θ.
+the temperature linear in ln p between the two levels around it, the
+pressure of the surface found by iteration, then every other variable
+linear in the potential temperature of the levels; its docstring says
+linear with temperature, its code interpolates in θ. Ziv and Alpert
+(1994), whom MetPy cites, compare five relations between temperature and
+pressure for the pressure of an isentropic level: against radiosondes,
+θ linear in p is the worst, and the temperature linear in ln p (NMC's,
+their equation 9 for θ), in height or in p^κ the best; they leave the
+other variables aside.
 `metpy171_potential_temperature_between_levels` is that potential
 temperature against the pressure. On the surface MetPy places at p, the
 specific humidity is `metpy171_isentropic_specific_humidity`: the

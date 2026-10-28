@@ -132,8 +132,8 @@ year = 1994
 title = "Isobaric to isentropic interpolation errors and implication to potential vorticity analysis"
 container = "Journal of Applied Meteorology, 33(6), 694-703"
 doi = "10.1175/1520-0450(1994)033<0694:ITIIEA>2.0.CO;2"
-status = "to-confirm"
-note = "The method MetPy cites for its isentropic interpolation: the temperature linear in ln p between two levels, the pressure of the surface found by iteration. Not read: the publisher's site refused the download (2026-10-28)."
+status = "verified"
+note = "Read in full (pp. 694-703), on the scanned pages downloaded by the user. Five relations between temperature and pressure for the pressure of an isentropic level and the stability factor (Table 1): (a) theta linear in p (3, 4), (b) theta linear in p^kappa (5-7), (c) T linear in ln p, used by NMC (8-10), (d) T linear in height (11-13), (e) T linear in p^kappa (14-16); against 100 radiosondes, (a) is the worst and (c)-(e) the best, (c) being the first-order expansion in ln p of (d) (p. 703). The significant levels of radiosonde reports are chosen so that the temperature is linear in ln p between them (WMO Manual on Codes, 1988; p. 698). The interpolation of other variables to an isentropic level is not discussed."
 
 [references.earthkit_meteo121]
 authors = "ECMWF"
@@ -829,6 +829,12 @@ reference = "metpy171_interpolate"
 [[formulations.log_pressure_interpolation_temperature.citations]]
 reference = "earthkit_meteo121"
 
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "ziv_alpert1994"
+equation = "8"
+notation = { p_1 = "p_d", p_2 = "p_u", T_1 = "T_d", T_2 = "T_u" }
+note = "Method (c), T = A + B ln p, which NMC uses to interpolate sigma-level analyses to pressure levels (Hoerling and Sanford 1993); the first-order expansion in ln p of the temperature linear in height (method d, after Shen et al. 1986). Radiosondes report significant levels between which the temperature is so (WMO Manual on Codes, 1988)."
+
 [formulations.pressure_interpolation_temperature]
 label = "Temperature between two levels, linear in the pressure (FULL-POS, ECMWF option)"
 expression = "T_1 + (T_2 - T_1) * (p - p_1) / (p_2 - p_1)"
@@ -1312,9 +1318,6 @@ note = "isentropic_interpolation, calc/thermo.py line 3027 (the interpolation at
 [[formulations.potential_temperature_interpolation_specific_humidity.citations]]
 reference = "metpy171_isentropic_example"
 
-[[formulations.potential_temperature_interpolation_specific_humidity.citations]]
-reference = "ziv_alpert1994"
-
 # The potential temperature between two levels whose temperature is
 # linear in ln p: the profile on which MetPy, after Ziv and Alpert (1994),
 # finds the pressure of an isentropic surface, by iteration. Its inverse
@@ -1332,6 +1335,9 @@ note = "isentropic_interpolation, calc/thermo.py line 3027: 'Pressure is calcula
 
 [[formulations.metpy171_potential_temperature_between_levels.citations]]
 reference = "ziv_alpert1994"
+equation = "9"
+notation = { p_1 = "p_d", p_2 = "p_u", T_1 = "T_d", T_2 = "T_u", p_0 = "p_0" }
+note = "Method (c), theta = A c_p/pi + B c_p/pi ln p with T = A + B ln p (8) and pi = c_p (p/p_0)^kappa their Exner function (5); the pressure of the isentropic level solved by Newton-Raphson from that of method (a), where MetPy starts from the mean of the logarithms of the two pressures."
 
 [formulations.metpy171_isentropic_specific_humidity]
 label = "Specific humidity between two levels, linear in the potential temperature, the temperature linear in ln p (MetPy)"
