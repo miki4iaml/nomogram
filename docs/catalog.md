@@ -223,13 +223,17 @@ bounds = { t = [-40.0, 50.0] }
   temperature at two levels:
   `bind = { theta_1 = { T = "T_1", p = "p_1" }, theta_2 = { T = "T_2", p = "p_2" } }`.
   Inputs of the same identifier in several parts are one input: same
-  kind and unit, and same scale, or the entry is refused.
+  kind and unit, and same scale, or the entry is refused. An input of a
+  part may not bear the identifier another part computes, which would
+  name two quantities: rename it with `bind`.
 - **Conventional scales**: an inner output feeds an input on the same
   scale. A part on no scale at all, such as an interpolation or a
-  definition, feeds an input on any: its inputs of a kind the scale
-  applies to take that scale, so that evaluation brings them onto it. An
-  input on no scale, met with the same input on a scale in another part,
-  takes that scale.
+  definition, feeds an input on the reference scale, where nothing is
+  converted: its inputs of a kind the scale applies to take that scale.
+  On another scale it is refused, converting its inputs not converting
+  what it computes. An input on no scale, met with the same input on the
+  reference scale in another part, takes that scale; met with one on
+  another scale, it is refused, its part receiving the converted value.
 - The entry writes no `expression`, `fixed_units`, `inputs`,
   `coefficients`, `constants` nor `domains`: the inner expressions are
   substituted into the outer one, and the result is an ordinary

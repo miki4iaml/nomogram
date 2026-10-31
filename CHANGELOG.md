@@ -80,8 +80,10 @@ and this project adheres to
 - Composed formulations: `bind` may rename the inputs of one part only,
   so that one formulation computes two inputs at different arguments (a
   potential temperature at two levels). A part on no conventional scale,
-  such as an interpolation or a definition, feeds an input on any scale:
-  its temperatures take that scale.
+  such as an interpolation or a definition, feeds an input on the
+  reference scale, where nothing is converted: its temperatures take that
+  scale. An input of a part that another part computes is refused, as a
+  bind to its name is.
 - The thermodynamics of MetPy 1.7.1 that its vertical tools use, with its
   constants: the potential temperature and its inverse, the vapour
   pressure from the mixing ratio and the mixing ratio from the vapour
@@ -139,19 +141,22 @@ and this project adheres to
   finds, which nomogram checks numerically anyway: the dew point of
   MetPy's saturation vapour pressure is found in 4 s rather than 24 s.
 - Loading the catalog compares the canonical forms of two formulations,
-  to refuse duplicates, only where cheaper fingerprints meet: the bundled
-  catalog loads in about 1.1 s rather than 3 s.
+  to refuse duplicates, only where cheaper fingerprints meet, within
+  rounding: the bundled catalog loads in about 1.2 s rather than 3 s.
 - An expression nomogram derives from others (a composition, branches,
   calls) is no longer bounded in length as a written one is: its parts
-  bound it. A factor that SymPy simplifies away between two calls of a
-  part of a composition stays declared.
+  bound it. A relation that involves one is decided on samples, SymPy's
+  simplification having no bound on its cost. A factor that SymPy
+  simplifies away between two calls of a part of a composition stays
+  declared.
 
 ### Fixed
 
 - On PyPI, the links and images of the README lead to the files of the
   release; relative, they led nowhere. The release workflow makes them
   absolute, at the release's tag, before building, and checks the built
-  description (`scripts/absolute_links.py`); the README of the repository
+  description (`scripts/absolute_links.py`), links whose text is code
+  included; the README of the repository
   keeps its relative links, its figure included.
 
 ## [0.4.0] - 2026-10-28

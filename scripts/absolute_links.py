@@ -58,7 +58,9 @@ _ATTRIBUTE = re.compile(r"\b(?P<name>src|srcset|href)=\"(?P<value>[^\"]*)\"")
 _FENCE = re.compile(r"^ {0,3}(```|~~~)")
 
 #: A code span, left as it is.
-_CODE_SPAN = re.compile(r"(`+)[^`]*?\1")
+#: A code span or an inline link, whichever starts first: a code span in the
+#: text of a link ([`nomogram.plot`](docs/display.md)) stays in the link.
+_PIECE = re.compile(rf"(?P<code>(?P<ticks>`+)[^`]*?(?P=ticks))|{_INLINE.pattern}")
 
 Rewrite = Callable[[str, bool], str]
 
@@ -121,10 +123,12 @@ def _rewrite_text(text: str, rewrite: Rewrite) -> str:
 def _prose(line: str) -> Iterator[tuple[str, bool]]:
     """The pieces of a line, each marked as prose or not (a code span)."""
     end = 0
-    for span in _CODE_SPAN.finditer(line):
-        yield line[end : span.start()], True
-        yield span.group(), False
-        end = span.end()
+    for piece in _PIECE.finditer(line):
+        if piece["code"] is None:
+            continue  # a link, prose with the rest of the line
+        yield line[end : piece.start()], True
+        yield piece.group(), False
+        end = piece.end()
     yield line[end:], True
 
 

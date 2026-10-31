@@ -87,6 +87,7 @@ from nomogram.model import (
     _origin,
 )
 from nomogram.relations import (
+    _alike,
     _head,
     _shape,
     _unit_factor,
@@ -1836,10 +1837,15 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             if part.output.scale != target.scale:
-                # A part on no scale (an interpolation, a definition) passes
-                # values on any: its temperatures take the scale it feeds.
-                if part.output.scale is None and not any(
-                    v.scale is not None for v in part.inputs
+                # A part on no scale (an interpolation, a definition) feeds an
+                # input on the reference scale, where nothing is converted: its
+                # temperatures take that scale. On another scale, converting
+                # its inputs would not convert what it computes.
+                if (
+                    part.output.scale is None
+                    and target.scale is not None
+                    and target.scale.is_reference
+                    and not any(v.scale is not None for v in part.inputs)
                 ):
                     scaled[identifier] = target
                 else:
@@ -1864,6 +1870,14 @@ class _Builder:
                 v = dataclasses.replace(
                     v, identifier=rename.get(v.identifier, v.identifier)
                 )
+                if v.identifier in inner:
+                    # One identifier would name two quantities: an input of
+                    # this part, and what another part computes.
+                    msg = (
+                        f"{where}: input {v.identifier!r} of {part.key} is "
+                        f"computed by {inner[v.identifier].key}; rename it with bind"
+                    )
+                    raise CatalogError(msg)
                 if (
                     fed is not None
                     and fed.scale is not None
@@ -1876,9 +1890,15 @@ class _Builder:
         for piece, variable in pieces:
             came_from.setdefault(variable.identifier, piece.key)
             known = inputs.setdefault(variable.identifier, variable)
+            # An input on no scale merges with one on the reference scale
+            # only: on another, its part would receive the converted value.
+            other = variable.scale if known.scale is None else known.scale
             if (known.kind, known.unit) != (variable.kind, variable.unit) or (
-                None not in (known.scale, variable.scale)
-                and known.scale != variable.scale
+                known.scale != variable.scale
+                and (
+                    None not in (known.scale, variable.scale)
+                    or not getattr(other, "is_reference", False)
+                )
             ):
                 msg = (
                     f"{where}: input {variable.identifier} of {piece.key} differs "
@@ -2861,17 +2881,25 @@ class _Builder:
         formulations = {key: built[key] for key in tables}
         # Two sources of one formulation make one entry with two citations.
         # Only formulations of the same head (kinds, units, coefficients),
-        # then of the same shape, may be one: the costly signature, which
+        # then of alike shapes, may be one: the costly signature, which
         # tries every order of the inputs, is computed for those alone.
-        heads = Counter(_head(f) for f in formulations.values())
-        shapes = {
-            key: _shape(f) for key, f in formulations.items() if heads[_head(f)] > 1
-        }
-        alike = Counter(shapes.values())
+        heads: dict[str, list[str]] = {}
+        for key, f in formulations.items():
+            heads.setdefault(_head(f), []).append(key)
+        candidates = []
+        for keys in heads.values():
+            shapes = {key: _shape(formulations[key]) for key in keys if len(keys) > 1}
+            candidates += [
+                key
+                for key in shapes
+                if any(
+                    _alike(shapes[key], shapes[other])
+                    for other in shapes
+                    if other != key
+                )
+            ]
         seen: dict[str, str] = {}
-        for key, shape in shapes.items():
-            if alike[shape] < 2:
-                continue
+        for key in candidates:
             formulation = formulations[key]
             fingerprint = signature(formulation)
             if fingerprint in seen:

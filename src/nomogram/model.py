@@ -1331,15 +1331,19 @@ class Formulation:
             + tuple(k.identifier for k in self.constants)
         )
 
-    @cached_property
-    def sympy_expression(self) -> Any:
-        """The expression as a SymPy expression.
+    @property
+    def _source_limit(self) -> int | None:
+        """Bound on the length of the expression, for every parse of it.
 
         The length of a written expression is bounded; that of one derived
         by nomogram (a composition, branches, calls) is bounded by its parts.
         """
-        limit = MAX_SOURCE_LENGTH if self.derivation is None else None
-        return parse_expression(self.expression, self.names, limit=limit)
+        return MAX_SOURCE_LENGTH if self.derivation is None else None
+
+    @cached_property
+    def sympy_expression(self) -> Any:
+        """The expression as a SymPy expression."""
+        return parse_expression(self.expression, self.names, limit=self._source_limit)
 
     @cached_property
     def written_expression(self) -> Any:
