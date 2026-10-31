@@ -445,9 +445,9 @@ def test_an_x_range_narrows_what_the_y_axis_holds() -> None:
 
 def test_off_scale_notes_can_be_left_out() -> None:
     # The preset of the documentation: full axes, short legend entries,
-    # curves off scale without a note.
+    # curves off scale without a note, a light grid.
     assert DisplayOptions.DOCUMENTATION == DisplayOptions(
-        axis_detail="full", legend_detail="short", off_scale_notes=False
+        axis_detail="full", legend_detail="short", off_scale_notes=False, grid=True
     )
     temperatures = Q_(np.linspace(-60, 110, 69), "degC")
     table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
@@ -857,3 +857,89 @@ def test_profiles_need_one_vertical_coordinate() -> None:
     (single,) = plot_profiles([by_height], signature=False)
     assert single.get_yscale() == "linear"
     assert not signatures(single.figure)
+
+
+def test_a_pressure_axis_labels_ticks_below_one_hectopascal() -> None:
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    pressures = Q_(np.array([1000.0, 100.0, 10.0, 1.0, 0.1]), "hPa")
+    table = compare(
+        [theta],
+        theta,
+        {"Pressure": pressures, "ThermodynamicTemperature": Q_(250, "K")},
+    )
+    ax = plot_profile(table)
+    ax.figure.canvas.draw()
+    labels = {t.get_text() for t in ax.get_yticklabels() if t.get_text()}
+    assert {"0.1", "0.2", "1", "10", "100"} <= labels
+
+
+def test_panels_share_the_unit_of_the_first() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    tables = [
+        compare([altitude], altitude, {"Pressure": Q_([1000.0, 500.0], "hPa")}),
+        compare([altitude], altitude, {"Pressure": Q_([100000.0, 50000.0], "Pa")}),
+    ]
+    left, right = plot_profiles(tables, signature=False)
+    assert list(right.lines[0].get_ydata()) == pytest.approx([1000.0, 500.0])
+    assert left.get_ylabel().endswith("/hPa")
+
+
+@pytest.mark.parametrize("options", [None, DisplayOptions.DOCUMENTATION])
+@pytest.mark.parametrize("count", [2, 3])
+def test_profiles_keep_their_text_clear(
+    options: DisplayOptions | None, count: int
+) -> None:
+    # Full labels in the legends, the last x label at the right edge.
+    pressures = Q_(np.linspace(1000.0, 300.0, 8), "hPa")
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    temperatures = [
+        compare(
+            [theta],
+            theta,
+            {"Pressure": pressures, "ThermodynamicTemperature": Q_(t, "K")},
+        )
+        for t in (273.0, 283.0, 293.0)
+    ]
+    row = plot_profiles(temperatures[:count], options=options)
+    figure = row[0].figure
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    edge = figure.bbox
+    (mark,) = signatures(figure)
+    box = mark.get_window_extent(renderer)
+    for ax in row:
+        legend = ax.get_legend().get_window_extent(renderer)
+        assert legend.width <= ax.get_window_extent(renderer).width
+        # The tick labels drawn: those within the limits of the axes.
+        low, high = sorted(ax.get_xlim())
+        ticks = [t for t in ax.get_xticklabels() if low <= t.get_position()[0] <= high]
+        texts = [ax.xaxis.label, *ticks, *ax.get_legend().get_texts()]
+        for text in texts:
+            if text.get_text():
+                extent = text.get_window_extent(renderer)
+                assert not box.overlaps(extent), text.get_text()
+                assert edge.x0 <= extent.x0, text.get_text()
+                assert extent.x1 <= edge.x1, text.get_text()
+
+
+def test_a_profile_names_the_vertical_axis_it_cannot_choose() -> None:
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    table = compare(
+        [theta],
+        theta,
+        {
+            "Pressure": Q_([1000.0, 500.0], "hPa"),
+            "ThermodynamicTemperature": Q_([273.0, 283.0], "K"),
+        },
+    )
+    with pytest.raises(ValueError, match="along y with input_kind"):
+        plot_profile(table)
+
+
+def test_the_grid_follows_the_display_options() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    table = compare([altitude], altitude, {"Pressure": Q_([1000.0, 500.0], "hPa")})
+    plain = plot_profile(table)
+    gridded = plot_profile(table, options=DisplayOptions.DOCUMENTATION)
+    assert not any(line.get_visible() for line in plain.xaxis.get_gridlines())
+    assert all(line.get_visible() for line in gridded.xaxis.get_gridlines())

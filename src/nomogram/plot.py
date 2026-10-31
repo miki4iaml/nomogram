@@ -32,6 +32,7 @@ never signed, so that plots stay reusable in a layout of one's own.
 
 from __future__ import annotations
 
+import dataclasses
 import re
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
@@ -74,6 +75,13 @@ _OFF_SCALE_RATIO = 3.0
 _LEGEND_COLUMN = 10
 _SHORT_ENTRY = 30
 
+#: Opacity of the grid of the display option ``grid``.
+_GRID_ALPHA = 0.3
+
+#: Share of a panel's width its legend or its x label may take, side by
+#: side (:func:`plot_profiles`); beyond, the figure is widened.
+_LEGEND_FILL = 0.9
+
 #: Largest deviations smaller than this share of the largest of all are
 #: rounding: they count as zero when curves go off scale.
 _NEGLIGIBLE = 1e-9
@@ -101,14 +109,17 @@ def _axes(ax: Any) -> Any:
 
 
 def _abscissa(
-    comparison: Comparison, kind: str | None, notation: Notation | None = None
+    comparison: Comparison,
+    kind: str | None,
+    notation: Notation | None = None,
+    axis: str = "x",
 ) -> tuple[str, Any]:
-    """The input plotted along x: its label and its values."""
+    """The input plotted along ``axis``, x by default: its label and its values."""
     if kind is None:
         varying = [k for k, q in comparison.inputs.items() if np.ndim(q.magnitude) == 1]
         if len(varying) != 1:
             msg = (
-                "choose the input to plot along x with input_kind; "
+                f"choose the input to plot along {axis} with input_kind; "
                 f"one-dimensional inputs: {', '.join(sorted(varying)) or 'none'}"
             )
             raise ValueError(msg)
@@ -278,6 +289,12 @@ def _names(comparison: Comparison, keys: Iterable[str]) -> dict[str, str]:
     return {
         key: short[key] if counts[short[key]] == 1 else labels[key] for key in labels
     }
+
+
+def _grid(ax: Any) -> None:
+    """A light grid behind the curves, when the display options ask for it."""
+    if get_display_options().grid:
+        ax.grid(alpha=_GRID_ALPHA)
 
 
 def _legend(ax: Any) -> None:
@@ -475,6 +492,7 @@ def plot_deviations(
         name = f"Relative deviation from {cited or label}"
         ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
         ax.set(**axes)
+        _grid(ax)
         _legend(ax)
         if created and signature:
             sign(ax.figure, axes=ax)
@@ -561,6 +579,7 @@ def plot_values(
         ax.set_ylabel(_values_label(comparison, notation))
         ax.set_xlabel(x_label)
         ax.set(**axes)
+        _grid(ax)
         _legend(ax)
         if created and signature:
             sign(ax.figure, axes=ax)
@@ -637,7 +656,7 @@ def plot_profile(
     """
     with display_options(options):
         kind = input_kind or _varying_kind(comparison)
-        y_label, y = _abscissa(comparison, kind, notation)
+        y_label, y = _abscissa(comparison, kind, notation, axis="y")
         created = ax is None
         ax = _axes(ax)
         curves = {
@@ -657,6 +676,7 @@ def plot_profile(
         ax.set_xlabel(_values_label(comparison, notation))
         ax.set_ylabel(y_label)
         ax.set(**axes)
+        _grid(ax)
         _legend(ax)
         if created and signature:
             sign(ax.figure, axes=ax)
@@ -725,14 +745,14 @@ def plot_profiles(
             )
             raise ValueError(msg)
         (kind,) = kinds
-        width = max(6.4, 3.2 * len(comparisons))
-        _, panels = _pyplot().subplots(
+        assert kind is not None  # checked above
+        comparisons = _one_unit(comparisons, kind)
+        figure, panels = _pyplot().subplots(
             1,
             len(comparisons),
             sharey=True,
             squeeze=False,
-            layout="tight",
-            figsize=(width, 4.8),
+            figsize=(max(6.4, 3.2 * len(comparisons)), 4.8),
         )
         row = tuple(panels[0])
         for index, (comparison, ax) in enumerate(zip(comparisons, row, strict=True)):
@@ -743,20 +763,66 @@ def plot_profiles(
         _vertical_axis(row[0], kind)
         for ax in row:
             ax.set(**axes)
+        # The signature in a band of its own, under the labels of the x axes,
+        # which the last panel brings to the right edge.
+        band = (SIGNATURE_HEIGHT + 8.0) / (72.0 * 4.8) if signature else 0.0
+        figure.set_layout_engine("tight", rect=(0.0, band, 1.0, 1.0))
+        _fit_text(figure, row)
         if signature:
-            sign(row[0].figure, axes=row[-1])
+            sign(figure)
         return row
+
+
+def _one_unit(comparisons: list[Comparison], kind: str) -> list[Comparison]:
+    """The comparisons, their vertical coordinate in the unit of the first."""
+    first = comparisons[0].inputs.get(kind)
+    if first is None:
+        return comparisons
+    converted = []
+    for comparison in comparisons:
+        quantity = comparison.inputs.get(kind)
+        if quantity is not None and quantity.units != first.units:
+            inputs = {**comparison.inputs, kind: quantity.to(first.units)}
+            comparison = dataclasses.replace(comparison, inputs=inputs)
+        converted.append(comparison)
+    return converted
+
+
+def _fit_text(figure: Any, row: tuple[Any, ...]) -> None:
+    """Widen the figure until the legend and the x label of every panel fit in it."""
+    for _ in range(3):
+        figure.draw_without_rendering()
+        renderer = figure.canvas.get_renderer()
+        texts = [
+            (text, ax)
+            for ax in row
+            for text in (ax.get_legend(), ax.xaxis.label)
+            if text is not None and text.get_visible()
+        ]
+        fill = max(
+            (
+                text.get_window_extent(renderer).width
+                / ax.get_window_extent(renderer).width
+                for text, ax in texts
+            ),
+            default=0.0,
+        )
+        if fill <= _LEGEND_FILL:
+            return
+        width, height = figure.get_size_inches()
+        figure.set_size_inches(width * fill / _LEGEND_FILL, height)
 
 
 def _vertical_axis(ax: Any, kind: str | None) -> None:
     """A pressure downwards on a logarithmic axis, labelled with plain numbers."""
     if kind is None or not feeds(kind, "Pressure"):
         return
-    from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
+    from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
 
     ax.set_yscale("log")
     ax.yaxis.set_major_locator(LogLocator(subs=(1.0, 2.0, 3.0, 5.0)))
-    ax.yaxis.set_major_formatter(ScalarFormatter())
+    # Each tick on its own: a shared offset or precision would print 0.1 hPa as 0.
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
     ax.yaxis.set_minor_formatter(NullFormatter())
     ax.invert_yaxis()
 

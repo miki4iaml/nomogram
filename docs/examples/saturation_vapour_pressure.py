@@ -36,7 +36,6 @@ def main(output: str) -> None:
         ax = nomo.plot.plot_deviations(table, xlim=(0, 60), ylim=(-1.0, 1.0))
 
     # Formatting only: the legend in the lower left corner, in two columns.
-    ax.grid(alpha=0.3)
     ax.legend(fontsize="small", loc="lower left", ncols=2)
     ax.set_title("Saturation vapour pressure over water: deviation from IAPWS")
     ax.figure.set_size_inches(11, 8.5)

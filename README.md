@@ -95,11 +95,11 @@ ha = nomo.comparison.compose(
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
-`compare` gives each value to the inputs of its quantity kind. A
+`compare` gives each value to the input of its quantity kind. A
 formulation with several inputs of one kind, such as a scheme
 interpolating between two levels (the target pressure p and the
-pressures p_1 and p_2 of the levels), compares once some of them are
-fixed: `partial` fixes inputs as `functools.partial` fixes arguments,
+pressures p_1 and p_2 of the levels), compares once all but one of them
+are fixed, which `compare` asks for: `partial` fixes inputs as `functools.partial` fixes arguments,
 here the two levels, and leaves a function of p alone, evaluated,
 compared and plotted like any formulation
 ([Humidity between two levels](docs/vertical.md#humidity-between-two-levels)).

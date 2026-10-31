@@ -34,7 +34,7 @@ from typing import Any, Protocol
 import numpy as np
 
 from nomogram.model import Basis, Outside, ScaleConversion, Variable
-from nomogram.units import is_offset_unit
+from nomogram.units import convert, is_offset_unit
 
 __all__ = [
     "Comparison",
@@ -105,6 +105,7 @@ def feeds(output_kind: str, input_kind: str) -> bool:
 
 def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, Any]:
     arguments = {}
+    fed: dict[str, list[str]] = {}
     for variable in formulation.inputs:
         matches = [kind for kind in values if same_state(kind, variable.kind)]
         if len(matches) != 1:
@@ -115,6 +116,17 @@ def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, A
             )
             raise ValueError(msg)
         arguments[variable.identifier] = values[matches[0]]
+        fed.setdefault(matches[0], []).append(variable.identifier)
+    for kind, names in fed.items():
+        if len(names) > 1:
+            # p, p_1 and p_2 all pressures: one value for all would compare
+            # a degenerate formulation (an interpolation at its own levels).
+            msg = (
+                f"{formulation.key}: the value of {kind} would feed "
+                f"{', '.join(names)}; fix all but one with "
+                "nomogram.comparison.partial"
+            )
+            raise ValueError(msg)
     return arguments
 
 
@@ -198,8 +210,9 @@ def compare(
     Raises
     ------
     ValueError
-        If a formulation computes another kind than the reference, or an
-        input cannot be matched to exactly one value.
+        If a formulation computes another kind than the reference, an input
+        cannot be matched to exactly one value, or one value would feed
+        several inputs of a formulation (fix the others with :func:`partial`).
     """
     kind = reference.output.kind
     unit = None
@@ -394,10 +407,12 @@ class Partial:
     named: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "named", bool(self.label))
+        # Named by a label of its own only: one equal to the formulation's,
+        # as dataclasses.replace passes it back, names nothing.
+        default = str(getattr(self.formulation, "label", None) or self.formulation.key)
+        object.__setattr__(self, "named", bool(self.label) and self.label != default)
         if not self.label:
-            label = getattr(self.formulation, "label", None) or self.formulation.key
-            object.__setattr__(self, "label", str(label))
+            object.__setattr__(self, "label", default)
 
     @property
     def key(self) -> str:
@@ -468,11 +483,24 @@ def partial(formulation: Evaluable, /, *, label: str = "", **values: Any) -> Par
     Raises
     ------
     ValueError
-        If an identifier is not an input of the formulation.
+        If an identifier is not an input of the formulation, or a value is
+        not a quantity of the dimension of its input.
     """
-    names = {v.identifier for v in formulation.inputs}
-    unknown = sorted(set(values) - names)
+    import pint
+
+    from nomogram.semantics import semantic_catalog
+
+    inputs = {v.identifier: v for v in formulation.inputs}
+    unknown = sorted(set(values) - set(inputs))
     if unknown:
         msg = f"{formulation.key} has no input {', '.join(unknown)}"
         raise ValueError(msg)
+    units = semantic_catalog().units
+    for name, value in values.items():
+        unit = inputs[name].unit
+        try:
+            convert(value, units[unit].pint)
+        except (TypeError, pint.DimensionalityError) as exc:
+            msg = f"{formulation.key}: {name} needs a quantity convertible to {unit}"
+            raise ValueError(msg) from exc
     return Partial(formulation, dict(values), label)

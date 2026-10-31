@@ -160,6 +160,30 @@ def test_fixed_levels_let_interpolation_schemes_compare_along_the_pressure() -> 
     assert (named.label, named.citations) == ("T in ln p", ())
     with pytest.raises(ValueError, match="has no input q"):
         partial(FORMULATIONS["log_pressure_interpolation_temperature"], q=Q_(1, ""))
+    # Rebuilt, it keeps what it was: named or not.
+    rebuilt = dataclasses.replace(in_ln_p, values={**levels, "T_2": Q_(250, "K")})
+    assert (rebuilt.named, rebuilt.citations) == (False, in_ln_p.citations)
+    assert dataclasses.replace(named, values=levels).named
+
+
+def test_one_value_never_feeds_several_inputs() -> None:
+    # p, p_1 and p_2 are pressures: one value for all three would put the
+    # target on the levels.
+    scheme = FORMULATIONS["log_pressure_interpolation_temperature"]
+    temperatures: dict[str, Any] = {"T_1": Q_(278, "K"), "T_2": Q_(252, "K")}
+    with pytest.raises(ValueError, match="would feed p, p_1, p_2.*partial"):
+        compare(
+            [scheme],
+            partial(scheme, **temperatures),
+            {"Pressure": Q_([850.0, 700.0], "hPa")},
+        )
+
+
+@pytest.mark.parametrize("value", [850, Q_(850, "K")])
+def test_partial_needs_a_quantity_of_the_input_dimension(value: Any) -> None:
+    scheme = FORMULATIONS["log_pressure_interpolation_temperature"]
+    with pytest.raises(ValueError, match="p_1 needs a quantity convertible to HectoPA"):
+        partial(scheme, p_1=value)
 
 
 @pytest.mark.parametrize(

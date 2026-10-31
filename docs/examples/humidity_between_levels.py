@@ -102,13 +102,9 @@ def main(output: str) -> None:
     documentation = nomo.display.DisplayOptions.DOCUMENTATION
     axes = nomo.plot.plot_profiles(tables, options=documentation)
 
-    # Formatting only: a grid, the legends, the size.
-    for ax in axes:
-        ax.grid(alpha=0.3)
-        ax.legend(fontsize="small")
+    # Formatting only: the size.
     figure = axes[0].figure
     figure.set_size_inches(13, 6.5)
-    figure.tight_layout()
     # No metadata in the image (the image metadata hook refuses it).
     figure.savefig(output, dpi=90, metadata={"Software": None})
 
