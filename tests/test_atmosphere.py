@@ -21,9 +21,6 @@ CATALOG = catalog()
     ("output", "input"),
     [
         ("SurfaceAltitude", "Altitude"),
-        # A pressure altitude is a geopotential height of the standard
-        # atmosphere.
-        ("PressureAltitude", "GeopotentialHeight"),
         ("SeaLevelPressure", "Pressure"),
         ("LapseRate", "TemperatureGradient"),
     ],
@@ -35,9 +32,16 @@ def test_a_kind_feeds_the_inputs_of_its_ancestors(output: str, input: str) -> No
 @pytest.mark.parametrize(
     ("output", "input"),
     [
-        # 25 m apart at 8 km (WMO-No. 8, table 12.10).
+        # Apart by gravity: 25 m at 8 km at 22°N (WMO-No. 8, table 12.10).
         ("GeopotentialHeight", "Altitude"),
+        # A geopotential height of the standard atmosphere, not of the
+        # actual one; siblings, as in QUDT.
+        ("PressureAltitude", "GeopotentialHeight"),
         ("PressureAltitude", "Altitude"),
+        # Aviation's altitude and height are altimetric (SERA, GM1).
+        ("AltimetricAltitude", "Altitude"),
+        ("AltimetricHeight", "Height"),
+        ("AltimetricAltitude", "PressureAltitude"),
         # Tens of metres apart: the geoid height.
         ("EllipsoidalHeight", "Altitude"),
         # Opposite signs.
@@ -72,6 +76,17 @@ def test_a_trade_term_tells_which_geopotential_is_meant() -> None:
     flight_level = CATALOG.trade_terms["flight_level"].meanings[0]
     assert flight_level.kind == "PressureAltitude"
     assert flight_level.sources == ("sera2012",)
+
+
+def test_the_altitude_of_aviation_is_altimetric() -> None:
+    # SERA's guidance material: "altimetric rather than geometric".
+    for term, kind, geometric in [
+        ("altitude", "AltimetricAltitude", "Altitude"),
+        ("height", "AltimetricHeight", "Height"),
+    ]:
+        kinds = {m.community: m.kind for m in CATALOG.trade_terms[term].meanings}
+        assert kinds == {"aviation (ICAO, SERA)": kind, "CF, meteorology": geometric}
+        assert CATALOG.kinds[kind].specialization_of == "Length"
 
 
 def test_search_reaches_vertical_coordinates() -> None:
@@ -258,8 +273,12 @@ def test_interpolation_schemes_on_the_reference_atmosphere() -> None:
     assert in_p.evaluate(**pressures, **two_levels).magnitude - truth == (
         pytest.approx(-1.36, abs=0.01)
     )
-    at_z = in_z.evaluate(z=levels[700], z_1=levels[850], z_2=levels[500], **two_levels)
-    assert at_z.magnitude == pytest.approx(truth, abs=1e-6)
+    # The layers are linear in the geopotential height; the scheme takes
+    # geometric altitudes, a few metres above it here: 4 mK.
+    geometric = FORMULATIONS["itu_r_p835_geometric_altitude"]
+    z = {p: geometric.evaluate(Z=h).to("m") for p, h in levels.items()}
+    at_z = in_z.evaluate(z=z[700], z_1=z[850], z_2=z[500], **two_levels)
+    assert at_z.magnitude - truth == pytest.approx(0.0041, abs=5e-5)
     z_in_ln_p = FORMULATIONS["log_pressure_interpolation_geopotential_height"].evaluate(
         **pressures, Z_1=levels[850], Z_2=levels[500]
     )
@@ -290,7 +309,7 @@ def test_fullpos_below_the_surface() -> None:
 def test_ecmwf_extrapolation_below_the_surface() -> None:
     # A surface at 850 hPa, 280 K and 1400 m; the 1000 hPa level lies
     # below it: warmer, and lower. The third-order expansions of ECMWF and
-    # FULL-POS stay within 10^-4 K and 1 cm of the exact forms.
+    # FULL-POS stay within about 10^-5 K and 1 cm of the exact forms.
     below: dict[str, Any] = {
         "p": Q_(1000, "hPa"),
         "p_s": Q_(850, "hPa"),
@@ -299,7 +318,7 @@ def test_ecmwf_extrapolation_below_the_surface() -> None:
     expanded = FORMULATIONS["ecmwf_temperature_below_ground"].evaluate(**below)
     exact = FORMULATIONS["ecmwf_temperature_below_ground_exact"].evaluate(**below)
     assert expanded.magnitude == pytest.approx(288.793, abs=1e-3)
-    assert abs(expanded.magnitude - exact.magnitude) < 1e-4
+    assert abs(expanded.magnitude - exact.magnitude) < 1.1e-5
     surface = Q_(1400 * 9.80665, "m**2/s**2")
     height = FORMULATIONS["geopotential_height_definition"]
     phi = FORMULATIONS["ecmwf_geopotential_below_ground"].evaluate(

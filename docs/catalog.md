@@ -618,6 +618,42 @@ cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verifie
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
 
+### Specializations, siblings and trade terms
+
+One rule keeps the kinds consistent over time, whoever adds them:
+
+- **A kind specializes another only when every value of it can feed
+  every input of the other.** A dew point is a temperature; a relative
+  humidity over ice is not a relative humidity over water, nor a pressure
+  altitude the geopotential height of the actual atmosphere.
+- **A quantity that only resembles another gets a sibling kind** under
+  their nearest common parent, so that neither feeds the other. It may
+  share the name, the dimension or the unit, and differ by its
+  reference, its sign, its instrument or its definition. Examples:
+  - `FrostPointTemperature` and `DewPointTemperature`;
+  - `RelativeHumidityWithRespectToIce` and `RelativeHumidity`;
+  - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
+  - `LapseRate` and `VerticalTemperatureGradient`;
+  - `PressureAltitude` and `GeopotentialHeight`;
+  - `AltimetricAltitude` and `Altitude`.
+- **A trade term is a label, never a kind** (`[trade_terms.<key>]`).
+  Each of its meanings names a community, a kind, a definition and
+  sources.
+- **A meaning points to the quantity its source defines**, read in the
+  source with its own notes and guidance material, never to a kind that
+  only shares the term. SERA's guidance material makes the altitude of
+  aviation altimetric: its kind is `AltimetricAltitude`, not `Altitude`.
+  When no kind of QUDT or of the catalog is that quantity, the catalog
+  defines one, a sibling of the look-alikes, rather than pointing to the
+  nearest.
+- **The definition follows the source and keeps its qualifiers**
+  (altimetric, thermodynamic, with respect to ice), with the article or
+  equation it comes from.
+
+`search` finds a trade term by its term, and every meaning names its
+kind ([search.md](search.md)); [rosetta.md](rosetta.md#ambiguous-trade-terms)
+lists the ambiguous terms.
+
 ### Physical constants
 
 A constant is one value from one source: two sources giving different
