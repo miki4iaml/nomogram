@@ -79,7 +79,10 @@ and this project adheres to
   goes downwards on a logarithmic axis labelled with plain numbers, a
   height upwards. With the option sets, as the other plots.
   `nomogram.plot.plot_profiles` draws several side by side, one panel per
-  quantity, on a shared vertical coordinate.
+  quantity, on a shared vertical coordinate in the unit of the first; the
+  figure widens until every legend and x-axis label fits in its panel,
+  and the signature takes a band of its own below them. Each tick of a
+  pressure axis is labelled on its own, 0.1 hPa included.
 - Composed formulations: `bind` may rename the inputs of one part only,
   so that one formulation computes two inputs at different arguments (a
   potential temperature at two levels). A part on no conventional scale,
@@ -133,7 +136,11 @@ and this project adheres to
   `functools.partial` fixes arguments: the two levels of an
   interpolation scheme, so that schemes compare along the target
   pressure. `compose` and `partial` take a `label`, for the legends of
-  plots.
+  plots. `partial` checks that each value is a quantity of the dimension
+  of its input.
+- Display option `grid`: a light grid behind the curves of a plot, drawn
+  by the preset `DisplayOptions.DOCUMENTATION`, so that the figures of
+  the documentation no longer set it themselves.
 - Functions `sin` and `cos` in expressions. An angle in their argument
   is in radians: a variable in degrees there is refused, pint counting
   the degree as a pure number.
@@ -149,6 +156,10 @@ and this project adheres to
 
 ### Changed
 
+- `compare` refuses a value that would feed several inputs of one
+  formulation, such as the target pressure and the two levels of an
+  interpolation scheme, and points to `partial` to fix all but one; it
+  gave them all the same value.
 - An inversion no longer waits for SymPy to check the closed forms it
   finds, which nomogram checks numerically anyway: the dew point of
   MetPy's saturation vapour pressure is found in 4 s rather than 24 s.

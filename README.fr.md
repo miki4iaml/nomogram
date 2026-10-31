@@ -98,11 +98,11 @@ ha = nomo.comparison.compose(
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17,29
 ```
 
-`compare` donne chaque valeur aux entrées de son genre de grandeur. Une
+`compare` donne chaque valeur à l'entrée de son genre de grandeur. Une
 formulation qui a plusieurs entrées d'un même genre, comme un schéma
 d'interpolation entre deux niveaux (la pression visée p et les pressions
-p_1 et p_2 des niveaux), se compare une fois certaines d'entre elles
-figées : `partial` fige des entrées comme `functools.partial` fige des
+p_1 et p_2 des niveaux), se compare une fois toutes figées sauf une, ce
+que `compare` demande : `partial` fige des entrées comme `functools.partial` fige des
 arguments, ici les deux niveaux, et laisse une fonction de p seule, qui
 s'évalue, se compare et se trace comme toute formulation
 ([Humidity between two levels](docs/vertical.md#humidity-between-two-levels),

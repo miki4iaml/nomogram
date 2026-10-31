@@ -139,6 +139,8 @@ class DisplayOptions:
     off_scale_notes : bool
         Whether the legend entry of a curve drawn off scale says how far it
         goes (:func:`nomogram.plot.plot_deviations`).
+    grid : bool
+        Whether plots draw a light grid behind the curves.
     """
 
     mul_symbol: MulSymbol = "times"
@@ -149,12 +151,14 @@ class DisplayOptions:
     axis_detail: LabelDetail = "standard"
     legend_detail: LabelDetail = "standard"
     off_scale_notes: bool = True
+    grid: bool = False
 
     #: SymPy's own rendering: juxtaposition, default symbols; numbers are
     #: still joined by ×.
     SYMPY: ClassVar[DisplayOptions]
     #: The figures of nomogram's documentation: full axes, short legend
-    #: entries, no off-scale notes, so that a figure stands alone uncrowded.
+    #: entries, no off-scale notes, a light grid, so that a figure stands
+    #: alone uncrowded.
     DOCUMENTATION: ClassVar[DisplayOptions]
 
     def __post_init__(self) -> None:
@@ -181,7 +185,7 @@ class DisplayOptions:
 
 DisplayOptions.SYMPY = DisplayOptions(mul_symbol=None, upright=False)
 DisplayOptions.DOCUMENTATION = DisplayOptions(
-    axis_detail="full", legend_detail="short", off_scale_notes=False
+    axis_detail="full", legend_detail="short", off_scale_notes=False, grid=True
 )
 
 _DEFAULT = DisplayOptions()
