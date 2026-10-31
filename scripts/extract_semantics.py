@@ -226,7 +226,8 @@ KINDS: dict[str, KindSpec] = {
     "Length": KindSpec("ratio", delta=False),
     # The acceleration of free fall, local or conventional (g_n).
     "AccelerationOfGravity": KindSpec("ratio", delta=False),
-    # dT/dz; the catalog declares the lapse rate, -dT/dz, apart from it.
+    # A temperature difference per length, without a sign; the catalog
+    # specializes it in two siblings, the lapse rate -dT/dz and dT/dz.
     "TemperatureGradient": KindSpec("ratio", delta=False),
     # The wind: the components of the velocity of the air, and its speed.
     # QUDT's Velocity is an exact match of LinearVelocity.

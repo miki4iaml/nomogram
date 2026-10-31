@@ -200,7 +200,7 @@ year = 2025
 title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py) and metpy.calc.thermo"
 url = "https://github.com/Unidata/MetPy/tree/v1.7.1/src/metpy"
 status = "verified"
-note = "Read in the source: constants/default.py (epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol, 0.6219569; MetPy 0.12 used 18.01528 and 28.9644 g/mol; R, Rv = R / Mw, Cp_v = gamma Rv / (gamma - 1) with gamma = 1.330, Cp_l, Lv, sat_pressure_0c, T0); calc/thermo.py (water_latent_heat_vaporization, saturation_vapor_pressure with phase='liquid', psychrometric_vapor_pressure_wet; exner_function, potential_temperature, temperature_from_potential_temperature, vapor_pressure, dewpoint, mixing_ratio, saturation_mixing_ratio, virtual_temperature, density, relative_humidity_from_dewpoint, relative_humidity_from_mixing_ratio, relative_humidity_from_specific_humidity, isentropic_interpolation, mixed_parcel, mixed_layer; constants Md, Rd, Cp_d = 1.4 Rd / 0.4, P0, kappa) and tests/calc/test_thermo.py. Released 2025-08-29."
+note = "Read in the source: constants/default.py (epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol, 0.6219569; MetPy 0.12 used 18.01528 and 28.9644 g/mol; R, Rv = R / Mw, Cp_v = gamma Rv / (gamma - 1) with gamma = 1.330, Cp_l, Lv, sat_pressure_0c, T0; Md, Rd = R / Md, Cp_d = 1.4 Rd / 0.4, P0, kappa = Rd / Cp_d); calc/thermo.py (water_latent_heat_vaporization, saturation_vapor_pressure with phase='liquid', psychrometric_vapor_pressure_wet; exner_function, potential_temperature, temperature_from_potential_temperature, vapor_pressure, dewpoint, mixing_ratio, saturation_mixing_ratio, virtual_temperature, density, relative_humidity_from_dewpoint, relative_humidity_from_mixing_ratio, relative_humidity_from_specific_humidity, isentropic_interpolation, mixed_parcel, mixed_layer) and tests/calc/test_thermo.py. Released 2025-08-29."
 
 [references.iapws95]
 authors = "IAPWS"
@@ -1971,7 +1971,7 @@ keywords = ["potential temperature", "adiabatic", "Exner function", "MetPy"]
 
 [[formulations.metpy171_potential_temperature.citations]]
 reference = "metpy171"
-note = "potential_temperature and exner_function, calc/thermo.py lines 335 and 371."
+note = "exner_function and potential_temperature, calc/thermo.py lines 335 and 371."
 
 [formulations.metpy171_temperature_from_potential_temperature]
 label = "Temperature from the potential temperature, MetPy constants"
@@ -2046,7 +2046,7 @@ note = "saturation_mixing_ratio with phase='liquid', calc/thermo.py line 1824."
 label = "Dew point from the vapour pressure, MetPy (Bolton coefficients)"
 expression = "B * ln(e / C) / (A - ln(e / C))"
 fixed_units = true
-note = "The explicit inverse of the Magnus form with the coefficients of Bolton (1980, bolton1980), over water whatever the temperature."
+note = "The explicit inverse of the Magnus form with the coefficients of Bolton (1980, bolton1980), over water whatever the temperature. MetPy applies no temperature scale: its printed values come back with scale=\"ignore\", as the cross-check replays them; by default nomogram brings the dew point of Bolton's IPTS-68 coefficients onto ITS-90, a few millikelvins lower (19.0244 rather than 19.0291 degC at 22 hPa)."
 output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "ipts68", scale_basis = "inferred-from-date" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
@@ -2061,6 +2061,7 @@ note = "dewpoint, calc/thermo.py line 1717: zero_degc + 243.5 val / (17.67 - val
 [formulations.metpy171_dew_point_from_mixing_ratio]
 label = "Dew point from the mixing ratio and the pressure, MetPy"
 composition = { outer = "metpy171_dew_point", inner = { e = "metpy171_vapour_pressure" } }
+note = "As metpy171_dew_point: MetPy's values come back with scale=\"ignore\"; by default the dew point is brought from IPTS-68 onto ITS-90, a few millikelvins."
 keywords = ["humidity", "dew point", "mixing ratio", "mixed layer", "MetPy"]
 
 [formulations.metpy171_virtual_temperature]

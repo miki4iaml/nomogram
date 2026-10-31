@@ -93,7 +93,7 @@ title = "The International System of Units (SI), 9th edition"
 container = "BIPM, version 4.01 (June 2026)"
 doi = "10.59161/AUEZ1291"
 status = "verified"
-note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Section 2.3.1 (p. 130): the Celsius temperature t = T - T0, T0 = 273.15 K. Appendix 1 (p. 154): the declaration of the 3rd CGPM (1901), whose third point adopts 980.665 cm/s2 for the standard acceleration due to gravity. Read on the PDF of version 4.01."
+note = "Section 2.2, table 1 (p. 124): the seven defining constants of the SI and their exact values. Section 2.3.1 (p. 129): the Celsius temperature t = T - T0, T0 = 273.15 K. Appendix 1 (p. 154): the declaration of the 3rd CGPM (1901), whose third point adopts 980.665 cm/s2 for the standard acceleration due to gravity. Read on the PDF of version 4.01."
 
 [references.codata2022]
 authors = "Mohr, P. J.; Newell, D. B.; Taylor, B. N.; Tiesinga, E."
@@ -333,4 +333,4 @@ keywords = ["Celsius temperature", "kelvin", "definition"]
 
 [[formulations.celsius_temperature_definition.citations]]
 reference = "bipm_si9"
-note = "Section 2.3.1 (p. 130)."
+note = "Section 2.3.1 (p. 129)."

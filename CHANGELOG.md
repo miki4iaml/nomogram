@@ -16,10 +16,13 @@ and this project adheres to
   over the ICAO definitions). Geopotential, geopotential height and the
   thickness of a layer, pressure altitude, ellipsoidal and geoid heights,
   the lapse rate (-dT/dz) and the vertical temperature gradient (dT/dz)
-  as siblings, surface and mean-sea-level pressures, QNH and QFE. Kinds
-  that differ by metres never feed each other (a geopotential height
-  never feeds an altitude). Trade terms give what each community means
-  by geopotential, altitude, height, elevation, pressure altitude and
+  as siblings, surface and mean-sea-level pressures, QNH and QFE, and the
+  altitude and height of aviation, altimetric rather than geometric
+  (SERA's guidance material). Kinds that differ by metres never feed
+  each other: a geopotential height never feeds an altitude, and a
+  pressure altitude, a sibling of the geopotential height as in QUDT,
+  feeds neither. Trade terms give what each community means by
+  geopotential, altitude, height, elevation, pressure altitude and
   flight level. The surface altitude and the height above the surface
   move to this family, which `radio` now requires. Guide
   `docs/vertical.md`.
@@ -91,7 +94,10 @@ and this project adheres to
   coefficients), the virtual temperature, the density of moist air, and
   the relative humidity from the mixing ratio, the specific humidity or
   the dew point. Each names the printed equation it takes the form of,
-  and agrees with the values MetPy prints in its docstrings and tests.
+  and agrees with the values MetPy prints in its docstrings and tests,
+  evaluated as MetPy codes it: with `scale="ignore"` for the dew point,
+  whose IPTS-68 coefficients nomogram otherwise brings onto ITS-90, a
+  few millikelvins.
 - The density of moist air from the pressure and the virtual
   temperature (Bechtold 2015, 23).
 - Humidity between two levels as MetPy practises it, each scheme a
@@ -110,8 +116,9 @@ and this project adheres to
 - The specific humidity between two levels, its logarithm linear in that
   of the pressure, a scheme nomogram writes without a source, and the
   relative humidity that follows: within 0.03 point of the reference
-  atmosphere's at 700 hPa, where the chords in q are 12 to 13 points too
-  humid.
+  atmosphere's at 700 hPa, by compensation (q 2.5 % too humid, the
+  temperature in ln p 0.3 K too warm), where the chords in q are 12.2
+  and 13.4 points too humid.
 - The pressure of an isentropic level between two pressure levels, in
   closed form, by four of the relations between temperature and pressure
   Ziv and Alpert (1994) compare: the potential temperature linear in p or
@@ -132,8 +139,13 @@ and this project adheres to
   the degree as a pure number.
 - From QUDT 3.5.2: the kinds `Length`, `AccelerationOfGravity`,
   `TemperatureGradient`, `Velocity` and `Speed` (with the CF names of the
-  wind), and the units m s-2, m2 s-2 (added to `SpecificEnergy`, CF's
-  unit of the geopotential), K m-1 and ft.
+  wind) and `PlaneAngle`, and the units m s-2, m2 s-2 (added to
+  `SpecificEnergy`, CF's unit of the geopotential), K m-1, ft, rad and
+  degree.
+- The catalog guide states one rule for kinds and trade terms: a kind
+  specializes another only when its values can feed every input of the
+  other, a look-alike gets a sibling kind, and each meaning of a trade
+  term points to the quantity its source defines.
 
 ### Changed
 
@@ -145,8 +157,10 @@ and this project adheres to
   rounding: the bundled catalog loads in about 1.2 s rather than 3 s.
 - An expression nomogram derives from others (a composition, branches,
   calls) is no longer bounded in length as a written one is: its parts
-  bound it. A relation that involves one is decided on samples, SymPy's
-  simplification having no bound on its cost. A factor that SymPy
+  bound it: `nomogram.expression.parse_expression` takes `limit`
+  (`MAX_SOURCE_LENGTH` by default, `None` for none). A relation that
+  involves one is decided on samples, SymPy's simplification having no
+  bound on its cost. A factor that SymPy
   simplifies away between two calls of a part of a composition stays
   declared.
 

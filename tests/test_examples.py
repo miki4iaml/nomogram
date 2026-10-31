@@ -82,11 +82,12 @@ def test_vertical_guide_code_gives_the_values_it_states() -> None:
         exec(compile(block, str(guide), "exec"), namespace)  # noqa: S102
     plt.close("all")
     assert magnitude(namespace["at_500_hPa"]) == pytest.approx(5574.44, abs=0.005)
-    # MetPy's mixed parcel, as its docstring prints it.
+    # MetPy's mixed parcel: its docstring prints 28.750033 and 18.1504239 degC.
     parcel_t = namespace["parcel_t"].to("degC")  # type: ignore[attr-defined]
     parcel_t_d = namespace["parcel_t_d"].to("degC")  # type: ignore[attr-defined]
     assert magnitude(parcel_t) == pytest.approx(28.750033, abs=5e-7)
-    assert magnitude(parcel_t_d) == pytest.approx(18.1504239, abs=1e-6)
+    assert magnitude(parcel_t_d) == pytest.approx(18.1504235, abs=5e-8)
+    assert magnitude(parcel_t_d) == pytest.approx(18.1504239, abs=5e-7)
     # The relative humidity at 700 hPa, by each practice.
     relative = namespace["tables"][2]  # type: ignore[index]
     at_700 = 60  # 850 to 500 hPa by steps of 2.5 hPa
