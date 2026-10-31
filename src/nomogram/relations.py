@@ -62,7 +62,12 @@ import numpy as np
 import sympy
 
 from nomogram.comparison import same_state
-from nomogram.expression import Piecewise, compile_numeric, parse_expression
+from nomogram.expression import (
+    MAX_SOURCE_LENGTH,
+    Piecewise,
+    compile_numeric,
+    parse_expression,
+)
 from nomogram.model import (
     CheckCase,
     ConstantNature,
@@ -221,14 +226,19 @@ def _numbers(formulation: Formulation, *, keep_coefficients: bool) -> Any:
     return expr.xreplace({sympy.Symbol(n, real=True): sympy.Symbol("c") for n in names})
 
 
-def _shape(formulation: Formulation) -> str:
+#: Relative gap under which two shapes are alike (:func:`_alike`).
+SHAPE_TOLERANCE = 1e-6
+
+
+def _shape(formulation: Formulation) -> Any:
     """A fingerprint that does not depend on the names of the inputs.
 
     The values of the formulation for every order of distinct probe values
-    among the inputs of one kind and unit, sorted: equal for two writings
-    of one formulation, and cheap where the signature rewrites the
-    expression for every order. Formulations of different fingerprints are
-    no duplicates; equal ones still need their signatures compared.
+    among the inputs of one kind and unit, sorted: cheap where the
+    signature rewrites the expression for every order. Two writings of
+    one formulation round differently, so shapes compare within a
+    tolerance (:func:`_alike`); alike ones still need their signatures
+    compared.
     """
     groups = _input_groups(formulation)
     function = compile_numeric(formulation.sympy_expression, formulation.names)
@@ -248,8 +258,23 @@ def _shape(formulation: Formulation) -> str:
                 value = float(function(*arguments, *fixed))
             except (ArithmeticError, TypeError, ValueError):
                 value = float("nan")
-            values.append(f"{value:.9g}")
-    return _head(formulation) + "|" + ",".join(sorted(values))
+            values.append(value)
+    return np.sort(np.array(values))
+
+
+def _alike(shape: Any, other: Any) -> bool:
+    """Whether two shapes of formulations of one head may be one formulation.
+
+    Alike within :data:`SHAPE_TOLERANCE`, relative: two writings of one
+    expression round differently, by a few ulps, more where terms cancel
+    at the probe values. Beyond, they are taken as two formulations: a
+    cancellation that loses more than six digits at every probe value
+    would hide a duplicate from this prefilter.
+    """
+    return bool(
+        shape.shape == other.shape
+        and np.allclose(shape, other, rtol=SHAPE_TOLERANCE, atol=0.0, equal_nan=True)
+    )
 
 
 def _input_groups(formulation: Formulation) -> dict[tuple[str, str], list[str]]:
@@ -493,7 +518,12 @@ def _rational(formulation: Formulation) -> Any:
     :attr:`~nomogram.model.Formulation.output_factor` brings into the
     output unit (1 for fixed units): the factor is part of the result.
     """
-    expr = parse_expression(formulation.expression, formulation.names, exact=True)
+    expr = parse_expression(
+        formulation.expression,
+        formulation.names,
+        exact=True,
+        limit=formulation._source_limit,
+    )
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {
@@ -566,17 +596,27 @@ def _same_conditions(left: Any, right: Any) -> bool:
     )
 
 
-def _difference(left: Any, right: Any) -> Any:
+def _written(subject: Formulation, other: Formulation) -> bool:
+    """Whether both expressions are of a written length, which SymPy simplifies.
+
+    SymPy's simplification has no bound on its cost: an expression longer
+    than a written one (a derived formulation) is decided on samples.
+    """
+    return max(len(subject.expression), len(other.expression)) <= MAX_SOURCE_LENGTH
+
+
+def _difference(left: Any, right: Any, *, simplify: bool = True) -> Any:
     """The difference of two expressions, simplified where it surely ends.
 
     Piecewise definitions with the same conditions are compared branch by
     branch; otherwise their difference is not simplified (SymPy would
     combine the conditions, at a cost without bound), and the search for a
-    counterexample on samples decides.
+    counterexample on samples decides. So it goes with ``simplify=False``,
+    for expressions longer than a written one.
     """
     if _same_conditions(left, right):
         branches = [
-            _difference(a, b)
+            _difference(a, b, simplify=simplify)
             for (a, _), (b, _) in zip(left.args, right.args, strict=True)
         ]
         if all(branch == 0 for branch in branches):
@@ -584,7 +624,7 @@ def _difference(left: Any, right: Any) -> Any:
         conditions = [c for _, c in left.args]
         return Piecewise(*zip(branches, conditions, strict=True))
     difference = sympy.nsimplify(left - right, rational=True)
-    if left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
+    if not simplify or left.has(sympy.Piecewise) or right.has(sympy.Piecewise):
         return difference
     return sympy.simplify(difference)
 
@@ -645,7 +685,11 @@ def _equivalence(
             if _same_conditions(left, right)
             else "; piecewise definitions not simplified, compared on samples"
         )
-    simplified = _difference(left, right)
+    written = _written(subject, other)
+    if not written:
+        method = method.replace("simplified with SymPy", "compared on samples")
+        method += "; an expression longer than a written one is not simplified"
+    simplified = _difference(left, right, simplify=written)
     if simplified == 0:
         return Verdict("proven", method)
     # Look for a counterexample on positive values, or on the stated domain,
@@ -697,8 +741,7 @@ def _sensitivities(
     formulation: Formulation, replacements: Mapping[Any, Any], sign: int
 ) -> list[tuple[str, Any, float]]:
     """For each coefficient and constant, d(sign * ln f)/dc and its printed step."""
-    expr = parse_expression(formulation.expression, formulation.names)
-    expr = expr.xreplace(replacements)
+    expr = formulation.sympy_expression.xreplace(replacements)
     pairs = [
         (c.identifier, c.value, _printed_step(c.value))
         for c in formulation.coefficients
@@ -1044,7 +1087,12 @@ def _proportionality(
     if differences:
         method += f"; scales ignored: {'; '.join(differences)}"
     left, right, replacements = _sides(relation, subject, other)
-    ratio = sympy.simplify(sympy.nsimplify(left / right, rational=True))
+    ratio = sympy.nsimplify(left / right, rational=True)
+    if _written(subject, other):
+        ratio = sympy.simplify(ratio)
+    else:
+        method = method.replace("simplified with SymPy", "not simplified")
+        method += ", an expression longer than a written one"
     if not ratio.free_symbols:
         factor = float(ratio)
         detail, _ = _factor_text(factor, subject, other)

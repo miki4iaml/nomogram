@@ -35,6 +35,7 @@ SOURCE = """\
 [![Local badge](docs/badge.svg)](https://example.org)
 <a href="CONTRIBUTING.md">contribute</a>, [up](#top), [mail](mailto:a@b.c).
 Code spans stay: `[x](not/a/link)` and `f[0](y)`.
+A link whose text is code: [`plot`](docs/display.md).
 
 ```python
 table[0](docs/not_a_link.py)
@@ -56,6 +57,7 @@ EXPECTED = f"""\
 [![Local badge]({RAW}docs/badge.svg)](https://example.org)
 <a href="{BLOB}CONTRIBUTING.md">contribute</a>, [up](#top), [mail](mailto:a@b.c).
 Code spans stay: `[x](not/a/link)` and `f[0](y)`.
+A link whose text is code: [`plot`]({BLOB}docs/display.md).
 
 ```python
 table[0](docs/not_a_link.py)
@@ -78,6 +80,7 @@ def test_relative_targets_become_absolute_at_the_ref() -> None:
         "LICENSE",
         "docs/badge.svg",
         "CONTRIBUTING.md",
+        "docs/display.md",
         "docs/reference.md",
     ]
 
@@ -103,7 +106,7 @@ def test_rewrite_then_check(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
     assert links.main(["check", str(readme)]) == 1
     out = capsys.readouterr().out
     assert "relative link 'docs/light.svg'" in out
-    assert "9 relative link(s) left" in out
+    assert "10 relative link(s) left" in out
     args = ["rewrite", "--repo", REPO, "--ref", "v1.0.0", str(readme)]
     assert links.main(args) == 0
     assert readme.read_text(encoding="utf-8") == EXPECTED
