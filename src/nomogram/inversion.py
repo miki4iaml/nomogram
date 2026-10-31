@@ -101,6 +101,10 @@ def _source(expr: Any) -> str:
         def _print_log(self, node: Any) -> str:
             return f"ln({self._print(node.args[0])})"
 
+        def _print_Exp1(self, _node: Any) -> str:
+            # Euler's number, printed E by SymPy, a name the syntax lacks.
+            return "exp(1)"
+
     return str(Printer().doprint(expr))
 
 
@@ -199,27 +203,33 @@ def _closed_form(
 
     x = sympy.Symbol(solve_for, real=True)
     y = sympy.Symbol(input.identifier, positive=True)
-    lhs = sympy.expand_log(sympy.log(expr), force=True)
-    if lhs.count(x) > SYMBOLIC_MAX_OCCURRENCES:
-        return None
-    # ln f(x) = k + g(x): solve g(x) = z, then z = ln(y) - k, combined
-    # into one logarithm (ln(e/C) for the Magnus form).
-    constant, varying = lhs.as_independent(x, as_Add=True)
     z = sympy.Dummy("z", real=True)
     try:
+        lhs = sympy.expand_log(sympy.log(expr), force=True)
+        if lhs.count(x) > SYMBOLIC_MAX_OCCURRENCES:
+            return None
+        # ln f(x) = k + g(x): solve g(x) = z, then z = ln(y) - k, combined
+        # into one logarithm (ln(e/C) for the Magnus form).
+        constant, varying = lhs.as_independent(x, as_Add=True)
         # Each solution is checked numerically below: SymPy's own check,
         # which simplifies every candidate, took up to 20 s for nothing.
         solutions = sympy.solve(varying - z, x, check=False)
-    except NotImplementedError:
+        rhs = sympy.logcombine(sympy.log(y) - constant, force=True)
+        solutions = [s.subs(z, rhs) for s in solutions]
+    except (NotImplementedError, RecursionError):
+        # No algorithm, or one that recurses without end (the dew point of
+        # metpy171_dew_point, after 7 s): the numerical inverse takes over.
         return None
-    rhs = sympy.logcombine(sympy.log(y) - constant, force=True)
-    solutions = [s.subs(z, rhs) for s in solutions]
     shift = _offset(formulation.inputs[0].unit, output.unit)
     coefficients = list(formulation.coefficients)
+    # The offset's name must not be one of the formulation's.
+    offset_name = _OFFSET
+    while offset_name in formulation.names:
+        offset_name += "_"
     if shift:
         coefficients.append(
             Coefficient(
-                _OFFSET,
+                offset_name,
                 abs(shift),
                 "K",
                 "t = T - T0 (SI Brochure, section 2.3.1)",
@@ -237,7 +247,7 @@ def _closed_form(
         found = solution
         if shift:
             # t = T - T0 from K to degC, T = t + T0 from degC to K.
-            offset = sympy.Symbol(_OFFSET, real=True)
+            offset = sympy.Symbol(offset_name, real=True)
             found = found + offset if shift > 0 else found - offset
         source = _source(found)
         try:

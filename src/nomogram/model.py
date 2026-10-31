@@ -441,7 +441,8 @@ class ConventionalScale:
         y = sympy.Symbol("y", real=True)
         try:
             found = sympy.solve(sympy.Eq(y, expr), x)
-        except (NotImplementedError, ValueError, TypeError):
+        except (NotImplementedError, ValueError, TypeError, RecursionError):
+            # The conversion is then inverted numerically.
             return None
         return compile_numeric(found[0], ("y",)) if len(found) == 1 else None
 

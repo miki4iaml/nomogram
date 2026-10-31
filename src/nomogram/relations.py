@@ -65,6 +65,7 @@ from nomogram.comparison import same_state
 from nomogram.expression import (
     MAX_SOURCE_LENGTH,
     Piecewise,
+    _numeric,
     compile_numeric,
     parse_expression,
 )
@@ -802,7 +803,7 @@ def _ratio_check(
     refuted), where it strays most, and the share of the samples compared.
     """
     symbols, columns = _samples(relation, subject, points)
-    function = sympy.lambdify(symbols, left / right, "numpy")
+    function = _numeric(symbols, left / right)
     with np.errstate(all="ignore"):
         ratios = np.broadcast_to(np.asarray(function(*columns), dtype=float), (points,))
     usable = np.isfinite(ratios) & (ratios != 0)
@@ -840,7 +841,7 @@ def _ratio_check(
     for label, derivative, step in sensitivities:
         if step == 0:
             continue
-        function = sympy.lambdify(symbols, derivative, "numpy")
+        function = _numeric(symbols, derivative)
         with np.errstate(all="ignore"):
             values = np.broadcast_to(
                 np.asarray(function(*columns), dtype=float), logs.shape
@@ -998,7 +999,7 @@ def _scale_text(
         return "no input with a conventional scale"
     found = []
     blind = []
-    shift = sympy.Symbol("_shift", real=True)
+    shift = sympy.Dummy("shift", real=True)
     for index, variable in candidates:
         x = symbols[index]
         most, factor = _scale_windows(variable, columns[index], catalog)
@@ -1009,9 +1010,7 @@ def _scale_text(
         else:
             blind.append(variable.identifier)
         for name, image, low, high in moves:
-            moved = sympy.lambdify(
-                [*symbols, shift], left / right.xreplace({x: image}), "numpy"
-            )
+            moved = _numeric([*symbols, shift], left / right.xreplace({x: image}))
 
             def worst(value: float, moved: Any = moved) -> float:
                 with np.errstate(all="ignore"):

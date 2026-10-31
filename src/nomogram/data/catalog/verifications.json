@@ -2,13 +2,13 @@
  "verdicts": {
   "0b4c5e537770e59d5c57fb12fe7790a97a0ee77df05d88ba458390c36e9b7639": {
    "at": {
-    "t": -35.15303406330479
+    "t": -35.15302676851182
    },
    "detail": null,
    "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
    "relation": "ae96_sa90_gg46",
    "status": "exceeded",
-   "value": 0.6098152408553492
+   "value": 0.609815240855327
   },
   "3ae34193f7de1865ec6e4a3c70b70e87aebbb9ef6e84e7c43a21ecf6bdaaec60": {
    "at": {},
@@ -74,13 +74,13 @@
   },
   "5761d231759fd65611a82b8b93110ee6cdabe0ee37822c27c6218ec68ad610d2": {
    "at": {
-    "t": 28.050310270192625
+    "t": 28.05030559551912
    },
    "detail": null,
    "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale ignore",
    "relation": "ae96_sa90_so90",
    "status": "held",
-   "value": 0.31517868418324824
+   "value": 0.3151786841831039
   },
   "63c43cda09205e189b6e209a3ec2f12de4e959391dd5151618d184a826234038": {
    "at": {

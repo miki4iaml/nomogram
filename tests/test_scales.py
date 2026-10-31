@@ -318,3 +318,27 @@ def test_conventional_scales_follow_the_vim() -> None:
     assert ipts68.reference_scale == "its90"
     assert ipts68.unit == "DEG_C"
     assert set(ipts68.kinds) <= set(its90.kinds)
+
+
+def test_a_solver_recursing_without_end_leaves_the_inverse_to_iteration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import dataclasses
+
+    import sympy
+
+    def recursing(*_args: object, **_kwargs: object) -> object:
+        raise RecursionError
+
+    # A fresh copy: the inverse is cached on each scale. SymPy finds the
+    # single inverse of this linear conversion, unless it fails.
+    scale = dataclasses.replace(CATALOG.scales["ipts68_saunders1990"])
+    monkeypatch.setattr(sympy, "solve", recursing)
+    assert scale._inverse_function is None
+    monkeypatch.undo()
+    exact = dataclasses.replace(CATALOG.scales["ipts68_saunders1990"])
+    on_scale, outside = scale.from_reference(25.0)
+    assert not outside
+    assert float(on_scale) == pytest.approx(
+        float(exact.from_reference(25.0)[0]), abs=1e-9
+    )

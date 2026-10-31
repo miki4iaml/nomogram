@@ -64,6 +64,26 @@ def test_compile_requires_every_free_symbol() -> None:
     expr = parse_expression(MAGNUS, MAGNUS_NAMES)
     with pytest.raises(ExpressionError, match="missing arguments: C"):
         compile_numeric(expr, ("t", "A", "B"))
+    with pytest.raises(ExpressionError, match="repeated arguments: t"):
+        compile_numeric(expr, ("t", "A", "B", "C", "t"))
+
+
+@pytest.mark.parametrize(
+    ("source", "names", "values", "expected"),
+    [
+        # exp(1) is Euler's number, not the identifier e.
+        ("e * exp(1)", ["e"], (2.0,), 2.0 * math.e),
+        # NaN where no condition holds, whatever an identifier nan holds.
+        ("piecewise((x, x < 1)) + 0 * nan", ["x", "nan"], (2.0, 5.0), math.nan),
+        # The natural logarithm, not the identifier log.
+        ("ln(x) * log", ["x", "log"], (math.e, 3.0), 3.0),
+    ],
+)
+def test_no_identifier_shadows_a_name_of_the_compiled_code(
+    source: str, names: list[str], values: tuple[float, ...], expected: float
+) -> None:
+    function = compile_numeric(parse_expression(source, names), tuple(names))
+    assert float(function(*values)) == pytest.approx(expected, nan_ok=True)
 
 
 @pytest.mark.parametrize(
@@ -147,8 +167,13 @@ def test_overlong_source_is_rejected() -> None:
         # SymPy would compute 9 ** 387420489 exactly, without end.
         ("9 ** 9 ** 9 * x", "beyond 1000 digits"),
         ("(10 ** 999) ** 999 * x", "beyond 1000 digits"),
+        # A number need not be written as one to be computed exactly.
+        ("sqrt(3) ** 30000000 * x", "beyond 1000 digits"),
+        ("exp(ln(3) * 30000000) * x", "beyond 1000 digits"),
         ("-" * 1500 + "x", "nested too deeply"),
         ("1e309 * x", "number too large"),
+        ("1" + "0" * 400 + " * x", "number too large"),
+        ("1e308 * 10 * x", "number too large"),
     ],
 )
 def test_short_sources_that_would_never_end_are_rejected(
@@ -157,6 +182,26 @@ def test_short_sources_that_would_never_end_are_rejected(
     with pytest.raises(ExpressionError, match=message):
         parse_expression(source, ["x"])
     assert parse_expression("2 ** 10 * x", ["x"]) == 1024 * sympy.Symbol("x", real=True)
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        ("(-1.0) ** 0.5 * x", "complex, infinite or undefined"),
+        ("0 ** -1 * x", "complex, infinite or undefined"),
+        # A complex number with neither I nor an infinity.
+        ("(-8) ** (1/3) * x", "complex number"),
+        # Complex exponents, which no digit count bounds.
+        ("2 ** sqrt(-1.0) * x", "complex, infinite or undefined"),
+        ("exp(sqrt(-1.0)) * x", "complex, infinite or undefined"),
+        # Two powers within the limit, a product beyond the largest float.
+        ("10 ** 300 * 10 ** 300 * x", "number too large"),
+    ],
+)
+def test_numbers_numpy_cannot_evaluate_are_rejected(source: str, message: str) -> None:
+    with pytest.raises(ExpressionError, match=message):
+        parse_expression(source, ["x"])
+    assert parse_expression("8 ** (1/3) * x", ["x"]) == 2 * sympy.Symbol("x", real=True)
 
 
 def test_functions_and_constants_cannot_be_changed() -> None:
