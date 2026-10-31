@@ -34,7 +34,7 @@ title = "Commission Implementing Regulation (EU) No 923/2012 laying down the com
 container = "EASA, Easy Access Rules for Standardised European Rules of the Air (SERA), revision of August 2025"
 url = "https://www.easa.europa.eu/en/downloads/68174/en"
 status = "verified"
-note = "Article 2 read in the consolidated text: points 39 (altitude, measured from mean sea level), 78 (flight level, a surface of constant atmospheric pressure related to the pressure datum 1013.2 hPa), 84 (height, measured from a specified datum), 101 (pressure-altitude, an atmospheric pressure expressed in terms of the altitude that corresponds to it in the Standard Atmosphere of Annex 8 to the Chicago Convention) and 134 (transition altitude). The regulation takes over the ICAO definitions, whose Annexes are not freely available; WMO-No. 49, Volume II, which reproduced them, was abrogated at the end of 2023."
+note = "Article 2 read in the consolidated text: points 39 (altitude, measured from mean sea level), 78 (flight level, a surface of constant atmospheric pressure related to the pressure datum 1013.2 hPa), 84 (height, measured from a specified datum), 101 (pressure-altitude, an atmospheric pressure expressed in terms of the altitude that corresponds to it in the Standard Atmosphere of Annex 8 to the Chicago Convention) and 134 (transition altitude). The guidance material to points 39 and 84 (GM1 Article 2(39) and 2(84), pp. 33-34) says what an altimeter calibrated in the Standard Atmosphere indicates, set to QNH (an altitude) or to QFE (a height): 'The term 'altitude' indicates altimetric rather than geometric altitude', and likewise for 'height'. The regulation takes over the ICAO definitions, whose Annexes are not freely available; WMO-No. 49, Volume II, which reproduced them, was abrogated at the end of 2023."
 
 [references.wmo2024_vol3]
 authors = "World Meteorological Organization"
@@ -180,8 +180,10 @@ note = "Pages read on 2026-10-28. Data documentation, 'Spatial reference systems
 
 # Altitude and height are QUDT kinds (CF: above the geoid, above the
 # surface). A geopotential height must not feed an altitude input, nor an
-# ellipsoidal height: the first differs from it by 25 m at 8 km, the
-# second by the geoid height, tens of metres.
+# ellipsoidal height: the first differs from it by tens of metres,
+# depending on latitude and height, the second by the geoid height, tens
+# of metres. A kind specializes another only where its values can feed
+# every input of the other; look-alikes are siblings (docs/catalog.md).
 
 [kinds.SurfaceAltitude]
 label = "Surface Altitude"
@@ -203,7 +205,7 @@ cf_standard_names = [{ name = "geopotential", relation = "exact", verified = 202
 label = "Geopotential Height"
 specialization_of = "Length"
 scale_type = "interval"
-description = "Geopotential divided by the standard acceleration of free fall, 9.80665 m s-2 (CF; WMO-No. 8, Volume I, equation 12.12). Numerically close to the altitude, not to the height above the surface (CF), but never equal to it: 25 m apart at 8 km, 220 m at 32 km (WMO-No. 8, Volume I, table 12.10). WMO writes it in standard geopotential metres, 0.980665 dynamic metre; nomogram in metres, the kind carrying the meaning."
+description = "Geopotential divided by the standard acceleration of free fall, 9.80665 m s-2 (CF; WMO-No. 8, Volume I, equation 12.12). Numerically close to the altitude, not to the height above the surface (CF); the difference follows gravity, so latitude and height: 25 m at 8 km and 220 m at 32 km at 22°N (WMO-No. 8, Volume I, table 12.10), about 32 m at 8 km at the Equator, none near 60°, the geopotential height the larger poleward (WMO-No. 8, equations 12.15 and 12.16). WMO writes it in standard geopotential metres, 0.980665 dynamic metre; nomogram in metres, the kind carrying the meaning."
 matches = [
   { target = "http://www.wikidata.org/entity/Q12432978", relation = "close", verified = 2026-10-28 },
 ]
@@ -217,12 +219,24 @@ cf_standard_names = [{ name = "atmosphere_layer_thickness_expressed_as_geopotent
 
 [kinds.PressureAltitude]
 label = "Pressure Altitude"
-specialization_of = "GeopotentialHeight"
+specialization_of = "Length"
 scale_type = "interval"
-description = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101): a geopotential height of the standard atmosphere, not of the actual one. Flight levels are surfaces of constant pressure related to 1013.2 hPa (point 78)."
+description = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101): a geopotential height of the standard atmosphere, not of the actual one, from which it departs by about 8 m per hectopascal of departure from the standard atmosphere near the ground. A sibling of the geopotential height, as in QUDT: it feeds neither a geopotential height nor an altitude input. Flight levels are surfaces of constant pressure related to 1013.2 hPa (point 78)."
 matches = [
   { target = "http://www.wikidata.org/entity/Q17130615", relation = "close", verified = 2026-10-28 },
 ]
+
+[kinds.AltimetricAltitude]
+label = "Altimetric Altitude"
+specialization_of = "Length"
+scale_type = "interval"
+description = "What a pressure altimeter calibrated in the standard atmosphere indicates when set to QNH: the altitude of aviation, above mean sea level, 'altimetric rather than geometric' (SERA, GM1 Article 2(39)). It departs from the geometric altitude as the actual atmosphere departs from the standard one, by tens to hundreds of metres in cold air: it feeds no altitude input."
+
+[kinds.AltimetricHeight]
+label = "Altimetric Height"
+specialization_of = "Length"
+scale_type = "interval"
+description = "What a pressure altimeter calibrated in the standard atmosphere indicates when set to QFE: the height of aviation, above the QFE reference datum, 'altimetric rather than geometric' (SERA, GM1 Article 2(84)). It feeds no height input."
 
 [kinds.EllipsoidalHeight]
 label = "Ellipsoidal Height"
@@ -246,9 +260,9 @@ matches = [
 ]
 cf_standard_names = [{ name = "latitude", relation = "broad", verified = 2026-10-28 }]
 
-# Temperature gradients: CF's lapse rate is -dT/dz, the gradient of the
-# standard atmosphere's layers dT/dz. Siblings, so that one never feeds an
-# input of the other: their signs are opposite.
+# Temperature gradients: QUDT's TemperatureGradient carries no sign; CF's
+# lapse rate is -dT/dz, the vertical gradient dT/dz. Siblings under it, so
+# that one never feeds an input of the other: their signs are opposite.
 
 [kinds.LapseRate]
 label = "Lapse Rate of Air Temperature"
@@ -262,7 +276,7 @@ cf_standard_names = [{ name = "air_temperature_lapse_rate", relation = "exact", 
 [kinds.VerticalTemperatureGradient]
 label = "Vertical Gradient of Air Temperature"
 specialization_of = "TemperatureGradient"
-description = "Derivative of the air temperature with respect to height, dT/dz: negative when the temperature decreases upwards, as the layers of a standard atmosphere write it. Never fed by a lapse rate, of opposite sign."
+description = "Derivative of the air temperature with respect to height, dT/dz: negative when the temperature decreases upwards. The layers of a standard atmosphere write it with respect to the geopotential height, dT/dH (ISO 2533, equation 11), which differs from dT/dz by the ratio g/g_n, about 0.99 at 30 km. Never fed by a lapse rate, of opposite sign."
 
 # Pressures of the surface and of the sea level; the altimeter settings
 # of aviation, which go through the standard atmosphere.
@@ -284,7 +298,8 @@ label = "Altimeter Setting (QNH)"
 specialization_of = "Pressure"
 description = "QNH: the pressure at which an aircraft altimeter is set so that it indicates the official elevation of the aerodrome when on the ground there, computed from the QFE through the standard atmosphere (WMO-No. 8, Volume III, 2.9.1)."
 matches = [
-  { target = "http://www.wikidata.org/entity/Q21938048", relation = "close", verified = 2026-10-28 },
+  { target = "http://www.wikidata.org/entity/Q3233965", relation = "close", verified = 2026-10-31 },
+  { target = "http://www.wikidata.org/entity/Q21938048", relation = "broad", verified = 2026-10-31 },
 ]
 
 [kinds.AerodromePressure]
@@ -353,8 +368,8 @@ language = "en"
 
 [[trade_terms.altitude.meanings]]
 community = "aviation (ICAO, SERA)"
-kind = "Altitude"
-definition = "Vertical distance of a level, a point or an object considered as a point, measured from mean sea level (SERA, Article 2, point 39)."
+kind = "AltimetricAltitude"
+definition = "Vertical distance of a level, a point or an object considered as a point, measured from mean sea level (SERA, Article 2, point 39): altimetric rather than geometric, what an altimeter set to QNH indicates (GM1 Article 2(39))."
 sources = ["sera2012"]
 
 [[trade_terms.altitude.meanings]]
@@ -369,8 +384,8 @@ language = "en"
 
 [[trade_terms.height.meanings]]
 community = "aviation (ICAO, SERA)"
-kind = "Height"
-definition = "Vertical distance of a level, a point or an object considered as a point, measured from a specified datum (SERA, Article 2, point 84)."
+kind = "AltimetricHeight"
+definition = "Vertical distance of a level, a point or an object considered as a point, measured from a specified datum (SERA, Article 2, point 84): altimetric rather than geometric, what an altimeter set to QFE indicates (GM1 Article 2(84))."
 sources = ["sera2012"]
 
 [[trade_terms.height.meanings]]
@@ -864,7 +879,7 @@ reference = "earthkit_meteo121"
 label = "Temperature between two levels, linear in the logarithm of the pressure"
 expression = "T_1 + (T_2 - T_1) * ln(p / p_1) / ln(p_2 / p_1)"
 fixed_units = false
-note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'). In a layer whose temperature varies linearly with height, the temperature is a power of the pressure: linear in ln p only approximately."
+note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'), between the two levels: outside them, this formula extrapolates where MetPy returns NaN. In a layer whose temperature varies linearly with height, the temperature is a power of the pressure: linear in ln p only approximately."
 output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target pressure" }
 inputs = [
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
@@ -911,6 +926,10 @@ keywords = ["vertical interpolation", "temperature", "pressure", "FULL-POS"]
 reference = "yessad2018_fullpos"
 equation = "3.2.2"
 
+[[formulations.pressure_interpolation_temperature.citations]]
+reference = "metpy171_interpolate"
+note = "interpolate_1d, linear in the pressure, gives the temperature at 850, 700 and 500 hPa to MetPy's stability indices (calc/thermo.py: lifted_index, k_index, galvez_davison_index, showalter_index, total_totals_index, vertical_totals, cross_totals)."
+
 [formulations.pressure_interpolation_specific_humidity]
 label = "Specific humidity between two levels, linear in the pressure (FULL-POS)"
 expression = "q_1 + (q_2 - q_1) * (p - p_1) / (p_2 - p_1)"
@@ -934,7 +953,7 @@ equation = "3.2.5"
 label = "Temperature between two levels, linear in the altitude"
 expression = "T_1 + (T_2 - T_1) * (z - z_1) / (z_2 - z_1)"
 fixed_units = false
-note = "The interpolation of MetPy (interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='linear') on heights; exact for a layer of constant gradient, the layers of a standard atmosphere."
+note = "The interpolation of MetPy (interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='linear') on heights, between the two levels: outside them, this formula extrapolates where MetPy returns NaN. The layers of a standard atmosphere are linear in the geopotential height: in altitude, the scheme departs from them by a few millikelvins over a few kilometres (+0.004 K at 700 hPa between 850 and 500 hPa of ITU-R P.835)."
 output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target altitude" }
 inputs = [
   { identifier = "z", kind = "Altitude", unit = "M", description = "Target altitude" },
@@ -955,7 +974,7 @@ reference = "earthkit_meteo121"
 label = "Geopotential height between two levels, linear in the logarithm of the pressure"
 expression = "Z_1 + (Z_2 - Z_1) * ln(p / p_1) / ln(p_2 / p_1)"
 fixed_units = false
-note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'); exact for an isothermal layer, where the hypsometric equation makes the height linear in ln p."
+note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'), between the two levels: outside them, this formula extrapolates where MetPy returns NaN. Exact for an isothermal layer, where the hypsometric equation makes the height linear in ln p."
 output = { identifier = "Z", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height at the target pressure" }
 inputs = [
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
@@ -1091,7 +1110,7 @@ reference = "yessad2018_fullpos"
 equation = "2, 3"
 notation = { T = '\mathrm{T}_{\mathrm{extrapolated}}', T_s = '\mathrm{T}_{\mathrm{surf}}', p = '\Pi_L', p_s = '\Pi_{\mathrm{s}}', Gamma = '\Gamma', g_n = "g" }
 units = { Gamma = "K-PER-M" }
-note = "Equation 3 is printed y = Gamma R_d/g log(Pi_s/Pi_L), which would make the temperature decrease below the surface; equations 1 and 8 of the same document, and Trenberth et al. (1993, 16), give ln(p/p_s), the form entered."
+note = "Equation 3 is printed y = Gamma R_d/g log(Pi_s/Pi_L), which would make the temperature decrease below the surface. Equations 1 and 8 of the same document take the pressure ratio the other way, lower level over upper (Pi_s/Pi_Le - 1; Pi_MSL/Pi_s through the exponential), with a positive gradient of 0.0065 K/m (p. 3); Trenberth et al. (1993, 16) give ln(p/p_s), the form entered."
 
 [formulations.ecmwf_temperature_below_ground_exact]
 label = "Temperature below the surface through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
@@ -1554,7 +1573,7 @@ implementation = "MetPy"
 version = "1.7.1"
 url = "https://github.com/Unidata/MetPy/tree/v1.7.1"
 checked = 2026-10-28
-note = "Values of MetPy's test suite (tests/calc/test_thermo.py), which its continuous integration runs, for levels at 1000, 950, 900 and 850 hPa at 296, 292, 290 and 288 K: the 297 K surface lies between 950 and 900 hPa, at 936.213 hPa (test_isentropic_pressure_interp), at 291.4579 K (test_isentropic_pressure_tmp_out_interp). MetPy was not run here."
+note = "Values of MetPy's test suite (tests/calc/test_thermo.py), which its continuous integration runs, for levels at 1000, 950, 900 and 850 hPa at 296, 292, 290 and 288 K: the 297 K surface lies between 950 and 900 hPa, at 936.213 hPa (test_isentropic_pressure_interp), at 291.4579 K (test_isentropic_pressure_tmp_out_interp). Both are asserted to 3 decimals: the algorithm gives 291.4592 K at 936.2134 hPa, which nomogram reproduces, 1.3 mK from the test value, within its tolerance. MetPy was not run here."
 
 [[cross_checks.metpy171_isentropic.cases]]
 formulation = "metpy171_potential_temperature_between_levels"

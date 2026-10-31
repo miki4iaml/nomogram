@@ -77,7 +77,11 @@ correspondences checked in those versions.
 
 Some terms mean different quantities in different communities. nomogram
 records the term as a label, never as a kind, and points to the
-unambiguous kinds.
+unambiguous kinds. Each meaning points to the quantity its source
+defines, read with the source's own notes and guidance, not to a kind
+that only shares the term; where no kind is that quantity, nomogram
+defines one, a sibling of the look-alikes
+([catalog.md](catalog.md#specializations-siblings-and-trade-terms)).
 
 | Term | Meaning | Community | Kind (QUDT / ISO 80000-5) | Typical unit | Sources |
 |---|---|---|---|---|---|
@@ -109,7 +113,9 @@ Vertical coordinates collide most: WMO calls "geopotential" in its
 upper-air observations what CF calls the geopotential height (in
 standard geopotential metres, not in m² s⁻²); aviation reckons an
 altitude from mean sea level and a height from a specified datum (SERA,
-the ICAO definitions), CF from the geoid and from the surface; a
+the ICAO definitions), both altimetric, read on an altimeter through the
+standard atmosphere, "rather than geometric" (SERA's guidance material),
+while CF reckons geometric ones from the geoid and from the surface; a
 pressure altitude is a geopotential height of the standard atmosphere,
 not of the actual one. Even the geopotential metre changed: 9.8 m² s⁻²
 until 30 June 1972, the standard geopotential metre of 9.806 65 m² s⁻²
@@ -118,7 +124,9 @@ each coordinate, the trade terms and their sources.
 
 The names of tools are not quantities either. MetPy's "isentropic
 interpolation" is a change of vertical coordinate to the potential
-temperature, then an interpolation linear in it; its "mixed layer" is a
+temperature: the pressure of each surface found with the temperature
+linear in ln p, then the other variables interpolated linearly in the
+potential temperature; its "mixed layer" is a
 mean by mass over a layer, its "mixed parcel" that mean of the potential
 temperature and the mixing ratio brought back to a temperature and a dew
 point; its "Exner function" is (p/p_0)^κ, the potential temperature
