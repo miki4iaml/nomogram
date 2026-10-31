@@ -223,13 +223,17 @@ bounds = { t = [-40.0, 50.0] }
   temperature at two levels:
   `bind = { theta_1 = { T = "T_1", p = "p_1" }, theta_2 = { T = "T_2", p = "p_2" } }`.
   Inputs of the same identifier in several parts are one input: same
-  kind and unit, and same scale, or the entry is refused.
+  kind and unit, and same scale, or the entry is refused. An input of a
+  part may not bear the identifier another part computes, which would
+  name two quantities: rename it with `bind`.
 - **Conventional scales**: an inner output feeds an input on the same
   scale. A part on no scale at all, such as an interpolation or a
-  definition, feeds an input on any: its inputs of a kind the scale
-  applies to take that scale, so that evaluation brings them onto it. An
-  input on no scale, met with the same input on a scale in another part,
-  takes that scale.
+  definition, feeds an input on the reference scale, where nothing is
+  converted: its inputs of a kind the scale applies to take that scale.
+  On another scale it is refused, converting its inputs not converting
+  what it computes. An input on no scale, met with the same input on the
+  reference scale in another part, takes that scale; met with one on
+  another scale, it is refused, its part receiving the converted value.
 - The entry writes no `expression`, `fixed_units`, `inputs`,
   `coefficients`, `constants` nor `domains`: the inner expressions are
   substituted into the outer one, and the result is an ordinary
@@ -617,6 +621,42 @@ cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verifie
   date the frozen CF subset was extracted. A missing
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
+
+### Specializations, siblings and trade terms
+
+One rule keeps the kinds consistent over time, whoever adds them:
+
+- **A kind specializes another only when every value of it can feed
+  every input of the other.** A dew point is a temperature; a relative
+  humidity over ice is not a relative humidity over water, nor a pressure
+  altitude the geopotential height of the actual atmosphere.
+- **A quantity that only resembles another gets a sibling kind** under
+  their nearest common parent, so that neither feeds the other. It may
+  share the name, the dimension or the unit, and differ by its
+  reference, its sign, its instrument or its definition. Examples:
+  - `FrostPointTemperature` and `DewPointTemperature`;
+  - `RelativeHumidityWithRespectToIce` and `RelativeHumidity`;
+  - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
+  - `LapseRate` and `VerticalTemperatureGradient`;
+  - `PressureAltitude` and `GeopotentialHeight`;
+  - `AltimetricAltitude` and `Altitude`.
+- **A trade term is a label, never a kind** (`[trade_terms.<key>]`).
+  Each of its meanings names a community, a kind, a definition and
+  sources.
+- **A meaning points to the quantity its source defines**, read in the
+  source with its own notes and guidance material, never to a kind that
+  only shares the term. SERA's guidance material makes the altitude of
+  aviation altimetric: its kind is `AltimetricAltitude`, not `Altitude`.
+  When no kind of QUDT or of the catalog is that quantity, the catalog
+  defines one, a sibling of the look-alikes, rather than pointing to the
+  nearest.
+- **The definition follows the source and keeps its qualifiers**
+  (altimetric, thermodynamic, with respect to ice), with the article or
+  equation it comes from.
+
+`search` finds a trade term by its term, and every meaning names its
+kind ([search.md](search.md)); [rosetta.md](rosetta.md#ambiguous-trade-terms)
+lists the ambiguous terms.
 
 ### Physical constants
 

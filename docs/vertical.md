@@ -21,13 +21,15 @@ the terms each community uses in `trade_terms`.
 
 | Coordinate | Kind | Reckoned from | CF standard name | Defined in |
 |---|---|---|---|---|
-| Altitude (geometric) | `Altitude` (QUDT) | the geoid, about mean sea level | `altitude` | CF; SERA, Art. 2, point 39 (from mean sea level) |
+| Altitude (geometric) | `Altitude` (QUDT) | the geoid, about mean sea level | `altitude` | CF |
 | Altitude of the surface, elevation of a station | `SurfaceAltitude` | the geoid | `surface_altitude` | CF; WMO-No. 8, Volume I, 1.3.3.2 |
-| Height above the surface | `Height` (QUDT) | the surface | `height` | CF; SERA, Art. 2, point 84 (from a specified datum) |
+| Height above the surface | `Height` (QUDT) | the surface | `height` | CF |
 | Geopotential | `Geopotential` | the geoid | `geopotential` (m² s⁻²) | CF; IFS CY49R1, Part III, equation 2.6 |
 | Geopotential height | `GeopotentialHeight` | the geoid | `geopotential_height` | CF; WMO-No. 8, Volume I, equation 12.12 |
 | Thickness of a layer | `GeopotentialThickness` | its lower level | `atmosphere_layer_thickness_expressed_as_geopotential_height_difference` | CF |
 | Pressure altitude, flight level | `PressureAltitude` | the standard atmosphere | none | SERA, Art. 2, points 101 and 78 |
+| Altitude of aviation (altimeter set to QNH) | `AltimetricAltitude` | mean sea level, through the standard atmosphere | none | SERA, Art. 2, point 39, and its GM1 |
+| Height of aviation (altimeter set to QFE) | `AltimetricHeight` | the QFE datum, through the standard atmosphere | none | SERA, Art. 2, point 84, and its GM1 |
 | Ellipsoidal height (satellite positioning) | `EllipsoidalHeight` | a reference ellipsoid | `height_above_reference_ellipsoid` | CF |
 | Geoid height | `GeoidHeight` | a reference ellipsoid | `geoid_height_above_reference_ellipsoid` | CF |
 | Pressure of an isobaric level | `Pressure` (QUDT) | | `air_pressure` (narrower) | CF |
@@ -37,22 +39,34 @@ the terms each community uses in `trade_terms`.
 
 Temperature gradients come in two signs: `LapseRate`, −dT/dz, as CF
 defines `air_temperature_lapse_rate`, and `VerticalTemperatureGradient`,
-dT/dz, as the layers of a standard atmosphere write it.
+dT/dz; the layers of a standard atmosphere write it against the
+geopotential height, dT/dH (ISO 2533, equation 11).
 
 ## What never mixes
 
 - **Geopotential height and altitude.** The geopotential height is the
   geopotential divided by the standard acceleration of free fall,
   g_n = 9.80665 m s⁻² (3rd CGPM, 1901). It is numerically close to the
-  altitude, never equal: 25 m apart at 8 km, 220 m at 32 km (WMO-No. 8,
-  Volume I, table 12.10). Going from one to the other needs gravity,
-  which depends on latitude and height (WMO-No. 8, Volume I, 12.5.5.2).
+  altitude, and the difference follows gravity, which depends on
+  latitude and height (WMO-No. 8, Volume I, 12.5.5.2): 25 m at 8 km and
+  220 m at 32 km at 22°N (table 12.10), about 32 m at 8 km at the
+  Equator, none near 60°, the geopotential height being the larger
+  poleward (equations 12.15 and 12.16).
 - **Pressure altitude and altitude.** A pressure altitude is "an
   atmospheric pressure expressed in terms of altitude which corresponds
   to that pressure in the Standard Atmosphere" (SERA, Art. 2, point 101):
   a geopotential height of the standard atmosphere, not of the actual
-  one. It feeds the formulas of the standard atmosphere, never an
-  altitude.
+  one, from which it departs by about 8 m per hectopascal of departure
+  from the standard atmosphere near the ground. A sibling of the
+  geopotential height, as in QUDT: it feeds neither a geopotential
+  height nor an altitude input.
+- **The altitude and the height of aviation.** SERA's altitude and
+  height are "altimetric rather than geometric" (GM1 to Article 2,
+  points 39 and 84): what an altimeter calibrated in the standard
+  atmosphere indicates, set to QNH or to QFE. They depart from the
+  geometric ones as the actual atmosphere departs from the standard
+  one: `AltimetricAltitude` and `AltimetricHeight` feed no altitude or
+  height input.
 - **Ellipsoidal height and altitude.** Satellite positioning gives a
   height above an ellipsoid; the altitude is about that height minus the
   geoid height, which reaches tens of metres.
@@ -200,16 +214,19 @@ logarithm.
 | geopotential height linear in ln p | `log_pressure_interpolation_geopotential_height` | MetPy, earthkit-meteo |
 
 The physics tells them apart. In a layer whose temperature varies
-linearly with height, as in the ITU-R reference atmosphere between 850
-and 500 hPa, the temperature at 700 hPa is 268.571 K:
+linearly with the geopotential height, as in the ITU-R reference
+atmosphere between 850 and 500 hPa, the temperature at 700 hPa is
+268.571 K:
 
 | Scheme | At 700 hPa | Error |
 |---|---|---|
-| temperature linear in altitude | 268.571 K | none |
+| temperature linear in altitude | 268.575 K | +0.004 K |
 | temperature linear in ln p | 268.886 K | +0.31 K |
 | temperature linear in p | 267.208 K | −1.36 K |
 | geopotential height linear in ln p | 2963.8 m | −48.4 m |
 
+Linear in the geopotential height, the temperature would be exact; the
+scheme takes geometric altitudes, a few metres apart from it here.
 The height is linear in ln p only in an isothermal layer (the hypsometric
 equation); FULL-POS interpolates instead a departure from a standard
 atmosphere, whose own height is computed exactly.
@@ -354,14 +371,19 @@ At 700 hPa, where the relative humidity of the reference atmosphere is
 
 The specific humidity decreases nearly exponentially with height: a
 chord between two levels lies above it, and the relative humidity drawn
-from it is 12 to 13 points too high halfway. The dew point decreases
+from it is 12.2 and 13.4 points too high at 700 hPa, up to 15.6 and
+17.5 points near 610 hPa. The dew point decreases
 nearly linearly, the saturation vapour pressure being nearly exponential
 in it: interpolated, it stays within 3 points, as does the relative
 humidity interpolated directly. Its logarithm, linear in ln p
 (`log_pressure_interpolation_log_specific_humidity`, written by nomogram:
-no source was found), follows the specific humidity within 0.03 point.
-The relative humidity follows from the variable interpolated, not from
-the formula that then gives it. This
+no source was found), leaves the specific humidity 2.5 % too humid at
+700 hPa, about 1.2 points of relative humidity, which the temperature
+linear in ln p, 0.31 K too warm, takes back: the route lands within
+0.03 point there, within 0.07 point over the layer, by compensation.
+The relative humidity follows from the variables interpolated, the
+temperature as much as the humidity, not from the formula that then
+gives it. This
 layer, 350 hPa thick, and this humidity, exponential by construction
 (P.835, equation 6), magnify the differences: between the close levels
 of a radiosonde they shrink, and inversions or dry layers can reorder
@@ -410,7 +432,8 @@ equation 15, for (e), prints (p_u − p_d)⁻¹ where their equation 14 gives
 MetPy's mixed parcel mixes a layer: its potential temperature and its
 mixing ratio, which an adiabatic mixing conserves, are averaged by mass
 (an integral over the pressure), then brought back to a temperature and
-a dew point at the bottom of the layer. The average is a computation on
+a dew point at the pressure where the parcel starts, by default the
+first level given (here the surface, the bottom of the layer). The average is a computation on
 data, done here with numpy; the rest are formulations. With the first
 levels of the sounding of MetPy's docstring and a layer of 50 hPa:
 
@@ -442,10 +465,11 @@ parcel_t = f["metpy171_temperature_from_potential_temperature"].evaluate(
 )  # 28.750033 degC
 parcel_t_d = f["metpy171_dew_point_from_mixing_ratio"].evaluate(
     p=p[0], r=mean_r, scale="ignore"
-)  # 18.1504239 degC
+)  # 18.1504235 degC
 ```
 
-These are the values MetPy prints, 28.750033 °C and 18.1504239 °C.
+MetPy prints 28.750033 °C and 18.1504239 °C: the temperature agrees to
+its last digit, the dew point within 4 × 10⁻⁷ K.
 `scale="ignore"` evaluates the dew point as MetPy codes it, without
 bringing Bolton's coefficients from IPTS-68 onto ITS-90, a few
 millikelvins.
@@ -454,8 +478,9 @@ millikelvins.
 
 ERA5's pressure levels below the surface are extrapolated by FULL-POS, by
 ECMWF's procedure, which Trenberth et al. (1993, NCAR TN-396) document:
-the wind, ω and the relative humidity are held at their values of the
-lowest model level; the temperature and the geopotential follow a dry
+the wind and the relative humidity are held at their values of the
+lowest model level, and ω too in Trenberth et al., while FULL-POS sets
+it to zero (3.2.6); the temperature and the geopotential follow a dry
 hydrostatic column of uniform lapse rate, 0.0065 K/m, from a surface
 temperature.
 
@@ -467,7 +492,7 @@ temperature.
 | mean sea level pressure | `fullpos_mean_sea_level_pressure`, exact `ecmwf_mean_sea_level_pressure_exact` | FULL-POS (8, 9); Trenberth et al. (12, exact 11) |
 
 The operational forms are third-order expansions of the exact ones: under
-a surface at 850 hPa and 280 K, they stay within 10⁻⁵ K, 2 mm and
+a surface at 850 hPa and 280 K, they stay within about 10⁻⁵ K, 2 mm and
 0.002 hPa of them at 1000 hPa. The reduction to sea level agrees with
 WMO's (equation 3.2), which assumes the same gradient. Over very warm or
 cold surfaces, and above 2000 m, both sources change the gradient: these
@@ -475,8 +500,9 @@ cases are not entered.
 
 The FULL-POS documentation prints log(Π_s/Π_L) in its equations 3 and 6,
 which would make the extrapolated column colder and higher than the
-surface; its own equations 1 and 8 and Trenberth et al. give ln(p/p_s),
-the form entered. The citations say so.
+surface. Its own equations 1 and 8 take the pressure ratio the other
+way, lower level over upper, with a positive gradient of 0.0065 K/m;
+Trenberth et al. give ln(p/p_s), the form entered. The citations say so.
 
 ## One word, several quantities
 
@@ -484,9 +510,9 @@ the form entered. The citations say so.
 |---|---|---|---|
 | geopotential | CF, the IFS | `Geopotential`, in m² s⁻² | CF; IFS, Part III |
 | geopotential | WMO upper-air observations | `GeopotentialHeight`, in standard geopotential metres | WMO-No. 8, Volume I, chapter 1 |
-| altitude | aviation (SERA) | `Altitude`, from mean sea level | SERA, Art. 2, point 39 |
+| altitude | aviation (SERA) | `AltimetricAltitude`, from mean sea level, altimetric | SERA, Art. 2, point 39, and its GM1 |
 | altitude | CF | `Altitude`, from the geoid | CF |
-| height | aviation (SERA) | `Height`, from a specified datum | SERA, Art. 2, point 84 |
+| height | aviation (SERA) | `AltimetricHeight`, from a specified datum, altimetric | SERA, Art. 2, point 84, and its GM1 |
 | height | CF | `Height`, from the surface | CF |
 | elevation | WMO surface observations | `SurfaceAltitude` | WMO-No. 8, Volume I, 1.3.3.2 |
 | flight level | aviation (SERA) | `PressureAltitude` | SERA, Art. 2, point 78 |
