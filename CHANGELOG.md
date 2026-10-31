@@ -25,6 +25,12 @@ and this project adheres to
 ### Changed
 
 - The build backend `uv_build` is accepted up to 0.13 (below 0.14).
+- SymPy 1.14 or later is required (was 1.13). SymPy 1.13.0 dates from
+  July 2024 and 1.13.3, its last release, from September 2024: more
+  than two years, the delay after which SPEC 0 drops a core package.
+  SymPy 1.14 is the version the CI tests. Only environments pinned to
+  torch 2.6 (`sympy==1.13.1`) are left out; torch 2.7 and later require
+  `sympy>=1.13.3`.
 
 ### Fixed
 

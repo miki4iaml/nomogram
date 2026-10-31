@@ -787,7 +787,7 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'viz'", specifier = ">=3.10.7" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "pint", specifier = ">=0.24.4" },
-    { name = "sympy", specifier = ">=1.13" },
+    { name = "sympy", specifier = ">=1.14" },
 ]
 provides-extras = ["viz"]
 
