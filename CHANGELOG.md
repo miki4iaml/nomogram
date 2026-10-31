@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Pre-commit hook `check-integrity`, replayed by CI on the whole
+  repository: it refuses hidden characters (format, private use and
+  unassigned code points, variation selectors, control characters other
+  than tab and line ends), files that stay local (`_priv/`, `.claude/`,
+  `CLAUDE.md`, `CLAUDE.local.md`, `.mcp.json`), an AGENTS.md outside the
+  root, and the instruction files of other coding agents. The messages
+  name the file, the line and the code point, never the text.
+- `.github/CODEOWNERS`: AGENTS.md and the instruction files of coding
+  agents at any depth, `.github/`, `.vscode/`, `.pre-commit-config.yaml`
+  and `scripts/` need the maintainer's review. AGENTS.md and the
+  contributing guide say how a pull request from someone else is read.
+
 ## [0.5.0] - 2026-10-31
 
 ### Added

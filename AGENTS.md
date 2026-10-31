@@ -179,9 +179,16 @@ No safety rule is bypassed, including during project bootstrap.
   that needs it.
 - No secret in the repository, no stored token: PyPI publication
   through OIDC trusted publishing.
-- Local checks (pre-commit hooks): formatting, lint, secrets and
-  anonymity before each commit; typing and tests on push. CI replays
-  the same checks.
+- Local checks (pre-commit hooks): formatting, lint, secrets,
+  anonymity and hidden characters before each commit; typing and tests
+  on push. CI replays the same checks.
+- Instruction files of coding agents are code. AGENTS.md lives at the
+  root only; no other tool's instruction file, and nothing that stays
+  local (`_priv/`, `.claude/`, `CLAUDE.md`, `.mcp.json`), is tracked;
+  `scripts/check_integrity.py` refuses them, with hidden characters.
+  A pull request from someone else is read as a diff (`gh pr diff`),
+  never checked out in a working tree where a coding agent runs, which
+  would load its instructions.
 - Nothing personal or internal in what is published: no legal name,
   no internal path, no work email address, no customer name.
 
