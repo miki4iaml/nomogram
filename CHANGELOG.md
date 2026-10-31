@@ -22,6 +22,16 @@ and this project adheres to
   and `scripts/` need the maintainer's review. AGENTS.md and the
   contributing guide say how a pull request from someone else is read.
 
+### Changed
+
+- The build backend `uv_build` is accepted up to 0.13 (below 0.14).
+
+### Security
+
+- CI and the release workflow use uv 0.13.5, which no longer trusts the
+  eMudhra/emSign root whose intermediates were compromised
+  ([GHSA-hq85-5cpj-mr62](https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62)).
+
 ## [0.5.0] - 2026-10-31
 
 ### Added
