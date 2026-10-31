@@ -53,7 +53,7 @@ tests cover. The second command installs the hooks at all three stages
 
 | Stage | Checks |
 |---|---|
-| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity, image metadata |
+| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity, image metadata, hidden characters and local-only files |
 | commit-msg | anonymity of the message, Conventional Commits, ASCII-only subject |
 | pre-push | strict mypy, pytest |
 
@@ -197,6 +197,18 @@ This project uses coding agents; every contribution is reviewed and
 signed by a human contributor. No tool attribution is added to commits
 or pull requests: the human signature commits the contributor,
 whatever the tool used.
+
+Instruction files of coding agents are reviewed as code. AGENTS.md is
+the only one tracked, at the root: the `check-integrity` hook refuses
+an AGENTS.md in a subfolder, the instruction files of other tools
+(`GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`...),
+files that stay local (`CLAUDE.md`, `.claude/`, `.mcp.json`) and hidden
+characters (zero-width, bidirectional, tags, variation selectors,
+control characters). A maintainer reads a pull request from someone else
+as a diff, on GitHub or with `gh pr diff`, and never checks it out in a
+working tree where a coding agent runs: the agent would load the
+instructions it brings. `.github/CODEOWNERS` lists the paths whose
+changes need the maintainer's review.
 
 ## License
 

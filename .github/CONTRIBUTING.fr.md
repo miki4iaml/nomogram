@@ -57,7 +57,7 @@ commit-msg, pre-push).
 
 | Stade | Contrôles |
 |---|---|
-| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation, métadonnées des images |
+| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation, métadonnées des images, caractères cachés et fichiers locaux |
 | commit-msg | anonymisation du message, Conventional Commits, sujet sans accent |
 | pre-push | mypy strict, pytest |
 
@@ -208,6 +208,19 @@ Ce projet utilise des agents de codage ; toute contribution est relue
 et signée par un contributeur humain. Aucune mention d'outil n'est
 ajoutée aux commits ni aux PR : la signature humaine engage le
 contributeur, quel que soit l'outil employé.
+
+Les fichiers d'instructions des agents de codage se relisent comme du
+code. AGENTS.md est le seul suivi, à la racine : le hook
+`check-integrity` refuse un AGENTS.md dans un sous-dossier, les fichiers
+d'instructions des autres outils (`GEMINI.md`, `.cursorrules`,
+`.github/copilot-instructions.md`…), les fichiers qui restent locaux
+(`CLAUDE.md`, `.claude/`, `.mcp.json`) et les caractères cachés (largeur
+nulle, bidirectionnels, étiquettes, sélecteurs de variante, caractères de
+contrôle). Un mainteneur lit une PR d'un tiers comme un diff, sur GitHub
+ou avec `gh pr diff`, et ne l'extrait jamais dans un arbre de travail où
+tourne un agent de codage : l'agent chargerait les instructions qu'elle
+apporte. `.github/CODEOWNERS` liste les chemins dont les modifications
+demandent la relecture du mainteneur.
 
 ## Licence
 
