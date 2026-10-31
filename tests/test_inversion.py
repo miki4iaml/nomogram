@@ -220,6 +220,33 @@ reference = "src"
 
 [[formulations.lambert.citations.domains]]
 bounds = { t = [0.5, 3.0] }
+
+[formulations.euler]
+label = "Inverse holding Euler's number"
+expression = "t * exp(-1)"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.euler.citations]]
+reference = "src"
+
+[[formulations.euler.citations.domains]]
+bounds = { t = [0.5, 3.0] }
+
+[formulations.offset_name]
+label = "A coefficient named like the Celsius offset"
+expression = "T_celsius_zero * T"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "in" }]
+coefficients = { T_celsius_zero = 2.0 }
+
+[[formulations.offset_name.citations]]
+reference = "src"
+
+[[formulations.offset_name.citations.domains]]
+bounds = { T = [250.0, 320.0] }
 """
 TESTS = load_catalog([DECREASING]).formulations
 TEMPERATURE = Variable("t", "CelsiusTemperature", "DEG_C", "temperature")
@@ -373,6 +400,37 @@ def test_a_dew_point_may_be_solved_in_kelvins() -> None:
     e = Q_([6.112, 12.27, 23.37], "hPa")
     expected = dew_point(formulation).evaluate(e=e).to("degC").magnitude
     assert in_kelvins.evaluate(e=e).to("degC").magnitude == pytest.approx(expected)
+
+
+def test_a_closed_form_may_hold_eulers_number() -> None:
+    # t = e p: SymPy prints E, which the syntax writes exp(1).
+    inverse = invert(TESTS["euler"], "t", output=TEMPERATURE, input=PRESSURE)
+    assert isinstance(inverse, Formulation)
+    assert inverse.evaluate(p=Q_(1.0, "Pa")).magnitude == pytest.approx(math.e)
+
+
+def test_the_celsius_offset_takes_a_name_free_in_the_formulation() -> None:
+    inverse = invert(TESTS["offset_name"], "T", output=TEMPERATURE, input=PRESSURE)
+    assert isinstance(inverse, Formulation)
+    offset = next(c for c in inverse.coefficients if c.value == 273.15)
+    assert offset.identifier == "T_celsius_zero_"
+    # p = 2 T: 600 Pa is 300 K.
+    assert inverse.evaluate(p=Q_(600.0, "Pa")).magnitude == pytest.approx(26.85)
+
+
+def test_a_solver_recursing_without_end_falls_back_to_the_numerical_inverse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def recursing(*_args: Any, **_kwargs: Any) -> Any:
+        raise RecursionError
+
+    monkeypatch.setattr(sympy, "solve", recursing)
+    with pytest.raises(InversionError, match="no closed form"):
+        invert(
+            TESTS["down"], "t", output=TEMPERATURE, input=PRESSURE, method="symbolic"
+        )
+    fallback = invert(TESTS["down"], "t", output=TEMPERATURE, input=PRESSURE)
+    assert isinstance(fallback, NumericalInverse)
 
 
 def test_forced_symbolic_without_closed_form_is_refused() -> None:

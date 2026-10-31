@@ -32,6 +32,26 @@ and this project adheres to
   torch 2.6 (`sympy==1.13.1`) are left out; torch 2.7 and later require
   `sympy>=1.13.3`.
 
+### Fixed
+
+- No identifier changes a numeric result any more by taking a name of
+  the code `lambdify` generates: `e * exp(1)` gave 4 at e = 2 instead of
+  2e, and an identifier `nan` replaced the NaN of a piecewise definition
+  where no condition holds. The samples of relation verdicts are
+  computed the same way.
+- Inversion: a solver recursing without end (the dew point of
+  `metpy171_dew_point`) no longer crashes; the numerical inverse takes
+  over, as it does for the inverse of a scale conversion. A closed form
+  holding Euler's number is no longer discarded, and the Celsius offset
+  of a closed form no longer takes the name of a coefficient.
+- Reading an expression: a number computed exactly with too many digits
+  is refused even when it is not written as two numbers
+  (`sqrt(3) ** 30000000`, `exp(ln(3) * 30000000)`), and so are a complex
+  number (`(-1.0) ** 0.5`, `(-8) ** (1/3)`), an infinity (`0 ** -1`)
+  and a number beyond the largest float, with an `ExpressionError`
+  instead of an `OverflowError` or a NaN at evaluation.
+  `compile_numeric` refuses repeated arguments.
+
 ### Security
 
 - CI and the release workflow use uv 0.13.5, which no longer trusts the
