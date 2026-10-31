@@ -95,6 +95,27 @@ ha = nomo.comparison.compose(
 ha.evaluate(RH=Q_(100, "percent"), T=Q_(20, "degC")).to("g/m^3")  # 17.29
 ```
 
+`compare` gives each value to the inputs of its quantity kind. A
+formulation with several inputs of one kind, such as a scheme
+interpolating between two levels (the target pressure p and the
+pressures p_1 and p_2 of the levels), compares once some of them are
+fixed: `partial` fixes inputs as `functools.partial` fixes arguments,
+here the two levels, and leaves a function of p alone, evaluated,
+compared and plotted like any formulation
+([Humidity between two levels](docs/vertical.md#humidity-between-two-levels)).
+It also fixes what is known in advance, such as the levels of a sounding,
+and names the curve in legends:
+
+```python
+levels = {"p_1": Q_(850, "hPa"), "p_2": Q_(500, "hPa"),
+          "T_1": Q_(278, "K"), "T_2": Q_(252, "K")}
+in_ln_p = nomo.comparison.partial(
+    catalog.formulations["log_pressure_interpolation_temperature"],
+    label="T linear in ln p", **levels,
+)
+in_ln_p.evaluate(p=Q_(700, "hPa")).to("K")  # 268.49
+```
+
 Formulations are found by words, wildcards and fields, whatever their
 notation ([Finding formulations](docs/search.md)):
 
