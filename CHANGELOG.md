@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+
 ### Added
 
 - Family `atmosphere`: the vertical coordinates, each a quantity kind
@@ -1196,7 +1198,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...develop
+[0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...v0.2.0
