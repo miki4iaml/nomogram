@@ -15,10 +15,13 @@ can also be proposed through an issue (see the
 
 - **A formula is written once**, as an expression in restricted Python
   syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
-  functions `exp`, `ln`, `log10` and `sqrt`, the constant `pi` (a
-  reserved name, which no identifier may take), and a
+  functions `exp`, `ln`, `log10`, `sqrt`, `sin` and `cos`, the constant
+  `pi` (a reserved name, which no identifier may take), and a
   [piecewise definition](#piecewise-definitions). LaTeX, numeric
-  functions and symbolic results all derive from it.
+  functions and symbolic results all derive from it. An angle in the
+  argument of `sin` or `cos` is in radians: a variable in degrees there
+  is refused, since pint counts the degree as a pure number worth
+  pi/180 (a latitude given in degrees is converted when evaluated).
 - **Everything is traced to a source.** A reference is `verified` only
   when the detail was **read in the source itself**; anything else is
   `to-confirm`, with a note saying what remains to check. A formula
@@ -76,7 +79,7 @@ keywords = ["humidity", "psychrometrics"]
 
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
-(`water-vapour`, `moist-air`, `radio`, `sea-water`), and **aggregates** holding no entry, only
+(`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -214,8 +217,23 @@ bounds = { t = [-40.0, 50.0] }
   inner output must be of the input's kind or a specialization of it,
   in the same unit.
 - **`bind`** (optional) renames inputs of inner formulations, for example
-  `{ theta = "t" }`. Inputs of the same identifier in several parts are
-  one input: same kind, unit and scale, or the entry is refused.
+  `{ theta = "t" }`. A table under the identifier an inner formulation
+  computes renames the inputs of that part only, so that one formulation
+  may compute two inputs at different arguments, such as a potential
+  temperature at two levels:
+  `bind = { theta_1 = { T = "T_1", p = "p_1" }, theta_2 = { T = "T_2", p = "p_2" } }`.
+  Inputs of the same identifier in several parts are one input: same
+  kind and unit, and same scale, or the entry is refused. An input of a
+  part may not bear the identifier another part computes, which would
+  name two quantities: rename it with `bind`.
+- **Conventional scales**: an inner output feeds an input on the same
+  scale. A part on no scale at all, such as an interpolation or a
+  definition, feeds an input on the reference scale, where nothing is
+  converted: its inputs of a kind the scale applies to take that scale.
+  On another scale it is refused, converting its inputs not converting
+  what it computes. An input on no scale, met with the same input on the
+  reference scale in another part, takes that scale; met with one on
+  another scale, it is refused, its part receiving the converted value.
 - The entry writes no `expression`, `fixed_units`, `inputs`,
   `coefficients`, `constants` nor `domains`: the inner expressions are
   substituted into the outer one, and the result is an ordinary
@@ -570,7 +588,9 @@ Kinds and units come from the bundled QUDT subset (see
 both in `M` or `KiloM`. An altitude and a height never feed each other:
 a height above the surface is h = z - z_s (`height_above_surface`), with
 the altitude z_s of the surface given by the user (a terrain model is
-outside nomogram). A kind missing from QUDT can be
+outside nomogram). The vertical coordinates (geopotential height,
+pressure altitude, ellipsoidal height...) and their kinds are described
+in [vertical.md](vertical.md). A kind missing from QUDT can be
 declared in `[kinds]` as a specialization of a QUDT kind; it takes the
 scale type of its parent unless `scale_type` says otherwise (a quantity
 with a conventional origin is on an interval scale even under a
@@ -601,6 +621,42 @@ cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verifie
   date the frozen CF subset was extracted. A missing
 QUDT kind or unit is added to the extraction script
 (`scripts/extract_semantics.py`), which is a code contribution.
+
+### Specializations, siblings and trade terms
+
+One rule keeps the kinds consistent over time, whoever adds them:
+
+- **A kind specializes another only when every value of it can feed
+  every input of the other.** A dew point is a temperature; a relative
+  humidity over ice is not a relative humidity over water, nor a pressure
+  altitude the geopotential height of the actual atmosphere.
+- **A quantity that only resembles another gets a sibling kind** under
+  their nearest common parent, so that neither feeds the other. It may
+  share the name, the dimension or the unit, and differ by its
+  reference, its sign, its instrument or its definition. Examples:
+  - `FrostPointTemperature` and `DewPointTemperature`;
+  - `RelativeHumidityWithRespectToIce` and `RelativeHumidity`;
+  - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
+  - `LapseRate` and `VerticalTemperatureGradient`;
+  - `PressureAltitude` and `GeopotentialHeight`;
+  - `AltimetricAltitude` and `Altitude`.
+- **A trade term is a label, never a kind** (`[trade_terms.<key>]`).
+  Each of its meanings names a community, a kind, a definition and
+  sources.
+- **A meaning points to the quantity its source defines**, read in the
+  source with its own notes and guidance material, never to a kind that
+  only shares the term. SERA's guidance material makes the altitude of
+  aviation altimetric: its kind is `AltimetricAltitude`, not `Altitude`.
+  When no kind of QUDT or of the catalog is that quantity, the catalog
+  defines one, a sibling of the look-alikes, rather than pointing to the
+  nearest.
+- **The definition follows the source and keeps its qualifiers**
+  (altimetric, thermodynamic, with respect to ice), with the article or
+  equation it comes from.
+
+`search` finds a trade term by its term, and every meaning names its
+kind ([search.md](search.md)); [rosetta.md](rosetta.md#ambiguous-trade-terms)
+lists the ambiguous terms.
 
 ### Physical constants
 

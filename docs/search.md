@@ -127,4 +127,13 @@ Names come to entries from several sources: identifiers, notations,
 QUDT labels, CF standard names, Wikidata items of the links, Greek
 letter names. New sources (labels in other languages, a thesaurus of
 domains) add names to the same entries: searches keep their form and
-find more.
+find more. The vertical coordinates of the `atmosphere` family are
+found in the same way: by the kind's name, its CF name or its Wikidata
+item, and by the terms of each community (`search("flight level")`
+finds the trade term, whose meaning names `PressureAltitude`, and
+`search("altimetric")` the altitude and height of aviation with their
+trade terms); see [vertical.md](vertical.md). The practices of a tool come the same way:
+MetPy's interpolations are formulations citing the code read, so that
+`search(source="metpy171*")` lists them, `search(keyword="isentropic")`
+finds its isentropic analysis, and the relative humidities composed from
+them are found with the others, by their kind.

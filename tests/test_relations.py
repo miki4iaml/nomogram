@@ -10,6 +10,7 @@ import pytest
 import sympy
 
 from nomogram.catalog import CatalogError, catalog, check, load_catalog
+from nomogram.expression import MAX_SOURCE_LENGTH
 from nomogram.model import Relation, RelationKind
 from nomogram.relations import (
     Verdict,
@@ -164,6 +165,36 @@ def test_an_approximation_is_refuted_as_an_equivalence() -> None:
     assert set(verdict.at) == {"P", "e", "T"}
     assert verdict.detail is not None
     assert "e" in verdict.detail
+
+
+LONG = """
+[catalog]
+name = "mine"
+format = 2
+requires = ["atmosphere"]
+
+[relations."mine:r"]
+kind = "{kind}"
+subject = "metpy171_relative_humidity_isentropic"
+object = "metpy171_relative_humidity_specific_humidity_log_pressure"
+bounds = { p = [600.0, 800.0], q_1 = [0.004, 0.006], q_2 = [0.001, 0.002], p_1 = [840.0, 860.0], p_2 = [490.0, 510.0], T_1 = [275.0, 280.0], T_2 = [250.0, 255.0] }
+"""
+
+
+@pytest.mark.parametrize("kind", ["equivalent", "proportional"])
+def test_a_relation_on_a_long_derived_expression_is_decided_on_samples(
+    kind: str, tmp_path: Path
+) -> None:
+    # SymPy's simplification of a composition longer than a written
+    # expression would not end: the samples decide.
+    mine = tmp_path / f"mine_{kind}.toml"
+    mine.write_text(LONG.replace("{kind}", kind), encoding="utf-8")
+    loaded = catalog(extra=[mine])
+    subject = loaded.formulations["metpy171_relative_humidity_isentropic"]
+    assert len(subject.expression) > MAX_SOURCE_LENGTH
+    verdict = verify(loaded.relations["mine:r"], loaded)
+    assert verdict.status == "refuted"
+    assert "longer than a written one" in verdict.method
 
 
 def test_an_equivalence_sympy_cannot_settle_stays_unproven() -> None:

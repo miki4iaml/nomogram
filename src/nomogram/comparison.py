@@ -13,6 +13,11 @@ another, for instance a saturation vapour pressure formulation into the
 ideal gas mass concentration of water vapour, to compare HA = f(T, RH)
 across vapour pressure formulations.
 
+:func:`partial` fixes some inputs of a formulation, as
+:func:`functools.partial` fixes arguments: the two levels of an
+interpolation scheme, whose pressures share a kind with the target
+pressure, so that the schemes compare along it.
+
 Inputs are matched by quantity kind. The Celsius temperature and the
 thermodynamic temperature are the only distinct kinds treated as the same
 input: they are two expressions of one state, t = T - 273.15 K (SI
@@ -29,9 +34,18 @@ from typing import Any, Protocol
 import numpy as np
 
 from nomogram.model import Basis, Outside, ScaleConversion, Variable
-from nomogram.units import is_offset_unit
+from nomogram.units import convert, is_offset_unit
 
-__all__ = ["Comparison", "Composition", "Evaluable", "compare", "compose", "feeds"]
+__all__ = [
+    "Comparison",
+    "Composition",
+    "Evaluable",
+    "Partial",
+    "compare",
+    "compose",
+    "feeds",
+    "partial",
+]
 
 #: Kinds that express the same temperature state (SI Brochure 2.3.1).
 TEMPERATURE_POINTS = frozenset({"ThermodynamicTemperature", "CelsiusTemperature"})
@@ -91,6 +105,7 @@ def feeds(output_kind: str, input_kind: str) -> bool:
 
 def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, Any]:
     arguments = {}
+    fed: dict[str, list[str]] = {}
     for variable in formulation.inputs:
         matches = [kind for kind in values if same_state(kind, variable.kind)]
         if len(matches) != 1:
@@ -101,6 +116,17 @@ def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, A
             )
             raise ValueError(msg)
         arguments[variable.identifier] = values[matches[0]]
+        fed.setdefault(matches[0], []).append(variable.identifier)
+    for kind, names in fed.items():
+        if len(names) > 1:
+            # p, p_1 and p_2 all pressures: one value for all would compare
+            # a degenerate formulation (an interpolation at its own levels).
+            msg = (
+                f"{formulation.key}: the value of {kind} would feed "
+                f"{', '.join(names)}; fix all but one with "
+                "nomogram.comparison.partial"
+            )
+            raise ValueError(msg)
     return arguments
 
 
@@ -184,8 +210,9 @@ def compare(
     Raises
     ------
     ValueError
-        If a formulation computes another kind than the reference, or an
-        input cannot be matched to exactly one value.
+        If a formulation computes another kind than the reference, an input
+        cannot be matched to exactly one value, or one value would feed
+        several inputs of a formulation (fix the others with :func:`partial`).
     """
     kind = reference.output.kind
     unit = None
@@ -232,11 +259,14 @@ class Composition:
     bind : mapping of str to str
         Inputs of inner formulations taken from inputs of ``outer``, by
         identifier (``{"t": "T"}``).
+    label : str or None
+        What the composition computes, for legends; the key otherwise.
     """
 
     outer: Evaluable
     inner: Mapping[str, Evaluable]
     bind: Mapping[str, str]
+    label: str | None = None
 
     @property
     def key(self) -> str:
@@ -299,6 +329,8 @@ def compose(
     outer: Evaluable,
     inner: Mapping[str, Evaluable],
     bind: Mapping[str, str] | None = None,
+    *,
+    label: str | None = None,
 ) -> Composition:
     """Feed the outputs of formulations into the inputs of another.
 
@@ -314,6 +346,9 @@ def compose(
         Inputs of inner formulations to take from inputs of ``outer``, by
         identifier, for example ``{"t": "T"}``: the binding is declared,
         never guessed, and both kinds must express the same state.
+    label : str, optional
+        What the composition computes, for the legends of plots; its key
+        otherwise.
 
     Returns
     -------
@@ -348,4 +383,124 @@ def compose(
         if not same_state(variable.kind, target.kind):
             msg = f"cannot bind {source} ({variable.kind}) to {target_name} ({target.kind})"
             raise ValueError(msg)
-    return Composition(outer, dict(inner), bind)
+    return Composition(outer, dict(inner), bind, label)
+
+
+@dataclass(frozen=True)
+class Partial:
+    """A formulation some of whose inputs are fixed.
+
+    Attributes
+    ----------
+    formulation : Formulation or Composition
+        The formulation evaluated.
+    values : mapping of str to pint.Quantity
+        The fixed inputs, by identifier.
+    label : str
+        What it computes, for legends: the label of the formulation unless
+        another is given, which legends then show instead of a citation.
+    """
+
+    formulation: Evaluable
+    values: Mapping[str, Any]
+    label: str = ""
+    named: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        # Named by a label of its own only: one equal to the formulation's,
+        # as dataclasses.replace passes it back, names nothing.
+        default = str(getattr(self.formulation, "label", None) or self.formulation.key)
+        object.__setattr__(self, "named", bool(self.label) and self.label != default)
+        if not self.label:
+            object.__setattr__(self, "label", default)
+
+    @property
+    def key(self) -> str:
+        """The formulation's key and the values fixed, ``key(p_1=850 hPa, ...)``."""
+        fixed = ", ".join(f"{name}={value:~P}" for name, value in self.values.items())
+        return f"{self.formulation.key}({fixed})"
+
+    @property
+    def citations(self) -> tuple[Any, ...]:
+        """The citations of the formulation, for legends; none once named."""
+        if self.named:
+            return ()
+        return tuple(getattr(self.formulation, "citations", ()))
+
+    @property
+    def output(self) -> Variable:
+        """The output of the formulation."""
+        return self.formulation.output
+
+    @property
+    def inputs(self) -> tuple[Variable, ...]:
+        """The inputs left to supply."""
+        return tuple(
+            v for v in self.formulation.inputs if v.identifier not in self.values
+        )
+
+    def evaluate(
+        self,
+        *,
+        outside: Outside = "nan",
+        basis: Basis = "stated",
+        scale: ScaleConversion = "convert",
+        **inputs: Any,
+    ) -> Any:
+        """Evaluate the formulation with the fixed values and those given.
+
+        Parameters are those of :meth:`nomogram.model.Formulation.evaluate`;
+        ``inputs`` are given by the identifiers of :attr:`inputs`.
+        """
+        return self.formulation.evaluate(
+            outside=outside, basis=basis, scale=scale, **self.values, **inputs
+        )
+
+
+def partial(formulation: Evaluable, /, *, label: str = "", **values: Any) -> Partial:
+    """Fix some inputs of a formulation, as :func:`functools.partial` does.
+
+    :func:`compare` matches inputs by quantity kind: an interpolation
+    scheme, whose levels ``p_1`` and ``p_2`` are pressures like the target
+    ``p``, compares along ``p`` once its levels are fixed.
+
+    Parameters
+    ----------
+    formulation : Formulation or Composition
+        The formulation.
+    label : str, optional
+        What it computes, for the legends of plots; the label of the
+        formulation otherwise.
+    **values
+        The fixed inputs, by identifier, for example
+        ``p_1=Q_(850, "hPa")``.
+
+    Returns
+    -------
+    Partial
+        Evaluable like a formulation, on the inputs left.
+
+    Raises
+    ------
+    ValueError
+        If an identifier is not an input of the formulation, or a value is
+        not a quantity of the dimension of its input.
+    """
+    import pint
+
+    from nomogram.semantics import semantic_catalog
+
+    inputs = {v.identifier: v for v in formulation.inputs}
+    unknown = sorted(set(values) - set(inputs))
+    if unknown:
+        msg = f"{formulation.key} has no input {', '.join(unknown)}"
+        raise ValueError(msg)
+    units = semantic_catalog().units
+    for name, value in values.items():
+        unit = inputs[name].unit
+        try:
+            convert(value, units[unit].pint)
+        except (TypeError, pint.DimensionalityError) as exc:
+            msg = f"{formulation.key}: {name} needs a quantity convertible to {unit}"
+            raise ValueError(msg) from exc
+    return Partial(formulation, dict(values), label)

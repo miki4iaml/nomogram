@@ -16,17 +16,45 @@
       "canonical_units": "Pa",
       "pint": "Pa"
     },
+    "air_pressure_at_mean_sea_level": {
+      "canonical_units": "Pa",
+      "pint": "Pa"
+    },
     "air_temperature": {
       "canonical_units": "K",
       "pint": "K"
     },
+    "air_temperature_lapse_rate": {
+      "canonical_units": "K m-1",
+      "pint": "K * m ** -1"
+    },
     "altitude": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
+    "atmosphere_layer_thickness_expressed_as_geopotential_height_difference": {
       "canonical_units": "m",
       "pint": "m"
     },
     "dew_point_temperature": {
       "canonical_units": "K",
       "pint": "K"
+    },
+    "eastward_wind": {
+      "canonical_units": "m s-1",
+      "pint": "m * s ** -1"
+    },
+    "geoid_height_above_reference_ellipsoid": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
+    "geopotential": {
+      "canonical_units": "m2 s-2",
+      "pint": "m ** 2 * s ** -2"
+    },
+    "geopotential_height": {
+      "canonical_units": "m",
+      "pint": "m"
     },
     "height": {
       "canonical_units": "m",
@@ -36,9 +64,17 @@
       "canonical_units": "m",
       "pint": "m"
     },
+    "height_above_reference_ellipsoid": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
     "humidity_mixing_ratio": {
       "canonical_units": "1",
       "pint": "dimensionless"
+    },
+    "latitude": {
+      "canonical_units": "degree_north",
+      "pint": "degree"
     },
     "mass_concentration_of_water_vapor_in_air": {
       "canonical_units": "kg m-3",
@@ -47,6 +83,10 @@
     "mole_fraction_of_water_vapor_in_air": {
       "canonical_units": "1",
       "pint": "dimensionless"
+    },
+    "northward_wind": {
+      "canonical_units": "m s-1",
+      "pint": "m * s ** -1"
     },
     "relative_humidity": {
       "canonical_units": "1",
@@ -80,6 +120,10 @@
       "canonical_units": "1",
       "pint": "dimensionless"
     },
+    "surface_air_pressure": {
+      "canonical_units": "Pa",
+      "pint": "Pa"
+    },
     "surface_altitude": {
       "canonical_units": "m",
       "pint": "m"
@@ -95,6 +139,10 @@
     "wet_bulb_temperature": {
       "canonical_units": "K",
       "pint": "K"
+    },
+    "wind_speed": {
+      "canonical_units": "m s-1",
+      "pint": "m * s ** -1"
     }
   },
   "quantity_kinds": {
@@ -112,9 +160,29 @@
       "scale_type": "ratio",
       "specialization_of": "Density"
     },
+    "AccelerationOfGravity": {
+      "added_units": [],
+      "applicable_units": [
+        "M-PER-SEC2"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/AccelerationOfGravity",
+      "label": "Acceleration of Gravity",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q30006",
+          "verified": "2026-10-28"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "Acceleration"
+    },
     "Altitude": {
       "added_units": [],
       "applicable_units": [
+        "FT",
         "KiloM",
         "M"
       ],
@@ -126,17 +194,17 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q190200",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/altitude/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "close",
           "target": "http://vocab.nerc.ac.uk/standard_name/height_above_mean_sea_level/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "interval",
@@ -155,7 +223,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q104946",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -175,12 +243,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q74758530",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/air_temperature/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "interval",
@@ -200,7 +268,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q29539",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -221,7 +289,7 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/dew_point_temperature/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "interval",
@@ -246,6 +314,7 @@
     "Height": {
       "added_units": [],
       "applicable_units": [
+        "FT",
         "KiloM",
         "M"
       ],
@@ -257,12 +326,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q208826",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/height/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -281,7 +350,28 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q107028650",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "Length": {
+      "added_units": [],
+      "applicable_units": [
+        "FT",
+        "KiloM",
+        "M"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Length",
+      "label": "Length",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q36253",
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -301,7 +391,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11423",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -321,12 +411,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q76378808",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/mass_concentration_of_water_vapor_in_air/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -353,7 +443,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q899138",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -373,7 +463,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1563068",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -397,12 +487,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q17232415",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/humidity_mixing_ratio/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -437,7 +527,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q125264",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -456,9 +546,23 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5776102",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "PlaneAngle": {
+      "added_units": [],
+      "applicable_units": [
+        "DEG",
+        "RAD"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/quantitykind/PlaneAngle",
+      "label": "Plane Angle",
+      "matches": [],
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -479,12 +583,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q39552",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/air_pressure/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -503,7 +607,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q174102",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -525,12 +629,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q2499617",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/relative_humidity/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -552,7 +656,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q76379414",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -575,10 +679,13 @@
       "specialization_of": "PressureRatio"
     },
     "SpecificEnergy": {
-      "added_units": [],
+      "added_units": [
+        "M2-PER-SEC2"
+      ],
       "applicable_units": [
         "J-PER-KiloGM",
-        "KiloJ-PER-KiloGM"
+        "KiloJ-PER-KiloGM",
+        "M2-PER-SEC2"
       ],
       "delta": false,
       "dimension_vector": "A0E0L2I0M0H0T-2D0",
@@ -588,7 +695,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3023293",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -608,7 +715,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q75774282",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -631,11 +738,35 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/specific_humidity/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
       "specialization_of": "MassRatio"
+    },
+    "Speed": {
+      "added_units": [],
+      "applicable_units": [
+        "M-PER-SEC"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T-1D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Speed",
+      "label": "Speed",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q3711325",
+          "verified": "2026-10-28"
+        },
+        {
+          "relation": "narrow",
+          "target": "http://vocab.nerc.ac.uk/standard_name/wind_speed/",
+          "verified": "2026-10-28"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
     },
     "Temperature": {
       "added_units": [],
@@ -652,7 +783,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11466",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "interval",
@@ -671,6 +802,19 @@
       "scale_type": "ratio",
       "specialization_of": "Temperature"
     },
+    "TemperatureGradient": {
+      "added_units": [],
+      "applicable_units": [
+        "K-PER-M"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/TemperatureGradient",
+      "label": "Temperature Gradient",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "ThermodynamicTemperature": {
       "added_units": [],
       "applicable_units": [
@@ -684,12 +828,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q264647",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/air_temperature/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -712,11 +856,40 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/water_vapor_partial_pressure_in_air/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
       "specialization_of": "Pressure"
+    },
+    "Velocity": {
+      "added_units": [],
+      "applicable_units": [
+        "M-PER-SEC"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T-1D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Velocity",
+      "label": "Velocity",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q11465",
+          "verified": "2026-10-28"
+        },
+        {
+          "relation": "narrow",
+          "target": "http://vocab.nerc.ac.uk/standard_name/eastward_wind/",
+          "verified": "2026-10-28"
+        },
+        {
+          "relation": "narrow",
+          "target": "http://vocab.nerc.ac.uk/standard_name/northward_wind/",
+          "verified": "2026-10-28"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
     },
     "Volume": {
       "added_units": [],
@@ -732,7 +905,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q39297",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "ratio",
@@ -753,7 +926,7 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/wet_bulb_temperature/",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "scale_type": "interval",
@@ -766,7 +939,7 @@
       "license": "CC0-1.0",
       "version": "95"
     },
-    "extracted": "2026-10-26",
+    "extracted": "2026-10-28",
     "qudt": {
       "attribution": "QUDT.org, https://qudt.org/",
       "license": "CC-BY-4.0",
@@ -782,7 +955,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q177974",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 101325.0,
@@ -792,6 +965,24 @@
       "ucum": "atm",
       "udunits": "atm"
     },
+    "DEG": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/DEG",
+      "label": "Degree",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q28390",
+          "verified": "2026-10-28"
+        }
+      ],
+      "multiplier": 0.017453292519943295,
+      "offset": 0.0,
+      "pint": "degree",
+      "symbol": "\u00b0",
+      "ucum": "deg",
+      "udunits": "\u00b0"
+    },
     "DEG_C": {
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/unit/DEG_C",
@@ -800,7 +991,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q25267",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -818,7 +1009,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q42289",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.5555555555555556,
@@ -828,6 +1019,24 @@
       "ucum": "[degF]",
       "udunits": "\u00b0F"
     },
+    "FT": {
+      "dimension_vector": "A0E0L1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/FT",
+      "label": "Foot",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q3710",
+          "verified": "2026-10-28"
+        }
+      ],
+      "multiplier": 0.3048,
+      "offset": 0.0,
+      "pint": "ft",
+      "symbol": "ft",
+      "ucum": "[ft_i]",
+      "udunits": "ft"
+    },
     "GM": {
       "dimension_vector": "A0E0L0I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/unit/GM",
@@ -836,7 +1045,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q41803",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.001,
@@ -854,7 +1063,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21061369",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.001,
@@ -872,7 +1081,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21604951",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.001,
@@ -890,7 +1099,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5139563",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 100.0,
@@ -908,7 +1117,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21393312",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -926,7 +1135,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q57175225",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -944,7 +1153,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3085309",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -962,7 +1171,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q20966455",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -980,7 +1189,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1709783",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -998,7 +1207,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11579",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1008,6 +1217,18 @@
       "ucum": "K",
       "udunits": "K"
     },
+    "K-PER-M": {
+      "dimension_vector": "A0E0L-1I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/unit/K-PER-M",
+      "label": "Kelvin per Metre",
+      "matches": [],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "K/m",
+      "symbol": "K/m",
+      "ucum": "K.m-1",
+      "udunits": null
+    },
     "KiloGM": {
       "dimension_vector": "A0E0L0I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/unit/KiloGM",
@@ -1016,7 +1237,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11570",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1034,7 +1255,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q106645216",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1052,7 +1273,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q844211",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1070,7 +1291,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q28924753",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1088,7 +1309,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21077849",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1000.0,
@@ -1106,7 +1327,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q108834064",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1000.0,
@@ -1124,7 +1345,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q828224",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1000.0,
@@ -1142,7 +1363,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21064807",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1000.0,
@@ -1160,7 +1381,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11582",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.001,
@@ -1178,7 +1399,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11573",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1196,7 +1417,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q182429",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1204,6 +1425,36 @@
       "pint": "m/s",
       "symbol": "m/s",
       "ucum": "m.s-1",
+      "udunits": null
+    },
+    "M-PER-SEC2": {
+      "dimension_vector": "A0E0L1I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/M-PER-SEC2",
+      "label": "Metre per Square Second",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q1051665",
+          "verified": "2026-10-28"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "m/s^2",
+      "symbol": "m/s\u00b2",
+      "ucum": "m.s-2",
+      "udunits": null
+    },
+    "M2-PER-SEC2": {
+      "dimension_vector": "A0E0L2I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/unit/M2-PER-SEC2",
+      "label": "Square Metre per Square Second",
+      "matches": [],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "m^2/s^2",
+      "symbol": "m\u00b2/s\u00b2",
+      "ucum": "m2.s-2",
       "udunits": null
     },
     "M3": {
@@ -1214,7 +1465,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q25517",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1232,7 +1483,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q41509",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1250,7 +1501,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q88957663",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1268,7 +1519,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q6859652",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 133.322387415,
@@ -1286,7 +1537,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q44395",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1304,7 +1555,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q107028673",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1322,7 +1573,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q68712008",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1340,7 +1591,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.01,
@@ -1358,7 +1609,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 0.001,
@@ -1376,7 +1627,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21006887",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1e-06,
@@ -1386,6 +1637,24 @@
       "ucum": "[ppm]",
       "udunits": null
     },
+    "RAD": {
+      "dimension_vector": "A0E0L0I0M0H0T0D1",
+      "iri": "http://qudt.org/vocab/unit/RAD",
+      "label": "Radian",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q33680",
+          "verified": "2026-10-28"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "radian",
+      "symbol": "rad",
+      "ucum": "rad",
+      "udunits": "rad"
+    },
     "UNITLESS": {
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/unit/UNITLESS",
@@ -1394,7 +1663,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q199",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,
@@ -1412,7 +1681,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21395834",
-          "verified": "2026-10-26"
+          "verified": "2026-10-28"
         }
       ],
       "multiplier": 1.0,

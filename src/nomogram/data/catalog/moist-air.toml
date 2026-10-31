@@ -200,7 +200,7 @@ year = 2025
 title = "MetPy 1.7.1, metpy.constants (src/metpy/constants/default.py) and metpy.calc.thermo"
 url = "https://github.com/Unidata/MetPy/tree/v1.7.1/src/metpy"
 status = "verified"
-note = "Read in the source: constants/default.py (epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol, 0.6219569; MetPy 0.12 used 18.01528 and 28.9644 g/mol; R, Rv = R / Mw, Cp_v = gamma Rv / (gamma - 1) with gamma = 1.330, Cp_l, Lv, sat_pressure_0c, T0); calc/thermo.py (water_latent_heat_vaporization, saturation_vapor_pressure with phase='liquid', psychrometric_vapor_pressure_wet). Released 2025-08-29."
+note = "Read in the source: constants/default.py (epsilon = Mw / Md, computed from Mw = 18.015268 g/mol and Md = 28.96546 g/mol, 0.6219569; MetPy 0.12 used 18.01528 and 28.9644 g/mol; R, Rv = R / Mw, Cp_v = gamma Rv / (gamma - 1) with gamma = 1.330, Cp_l, Lv, sat_pressure_0c, T0; Md, Rd = R / Md, Cp_d = 1.4 Rd / 0.4, P0, kappa = Rd / Cp_d); calc/thermo.py (water_latent_heat_vaporization, saturation_vapor_pressure with phase='liquid', psychrometric_vapor_pressure_wet; exner_function, potential_temperature, temperature_from_potential_temperature, vapor_pressure, dewpoint, mixing_ratio, saturation_mixing_ratio, virtual_temperature, density, relative_humidity_from_dewpoint, relative_humidity_from_mixing_ratio, relative_humidity_from_specific_humidity, isentropic_interpolation, mixed_parcel, mixed_layer) and tests/calc/test_thermo.py. Released 2025-08-29."
 
 [references.iapws95]
 authors = "IAPWS"
@@ -317,6 +317,63 @@ identifier = "L_v0"
 value = 2.50084e6
 unit = "J-PER-KiloGM"
 description = "Specific latent heat of vaporization of MetPy, at its reference temperature 273.16 K"
+reference = "metpy171"
+nature = "conventional"
+
+# The constants of MetPy for dry air and the potential temperature; R_d,
+# c_pd and kappa are computed by MetPy, the values here from their
+# definitions.
+[constants.M_d_metpy]
+identifier = "M_d"
+value = 0.02896546
+unit = "KiloGM-PER-MOL"
+description = "Molar mass of dry air of MetPy (28.96546 g/mol)"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.R_d_metpy]
+identifier = "R_d"
+value = "287.04749"
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of dry air of MetPy"
+reference = "metpy171"
+nature = "conventional"
+definition = "R / M_d"
+constants = ["R_metpy", "M_d_metpy"]
+
+[constants.gamma_d_metpy]
+identifier = "gamma_d"
+value = 1.4
+unit = "UNITLESS"
+description = "Ratio of the specific heats of dry air of MetPy"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.c_pd_metpy]
+identifier = "c_pd"
+value = "1004.6662"
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of dry air at constant pressure of MetPy"
+reference = "metpy171"
+nature = "conventional"
+definition = "gamma_d * R_d / (gamma_d - 1)"
+constants = ["gamma_d_metpy", "R_d_metpy"]
+
+[constants.kappa_metpy]
+identifier = "kappa"
+value = 0.2857142857142857
+unit = "UNITLESS"
+description = "Poisson exponent of MetPy, R_d / c_pd, 2/7 with its ratio of specific heats 1.4"
+reference = "metpy171"
+nature = "conventional"
+definition = "R_d / c_pd"
+constants = ["R_d_metpy", "c_pd_metpy"]
+
+[constants.p_0_metpy]
+identifier = "p_0"
+value = 1000.0
+unit = "HectoPA"
+description = "Reference pressure of the potential temperature of MetPy (P0, 1000 mbar)"
 reference = "metpy171"
 nature = "conventional"
 
@@ -1895,6 +1952,219 @@ reference = "metpy171"
 note = "psychrometric_vapor_pressure_wet in metpy.calc.thermo, with psychrometer_coefficient left at its default."
 units = { A = "PER-K" }
 
+# The thermodynamics of MetPy 1.7.1 that its vertical tools use (layers,
+# isentropic analysis, mixed parcel), with its constants: each the form
+# of a printed equation (Bechtold 2015, WMO-No. 8), which the note names.
+
+[formulations.metpy171_potential_temperature]
+label = "Potential temperature, MetPy constants"
+expression = "T * (p_0 / p) ** kappa"
+fixed_units = false
+note = "MetPy divides the temperature by the Exner function (p / P0)^kappa: equation 28 of Bechtold (2015, bechtold2015_potential_temperature) with kappa = R_d / c_pd = 2/7, from MetPy's ratio of specific heats 1.4, and P0 = 1000 hPa."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+constants = ["kappa_metpy", "p_0_metpy"]
+keywords = ["potential temperature", "adiabatic", "Exner function", "MetPy"]
+
+[[formulations.metpy171_potential_temperature.citations]]
+reference = "metpy171"
+note = "exner_function and potential_temperature, calc/thermo.py lines 335 and 371."
+
+[formulations.metpy171_temperature_from_potential_temperature]
+label = "Temperature from the potential temperature, MetPy constants"
+expression = "theta * (p / p_0) ** kappa"
+fixed_units = false
+note = "The potential temperature times the Exner function: the inverse of metpy171_potential_temperature, which MetPy codes as a function of its own; the mixed parcel brings its mean potential temperature back to a temperature so."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+constants = ["kappa_metpy", "p_0_metpy"]
+keywords = ["potential temperature", "adiabatic", "Exner function", "mixed layer", "MetPy"]
+
+[[formulations.metpy171_temperature_from_potential_temperature.citations]]
+reference = "metpy171"
+note = "temperature_from_potential_temperature, calc/thermo.py line 416."
+
+[formulations.metpy171_vapour_pressure]
+label = "Vapour pressure from the mixing ratio and the pressure, MetPy constants"
+expression = "p * r / (epsilon + r)"
+fixed_units = false
+note = "The definition of WMO-No. 8 (4.A.6, wmo_vapour_pressure_definition) with MetPy's epsilon, 0.6219569 against 0.62198."
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+]
+constants = ["epsilon_metpy"]
+keywords = ["humidity", "mixing ratio", "MetPy"]
+
+[[formulations.metpy171_vapour_pressure.citations]]
+reference = "metpy171"
+note = "vapor_pressure, calc/thermo.py line 1491."
+
+[formulations.metpy171_mixing_ratio]
+label = "Mixing ratio from the vapour pressure and the pressure, MetPy constants"
+expression = "epsilon * e / (p - e)"
+fixed_units = false
+note = "The form of ASHRAE (mixing_ratio_from_vapour_pressure) and Bechtold (2015) with MetPy's epsilon. MetPy also gives it a saturation vapour pressure, for the saturation mixing ratio (metpy171_saturation_mixing_ratio)."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure" },
+]
+constants = ["epsilon_metpy"]
+keywords = ["humidity", "mixing ratio", "MetPy"]
+
+[[formulations.metpy171_mixing_ratio.citations]]
+reference = "metpy171"
+note = "mixing_ratio, calc/thermo.py line 1768."
+
+[formulations.metpy171_saturation_mixing_ratio]
+label = "Saturation mixing ratio over water, MetPy"
+expression = "epsilon * e_s(T=T) / (p - e_s(T=T))"
+calls = { e_s = "metpy171_saturation_vapour_pressure" }
+fixed_units = false
+note = "The mixing ratio of the saturation vapour pressure of pure water, without enhancement factor. MetPy returns NaN where that vapour pressure reaches the pressure."
+output = { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio over water" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Total pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["epsilon_metpy"]
+keywords = ["humidity", "mixing ratio", "saturation", "MetPy"]
+
+[[formulations.metpy171_saturation_mixing_ratio.citations]]
+reference = "metpy171"
+note = "saturation_mixing_ratio with phase='liquid', calc/thermo.py line 1824."
+
+[formulations.metpy171_dew_point]
+label = "Dew point from the vapour pressure, MetPy (Bolton coefficients)"
+expression = "B * ln(e / C) / (A - ln(e / C))"
+fixed_units = true
+note = "The explicit inverse of the Magnus form with the coefficients of Bolton (1980, bolton1980), over water whatever the temperature. MetPy applies no temperature scale: its printed values come back with scale=\"ignore\", as the cross-check replays them; by default nomogram brings the dew point of Bolton's IPTS-68 coefficients onto ITS-90, a few millikelvins lower (19.0244 rather than 19.0291 degC at 22 hPa)."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "ipts68", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+coefficients = { A = 17.67, B = 243.5, C = 6.112 }
+keywords = ["humidity", "dew point", "MetPy"]
+
+[[formulations.metpy171_dew_point.citations]]
+reference = "metpy171"
+note = "dewpoint, calc/thermo.py line 1717: zero_degc + 243.5 val / (17.67 - val), val = ln(e / sat_pressure_0c)."
+
+[formulations.metpy171_dew_point_from_mixing_ratio]
+label = "Dew point from the mixing ratio and the pressure, MetPy"
+composition = { outer = "metpy171_dew_point", inner = { e = "metpy171_vapour_pressure" } }
+note = "As metpy171_dew_point: MetPy's values come back with scale=\"ignore\"; by default the dew point is brought from IPTS-68 onto ITS-90, a few millikelvins."
+keywords = ["humidity", "dew point", "mixing ratio", "mixed layer", "MetPy"]
+
+[formulations.metpy171_virtual_temperature]
+label = "Virtual temperature from the temperature and the mixing ratio, MetPy constants"
+expression = "T * (r + epsilon) / (epsilon * (1 + r))"
+fixed_units = false
+note = "Equation 25 of Bechtold (2015) in mixing ratio (bechtold2015_virtual_temperature_mixing_ratio), written as MetPy writes it, with its epsilon."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+]
+constants = ["epsilon_metpy"]
+keywords = ["virtual temperature", "humidity", "MetPy"]
+
+[[formulations.metpy171_virtual_temperature.citations]]
+reference = "metpy171"
+note = "virtual_temperature, calc/thermo.py line 2085."
+
+[formulations.bechtold2015_density]
+label = "Density of moist air from the pressure and the virtual temperature (Bechtold 2015)"
+expression = "p / (R_d * T_v)"
+fixed_units = false
+note = "Equation 23, the definition of the virtual temperature (bechtold2015_virtual_temperature_definition), solved for the density: moist air has the density of dry air at its virtual temperature."
+output = { identifier = "rho", kind = "DensityOfMoistAir", unit = "KiloGM-PER-M3", description = "Density of moist air" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" },
+]
+constants = ["R_d_bechtold2015"]
+keywords = ["density", "virtual temperature", "equation of state"]
+
+[[formulations.bechtold2015_density.citations]]
+reference = "bechtold2015"
+equation = "23"
+
+[formulations.metpy171_density_virtual_temperature]
+label = "Density of moist air from the pressure and the virtual temperature, MetPy constants"
+expression = "p / (R_d * T_v)"
+fixed_units = false
+note = "The form of bechtold2015_density with MetPy's R_d; MetPy's density computes the virtual temperature first (metpy171_density)."
+output = { identifier = "rho", kind = "DensityOfMoistAir", unit = "KiloGM-PER-M3", description = "Density of moist air" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" },
+]
+constants = ["R_d_metpy"]
+keywords = ["density", "virtual temperature", "MetPy"]
+
+[[formulations.metpy171_density_virtual_temperature.citations]]
+reference = "metpy171"
+note = "density, calc/thermo.py line 2257: pressure / (Rd * virttemp)."
+
+[formulations.metpy171_density]
+label = "Density of moist air from the pressure, the temperature and the mixing ratio, MetPy"
+composition = { outer = "metpy171_density_virtual_temperature", inner = { T_v = "metpy171_virtual_temperature" } }
+keywords = ["density", "humidity", "MetPy"]
+
+[formulations.metpy171_relative_humidity_from_mixing_ratio]
+label = "Relative humidity from the mixing ratio and the saturation mixing ratio, MetPy constants"
+nature = "identity"
+expression = "r / (epsilon + r) * (epsilon + r_w) / r_w"
+fixed_units = false
+conditions = "r_w at the pressure and temperature of the moist air."
+note = "The identity of WMO-No. 8 (4.A.16, wmo_relative_humidity_from_mixing_ratios) as a fraction, with MetPy's epsilon: the ratio of the mole fractions of water vapour, not r / r_w."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio" },
+  { identifier = "r_w", kind = "SaturationMixingRatioOverWater", unit = "KiloGM-PER-KiloGM", description = "Saturation mixing ratio with respect to water" },
+]
+constants = ["epsilon_metpy"]
+keywords = ["humidity", "mixing ratio", "MetPy"]
+
+[[formulations.metpy171_relative_humidity_from_mixing_ratio.citations]]
+reference = "metpy171"
+note = "relative_humidity_from_mixing_ratio with phase='liquid', calc/thermo.py line 2512."
+
+[formulations.metpy171_relative_humidity_from_specific_humidity]
+label = "Relative humidity from the specific humidity, the pressure and the temperature, MetPy"
+composition = { outer = "metpy171_relative_humidity_from_mixing_ratio", inner = { r = "mixing_ratio_from_specific_humidity", r_w = "metpy171_saturation_mixing_ratio" } }
+keywords = ["humidity", "specific humidity", "MetPy"]
+
+[[formulations.metpy171_relative_humidity_from_specific_humidity.citations]]
+reference = "metpy171"
+note = "relative_humidity_from_specific_humidity, calc/thermo.py line 2659: the mixing ratio from the specific humidity (line 2574), then relative_humidity_from_mixing_ratio."
+
+[formulations.metpy171_relative_humidity_from_dew_point]
+label = "Relative humidity from the dew point and the temperature, MetPy"
+expression = "e_s(T=T_d) / e_s(T=T)"
+calls = { e_s = "metpy171_saturation_vapour_pressure" }
+fixed_units = false
+note = "The saturation vapour pressure of pure water at the dew point over that at the temperature, as a fraction; without enhancement factor, which cancels in WMO-No. 8's form (wmo_relative_humidity_from_dew_point)."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity with respect to water" }
+inputs = [
+  { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point temperature" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+keywords = ["humidity", "dew point", "MetPy"]
+
+[[formulations.metpy171_relative_humidity_from_dew_point.citations]]
+reference = "metpy171"
+note = "relative_humidity_from_dewpoint with phase='liquid', calc/thermo.py line 283."
+
 # The mixing ratio from the wet-bulb temperature, ASHRAE Handbook -
 # Fundamentals (2017), chapter 1, equations 33 and 35, as PsychroLib codes
 # them (GetHumRatioFromTWetBulb, SI branch).
@@ -1979,6 +2249,76 @@ inputs = { p = 958.0, T = 298.15, T_w = 285.15 }
 value = 6.2752
 call = "psychrometric_vapor_pressure_wet(958 * units.hPa, 25 * units.degC, 12 * units.degC), printed 627.52 pascal"
 rtol = 1e-5
+
+[cross_checks.metpy171_thermo]
+implementation = "MetPy"
+version = "1.7.1"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1"
+checked = 2026-10-28
+note = "Values that MetPy 1.7.1 prints in the doctests of its docstrings, and one of its test suite (tests/calc/test_thermo.py), both run by its continuous integration; MetPy was not run here."
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_potential_temperature"
+inputs = { T = 273.0, p = 800.0 }
+value = 290.972015
+call = "potential_temperature(800. * units.mbar, 273. * units.kelvin)"
+rtol = 1e-8
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_vapour_pressure"
+inputs = { p = 988.0, r = 0.018 }
+value = 27.789371
+call = "vapor_pressure(988 * units.hPa, 18 * units('g/kg')).to('hPa')"
+rtol = 1e-7
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_dew_point"
+inputs = { e = 22.0 }
+value = 19.0291018
+call = "dewpoint(22 * units.hPa)"
+rtol = 1e-7
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_mixing_ratio"
+inputs = { e = 25.0, p = 1000.0 }
+value = 0.0159476131
+call = "mixing_ratio(25 * units.hPa, 1000 * units.hPa).to('g/kg'), printed 15.9476131 gram / kilogram"
+rtol = 1e-7
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_saturation_mixing_ratio"
+inputs = { p = 983.0, T = 298.15 }
+value = 0.0206736514
+call = "saturation_mixing_ratio(983 * units.hPa, 25 * units.degC).to('g/kg'), printed 20.6736514 gram / kilogram"
+rtol = 1e-7
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_virtual_temperature"
+inputs = { T = 283.0, r = 0.012 }
+value = 285.039709
+call = "virtual_temperature(283 * units.K, 12 * units('g/kg'))"
+rtol = 1e-8
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_density"
+inputs = { p = 1000.0, T = 283.15, r = 0.024 }
+value = 1.21307146
+call = "density(1000 * units.hPa, 10 * units.degC, 24 * units('g/kg'))"
+rtol = 1e-7
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_relative_humidity_from_dew_point"
+inputs = { T_d = 285.15, T = 298.15 }
+value = 0.442998365
+call = "relative_humidity_from_dewpoint(25 * units.degC, 12 * units.degC).to('percent'), printed 44.2998365 percent"
+rtol = 1e-7
+
+[[cross_checks.metpy171_thermo.cases]]
+formulation = "metpy171_relative_humidity_from_specific_humidity"
+inputs = { q = 0.012, p = 1013.25, T = 293.15 }
+value = 0.831268463
+call = "relative_humidity_from_specific_humidity(1013.25 * units.mbar, 20. * units.degC, 0.012 * units.dimensionless), test_rh_specific_humidity: 83.1268463 percent to 3 decimals"
+rtol = 2e-5
 
 [cross_checks.psychrolib_wet_bulb]
 implementation = "PsychroLib"

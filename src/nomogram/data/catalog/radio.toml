@@ -11,7 +11,7 @@
 name = "radio"
 label = "Radio refractivity of the atmosphere"
 format = 2
-requires = ["moist-air"]
+requires = ["atmosphere"]
 keywords = ["radio propagation", "refractivity", "troposphere"]
 
 # --- Quantity kinds ---------------------------------------------------
@@ -37,28 +37,7 @@ specialization_of = "DimensionlessRatio"
 scale_type = "interval"
 description = "M = N + h/a x 10^6, the radio refractivity corrected for the curvature of the Earth (a: its radius); ITU-R P.453 calls its unit the M-unit. Its zero depends on the origin of heights: an interval scale."
 
-[kinds.SurfaceAltitude]
-label = "Surface Altitude"
-specialization_of = "Altitude"
-description = "Altitude of the surface of the Earth, the lower boundary of the atmosphere."
-cf_standard_names = [{ name = "surface_altitude", relation = "exact", verified = 2026-10-26 }]
-
 # --- Formulations -----------------------------------------------------
-
-# Heights: an altitude z is above the geoid (about the mean sea level), a
-# height h above the surface; h = z - z_s needs the altitude z_s of the
-# surface, which nomogram never computes (it comes from a terrain model).
-
-[formulations.height_above_surface]
-label = "Height above the surface"
-expression = "z - z_s"
-fixed_units = false
-note = "Definition (CF: height is the vertical distance above the surface). The altitude of the surface comes from a terrain model, outside nomogram."
-output = { identifier = "h", kind = "Height", unit = "KiloM", description = "Height above the surface" }
-inputs = [
-  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Altitude" },
-  { identifier = "z_s", kind = "SurfaceAltitude", unit = "KiloM", description = "Altitude of the surface" },
-]
 
 [formulations.itu_r_p453_refractive_index]
 label = "Radio refractive index from the refractivity (ITU-R P.453)"

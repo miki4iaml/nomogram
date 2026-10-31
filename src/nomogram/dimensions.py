@@ -20,8 +20,10 @@ brings a constraint:
 - the terms of a sum, and the sum, share one dimension;
 - a product multiplies units; a power with a numerical exponent raises
   the unit to it;
-- the argument of a function (exp, ln, log10), and the base and exponent
-  of a power with a symbolic exponent, are pure numbers;
+- the argument of a function (exp, ln, log10, sin, cos), and the base
+  and exponent of a power with a symbolic exponent, are pure numbers;
+- an angle in the argument of sin or cos is in radians: in degrees, its
+  value would be read as radians;
 - both sides of the equation share one dimension.
 
 A formulation with fixed units is a numerical value equation (VIM 1.25),
@@ -407,6 +409,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
         formulation.fixed_units, units, frozenset(unknown), coefficients, {}
     )
     expr = formulation.sympy_expression
+    _angles_in_radians(expr, units)
     output = sympy.Symbol(formulation.output.identifier, real=True)
     candidates = [
         _Constraint("equal", (output, expr), f"{output} = {expr}"),
@@ -415,6 +418,25 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     ]
     constraints = [c for c in candidates if not context.numerical(c)]
     return context, constraints, expr
+
+
+def _angles_in_radians(expr: Any, units: Mapping[str, Any]) -> None:
+    """Refuse a pure number other than in radians where sin or cos take it.
+
+    pint counts the degree as dimensionless, worth pi/180: the dimension
+    check alone would let an angle in degrees be read as radians.
+    """
+    for node in expr.atoms(sympy.sin, sympy.cos):
+        for symbol in sorted(node.free_symbols, key=str):
+            unit = units.get(symbol.name)
+            if unit is None or not unit.dimensionless:
+                continue
+            if ureg.Quantity(1.0, unit).to(ureg.radian).magnitude != 1.0:
+                msg = (
+                    f"in {node}: {symbol} in {unit_text(unit)} (an angle in a "
+                    "trigonometric function is in radians)"
+                )
+                raise DimensionError(msg)
 
 
 def _dimension(unit: Any) -> dict[str, Fraction]:

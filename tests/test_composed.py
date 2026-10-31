@@ -502,6 +502,186 @@ def test_a_composition_cannot_contradict_a_part(
         load_catalog([PARTS, stated_in_part(**changes)])
 
 
+TWO_LEVELS = """
+[formulations.difference]
+label = "Difference"
+expression = "x - y"
+fixed_units = true
+output = { identifier = "d", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [
+  { identifier = "x", kind = "VapourPressure", unit = "HectoPA", description = "x" },
+  { identifier = "y", kind = "VapourPressure", unit = "HectoPA", description = "y" },
+]
+
+[formulations.between]
+label = "Between two levels"
+composition = { outer = "difference", inner = { x = "pressure", y = "pressure" }, bind = {bind} }
+"""
+
+
+def test_bind_may_rename_the_inputs_of_one_part() -> None:
+    bind = '{ x = { t = "t_1" }, y = { t = "t_2" } }'
+    f = load_catalog([PARTS, TWO_LEVELS.replace("{bind}", bind)]).formulations
+    between = f["between"]
+    assert [v.identifier for v in between.inputs] == ["t_1", "t_2"]
+    t_1, t_2 = Q_(20.0, "degC"), Q_(5.0, "degC")
+    expected = f["pressure"].evaluate(t=t_1) - f["pressure"].evaluate(t=t_2)
+    assert between.evaluate(t_1=t_1, t_2=t_2).magnitude == pytest.approx(
+        expected.magnitude
+    )
+    # One part, reached twice: its coefficients count once.
+    assert [c.identifier for c in between.coefficients] == ["a", "b"]
+
+
+@pytest.mark.parametrize(
+    ("bind", "message"),
+    [
+        ('{ z = { t = "u" } }', "no inner formulation computes 'z'"),
+        ('{ x = { zz = "u" } }', "'zz' is not an input of pressure"),
+        ('{ x = { t = "y" } }', "'y' is computed by pressure"),
+        ("{ x = { t = 1 } }", "expected the identifier of an input"),
+        ('"t"', "bind: expected a table"),
+    ],
+)
+def test_invalid_bindings_of_one_part_are_refused(bind: str, message: str) -> None:
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([PARTS, TWO_LEVELS.replace("{bind}", bind)])
+
+
+def test_an_input_of_a_part_computed_by_another_is_refused() -> None:
+    # One identifier would name two quantities, as a bind to it would.
+    clash = """
+[formulations.doubled]
+label = "Doubled"
+expression = "2 * x"
+fixed_units = true
+output = { identifier = "d", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "x", kind = "VapourPressure", unit = "HectoPA", description = "x" }]
+
+[formulations.clash]
+label = "A part whose input another part computes"
+composition = { outer = "difference", inner = { x = "pressure", y = "doubled" } }
+"""
+    bind = '{ x = { t = "t_1" }, y = { t = "t_2" } }'
+    with pytest.raises(
+        CatalogError, match="input 'x' of doubled is computed by pressure"
+    ):
+        load_catalog([PARTS, TWO_LEVELS.replace("{bind}", bind), clash])
+
+
+SCALE_FREE = """
+[formulations.interpolated]
+label = "A temperature between two levels"
+expression = "t_1 + (t_2 - t_1) * w"
+fixed_units = true
+output = { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "out" }
+inputs = [
+  { identifier = "t_1", kind = "CelsiusTemperature", unit = "DEG_C", description = "first" },
+  { identifier = "t_2", kind = "CelsiusTemperature", unit = "DEG_C", description = "second" },
+  { identifier = "w", kind = "DimensionlessRatio", unit = "UNITLESS", description = "weight" },
+]
+
+[formulations.interpolated_old]
+label = "A temperature between two levels, on the old scale"
+expression = "t_1 * (1 - w) + t_2 * w"
+fixed_units = true
+output = { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "out" }
+inputs = [
+  { identifier = "t_1", kind = "CelsiusTemperature", unit = "DEG_C", description = "first" },
+  { identifier = "t_2", kind = "CelsiusTemperature", unit = "DEG_C", description = "second" },
+  { identifier = "w", kind = "DimensionlessRatio", unit = "UNITLESS", description = "weight" },
+]
+citations = [{ reference = "src", scales = { t_1 = "older" } }]
+
+[formulations.pressure_ref]
+label = "Pressure on the reference scale"
+expression = "a * exp(b * t)"
+fixed_units = true
+output = { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+coefficients = { a = 6.5, b = 0.07 }
+citations = [{ reference = "src", scales = { t = "ref" } }]
+
+[formulations.fed]
+label = "Fed by a part on no scale"
+composition = { outer = "{outer}", inner = { t = "{inner}" } }
+"""
+
+
+def scale_free(inner: str, outer: str = "pressure_ref") -> str:
+    return SCALE_FREE.replace("{inner}", inner).replace("{outer}", outer)
+
+
+def test_a_part_on_no_scale_takes_the_reference_scale_it_feeds() -> None:
+    document = scale_free("interpolated")
+    fed = load_catalog([PARTS, stated_in_part(), document]).formulations["fed"]
+    scales = {v.identifier: getattr(v.scale, "key", None) for v in fed.inputs}
+    assert scales == {"t_1": "ref", "t_2": "ref", "w": None}
+
+
+@pytest.mark.parametrize(
+    "inner",
+    [
+        # Converting the inputs of a part would not convert what it computes.
+        "interpolated",
+        "interpolated_old",
+    ],
+)
+def test_a_part_feeds_another_scale_only_from_that_scale(inner: str) -> None:
+    document = scale_free(inner, outer="pressure_old")
+    with pytest.raises(
+        CatalogError, match="gives a value on scale None, but t is on old"
+    ):
+        load_catalog([PARTS, stated_in_part(), document])
+
+
+SHARED = """
+[formulations.shared]
+label = "A factor and a pressure of the same temperature"
+composition = { outer = "outer", inner = { k = "factor", e = "{pressure}" } }
+"""
+
+
+def test_an_input_on_no_scale_meets_the_same_input_on_the_reference_scale() -> None:
+    shared = SHARED.replace("{pressure}", "pressure_ref")
+    built = load_catalog(
+        [PARTS, stated_in_part(), scale_free("interpolated"), shared]
+    ).formulations["shared"]
+    (t,) = built.inputs
+    assert t.scale is not None
+    assert t.scale.key == "ref"
+
+
+def test_an_input_on_no_scale_never_meets_one_on_another_scale() -> None:
+    # The part on no scale would receive the value converted for the other.
+    shared = SHARED.replace("{pressure}", "pressure_old")
+    with pytest.raises(CatalogError, match="differs in kind, unit or scale"):
+        load_catalog([PARTS, stated_in_part(), shared])
+
+
+def test_a_factor_that_cancels_between_two_calls_of_a_part_stays_declared() -> None:
+    ratio = """
+[formulations.ratio]
+label = "Ratio of a pressure at two temperatures"
+expression = "e(t=t_1) / e(t=t_2)"
+calls = { e = "pressure" }
+fixed_units = true
+output = { identifier = "k", kind = "DimensionlessRatio", unit = "UNITLESS", description = "out" }
+inputs = [
+  { identifier = "t_1", kind = "CelsiusTemperature", unit = "DEG_C", description = "first" },
+  { identifier = "t_2", kind = "CelsiusTemperature", unit = "DEG_C", description = "second" },
+]
+
+[formulations.scaled_ratio]
+label = "A pressure times that ratio"
+composition = { outer = "outer", inner = { k = "ratio" } }
+"""
+    f = load_catalog([PARTS, ratio]).formulations["scaled_ratio"]
+    # SymPy simplifies a away, the substituted expression keeps it.
+    assert "a__pressure" in {c.identifier for c in f.coefficients}
+    assert "a__pressure" not in {s.name for s in f.sympy_expression.free_symbols}
+
+
 def test_a_composition_links_to_the_kinds_and_scales_of_its_variables() -> None:
     built = load_catalog([PARTS, stated_in_part()])
     # Its table writes no variable: they come from its parts.
@@ -671,7 +851,8 @@ composition = { outer = "outer", inner = { e = "pressure" } }
 
 [formulations.nested]
 label = "Nested"
-composition = { outer = "outer", inner = { k = "factor", e = "half" } }
+# Half takes a factor of its own: bound apart from the k that factor computes.
+composition = { outer = "outer", inner = { k = "factor", e = "half" }, bind = { e = { k = "g" } } }
 """
 
 BOTH_DOMAINS = """
@@ -716,12 +897,18 @@ def test_without_a_domain_of_its_own_a_composition_is_the_chain(
     chain = compose(f["outer"], {"k": f["factor"], "e": f["pressure"]})
     half = compose(f["outer"], {"e": f["pressure"]})
     nested_chain = compose(f["outer"], {"k": f["factor"], "e": half})
-    cases: list[tuple[Formulation, Composition, dict[str, Any]]] = [
-        (f["both"], chain, {"t": GRID}),
-        (f["nested"], nested_chain, {"k": Q_(1.0, ""), "t": GRID}),
+    # The factor of half: g in the catalog, which binds it apart, k in the chain.
+    cases: list[tuple[Formulation, dict[str, Any], Composition, dict[str, Any]]] = [
+        (f["both"], {"t": GRID}, chain, {"t": GRID}),
+        (
+            f["nested"],
+            {"g": Q_(1.0, ""), "t": GRID},
+            nested_chain,
+            {"k": Q_(1.0, ""), "t": GRID},
+        ),
     ]
-    for composed, reference, inputs in cases:
-        assert valid(composed.evaluate(basis=basis, **inputs)) == expected
+    for composed, own, reference, inputs in cases:
+        assert valid(composed.evaluate(basis=basis, **own)) == expected
         assert valid(reference.evaluate(basis=basis, **inputs)) == expected
 
 

@@ -102,6 +102,27 @@ def test_identical_formulations_are_refused_with_a_suggestion() -> None:
         load_catalog([document])
 
 
+def test_two_writings_that_round_apart_are_still_refused() -> None:
+    # a (T - b) and a T - a b nearly cancel at the probe value 260: their
+    # values differ in the seventh digit, and the prefilter lets them meet.
+    template = """
+[formulations.{key}]
+label = "A linear form"
+expression = "{expression}"
+fixed_units = true
+output = {{ identifier = "y", kind = "Pressure", unit = "HectoPA", description = "out" }}
+inputs = [{{ identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "in" }}]
+coefficients = {{ a = 3.0, b = 259.9999999 }}
+"""
+    document = template.format(key="a", expression="a * (T - b)") + template.format(
+        key="b", expression="a * T - a * b"
+    )
+    with pytest.raises(
+        CatalogError, match="formulations.b: identical to formulations.a"
+    ):
+        load_catalog([document])
+
+
 def test_the_bundled_catalog_has_no_duplicates() -> None:
     signatures = [signature(f) for f in CATALOG.formulations.values()]
     assert len(set(signatures)) == len(signatures)

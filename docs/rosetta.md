@@ -48,7 +48,7 @@ correspondences checked in those versions.
 | derivation, inversion | none | — | — | `sympy.solve` | — | MathModDB `linearized by`, `discretized by`, `nondimensionalized by`: derivations of models, of other kinds | `nomogram.inversion.invert`: a formulation of one input, inverted. A closed form found by SymPy (after taking logarithms) becomes a formulation with its own expression and LaTeX, branch by branch for a piecewise definition whose branches are strictly monotonic on their intervals; otherwise the inverse is solved numerically. `Derivation` records the source and the method; validity domains are carried through the function, and temperatures return to ITS-90. |
 | definition, identity | `qudt:latexDefinition` (the definition of a quantity kind, as LaTeX text: `$x = m/m_d$`) | quantity equation (VIM 1.22), by which a quantity is defined (VIM 1.12, examples: v = dr/dt) | — | — | — | MathModDB `defining formula` (P989) of a quantity; Wikidata P2534 *defining formula* | `FormulationNature`: a formulation true by definition, or an exact consequence of definitions, cited to a text that prints it; it has no empirical coefficient nor stated domain. Unlike the defining formulas of QUDT (text), MathModDB and Wikidata (MathML), it is evaluable, with units, and cited. A formulation derived by nomogram (`Formulation.derived`) is a composition, branches or calls without a citation of their own: its provenance is its `Derivation`. |
 | assumption | none | — | — | — | — | MathModDB `assumes`: a model or a formula assumes another formula, the assumption written as a formula (closed system approximation), without a status; here a text with its status | `Assumption`: what a formulation assumes, stated by its source (in the citation), stated by another source, deduced from its form, or suspected; never turned into a validity domain without a criterion. |
-| comparison, composition | none | — | — | `sympy.Expr.subs` | — | MathModDB `contains` (a model contains formulas), loosely | `nomogram.comparison`: `compare` gives the relative deviation of formulations of one kind from a reference; `compose` feeds formulations into another, numerically. A composed catalog entry (`composition`) substitutes the expressions of its parts and is an ordinary formulation, with `Derivation` method `"composition"`. An entry may also call formulations in its expression, each at its own arguments (`calls`, `Derivation` method `"calls"`), as a Modelica function call names its arguments. Inputs are matched by quantity kind; the Celsius and thermodynamic temperatures express one state (t = T − 273.15 K) and match the same input, a temperature difference never does. In a composition, a result may feed an input of a more general kind (`specializationOf`): a saturation vapour pressure feeds a vapour pressure input, never the reverse. |
+| comparison, composition | none | — | — | `sympy.Expr.subs` | — | MathModDB `contains` (a model contains formulas), loosely | `nomogram.comparison`: `compare` gives the relative deviation of formulations of one kind from a reference; `compose` feeds formulations into another, numerically. A composed catalog entry (`composition`) substitutes the expressions of its parts and is an ordinary formulation, with `Derivation` method `"composition"`. An entry may also call formulations in its expression, each at its own arguments (`calls`, `Derivation` method `"calls"`), as a Modelica function call names its arguments. Inputs are matched by quantity kind; the Celsius and thermodynamic temperatures express one state (t = T − 273.15 K) and match the same input, a temperature difference never does. In a composition, a result may feed an input of a more general kind (`specializationOf`): a saturation vapour pressure feeds a vapour pressure input, never the reverse. A composed entry may rename the inputs of one part only (`bind` per part: a potential temperature at two levels), and a part on no conventional scale (an interpolation, a definition) feeds an input on any. `partial` fixes inputs, as `functools.partial` fixes arguments: the two levels of an interpolation scheme, so that schemes compare along the target pressure. |
 | search, selection, link | none | — | — | — | — | — | `Catalog.search`: shell-style wildcards matched against the words of every entry (names, symbols in every notation, labels, CF names), without case or accents; field filters; a `Selection` searched again or combined (`&`, `|`, `-`). `uses` / `used_by` follow the links between entries (`Catalog.links`). See [search.md](search.md). |
 | cross-check | none | — | — | — | — | — | `[cross_checks]` in the catalog: values of formulations computed once by another implementation, with its version and the date; replayed by the tests (`nomogram.relations.replay`). An observation that two implementations of a printed equation agree on given points, never a source nor a proof. |
 | trade term | none | — | — | — | — | — | `nomogram.model.TradeTerm`: a term whose meaning depends on the trade (absolute humidity), recorded as a label pointing to unambiguous kinds, never as a kind. |
@@ -77,7 +77,11 @@ correspondences checked in those versions.
 
 Some terms mean different quantities in different communities. nomogram
 records the term as a label, never as a kind, and points to the
-unambiguous kinds.
+unambiguous kinds. Each meaning points to the quantity its source
+defines, read with the source's own notes and guidance, not to a kind
+that only shares the term; where no kind is that quantity, nomogram
+defines one, a sibling of the look-alikes
+([catalog.md](catalog.md#specializations-siblings-and-trade-terms)).
 
 | Term | Meaning | Community | Kind (QUDT / ISO 80000-5) | Typical unit | Sources |
 |---|---|---|---|---|---|
@@ -104,6 +108,31 @@ extrapolated to sea level) and for a height above ground in its equation
 17 (figure 12). nomogram keeps the identifiers apart (z, z_s, h, with
 distinct kinds) and gives each source its own symbols in the notation of
 its citation.
+
+Vertical coordinates collide most: WMO calls "geopotential" in its
+upper-air observations what CF calls the geopotential height (in
+standard geopotential metres, not in m² s⁻²); aviation reckons an
+altitude from mean sea level and a height from a specified datum (SERA,
+the ICAO definitions), both altimetric, read on an altimeter through the
+standard atmosphere, "rather than geometric" (SERA's guidance material),
+while CF reckons geometric ones from the geoid and from the surface; a
+pressure altitude is a geopotential height of the standard atmosphere,
+not of the actual one. Even the geopotential metre changed: 9.8 m² s⁻²
+until 30 June 1972, the standard geopotential metre of 9.806 65 m² s⁻²
+since (ISO 2533, after WMO). [vertical.md](vertical.md) gives the kind of
+each coordinate, the trade terms and their sources.
+
+The names of tools are not quantities either. MetPy's "isentropic
+interpolation" is a change of vertical coordinate to the potential
+temperature: the pressure of each surface found with the temperature
+linear in ln p, then the other variables interpolated linearly in the
+potential temperature; its "mixed layer" is a
+mean by mass over a layer, its "mixed parcel" that mean of the potential
+temperature and the mixing ratio brought back to a temperature and a dew
+point; its "Exner function" is (p/p_0)^κ, the potential temperature
+being T over it. nomogram keeps these names as keywords and in notes, on
+formulations of the quantities they compute
+([vertical.md](vertical.md#humidity-between-two-levels)).
 
 Over sea water, "about 98 %" is said of three close quantities: the
 vapour pressure of sea water relative to pure water at the same
@@ -205,6 +234,21 @@ silently.
     a unit, as CF (canonical unit 1) and TEOS-10 do, and the Knudsen and
     Cox salinities, mass ratios, in per mille.
 
+17. QUDT 3.5.2 has no kind for the geopotential or the geopotential
+    height, and no geopotential metre; nomogram declares `Geopotential`
+    under `SpecificEnergy` and `GeopotentialHeight` under `Length` (not
+    under `Altitude`, which it must not feed), in metres. QUDT declares
+    m² s⁻², CF's unit of the geopotential, for `SpecificModulus` only:
+    nomogram adds it to `SpecificEnergy`.
+18. `quantitykind:TemperatureGradient` specializes no kind, and QUDT has
+    no K/km. CF's `air_temperature_lapse_rate` is the negative derivative
+    with respect to height: nomogram declares `LapseRate` (−dT/dz) and
+    `VerticalTemperatureGradient` (dT/dz) as siblings under it.
+19. QUDT has no kind for the wind speed; `quantitykind:Speed` ("the
+    magnitude of velocity") and `quantitykind:Velocity` (an exact match
+    of `LinearVelocity`) carry CF's `wind_speed`, `eastward_wind` and
+    `northward_wind`, narrower since the wind is the air's.
+
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,
 `sea_water_reference_salinity`, `sea_water_absolute_salinity` and
@@ -229,6 +273,14 @@ Read on 14 October 2026.
 - *Arden Buck equation* (Q4787919) is described as a group of
   correlations: Buck 1981 and Buck 1996 are narrower than it, which is
   why links carry a relation.
+- Read on 28 October 2026: the French labels of *pressure altitude*
+  (Q17130615) and of *QNH* (Q3233965) are both "QNE", another Q code,
+  which names neither quantity; *lapse rate* (Q66900467)
+  is labelled "gradient adiabatique dans l'atmosphère" in French,
+  narrower than a lapse rate. *Geopotential height* (Q12432978) had no
+  French label. All four were corrected the same day from nomogram's
+  account ("altitude-pression", with "QNE" kept as an alias, "QNH",
+  "gradient vertical de température", "hauteur géopotentielle").
 
 ## External links
 

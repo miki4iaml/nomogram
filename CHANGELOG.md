@@ -8,6 +8,184 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+
+### Added
+
+- Family `atmosphere`: the vertical coordinates, each a quantity kind
+  defined after a text in force (CF standard names, WMO-No. 8 2024, the
+  IFS documentation, and for aviation the SERA regulation, which takes
+  over the ICAO definitions). Geopotential, geopotential height and the
+  thickness of a layer, pressure altitude, ellipsoidal and geoid heights,
+  the lapse rate (-dT/dz) and the vertical temperature gradient (dT/dz)
+  as siblings, surface and mean-sea-level pressures, QNH and QFE, and the
+  altitude and height of aviation, altimetric rather than geometric
+  (SERA's guidance material). Kinds that differ by metres never feed
+  each other: a geopotential height never feeds an altitude, and a
+  pressure altitude, a sibling of the geopotential height as in QUDT,
+  feeds neither. Trade terms give what each community means by
+  geopotential, altitude, height, elevation, pressure altitude and
+  flight level. The surface altitude and the height above the surface
+  move to this family, which `radio` now requires. Guide
+  `docs/vertical.md`.
+- The standard acceleration of free fall, g_n = 9.80665 m s-2 (3rd CGPM,
+  1901), a conventional constant.
+- From one vertical coordinate to another: the geopotential height from
+  the geopotential (WMO-No. 8, 12.12); between geometric altitude and
+  geopotential height with the radius of the U.S. Standard Atmosphere
+  (ITU-R P.835-7, 1a and 1b) and with the spherical Earth of the IFS
+  (ERA5); for a GPS radiosonde, from the geometric height and the
+  latitude on WGS 84 (WMO-No. 8, 12.15 and 12.16), composed of a normal
+  gravity, an effective radius and the generic form of 12.13 and 12.15;
+  the normal gravity of the Smithsonian tables (12.14). Kind
+  `GeodeticLatitude` (CF `latitude`, broader).
+- The hydrostatic atmosphere: the hypsometric equation with the mean
+  virtual temperature of the layer, in the pressure form of WMO-No. 8
+  (12.17) and the geopotential form of the IFS (Part III, 2.20); the
+  pressure in a layer of constant temperature gradient and in an
+  isothermal layer (U.S. Standard Atmosphere 1976, 33a and 33b, with its
+  constants R* and M0); the reduction of a station pressure to sea level
+  in the two forms of WMO-No. 8 (3.2 and 3.1), with the gas constant of
+  dry air it gives; the dry adiabatic gradient (Bechtold 2015, 38, with
+  its g = 9.81 m s-2). The assumptions each source states are recorded.
+- The reference atmosphere of ITU-R P.835-7, temperature (2a-2g) and
+  pressure (3a-3g) against the geopotential height up to 84.852 km'; each
+  pressure layer written as the general form of the U.S. Standard
+  Atmosphere with its values as coefficients. The pressure altitude by
+  inversion of that pressure (numerical: the source's layers meet with
+  small jumps), and the NWS formula in feet.
+- Interpolation between two levels, each scheme a formulation cited by
+  every source that uses it: the wind linear in ln p (FULL-POS, MetPy,
+  earthkit-meteo); the temperature linear in ln p (MetPy,
+  earthkit-meteo, NMC after Ziv and Alpert 1994, and between the
+  significant levels of a radiosonde report, WMO-No. 306), linear in p
+  (FULL-POS, ECMWF option) and linear in altitude; the specific humidity and the relative humidity linear in p
+  (FULL-POS); the geopotential height linear in ln p. `docs/vertical.md`
+  compares them on the ITU-R reference atmosphere.
+- The water vapour of the ITU-R reference atmosphere (P.835-7, 6 and 8),
+  against the geometric height.
+- The Celsius temperature from the thermodynamic temperature, t = T - T0
+  (SI Brochure, 2.3.1), with the exact constant T0 = 273.15 K: in a
+  composition, it lets a temperature in kelvins feed an input in degrees
+  Celsius.
+- Extrapolation below the surface, as ECMWF post-processes ERA5 (FULL-POS;
+  Trenberth et al. 1993, NCAR TN-396): the surface temperature from a
+  model level through the standard lapse rate; the temperature, the
+  geopotential and the mean sea level pressure of a dry column of uniform
+  lapse rate, in their exact forms and in the third-order expansions the
+  operational code uses. The FULL-POS documentation prints an inverted
+  logarithm in two of these equations; the citations record it and the
+  corrected form, given by Trenberth et al.
+- `nomogram.plot.plot_profile`: a vertical profile, the values of each
+  formulation along x against the vertical coordinate along y; a pressure
+  goes downwards on a logarithmic axis labelled with plain numbers, a
+  height upwards. With the option sets, as the other plots.
+  `nomogram.plot.plot_profiles` draws several side by side, one panel per
+  quantity, on a shared vertical coordinate in the unit of the first; the
+  figure widens until every legend and x-axis label fits in its panel,
+  and the signature takes a band of its own below them. Each tick of a
+  pressure axis is labelled on its own, 0.1 hPa included.
+- Composed formulations: `bind` may rename the inputs of one part only,
+  so that one formulation computes two inputs at different arguments (a
+  potential temperature at two levels). A part on no conventional scale,
+  such as an interpolation or a definition, feeds an input on the
+  reference scale, where nothing is converted: its temperatures take that
+  scale. An input of a part that another part computes is refused, as a
+  bind to its name is.
+- The thermodynamics of MetPy 1.7.1 that its vertical tools use, with its
+  constants: the potential temperature and its inverse, the vapour
+  pressure from the mixing ratio and the mixing ratio from the vapour
+  pressure, the saturation mixing ratio, the dew point (Bolton's
+  coefficients), the virtual temperature, the density of moist air, and
+  the relative humidity from the mixing ratio, the specific humidity or
+  the dew point. Each names the printed equation it takes the form of,
+  and agrees with the values MetPy prints in its docstrings and tests,
+  evaluated as MetPy codes it: with `scale="ignore"` for the dew point,
+  whose IPTS-68 coefficients nomogram otherwise brings onto ITS-90, a
+  few millikelvins.
+- The density of moist air from the pressure and the virtual
+  temperature (Bechtold 2015, 23).
+- Humidity between two levels as MetPy practises it, each scheme a
+  formulation citing the code that applies it: the dew point linear in
+  ln p (its layers; what a Skew-T draws) and in p (its stability
+  indices), the specific humidity and the mixing ratio linear in ln p, the
+  mixing ratio linear in p (Galvez-Davison index), the potential
+  temperature linear in ln p (its mixed parcel), the specific humidity
+  linear in the potential temperature (its isentropic analysis). The
+  potential temperature between two levels whose temperature is linear in
+  ln p, on which MetPy places an isentropic surface (after Ziv and Alpert
+  1994). The relative humidity between two levels by each of these
+  practices, composed from them: `docs/vertical.md` compares them on the
+  ITU-R reference atmosphere, in a figure, and reproduces MetPy's mixed
+  parcel from the formulations.
+- The specific humidity between two levels, its logarithm linear in that
+  of the pressure, a scheme nomogram writes without a source, and the
+  relative humidity that follows: within 0.03 point of the reference
+  atmosphere's at 700 hPa, by compensation (q 2.5 % too humid, the
+  temperature in ln p 0.3 K too warm), where the chords in q are 12.2
+  and 13.4 points too humid.
+- The pressure of an isentropic level between two pressure levels, in
+  closed form, by four of the relations between temperature and pressure
+  Ziv and Alpert (1994) compare: the potential temperature linear in p or
+  in p^kappa, the temperature linear in height or in p^kappa; the fifth,
+  the temperature linear in ln p, is MetPy's potential temperature between
+  two levels. A misprint of their equation 15 is recorded and corrected.
+- The pressure altitude of the ISO standard atmosphere in closed form,
+  layer by layer from -1 450 to 47 000 m (ISO 2533, Addendum 1, 1985),
+  checked against its printed hypsometrical tables. ISO 2533 (1975) cited
+  on the conversions between geopotential and geometric altitudes.
+- `nomogram.comparison.partial` fixes some inputs of a formulation, as
+  `functools.partial` fixes arguments: the two levels of an
+  interpolation scheme, so that schemes compare along the target
+  pressure. `compose` and `partial` take a `label`, for the legends of
+  plots. `partial` checks that each value is a quantity of the dimension
+  of its input.
+- Display option `grid`: a light grid behind the curves of a plot, drawn
+  by the preset `DisplayOptions.DOCUMENTATION`, so that the figures of
+  the documentation no longer set it themselves.
+- Functions `sin` and `cos` in expressions. An angle in their argument
+  is in radians: a variable in degrees there is refused, pint counting
+  the degree as a pure number.
+- From QUDT 3.5.2: the kinds `Length`, `AccelerationOfGravity`,
+  `TemperatureGradient`, `Velocity` and `Speed` (with the CF names of the
+  wind) and `PlaneAngle`, and the units m s-2, m2 s-2 (added to
+  `SpecificEnergy`, CF's unit of the geopotential), K m-1, ft, rad and
+  degree.
+- The catalog guide states one rule for kinds and trade terms: a kind
+  specializes another only when its values can feed every input of the
+  other, a look-alike gets a sibling kind, and each meaning of a trade
+  term points to the quantity its source defines.
+
+### Changed
+
+- `compare` refuses a value that would feed several inputs of one
+  formulation, such as the target pressure and the two levels of an
+  interpolation scheme, and points to `partial` to fix all but one; it
+  gave them all the same value.
+- An inversion no longer waits for SymPy to check the closed forms it
+  finds, which nomogram checks numerically anyway: the dew point of
+  MetPy's saturation vapour pressure is found in 4 s rather than 24 s.
+- Loading the catalog compares the canonical forms of two formulations,
+  to refuse duplicates, only where cheaper fingerprints meet, within
+  rounding: the bundled catalog loads in about 1.2 s rather than 3 s.
+- An expression nomogram derives from others (a composition, branches,
+  calls) is no longer bounded in length as a written one is: its parts
+  bound it: `nomogram.expression.parse_expression` takes `limit`
+  (`MAX_SOURCE_LENGTH` by default, `None` for none). A relation that
+  involves one is decided on samples, SymPy's simplification having no
+  bound on its cost. A factor that SymPy
+  simplifies away between two calls of a part of a composition stays
+  declared.
+
+### Fixed
+
+- On PyPI, the links and images of the README lead to the files of the
+  release; relative, they led nowhere. The release workflow makes them
+  absolute, at the release's tag, before building, and checks the built
+  description (`scripts/absolute_links.py`), links whose text is code
+  included; the README of the repository
+  keeps its relative links, its figure included.
+
 ## [0.4.0] - 2026-10-28
 
 ### Added
@@ -1020,7 +1198,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...develop
+[0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/miki4iaml/nomogram/compare/v0.1.1...v0.2.0

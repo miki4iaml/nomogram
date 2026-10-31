@@ -32,6 +32,7 @@ never signed, so that plots stay reusable in a layout of one's own.
 
 from __future__ import annotations
 
+import dataclasses
 import re
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
@@ -39,7 +40,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from nomogram.comparison import TEMPERATURE_POINTS, Comparison, same_state
+from nomogram.comparison import TEMPERATURE_POINTS, Comparison, feeds, same_state
 from nomogram.dimensions import unit_text
 from nomogram.display import (
     DisplayOptions,
@@ -53,7 +54,14 @@ from nomogram.display import (
 from nomogram.model import Citation, ConventionalScale, Notation
 from nomogram.units import is_offset_unit, ureg
 
-__all__ = ["SIGNATURE_HEIGHT", "plot_deviations", "plot_values", "sign"]
+__all__ = [
+    "SIGNATURE_HEIGHT",
+    "plot_deviations",
+    "plot_profile",
+    "plot_profiles",
+    "plot_values",
+    "sign",
+]
 
 #: Height of the signature, in points.
 SIGNATURE_HEIGHT = 16.0
@@ -66,6 +74,13 @@ _OFF_SCALE_RATIO = 3.0
 #: the longest of them, in characters.
 _LEGEND_COLUMN = 10
 _SHORT_ENTRY = 30
+
+#: Opacity of the grid of the display option ``grid``.
+_GRID_ALPHA = 0.3
+
+#: Share of a panel's width its legend or its x label may take, side by
+#: side (:func:`plot_profiles`); beyond, the figure is widened.
+_LEGEND_FILL = 0.9
 
 #: Largest deviations smaller than this share of the largest of all are
 #: rounding: they count as zero when curves go off scale.
@@ -94,14 +109,17 @@ def _axes(ax: Any) -> Any:
 
 
 def _abscissa(
-    comparison: Comparison, kind: str | None, notation: Notation | None = None
+    comparison: Comparison,
+    kind: str | None,
+    notation: Notation | None = None,
+    axis: str = "x",
 ) -> tuple[str, Any]:
-    """The input plotted along x: its label and its values."""
+    """The input plotted along ``axis``, x by default: its label and its values."""
     if kind is None:
         varying = [k for k, q in comparison.inputs.items() if np.ndim(q.magnitude) == 1]
         if len(varying) != 1:
             msg = (
-                "choose the input to plot along x with input_kind; "
+                f"choose the input to plot along {axis} with input_kind; "
                 f"one-dimensional inputs: {', '.join(sorted(varying)) or 'none'}"
             )
             raise ValueError(msg)
@@ -271,6 +289,12 @@ def _names(comparison: Comparison, keys: Iterable[str]) -> dict[str, str]:
     return {
         key: short[key] if counts[short[key]] == 1 else labels[key] for key in labels
     }
+
+
+def _grid(ax: Any) -> None:
+    """A light grid behind the curves, when the display options ask for it."""
+    if get_display_options().grid:
+        ax.grid(alpha=_GRID_ALPHA)
 
 
 def _legend(ax: Any) -> None:
@@ -468,6 +492,7 @@ def plot_deviations(
         name = f"Relative deviation from {cited or label}"
         ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
         ax.set(**axes)
+        _grid(ax)
         _legend(ax)
         if created and signature:
             sign(ax.figure, axes=ax)
@@ -551,26 +576,261 @@ def plot_values(
             # Points of an interval scale (degC) have no ratio: never logarithmic.
             offset = is_offset_unit(comparison.values[comparison.reference].units)
             ax.set_yscale("linear" if offset else _values_scale(curves.values()))
-        reference = comparison.formulations.get(comparison.reference)
-        unit = unit_text(comparison.values[comparison.reference].units)
-        if reference is not None:
-            output = reference.output
-            ax.set_ylabel(
-                _axis_text(
-                    _kind_name(output.kind),
-                    symbol(output, notation, unit=False)[1:-1],
-                    unit,
-                    _scale(comparison, output.kind),
-                )
-            )
-        else:
-            ax.set_ylabel(axis_label(None, None, unit))
+        ax.set_ylabel(_values_label(comparison, notation))
         ax.set_xlabel(x_label)
         ax.set(**axes)
+        _grid(ax)
         _legend(ax)
         if created and signature:
             sign(ax.figure, axes=ax)
         return ax
+
+
+def _values_label(comparison: Comparison, notation: Notation | None) -> str:
+    """The label of the values: the output of the reference formulation."""
+    reference = comparison.formulations.get(comparison.reference)
+    unit = unit_text(comparison.values[comparison.reference].units)
+    if reference is None:
+        return axis_label(None, None, unit)
+    output = reference.output
+    return _axis_text(
+        _kind_name(output.kind),
+        symbol(output, notation, unit=False)[1:-1],
+        unit,
+        _scale(comparison, output.kind),
+    )
+
+
+def plot_profile(
+    comparison: Comparison,
+    *,
+    input_kind: str | None = None,
+    notation: Notation | None = None,
+    ax: Any = None,
+    signature: bool = True,
+    options: DisplayOptions | None = None,
+    **axes: Any,
+) -> Any:
+    """Plot a vertical profile: the values of each formulation against the input.
+
+    The input, a vertical coordinate, goes along y and the values along x,
+    the reference included. On axes the function creates, a pressure goes
+    downwards on a logarithmic axis, labelled with plain numbers, as on
+    soundings; a height upwards on a linear one.
+
+    Parameters
+    ----------
+    comparison : Comparison
+        The result of :func:`nomogram.comparison.compare`, over a vertical
+        coordinate.
+    input_kind : str, optional
+        Quantity kind of the vertical coordinate.
+    notation : Notation, optional
+        Notation of the symbol of the values; the display options in force
+        otherwise (:mod:`nomogram.display`).
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; new ones are created otherwise.
+    signature : bool
+        Sign the figure with the logo (:func:`sign`) when the function
+        creates it; a figure given through ``ax`` is never signed.
+    options : DisplayOptions, optional
+        Display options for this call, such as a preset
+        (``DisplayOptions.DOCUMENTATION``); those in force otherwise
+        (:func:`nomogram.display.display_options`).
+    **axes
+        Properties of the axes, set once the curves are drawn
+        (:meth:`matplotlib.axes.Axes.set`): ``ylim=(1000, 100)``,
+        ``xlim``, ``title``...
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The axes, for further customisation.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed (extra ``viz``).
+    ValueError
+        If the vertical coordinate cannot be determined.
+    """
+    with display_options(options):
+        kind = input_kind or _varying_kind(comparison)
+        y_label, y = _abscissa(comparison, kind, notation, axis="y")
+        created = ax is None
+        ax = _axes(ax)
+        curves = {
+            key: np.broadcast_to(np.asarray(quantity.magnitude, dtype=float), y.shape)
+            for key, quantity in comparison.values.items()
+        }
+        names = _names(comparison, curves)
+        for index, (key, values) in enumerate(curves.items()):
+            style = (
+                {"color": "black", "linestyle": "--"}
+                if key == comparison.reference
+                else _style(index)
+            )
+            ax.plot(values, y, label=names[key], **style)
+        if created:
+            _vertical_axis(ax, kind)
+        ax.set_xlabel(_values_label(comparison, notation))
+        ax.set_ylabel(y_label)
+        ax.set(**axes)
+        _grid(ax)
+        _legend(ax)
+        if created and signature:
+            sign(ax.figure, axes=ax)
+        return ax
+
+
+def plot_profiles(
+    comparisons: Iterable[Comparison],
+    *,
+    input_kind: str | None = None,
+    notation: Notation | None = None,
+    signature: bool = True,
+    options: DisplayOptions | None = None,
+    **axes: Any,
+) -> tuple[Any, ...]:
+    """Plot vertical profiles side by side, one panel per comparison.
+
+    Quantities of different kinds share no axis of values: a temperature,
+    a specific humidity and a relative humidity each get a panel, drawn as
+    by :func:`plot_profile`, and the panels share the vertical coordinate.
+
+    Parameters
+    ----------
+    comparisons : iterable of Comparison
+        Results of :func:`nomogram.comparison.compare` over one vertical
+        coordinate, in the order of the panels, from left to right.
+    input_kind : str, optional
+        Quantity kind of the vertical coordinate.
+    notation : Notation, optional
+        Notation of the symbols of the values; the display options in force
+        otherwise (:mod:`nomogram.display`).
+    signature : bool
+        Sign the figure with the logo (:func:`sign`), under the last panel.
+    options : DisplayOptions, optional
+        Display options for this call, such as a preset
+        (``DisplayOptions.DOCUMENTATION``); those in force otherwise
+        (:func:`nomogram.display.display_options`).
+    **axes
+        Properties set on every panel once the curves are drawn
+        (:meth:`matplotlib.axes.Axes.set`), such as ``ylim=(850, 500)``;
+        those of one panel, on the axes returned.
+
+    Returns
+    -------
+    tuple of matplotlib.axes.Axes
+        The panels, from left to right.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed (extra ``viz``).
+    ValueError
+        If there is no comparison, or the vertical coordinate is not one
+        kind, determined, for every panel.
+    """
+    comparisons = list(comparisons)
+    if not comparisons:
+        msg = "plot_profiles needs at least one comparison"
+        raise ValueError(msg)
+    with display_options(options):
+        kinds = {input_kind or _varying_kind(c) for c in comparisons}
+        if len(kinds) != 1 or None in kinds:
+            msg = (
+                "the panels share their vertical coordinate: compare over one "
+                "input kind, or give input_kind"
+            )
+            raise ValueError(msg)
+        (kind,) = kinds
+        assert kind is not None  # checked above
+        comparisons = _one_unit(comparisons, kind)
+        figure, panels = _pyplot().subplots(
+            1,
+            len(comparisons),
+            sharey=True,
+            squeeze=False,
+            figsize=(max(6.4, 3.2 * len(comparisons)), 4.8),
+        )
+        row = tuple(panels[0])
+        for index, (comparison, ax) in enumerate(zip(comparisons, row, strict=True)):
+            plot_profile(comparison, input_kind=kind, notation=notation, ax=ax)
+            if index:
+                ax.set_ylabel("")
+        # Shared: the scale and the direction set on one panel hold for all.
+        _vertical_axis(row[0], kind)
+        for ax in row:
+            ax.set(**axes)
+        # The signature in a band of its own, under the labels of the x axes,
+        # which the last panel brings to the right edge.
+        band = (SIGNATURE_HEIGHT + 8.0) / (72.0 * 4.8) if signature else 0.0
+        figure.set_layout_engine("tight", rect=(0.0, band, 1.0, 1.0))
+        _fit_text(figure, row)
+        if signature:
+            sign(figure)
+        return row
+
+
+def _one_unit(comparisons: list[Comparison], kind: str) -> list[Comparison]:
+    """The comparisons, their vertical coordinate in the unit of the first."""
+    first = comparisons[0].inputs.get(kind)
+    if first is None:
+        return comparisons
+    converted = []
+    for comparison in comparisons:
+        quantity = comparison.inputs.get(kind)
+        if quantity is not None and quantity.units != first.units:
+            inputs = {**comparison.inputs, kind: quantity.to(first.units)}
+            comparison = dataclasses.replace(comparison, inputs=inputs)
+        converted.append(comparison)
+    return converted
+
+
+def _fit_text(figure: Any, row: tuple[Any, ...]) -> None:
+    """Widen the figure until the legend and the x label of every panel fit in it."""
+    for _ in range(3):
+        figure.draw_without_rendering()
+        renderer = figure.canvas.get_renderer()
+        texts = [
+            (text, ax)
+            for ax in row
+            for text in (ax.get_legend(), ax.xaxis.label)
+            if text is not None and text.get_visible()
+        ]
+        fill = max(
+            (
+                text.get_window_extent(renderer).width
+                / ax.get_window_extent(renderer).width
+                for text, ax in texts
+            ),
+            default=0.0,
+        )
+        if fill <= _LEGEND_FILL:
+            return
+        width, height = figure.get_size_inches()
+        figure.set_size_inches(width * fill / _LEGEND_FILL, height)
+
+
+def _vertical_axis(ax: Any, kind: str | None) -> None:
+    """A pressure downwards on a logarithmic axis, labelled with plain numbers."""
+    if kind is None or not feeds(kind, "Pressure"):
+        return
+    from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
+
+    ax.set_yscale("log")
+    ax.yaxis.set_major_locator(LogLocator(subs=(1.0, 2.0, 3.0, 5.0)))
+    # Each tick on its own: a shared offset or precision would print 0.1 hPa as 0.
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.invert_yaxis()
+
+
+def _varying_kind(comparison: Comparison) -> str | None:
+    """The only one-dimensional input, if there is one: a missing kind."""
+    varying = [k for k, q in comparison.inputs.items() if np.ndim(q.magnitude) == 1]
+    return varying[0] if len(varying) == 1 else None
 
 
 def sign(figure: Any, *, axes: Any = None, height: float = SIGNATURE_HEIGHT) -> Any:

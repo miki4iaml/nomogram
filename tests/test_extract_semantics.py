@@ -159,6 +159,9 @@ def test_cf_names_and_versions_are_recorded() -> None:
         ("kg m-3", "kg * m ** -3"),
         ("m2 s-2", "m ** 2 * s ** -2"),
         ("1e-3", "1e-3"),
+        # CF writes latitudes in degree_north, longitudes in degree_east.
+        ("degree_north", "degree"),
+        ("degree_east", "degree"),
     ],
 )
 def test_udunits_to_pint(udunits: str, pint: str) -> None:

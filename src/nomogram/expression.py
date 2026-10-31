@@ -58,6 +58,10 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = MappingProxyType(
         "ln": sympy.log,
         "log10": log10,
         "sqrt": sympy.sqrt,
+        # Of an angle in radians (the latitude of a normal gravity formula);
+        # the catalog refuses an angle in degrees in their argument.
+        "sin": sympy.sin,
+        "cos": sympy.cos,
     }
 )
 
@@ -159,6 +163,8 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\exp",
         r"\ln",
         r"\log",
+        r"\sin",
+        r"\cos",
         r"\frac",
         r"\sqrt",
         r"\left",
@@ -209,7 +215,13 @@ class ExpressionError(ValueError):
     """The source text is not a valid formula expression."""
 
 
-def parse_expression(source: str, names: Iterable[str], *, exact: bool = False) -> Any:
+def parse_expression(
+    source: str,
+    names: Iterable[str],
+    *,
+    exact: bool = False,
+    limit: int | None = MAX_SOURCE_LENGTH,
+) -> Any:
     """Parse a formula written in restricted Python syntax into a SymPy expression.
 
     Allowed: numbers, the declared names, the constants of
@@ -236,6 +248,10 @@ def parse_expression(source: str, names: Iterable[str], *, exact: bool = False) 
         symbolic proofs: written in two expressions, they then cancel
         exactly, whatever the version of SymPy. By default they are
         floating-point numbers, displayed as written.
+    limit : int or None, optional
+        Longest source accepted, :data:`MAX_SOURCE_LENGTH` by default;
+        ``None`` for an expression nomogram builds from expressions already
+        read, such as a composition, whose length its parts bound.
 
     Returns
     -------
@@ -248,8 +264,8 @@ def parse_expression(source: str, names: Iterable[str], *, exact: bool = False) 
         If the text is too long, is not valid Python syntax, or uses
         anything outside the whitelist.
     """
-    if len(source) > MAX_SOURCE_LENGTH:
-        msg = f"expression longer than {MAX_SOURCE_LENGTH} characters"
+    if limit is not None and len(source) > limit:
+        msg = f"expression longer than {limit} characters"
         raise ExpressionError(msg)
     allowed = frozenset(names)
     for name in allowed:

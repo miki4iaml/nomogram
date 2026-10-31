@@ -450,7 +450,33 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         for name, unit in f.coefficient_units.items()
         if unit.origin != "inferred"
     }
-    assert origins == {
+    # Formulations reaching MetPy's saturation vapour pressure, by a call or
+    # through a part, keep the units its citation states.
+    reaching = (
+        "metpy171_psychrometric_vapour_pressure",
+        "metpy171_saturation_mixing_ratio",
+        "metpy171_relative_humidity_from_dew_point",
+        "metpy171_relative_humidity_from_specific_humidity",
+        "metpy171_relative_humidity_dew_point_log_pressure",
+        "metpy171_relative_humidity_dew_point_pressure",
+        "metpy171_relative_humidity_specific_humidity_log_pressure",
+        "metpy171_relative_humidity_isentropic",
+        "relative_humidity_log_specific_humidity_log_pressure",
+    )
+    assert {
+        k: v
+        for k, v in origins.items()
+        if k[1].endswith("__metpy171_saturation_vapour_pressure")
+    } == {
+        (key, f"{name}__metpy171_saturation_vapour_pressure"): "stated"
+        for key in reaching
+        for name in ("e_s0", "T_0")
+    }
+    assert {
+        k: v
+        for k, v in origins.items()
+        if not k[1].endswith("__metpy171_saturation_vapour_pressure")
+    } == {
         ("iapws_sr1_86", "T_c"): "stated",
         ("iapws_sr1_86", "p_c"): "stated",
         ("iapws_r14_08_sublimation", "T_t"): "stated",
@@ -492,17 +518,26 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ambaum2020_ice", "Delta_c"): "stated",
         ("ambaum2020_ice", "R_v"): "stated",
         ("ambaum2020_ice", "L_s0"): "added",
+        # The kilometre of R = a / (b_1 - b_2 sin^2 phi), from WMO's figure.
+        ("wmo_effective_radius_mahoney", "a"): "added",
+        ("wmo_geopotential_height_wgs84", "a"): "added",
+        # Temperatures of P.835 appear in ratios only: T_0 in K fixes the
+        # units of the others, of the gradients and of k.
+        ("itu_r_p835_pressure", "T_0"): "stated",
+        # The mixing ratio 2 x 10^-6 of rho = r P C / T, a pure number that
+        # inference would give the unit of C.
+        ("itu_r_p835_water_vapour_density_upper", "r"): "stated",
+        # A quantity equation: an undeclared coefficient is a pure number.
+        ("fullpos_surface_temperature", "Gamma"): "stated",
+        ("fullpos_mean_sea_level_pressure", "Gamma"): "stated",
+        ("ecmwf_mean_sea_level_pressure_exact", "Gamma"): "stated",
+        ("ecmwf_temperature_below_ground", "Gamma"): "stated",
+        ("ecmwf_temperature_below_ground_exact", "Gamma"): "stated",
+        ("ecmwf_geopotential_below_ground", "Gamma"): "stated",
+        ("ecmwf_geopotential_below_ground_exact", "Gamma"): "stated",
         ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
         ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
-        (
-            "metpy171_psychrometric_vapour_pressure",
-            "e_s0__metpy171_saturation_vapour_pressure",
-        ): "stated",
-        (
-            "metpy171_psychrometric_vapour_pressure",
-            "T_0__metpy171_saturation_vapour_pressure",
-        ): "stated",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "A"): "added",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "B"): "added",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "C"): "added",
@@ -730,7 +765,7 @@ def test_bundled_constants_state_their_nature() -> None:
     natures = {k.nature for k in CATALOG.constants.values()}
     assert natures == {ConstantNature.EXACT, ConstantNature.CONVENTIONAL}
     si = [c for k, c in CATALOG.constants.items() if k.endswith("_si2019")]
-    assert {c.identifier for c in si} == {"c", "h", "k", "N_A"}
+    assert {c.identifier for c in si} == {"c", "h", "k", "N_A", "T_0"}
     assert all(c.nature is ConstantNature.EXACT for c in si)
 
 

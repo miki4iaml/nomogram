@@ -5,12 +5,13 @@
 
 import dataclasses
 import math
+from typing import Any
 
 import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
-from nomogram.comparison import compare, compose, same_state
+from nomogram.comparison import compare, compose, partial, same_state
 from nomogram.units import Q_
 
 FORMULATIONS = catalog().formulations
@@ -120,6 +121,69 @@ def test_composition_inputs_and_key() -> None:
     assert [v.identifier for v in unbound.inputs] == ["RH", "T", "t"]
     result = unbound.evaluate(RH=Q_(1, ""), T=Q_(20, "degC"), t=Q_(20, "degC"))
     assert result.to("g/m^3").magnitude == pytest.approx(17.241, abs=0.001)
+    assert ha.label is None
+    named = compose(IDEAL_GAS, {"e_s": SONNTAG}, bind={"t": "T"}, label="HA, Sonntag")
+    assert named.label == "HA, Sonntag"
+    assert partial(named, RH=Q_(1, "")).label == "HA, Sonntag"
+    assert partial(ha, RH=Q_(1, "")).label == ha.key
+
+
+def test_fixed_levels_let_interpolation_schemes_compare_along_the_pressure() -> None:
+    levels: dict[str, Any] = {
+        "p_1": Q_(850, "hPa"),
+        "p_2": Q_(500, "hPa"),
+        "T_1": Q_(278, "K"),
+        "T_2": Q_(252, "K"),
+    }
+    in_ln_p = partial(FORMULATIONS["log_pressure_interpolation_temperature"], **levels)
+    in_p = partial(FORMULATIONS["pressure_interpolation_temperature"], **levels)
+    assert [v.identifier for v in in_ln_p.inputs] == ["p"]
+    assert in_ln_p.key == (
+        "log_pressure_interpolation_temperature"
+        "(p_1=850 hPa, p_2=500 hPa, T_1=278 K, T_2=252 K)"
+    )
+    assert in_ln_p.label == FORMULATIONS["log_pressure_interpolation_temperature"].label
+    assert (
+        in_ln_p.citations
+        == FORMULATIONS["log_pressure_interpolation_temperature"].citations
+    )
+    assert in_ln_p.output.kind == "ThermodynamicTemperature"
+    pressures = Q_(np.array([850.0, 700.0, 500.0]), "hPa")
+    table = compare([in_p], in_ln_p, {"Pressure": pressures})
+    values = table.values[in_p.key].to("K").magnitude
+    assert values == pytest.approx([278.0, 278.0 - 26.0 * 150 / 350, 252.0])
+    # The levels are the same: the schemes meet there.
+    deviation = table.relative_deviations[in_p.key]
+    assert deviation[[0, 2]] == pytest.approx([0.0, 0.0])
+    # Named, it shows its own label rather than a citation.
+    named = partial(in_ln_p.formulation, label="T in ln p", **levels)
+    assert (named.label, named.citations) == ("T in ln p", ())
+    with pytest.raises(ValueError, match="has no input q"):
+        partial(FORMULATIONS["log_pressure_interpolation_temperature"], q=Q_(1, ""))
+    # Rebuilt, it keeps what it was: named or not.
+    rebuilt = dataclasses.replace(in_ln_p, values={**levels, "T_2": Q_(250, "K")})
+    assert (rebuilt.named, rebuilt.citations) == (False, in_ln_p.citations)
+    assert dataclasses.replace(named, values=levels).named
+
+
+def test_one_value_never_feeds_several_inputs() -> None:
+    # p, p_1 and p_2 are pressures: one value for all three would put the
+    # target on the levels.
+    scheme = FORMULATIONS["log_pressure_interpolation_temperature"]
+    temperatures: dict[str, Any] = {"T_1": Q_(278, "K"), "T_2": Q_(252, "K")}
+    with pytest.raises(ValueError, match="would feed p, p_1, p_2.*partial"):
+        compare(
+            [scheme],
+            partial(scheme, **temperatures),
+            {"Pressure": Q_([850.0, 700.0], "hPa")},
+        )
+
+
+@pytest.mark.parametrize("value", [850, Q_(850, "K")])
+def test_partial_needs_a_quantity_of_the_input_dimension(value: Any) -> None:
+    scheme = FORMULATIONS["log_pressure_interpolation_temperature"]
+    with pytest.raises(ValueError, match="p_1 needs a quantity convertible to HectoPA"):
+        partial(scheme, p_1=value)
 
 
 @pytest.mark.parametrize(

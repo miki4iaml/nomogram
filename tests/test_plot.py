@@ -30,7 +30,13 @@ from nomogram.display import (
     reference_scale,
 )
 from nomogram.expression import LATEX_COMMANDS
-from nomogram.plot import plot_deviations, plot_values, sign
+from nomogram.plot import (
+    plot_deviations,
+    plot_profile,
+    plot_profiles,
+    plot_values,
+    sign,
+)
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -117,23 +123,34 @@ def test_missing_extra_gives_an_explicit_message(
         plot_deviations(comparison)
 
 
-@pytest.mark.parametrize("notation", [None, *sorted(CATALOG.notations)])
-@pytest.mark.parametrize(
-    "options",
-    [
-        DisplayOptions(),
-        DisplayOptions.SYMPY,
-        DisplayOptions(mul_symbol="dot", values=True),
-    ],
-    ids=["default", "sympy", "values"],
-)
-def test_every_formulation_renders_in_mathtext(
-    notation: str | None, options: DisplayOptions
-) -> None:
+def test_every_formulation_renders_in_mathtext() -> None:
+    # Each distinct string is parsed once: a notation changes only the
+    # formulations it covers, so most strings repeat from one to the next.
+    # A composition nests the expressions of its parts, each parsed with
+    # every option set: it is parsed in every notation with the default
+    # options only, its long strings costing most of the test.
+    options = {
+        "default": DisplayOptions(),
+        "sympy": DisplayOptions.SYMPY,
+        "values": DisplayOptions(mul_symbol="dot", values=True),
+    }
+    strings: dict[str, str] = {}
+    for notation in [None, *sorted(CATALOG.notations)]:
+        chosen = CATALOG.notations[notation] if notation else None
+        for name, option in options.items():
+            for formulation in FORMULATIONS.values():
+                derivation = formulation.derivation
+                composed = derivation is not None and derivation.method == "composition"
+                if composed and name != "default":
+                    continue
+                text = formulation.render(chosen, options=option).mathtext
+                strings.setdefault(text, f"{formulation.key}, {notation}, {name}")
     parser = MathTextParser("path")
-    chosen = CATALOG.notations[notation] if notation else None
-    for formulation in FORMULATIONS.values():
-        parser.parse(formulation.render(chosen, options=options).mathtext)
+    for text, where in strings.items():
+        try:
+            parser.parse(text)
+        except ValueError as error:
+            pytest.fail(f"{where}: {error}")
 
 
 @pytest.mark.parametrize("command", sorted(LATEX_COMMANDS))
@@ -428,9 +445,9 @@ def test_an_x_range_narrows_what_the_y_axis_holds() -> None:
 
 def test_off_scale_notes_can_be_left_out() -> None:
     # The preset of the documentation: full axes, short legend entries,
-    # curves off scale without a note.
+    # curves off scale without a note, a light grid.
     assert DisplayOptions.DOCUMENTATION == DisplayOptions(
-        axis_detail="full", legend_detail="short", off_scale_notes=False
+        axis_detail="full", legend_detail="short", off_scale_notes=False, grid=True
     )
     temperatures = Q_(np.linspace(-60, 110, 69), "degC")
     table = compare(SATURATION, IAPWS, {"ThermodynamicTemperature": temperatures})
@@ -762,3 +779,167 @@ def test_the_signature_covers_no_text(
         if t.get_text() and box.overlaps(t.get_window_extent(renderer))
     ]
     assert covered == []
+
+
+def test_a_profile_puts_the_vertical_coordinate_along_y() -> None:
+    temperature = FORMULATIONS["itu_r_p835_temperature"]
+    heights = Q_(np.array([0.0, 11.0, 20.0, 32.0]), "km")
+    table = compare([temperature], temperature, {"GeopotentialHeight": heights})
+    ax = plot_profile(table)
+    (curve,) = ax.lines
+    assert list(curve.get_ydata()) == [0.0, 11.0, 20.0, 32.0]
+    assert list(curve.get_xdata()) == pytest.approx([288.15, 216.65, 216.65, 228.65])
+    assert ax.get_ylabel().startswith("Geopotential height")
+    assert "temperature" in ax.get_xlabel()
+    # A height goes upwards, on a linear axis.
+    assert ax.get_yscale() == "linear"
+    low, high = ax.get_ylim()
+    assert low < high
+    assert signatures(ax.figure)
+
+
+def test_a_pressure_profile_goes_down_on_a_logarithmic_axis() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    pressures = Q_(np.array([1000.0, 850.0, 500.0, 200.0]), "hPa")
+    table = compare([altitude], altitude, {"Pressure": pressures})
+    with display_options(DisplayOptions.DOCUMENTATION):
+        ax = plot_profile(table, title="Pressure altitude")
+    assert ax.get_yscale() == "log"
+    top, bottom = ax.get_ylim()
+    assert top > bottom  # inverted: the pressure decreases upwards
+    assert ax.get_title() == "Pressure altitude"
+    ax.figure.canvas.draw()
+    labels = {t.get_text() for t in ax.get_yticklabels() if t.get_text()}
+    assert {"200", "300", "500"} <= labels
+    # On axes of one's own, the scale is left as it is.
+    _, own = plt.subplots()
+    assert plot_profile(table, ax=own, options=DisplayOptions.SYMPY).get_yscale() == (
+        "linear"
+    )
+
+
+def test_profiles_of_several_kinds_share_the_vertical_coordinate() -> None:
+    pressures = Q_(np.array([1000.0, 850.0, 500.0, 200.0]), "hPa")
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    tables = [
+        compare([altitude], altitude, {"Pressure": pressures}),
+        compare(
+            [theta],
+            theta,
+            {"Pressure": pressures, "ThermodynamicTemperature": Q_(273.0, "K")},
+        ),
+    ]
+    left, right = plot_profiles(tables, ylim=(1000, 300))
+    assert left.get_shared_y_axes().joined(left, right)
+    assert right.get_yscale() == "log"
+    assert right.get_ylim() == pytest.approx((1000, 300))
+    assert left.get_ylabel().startswith("Pressure")
+    assert right.get_ylabel() == ""
+    assert "temperature" in right.get_xlabel().lower()
+    (mark,) = signatures(left.figure)
+    assert mark.figure is right.figure
+
+
+def test_profiles_need_one_vertical_coordinate() -> None:
+    temperature = FORMULATIONS["itu_r_p835_temperature"]
+    by_height = compare(
+        [temperature], temperature, {"GeopotentialHeight": Q_([0.0, 5.0], "km")}
+    )
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    by_pressure = compare(
+        [altitude], altitude, {"Pressure": Q_([1000.0, 500.0], "hPa")}
+    )
+    with pytest.raises(ValueError, match="one input kind"):
+        plot_profiles([by_height, by_pressure])
+    with pytest.raises(ValueError, match="at least one"):
+        plot_profiles([])
+    (single,) = plot_profiles([by_height], signature=False)
+    assert single.get_yscale() == "linear"
+    assert not signatures(single.figure)
+
+
+def test_a_pressure_axis_labels_ticks_below_one_hectopascal() -> None:
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    pressures = Q_(np.array([1000.0, 100.0, 10.0, 1.0, 0.1]), "hPa")
+    table = compare(
+        [theta],
+        theta,
+        {"Pressure": pressures, "ThermodynamicTemperature": Q_(250, "K")},
+    )
+    ax = plot_profile(table)
+    ax.figure.canvas.draw()
+    labels = {t.get_text() for t in ax.get_yticklabels() if t.get_text()}
+    assert {"0.1", "0.2", "1", "10", "100"} <= labels
+
+
+def test_panels_share_the_unit_of_the_first() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    tables = [
+        compare([altitude], altitude, {"Pressure": Q_([1000.0, 500.0], "hPa")}),
+        compare([altitude], altitude, {"Pressure": Q_([100000.0, 50000.0], "Pa")}),
+    ]
+    left, right = plot_profiles(tables, signature=False)
+    assert list(right.lines[0].get_ydata()) == pytest.approx([1000.0, 500.0])
+    assert left.get_ylabel().endswith("/hPa")
+
+
+@pytest.mark.parametrize("options", [None, DisplayOptions.DOCUMENTATION])
+@pytest.mark.parametrize("count", [2, 3])
+def test_profiles_keep_their_text_clear(
+    options: DisplayOptions | None, count: int
+) -> None:
+    # Full labels in the legends, the last x label at the right edge.
+    pressures = Q_(np.linspace(1000.0, 300.0, 8), "hPa")
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    temperatures = [
+        compare(
+            [theta],
+            theta,
+            {"Pressure": pressures, "ThermodynamicTemperature": Q_(t, "K")},
+        )
+        for t in (273.0, 283.0, 293.0)
+    ]
+    row = plot_profiles(temperatures[:count], options=options)
+    figure = row[0].figure
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    edge = figure.bbox
+    (mark,) = signatures(figure)
+    box = mark.get_window_extent(renderer)
+    for ax in row:
+        legend = ax.get_legend().get_window_extent(renderer)
+        assert legend.width <= ax.get_window_extent(renderer).width
+        # The tick labels drawn: those within the limits of the axes.
+        low, high = sorted(ax.get_xlim())
+        ticks = [t for t in ax.get_xticklabels() if low <= t.get_position()[0] <= high]
+        texts = [ax.xaxis.label, *ticks, *ax.get_legend().get_texts()]
+        for text in texts:
+            if text.get_text():
+                extent = text.get_window_extent(renderer)
+                assert not box.overlaps(extent), text.get_text()
+                assert edge.x0 <= extent.x0, text.get_text()
+                assert extent.x1 <= edge.x1, text.get_text()
+
+
+def test_a_profile_names_the_vertical_axis_it_cannot_choose() -> None:
+    theta = FORMULATIONS["bechtold2015_potential_temperature"]
+    table = compare(
+        [theta],
+        theta,
+        {
+            "Pressure": Q_([1000.0, 500.0], "hPa"),
+            "ThermodynamicTemperature": Q_([273.0, 283.0], "K"),
+        },
+    )
+    with pytest.raises(ValueError, match="along y with input_kind"):
+        plot_profile(table)
+
+
+def test_the_grid_follows_the_display_options() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    table = compare([altitude], altitude, {"Pressure": Q_([1000.0, 500.0], "hPa")})
+    plain = plot_profile(table)
+    gridded = plot_profile(table, options=DisplayOptions.DOCUMENTATION)
+    assert not any(line.get_visible() for line in plain.xaxis.get_gridlines())
+    assert all(line.get_visible() for line in gridded.xaxis.get_gridlines())

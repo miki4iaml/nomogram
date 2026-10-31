@@ -1,0 +1,1590 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Vertical coordinates of the atmosphere: altitude and height, the
+# surface, geopotential and geopotential height, pressure altitude,
+# ellipsoidal heights; the pressures that go with them; temperature
+# gradients and lapse rates. Each kind is defined after a text in force:
+# CF standard names, WMO-No. 8 (2024), the IFS documentation, and for
+# aviation the SERA regulation, which takes over the ICAO definitions.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "atmosphere"
+label = "Vertical coordinates of the atmosphere"
+format = 2
+requires = ["moist-air"]
+keywords = ["vertical coordinate", "altitude", "height", "geopotential", "pressure altitude", "lapse rate"]
+
+# --- References -------------------------------------------------------
+
+[references.cf_standard_names_95]
+authors = "CF Conventions"
+year = 2026
+title = "CF Standard Name Table, version 95"
+url = "https://cfconventions.org/Data/cf-standard-names/95/src/cf-standard-name-table.xml"
+status = "verified"
+note = "Definitions read in the XML table: altitude (the geometric height above the geoid), height (above the surface), surface_altitude, geopotential, geopotential_height (the geopotential divided by the standard acceleration due to gravity), atmosphere_layer_thickness_expressed_as_geopotential_height_difference, air_temperature_lapse_rate (the negative derivative with respect to height), surface_air_pressure, air_pressure_at_mean_sea_level, height_above_reference_ellipsoid and geoid_height_above_reference_ellipsoid."
+
+[references.sera2012]
+authors = "European Commission"
+year = 2012
+title = "Commission Implementing Regulation (EU) No 923/2012 laying down the common rules of the air (SERA), Article 2: Definitions"
+container = "EASA, Easy Access Rules for Standardised European Rules of the Air (SERA), revision of August 2025"
+url = "https://www.easa.europa.eu/en/downloads/68174/en"
+status = "verified"
+note = "Article 2 read in the consolidated text: points 39 (altitude, measured from mean sea level), 78 (flight level, a surface of constant atmospheric pressure related to the pressure datum 1013.2 hPa), 84 (height, measured from a specified datum), 101 (pressure-altitude, an atmospheric pressure expressed in terms of the altitude that corresponds to it in the Standard Atmosphere of Annex 8 to the Chicago Convention) and 134 (transition altitude). The guidance material to points 39 and 84 (GM1 Article 2(39) and 2(84), pp. 33-34) says what an altimeter calibrated in the Standard Atmosphere indicates, set to QNH (an altitude) or to QFE (a height): 'The term 'altitude' indicates altimetric rather than geometric altitude', and likewise for 'height'. The regulation takes over the ICAO definitions, whose Annexes are not freely available; WMO-No. 49, Volume II, which reproduced them, was abrogated at the end of 2023."
+
+[references.wmo2024_vol3]
+authors = "World Meteorological Organization"
+year = 2024
+title = "Guide to Instruments and Methods of Observation (WMO-No. 8), Volume III: Observing Systems"
+url = "https://library.wmo.int/viewer/68661/download?file=WMO-8-vIII-2024_en.pdf&type=pdf&navigator=1"
+status = "verified"
+note = "Chapter 2, 2.9.1 (p. 49): QFE, the pressure at the official elevation of the aerodrome; QNH, the pressure at which an altimeter is set so that it indicates the official elevation of the aerodrome on the ground, computed from the QFE through the pressure-altitude relationship of the ICAO standard atmosphere, 'this virtual atmosphere', and not the actual state of the atmosphere; hence QNH differs from the pressure reduced to sea level of Volume I, 3.7. Equation 2.8: QNH = A + B x QFE."
+
+[references.iso2533_1975]
+authors = "International Organization for Standardization"
+year = 1975
+title = "Standard Atmosphere (ISO 2533:1975)"
+container = "ISO, Geneva, first edition, 1975-05-15"
+status = "verified"
+note = "Read: section 2 (pp. 1-3), the primary constants (Table 1: g_n = 9.806 65 m s-2, M = 28.964 420 kg/kmol, R* = 8 314.32 J K-1 kmol-1, R = 287.052 87 J K-1 kg-1, p_n = 101 325 Pa, T_n = 288.15 K), the static atmosphere and the perfect gas law (1-3), the geopotential and the geometric altitudes (6-9) with r = 6 356 766 m, the temperature by layers (11). Identical with the ICAO and WMO standard atmospheres from -2 to 32 km (title); after the ICAO 1964 and USA 1962 standard atmospheres from -2 to 50 km, an interim standard atmosphere from 50 to 80 km. A footnote dates the standard geopotential metre, 9.806 65 m2 s-2, adopted by WMO from 1 July 1972 in place of the geopotential metre of 9.8 m2 s-2. Copy obtained by the user."
+
+[references.iso2533_add1_1985]
+authors = "International Organization for Standardization"
+year = 1985
+title = "Standard Atmosphere, Addendum 1: Hypsometrical tables (ISO 2533:1975/Add 1:1985)"
+container = "ISO, Geneva, 1985-02-15"
+status = "verified"
+note = "Read: section 2 (pp. 2-4), the formulae of its tables between geopotential altitude and pressure, from equations 12 and 13 of ISO 2533, in hectopascals and in millimetres of mercury, for -1 450 to 11 000 m (2.1), 11 000 to 20 000 m (2.2), 20 000 to 32 000 m (2.3) and 32 000 to 47 000 m (2.4). After the hypsometrical tables of the USSR standard and the U.S. Standard Atmosphere, 1976. Copy obtained by the user."
+
+[references.wmo306_vol1_1_2019]
+authors = "World Meteorological Organization"
+year = 2019
+title = "Manual on Codes (WMO-No. 306), Volume I.1, Part A: Alphanumeric Codes"
+url = "https://library.wmo.int/idurl/4/35713"
+status = "verified"
+note = "2019 edition, downloaded by the user. FM 35 TEMP, Regulations 35.3.1.1 to 35.3.1.3 (pp. A-67, A-68): the significant levels of a radiosonde report alone reconstruct its temperature and humidity profiles within the criteria: the temperature by linear interpolation on a T-log P diagram within 1 degC up to the first significant level above 300 hPa or the first tropopause, whichever is lower, 2 degC above (35.3.1.3 a); the relative humidity by linear interpolation within 15 per cent of relative humidity (b), the coordinate not stated; a ratio of the pressures of two successive levels above 0.6 for diagrams other than T-log P (c). Dew points from the saturation vapour pressure over water of the Technical Regulations (35.3.1.1). WMO-No. 8 (2024), Volume I, 12.9, calls this reporting suited to the 1970s: profiles at 100 m resolution in BUFR make the selection of significant levels redundant."
+
+[references.ecmwf_ifs_cy49r1_part3]
+authors = "ECMWF"
+year = 2024
+title = "IFS Documentation CY49R1 - Part III: Dynamics and Numerical Procedures"
+url = "https://www.ecmwf.int/en/elibrary/81625-ifs-documentation-cy49r1-part-iii-dynamics-and-numerical-procedures"
+status = "verified"
+note = "Section 2.1, equation 2.6: the geopotential, defined by the hydrostatic equation with the virtual temperature and the gas constant of dry air. Section 2.2.1, equation 2.20: its discrete analogue between two half levels, the hypsometric equation. The numbering is the same in CY41R2, whose documentation ERA5 follows, and in CY50R1."
+
+[references.itu_r_p835_7]
+authors = "International Telecommunication Union, Radiocommunication Sector"
+year = 2024
+title = "Recommendation ITU-R P.835-7: Reference standard atmospheres"
+url = "https://www.itu.int/rec/R-REC-P.835/en"
+status = "verified"
+note = "Annex 1, 1.1 (pp. 2-3), read on the page images: the conversions between geopotential height H (km') and geometric height Z (km) adopted by the U.S. Standard Atmosphere, 1976, equations 1a and 1b with 6356.766 km; temperature 2a to 2g and pressure 3a to 3g in seven layers up to 84.852 km'; temperature 4a, 4b and pressure 5 from 86 to 100 km."
+
+[references.ussa1976]
+authors = "NOAA, NASA, US Air Force"
+year = 1976
+title = "U.S. Standard Atmosphere, 1976"
+container = "NOAA-S/T 76-1562; NASA-TM-X-74335"
+url = "https://ntrs.nasa.gov/citations/19770009539"
+status = "verified"
+note = "Read on the page images of the scanned report: tables 1 and 2 (p. 2), the adopted constants, among them R* = 8.31432 x 10^3 N m/(kmol K) and g0' = 9.80665 m2/(s2 m'); table 4 (p. 3), the seven layers H_b and L_M,b; equations 20 to 22 (p. 9), M0 = 28.9644 kg/kmol and the molecular-scale temperature T_M = T M0/M; equations 33a and 33b (p. 12), the pressure of a layer of constant gradient and of an isothermal layer. A reference model, identical to the ICAO standard atmosphere up to 32 km; dated, kept to check the formulas."
+
+[references.nws_wxcalc_pressure_altitude]
+authors = "National Weather Service"
+title = "Pressure Altitude (calculation sheet)"
+url = "https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf"
+status = "verified"
+note = "Read on 2026-10-28: h_alt = (1 - (P_sta/1013.25)^0.190284) x 145366.45, the station pressure in millibars and the pressure altitude in feet; h_m = 0.3048 h_alt. Undated; no domain stated."
+
+[references.yessad2018_fullpos]
+authors = "Yessad, K."
+year = 2018
+title = "FULL-POS in the cycle 46t1 of ARPEGE/IFS"
+container = "Meteo-France, CNRM/GMAP/ALGO, technical documentation"
+url = "https://www.cnrm.meteo.fr/gmapdoc/IMG/pdf/ykfpos46t1.pdf"
+status = "verified"
+note = "Section 3 read (pp. 8-11): vertical interpolations and extrapolations of the post-processing of ARPEGE and the IFS, by variable. Wind (3.2.1): linear in the logarithm of the pressure in the lower layers (quadratic above with the ECMWF option LOLDPP=.T.), constant below the lowest level. Temperature (3.2.2): linear in the pressure with the ECMWF option, quadratic in its logarithm with Meteo-France's; surface temperature (1) and extrapolation below the surface (2, 3). Geopotential height (3.2.3): a departure from a standard atmosphere, extrapolated below the surface by (6). Moisture and relative humidity (3.2.5): linear in the pressure, constant below the lowest level. Mean sea level pressure (3.3.1, 7, 8). ERA5 is post-processed by FULL-POS (ERA5 data documentation)."
+
+[references.trenberth1993]
+authors = "Trenberth, K. E.; Berry, J. C.; Buja, L. E."
+year = 1993
+title = "Vertical interpolation and truncation of model-coordinate data"
+container = "NCAR Technical Note NCAR/TN-396+STR"
+url = "https://opensky.ucar.edu/islandora/object/technotes:168"
+status = "verified"
+note = "Section 3.1, ECMWF vertical interpolation and extrapolation, read on the page images (pp. 8-13): the surface temperature (5) with the standard lapse rate 0.0065 K/m, alpha = 0.0065 R_d/g (6); in a dry hydrostatic atmosphere of that lapse rate, the temperature (9), the geopotential (10) and the mean sea level pressure (11), exact, and their approximations for small alpha, (12), (15) and (16); the modifications for very warm or cold surfaces (13, 14) and for high orography (17-19); u, v, omega and RH held constant below ground. Downloaded by the user from OpenSky."
+
+[references.metpy171_interpolate]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.interpolate (src/metpy/interpolate/one_dimension.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/interpolate/one_dimension.py"
+status = "verified"
+note = "Read in the source: interpolate_1d computes var[below] + (var[above] - var[below]) (x - xp[below]) / (xp[above] - xp[below]), a linear interpolation between the two levels around x; log_interpolate_1d calls it on the logarithms of x and xp. Released 2025-08-29."
+
+[references.metpy171_calc_tools]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.calc.tools (src/metpy/calc/tools.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/calc/tools.py"
+status = "verified"
+note = "Read in the source: get_layer brings the variables to the bounds of a layer with log_interpolate_1d, linear in the logarithm of the pressure (line 637); mixed_layer, and through it mixed_parcel, take their layer from it. Released 2025-08-29."
+
+[references.metpy171_plots]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, metpy.plots, thermodynamic diagrams (src/metpy/plots/skewt.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/src/metpy/plots/skewt.py"
+status = "verified"
+note = "Read in the source: SkewT, Emagram and Stuve plot a profile with matplotlib's plot, straight segments between the levels in the coordinates of the diagram (the temperature against ln p, skewed or not; against p^0.286 for the Stuve diagram); plot_mixing_lines draws lines of constant mixing ratio, the dew point of vapor_pressure(p, r); the adiabats come from dry_lapse and moist_lapse. No tephigram. Released 2025-08-29."
+
+[references.metpy171_isentropic_example]
+authors = "MetPy developers"
+year = 2025
+title = "MetPy 1.7.1, gallery example Isentropic Analysis (examples/isentropic_example.py)"
+url = "https://github.com/Unidata/MetPy/blob/v1.7.1/examples/isentropic_example.py"
+status = "verified"
+note = "Read in the source: isentropic_interpolation_as_dataset brings the specific humidity of NARR data to the 296 K surface, then relative_humidity_from_specific_humidity gives the relative humidity there, from the pressure and temperature of the surface. Released 2025-08-29."
+
+[references.ziv_alpert1994]
+authors = "Ziv, B.; Alpert, P."
+year = 1994
+title = "Isobaric to isentropic interpolation errors and implication to potential vorticity analysis"
+container = "Journal of Applied Meteorology, 33(6), 694-703"
+doi = "10.1175/1520-0450(1994)033<0694:ITIIEA>2.0.CO;2"
+status = "verified"
+note = "Read in full (pp. 694-703), on the scanned pages downloaded by the user. Five relations between temperature and pressure for the pressure of an isentropic level and the stability factor (Table 1): (a) theta linear in p (3, 4), (b) theta linear in p^kappa (5-7), (c) T linear in ln p, used by NMC (8-10), (d) T linear in height (11-13), (e) T linear in p^kappa (14-16); against 100 radiosondes, (a) is the worst and (c)-(e) the best, (c) being the first-order expansion in ln p of (d) (p. 703). The significant levels of radiosonde reports are chosen so that the temperature is linear in ln p between them (WMO Manual on Codes, 1988; p. 698). The interpolation of other variables to an isentropic level is not discussed."
+
+[references.earthkit_meteo121]
+authors = "ECMWF"
+year = 2026
+title = "earthkit-meteo 1.2.1, earthkit.meteo.vertical"
+url = "https://pypi.org/project/earthkit-meteo/1.2.1/"
+status = "verified"
+note = "Read in the source of the wheel (Apache-2.0): vertical/array/monotonic.py, interpolate_monotonic weighs the two levels around the target by (1 - f) and f, f being (c - c_bottom)/(c_top - c_bottom) for interpolation='linear' and the same on logarithms for 'log'; vertical/array/vertical.py, geometric_height_from_geopotential_height computes R_earth gh / (R_earth - gh); constants g = 9.80665, R_earth = 6371229 m, Rd = 287.0597."
+
+[references.era5_documentation]
+authors = "ECMWF, Copernicus Climate Change Service"
+year = 2026
+title = "ERA5: data documentation; ERA5: compute pressure and geopotential on model levels, geopotential height and geometric height"
+container = "Copernicus Knowledge Base, ECMWF Confluence"
+url = "https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation"
+status = "verified"
+note = "Pages read on 2026-10-28. Data documentation, 'Spatial reference systems and Earth model': the IFS assumes a spherical Earth of radius 6371.229 km; ERA5 is referenced in the vertical to the EGM96 geoid over land and to mean sea level over the ocean, assumed to coincide with the geoid; ERA5 follows the IFS documentation of cycle CY41R2. Page on heights: geopotential height = geopotential / 9.80665 m s-2, 'a fixed value in the IFS'; geometric height approximated by alt = Re h / (Re - h), neglecting horizontal variations of gravity, relative to the geoid."
+
+# --- Quantity kinds ---------------------------------------------------
+
+# Altitude and height are QUDT kinds (CF: above the geoid, above the
+# surface). A geopotential height must not feed an altitude input, nor an
+# ellipsoidal height: the first differs from it by tens of metres,
+# depending on latitude and height, the second by the geoid height, tens
+# of metres. A kind specializes another only where its values can feed
+# every input of the other; look-alikes are siblings (docs/catalog.md).
+
+[kinds.SurfaceAltitude]
+label = "Surface Altitude"
+specialization_of = "Altitude"
+description = "Altitude of the surface of the Earth, the lower boundary of the atmosphere (CF). The elevation of a WMO station is the altitude of the ground beneath its raingauge or its thermometer screen (WMO-No. 8, Volume I, 1.3.3.2)."
+cf_standard_names = [{ name = "surface_altitude", relation = "exact", verified = 2026-10-26 }]
+
+[kinds.Geopotential]
+label = "Geopotential"
+specialization_of = "SpecificEnergy"
+scale_type = "interval"
+description = "Sum of the specific gravitational potential energy relative to the geoid and the specific centripetal potential energy (CF); the IFS defines it by the hydrostatic equation (Part III, equation 2.6). Its zero is the geoid, about the mean sea level: an interval scale."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1423347", relation = "close", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "geopotential", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeopotentialHeight]
+label = "Geopotential Height"
+specialization_of = "Length"
+scale_type = "interval"
+description = "Geopotential divided by the standard acceleration of free fall, 9.80665 m s-2 (CF; WMO-No. 8, Volume I, equation 12.12). Numerically close to the altitude, not to the height above the surface (CF); the difference follows gravity, so latitude and height: 25 m at 8 km and 220 m at 32 km at 22°N (WMO-No. 8, Volume I, table 12.10), about 32 m at 8 km at the Equator, none near 60°, the geopotential height the larger poleward (WMO-No. 8, equations 12.15 and 12.16). WMO writes it in standard geopotential metres, 0.980665 dynamic metre; nomogram in metres, the kind carrying the meaning."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q12432978", relation = "close", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "geopotential_height", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeopotentialThickness]
+label = "Geopotential Thickness"
+specialization_of = "Length"
+description = "Difference of geopotential height between two levels of the atmosphere (CF): the thickness of a layer, which the hypsometric equation gives."
+cf_standard_names = [{ name = "atmosphere_layer_thickness_expressed_as_geopotential_height_difference", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.PressureAltitude]
+label = "Pressure Altitude"
+specialization_of = "Length"
+scale_type = "interval"
+description = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101): a geopotential height of the standard atmosphere, not of the actual one, from which it departs by about 8 m per hectopascal of departure from the standard atmosphere near the ground. A sibling of the geopotential height, as in QUDT: it feeds neither a geopotential height nor an altitude input. Flight levels are surfaces of constant pressure related to 1013.2 hPa (point 78)."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q17130615", relation = "close", verified = 2026-10-28 },
+]
+
+[kinds.AltimetricAltitude]
+label = "Altimetric Altitude"
+specialization_of = "Length"
+scale_type = "interval"
+description = "What a pressure altimeter calibrated in the standard atmosphere indicates when set to QNH: the altitude of aviation, above mean sea level, 'altimetric rather than geometric' (SERA, GM1 Article 2(39)). It departs from the geometric altitude as the actual atmosphere departs from the standard one, by tens to hundreds of metres in cold air: it feeds no altitude input."
+
+[kinds.AltimetricHeight]
+label = "Altimetric Height"
+specialization_of = "Length"
+scale_type = "interval"
+description = "What a pressure altimeter calibrated in the standard atmosphere indicates when set to QFE: the height of aviation, above the QFE reference datum, 'altimetric rather than geometric' (SERA, GM1 Article 2(84)). It feeds no height input."
+
+[kinds.EllipsoidalHeight]
+label = "Ellipsoidal Height"
+specialization_of = "Length"
+scale_type = "interval"
+description = "Height above a reference ellipsoid (CF), as satellite positioning gives it. It differs from the altitude by about the geoid height, tens of metres: it never feeds an altitude input."
+cf_standard_names = [{ name = "height_above_reference_ellipsoid", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeoidHeight]
+label = "Geoid Height"
+specialization_of = "Length"
+description = "Height of the geoid above a reference ellipsoid (CF), the geoid undulation N, positive or negative; the ellipsoidal height of a point is about its altitude plus N."
+cf_standard_names = [{ name = "geoid_height_above_reference_ellipsoid", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.GeodeticLatitude]
+label = "Geodetic Latitude"
+specialization_of = "PlaneAngle"
+description = "Angle between the equatorial plane and the normal to the reference ellipsoid, positive northward; the latitude of the normal gravity formulas (WMO-No. 8, Volume I, 12.5.5.2). In radians where sin or cos take it."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q34027", relation = "broad", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "latitude", relation = "broad", verified = 2026-10-28 }]
+
+# Temperature gradients: QUDT's TemperatureGradient carries no sign; CF's
+# lapse rate is -dT/dz, the vertical gradient dT/dz. Siblings under it, so
+# that one never feeds an input of the other: their signs are opposite.
+
+[kinds.LapseRate]
+label = "Lapse Rate of Air Temperature"
+specialization_of = "TemperatureGradient"
+description = "Negative derivative of the air temperature with respect to height, -dT/dz (CF): positive when the temperature decreases upwards. A temperature difference per length; never fed by a vertical temperature gradient, of opposite sign."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q66900467", relation = "close", verified = 2026-10-28 },
+]
+cf_standard_names = [{ name = "air_temperature_lapse_rate", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.VerticalTemperatureGradient]
+label = "Vertical Gradient of Air Temperature"
+specialization_of = "TemperatureGradient"
+description = "Derivative of the air temperature with respect to height, dT/dz: negative when the temperature decreases upwards. The layers of a standard atmosphere write it with respect to the geopotential height, dT/dH (ISO 2533, equation 11), which differs from dT/dz by the ratio g/g_n, about 0.99 at 30 km. Never fed by a lapse rate, of opposite sign."
+
+# Pressures of the surface and of the sea level; the altimeter settings
+# of aviation, which go through the standard atmosphere.
+
+[kinds.SurfaceAirPressure]
+label = "Surface Air Pressure"
+specialization_of = "Pressure"
+description = "Air pressure at the lower boundary of the atmosphere (CF): the surface pressure of models. A station reports its pressure at an elevation specified apart (WMO-No. 8, Volume I, 1.3.3.2)."
+cf_standard_names = [{ name = "surface_air_pressure", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.SeaLevelPressure]
+label = "Air Pressure at Mean Sea Level"
+specialization_of = "Pressure"
+description = "Air pressure reduced to mean sea level (MSLP, PMSL; CF), through a fictitious column of air below the station (WMO-No. 8, Volume I, 3.7). Not the QNH, which the standard atmosphere gives (Volume III, 2.9.1)."
+cf_standard_names = [{ name = "air_pressure_at_mean_sea_level", relation = "exact", verified = 2026-10-28 }]
+
+[kinds.AltimeterSetting]
+label = "Altimeter Setting (QNH)"
+specialization_of = "Pressure"
+description = "QNH: the pressure at which an aircraft altimeter is set so that it indicates the official elevation of the aerodrome when on the ground there, computed from the QFE through the standard atmosphere (WMO-No. 8, Volume III, 2.9.1)."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q3233965", relation = "close", verified = 2026-10-31 },
+  { target = "http://www.wikidata.org/entity/Q21938048", relation = "broad", verified = 2026-10-31 },
+]
+
+[kinds.AerodromePressure]
+label = "Aerodrome Pressure (QFE)"
+specialization_of = "Pressure"
+description = "QFE: the pressure at the official elevation of the aerodrome (WMO-No. 8, Volume III, 2.9.1)."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q12717817", relation = "close", verified = 2026-10-28 },
+]
+
+# --- Constants --------------------------------------------------------
+
+[constants.R_star_ussa1976]
+identifier = "R_star"
+value = 8.31432
+unit = "J-PER-MOL-K"
+description = "Gas constant adopted by the U.S. Standard Atmosphere, 1976 (8.31432 x 10^3 N m/(kmol K)), the value of the 1962 Standard"
+reference = "ussa1976"
+nature = "conventional"
+
+[constants.M_0_ussa1976]
+identifier = "M_0"
+value = 0.0289644
+unit = "KiloGM-PER-MOL"
+description = "Mean molecular weight of air at sea level of the U.S. Standard Atmosphere, 1976 (28.9644 kg/kmol), from the composition of its table 3"
+reference = "ussa1976"
+nature = "conventional"
+
+[constants.R_d_wmo2024]
+identifier = "R"
+value = 287.05
+unit = "J-PER-KiloGM-K"
+description = "Gas constant of dry air of WMO-No. 8 (2024), Volume I, 3.7.2, with the reduction of pressure to sea level"
+reference = "wmo2024"
+nature = "conventional"
+
+[constants.g_bechtold2015]
+identifier = "g"
+value = 9.81
+unit = "M-PER-SEC2"
+description = "Gravity acceleration of Bechtold (2015), section 8.4, in the hydrostatic approximation"
+reference = "bechtold2015"
+nature = "conventional"
+
+# --- Trade terms ------------------------------------------------------
+
+[trade_terms.geopotential]
+term = "geopotential"
+language = "en"
+
+[[trade_terms.geopotential.meanings]]
+community = "CF, numerical weather prediction (IFS)"
+kind = "Geopotential"
+definition = "Specific potential energy relative to the geoid, in m2 s-2 (CF); defined by the hydrostatic equation in the IFS."
+sources = ["cf_standard_names_95", "ecmwf_ifs_cy49r1_part3"]
+
+[[trade_terms.geopotential.meanings]]
+community = "WMO upper-air observations"
+kind = "GeopotentialHeight"
+definition = "Given in standard geopotential metres (WMO-No. 8, Volume I, chapter 1, list of units, item (o)): the geopotential height of CF."
+sources = ["wmo2024"]
+
+[trade_terms.altitude]
+term = "altitude"
+language = "en"
+
+[[trade_terms.altitude.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "AltimetricAltitude"
+definition = "Vertical distance of a level, a point or an object considered as a point, measured from mean sea level (SERA, Article 2, point 39): altimetric rather than geometric, what an altimeter set to QNH indicates (GM1 Article 2(39))."
+sources = ["sera2012"]
+
+[[trade_terms.altitude.meanings]]
+community = "CF, meteorology"
+kind = "Altitude"
+definition = "Geometric height above the geoid, the reference geopotential surface, similar to mean sea level (CF)."
+sources = ["cf_standard_names_95"]
+
+[trade_terms.height]
+term = "height"
+language = "en"
+
+[[trade_terms.height.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "AltimetricHeight"
+definition = "Vertical distance of a level, a point or an object considered as a point, measured from a specified datum (SERA, Article 2, point 84): altimetric rather than geometric, what an altimeter set to QFE indicates (GM1 Article 2(84))."
+sources = ["sera2012"]
+
+[[trade_terms.height.meanings]]
+community = "CF, meteorology"
+kind = "Height"
+definition = "Vertical distance above the surface (CF)."
+sources = ["cf_standard_names_95"]
+
+[trade_terms.elevation]
+term = "elevation"
+language = "en"
+
+[[trade_terms.elevation.meanings]]
+community = "WMO surface observations"
+kind = "SurfaceAltitude"
+definition = "Height above mean sea level of the ground on which the raingauge stands or, without one, of the ground beneath the thermometer screen; the elevation to which the station pressure relates is specified apart (WMO-No. 8, Volume I, 1.3.3.2)."
+sources = ["wmo2024"]
+
+[trade_terms.pressure_altitude]
+term = "pressure altitude"
+language = "en"
+
+[[trade_terms.pressure_altitude.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "PressureAltitude"
+definition = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101)."
+sources = ["sera2012"]
+
+[trade_terms.flight_level]
+term = "flight level"
+language = "en"
+
+[[trade_terms.flight_level.meanings]]
+community = "aviation (ICAO, SERA)"
+kind = "PressureAltitude"
+definition = "A surface of constant atmospheric pressure related to the pressure datum 1013.2 hPa and separated from the others by specific pressure intervals (SERA, Article 2, point 78)."
+sources = ["sera2012"]
+
+# --- Formulations -----------------------------------------------------
+
+# Heights: an altitude z is above the geoid (about the mean sea level), a
+# height h above the surface; h = z - z_s needs the altitude z_s of the
+# surface, which nomogram never computes (it comes from a terrain model).
+
+[formulations.height_above_surface]
+label = "Height above the surface"
+expression = "z - z_s"
+fixed_units = false
+note = "Definition (CF: height is the vertical distance above the surface). The altitude of the surface comes from a terrain model, outside nomogram."
+output = { identifier = "h", kind = "Height", unit = "KiloM", description = "Height above the surface" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Altitude" },
+  { identifier = "z_s", kind = "SurfaceAltitude", unit = "KiloM", description = "Altitude of the surface" },
+]
+
+# Geopotential height and geometric height. WMO defines the geopotential
+# height from the geopotential and the normal gravity at 45 degrees; the
+# conversions from a geometric height differ by their Earth's radius:
+# 6356.766 km in the U.S. Standard Atmosphere (ITU-R P.835), 6371.229 km
+# in the IFS (ERA5), a radius and a normal gravity depending on the
+# latitude in WMO-No. 8.
+
+[formulations.geopotential_height_definition]
+label = "Geopotential height, from the geopotential"
+nature = "definition"
+expression = "Phi / g_n"
+fixed_units = false
+note = "The geopotential divided by the standard acceleration of free fall (CF). WMO divides by the normal gravity at 45 degrees latitude, taken in the definition as 9.80665 m s-2 (equation 12.12); ERA5 by 9.80665 m s-2, 'a fixed value in the IFS'."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height" }
+inputs = [
+  { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["geopotential", "geopotential height"]
+
+[[formulations.geopotential_height_definition.citations]]
+reference = "wmo2024"
+equation = "12.12"
+notation = { Z = "Z_1", Phi = '\Phi_1', g_n = '\gamma_{45}' }
+
+[[formulations.geopotential_height_definition.citations]]
+reference = "era5_documentation"
+notation = { Z = "h", Phi = "z" }
+
+[formulations.itu_r_p835_geopotential_height]
+label = "Geopotential height from the geometric altitude, U.S. Standard Atmosphere 1976 (ITU-R P.835)"
+expression = "r_0 * z / (r_0 + z)"
+fixed_units = true
+note = "The conversion adopted by the U.S. Standard Atmosphere, 1976, with its radius 6356.766 km, which ITU-R P.835 uses to compute its reference atmosphere at a geometric height."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric altitude" },
+]
+coefficients = { r_0 = 6356.766 }
+keywords = ["geopotential height", "standard atmosphere"]
+
+[[formulations.itu_r_p835_geopotential_height.citations]]
+reference = "itu_r_p835_7"
+equation = "1a"
+notation = { Z = "H", z = "Z" }
+
+[[formulations.itu_r_p835_geopotential_height.citations]]
+reference = "iso2533_1975"
+equation = "8"
+notation = { Z = "H", z = "h", r_0 = "r" }
+note = "With r = 6 356 766 m, the nominal radius of the Earth for which the acceleration of free fall and its vertical gradient at mean sea level are close to their values at 45 deg 32' 33''."
+
+[formulations.itu_r_p835_geometric_altitude]
+label = "Geometric altitude from the geopotential height, U.S. Standard Atmosphere 1976 (ITU-R P.835)"
+expression = "r_0 * Z / (r_0 - Z)"
+fixed_units = true
+note = "The inverse of equation 1a, printed by the source."
+output = { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric altitude" }
+inputs = [
+  { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { r_0 = 6356.766 }
+keywords = ["geopotential height", "standard atmosphere"]
+
+[[formulations.itu_r_p835_geometric_altitude.citations]]
+reference = "itu_r_p835_7"
+equation = "1b"
+notation = { Z = "H", z = "Z" }
+
+[[formulations.itu_r_p835_geometric_altitude.citations]]
+reference = "iso2533_1975"
+equation = "9"
+notation = { Z = "H", z = "h", r_0 = "r" }
+
+[formulations.era5_geometric_altitude]
+label = "Geometric altitude from the geopotential height, spherical Earth of the IFS (ERA5)"
+expression = "R_e * Z / (R_e - Z)"
+fixed_units = true
+note = "ERA5's approximation, neglecting horizontal variations of gravity, relative to the geoid. R_e = 6371.229 km is the radius of the spherical Earth the IFS assumes, given in the data documentation; the page on heights names it without a value. The form of ITU-R P.835 equation 1b, with another radius."
+output = { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric altitude" }
+inputs = [
+  { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { R_e = 6371.229 }
+keywords = ["geopotential height", "ERA5", "IFS"]
+
+[[formulations.era5_geometric_altitude.citations]]
+reference = "era5_documentation"
+notation = { z = '\mathrm{alt}', Z = "h", R_e = '\mathrm{Re}' }
+
+[formulations.wmo_geopotential_height_from_normal_gravity]
+label = "Geopotential height from the geometric height, a normal gravity and an effective radius (WMO Guide)"
+expression = "gamma / g_n * R * z / (R + z)"
+fixed_units = false
+note = "The form of equations 12.13 and 12.15, for a GPS radiosonde: 12.13 with the normal gravity gamma_SMT of 12.14 and the effective radius R_SMT tabulated in the Smithsonian tables (List, 1968); 12.15 (Mahoney, on WGS 84) with gamma_s of 12.16 and the radius R given with it. The conversion depends on gravity alone, not on the temperature and humidity profile."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric height above the geoid" },
+  { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity at the latitude" },
+  { identifier = "R", kind = "Length", unit = "KiloM", description = "Effective radius of the Earth at the latitude" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["geopotential height", "radiosonde", "GPS"]
+
+[[formulations.wmo_geopotential_height_from_normal_gravity.citations]]
+reference = "wmo2024"
+equation = "12.13, 12.15"
+notation = { Z = "Z_1", z = "z_1", gamma = '\gamma_{\mathrm{s}}', g_n = '\gamma_{45}' }
+
+[formulations.wmo_normal_gravity_smithsonian]
+label = "Normal gravity at the latitude, Smithsonian Meteorological Tables (WMO Guide)"
+expression = "g_0 * (1 - a_1 * cos(2 * phi) + a_2 * cos(2 * phi)**2)"
+fixed_units = true
+note = "The value of the Smithsonian tables (List, 1968), computed on the International Ellipsoid 1935; 'not explicitly derived in the published scientific literature, although it was recommended for meteorological use by the International Association of Geodesy in 1949'."
+output = { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity" }
+inputs = [
+  { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
+]
+coefficients = { g_0 = 9.80616, a_1 = 0.0026373, a_2 = 0.0000059 }
+keywords = ["normal gravity", "latitude"]
+
+[[formulations.wmo_normal_gravity_smithsonian.citations]]
+reference = "wmo2024"
+equation = "12.14"
+notation = { gamma = '\gamma_{\mathrm{SMT}}', phi = '\varphi' }
+
+[formulations.wmo_normal_gravity_wgs84]
+label = "Normal gravity on the surface of the ellipsoid at the latitude, WGS 84 (WMO Guide)"
+expression = "gamma_e * (1 + k * sin(phi)**2) / sqrt(1 - e2 * sin(phi)**2)"
+fixed_units = true
+note = "The normal gravity on the surface of an ellipsoid of revolution of Mahoney's expression, based on WGS 84."
+output = { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity on the ellipsoid" }
+inputs = [
+  { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
+]
+coefficients = { gamma_e = 9.780325, k = 0.00193185, e2 = 0.00669435 }
+keywords = ["normal gravity", "latitude", "WGS 84"]
+
+[[formulations.wmo_normal_gravity_wgs84.citations]]
+reference = "wmo2024"
+equation = "12.16"
+notation = { gamma = '\gamma_{\mathrm{s}}', phi = '\varphi' }
+
+[formulations.wmo_effective_radius_mahoney]
+label = "Effective radius of the Earth at the latitude, Mahoney (WMO Guide)"
+expression = "a / (b_1 - b_2 * sin(phi)**2)"
+fixed_units = true
+note = "Given with equation 12.15 (text below equation 12.16, p. 443), 'giving results for R similar to the values in the Smithsonian tables'."
+output = { identifier = "R", kind = "Length", unit = "KiloM", description = "Effective radius of the Earth" }
+inputs = [
+  { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
+]
+coefficients = { a = { value = 6378.137, unit = "KiloM", unit_basis = "added", note = "The source writes the number alone; its Figure 12.6 gives the radius of the Earth in km." }, b_1 = 1.006803, b_2 = 0.006706 }
+keywords = ["Earth radius", "latitude", "WGS 84"]
+
+[[formulations.wmo_effective_radius_mahoney.citations]]
+reference = "wmo2024"
+equation = "12.15"
+notation = { phi = '\varphi' }
+
+[formulations.wmo_geopotential_height_wgs84]
+label = "Geopotential height from the geometric height and the latitude, on WGS 84 (WMO Guide)"
+composition = { outer = "wmo_geopotential_height_from_normal_gravity", inner = { gamma = "wmo_normal_gravity_wgs84", R = "wmo_effective_radius_mahoney" } }
+
+[[formulations.wmo_geopotential_height_wgs84.citations]]
+reference = "wmo2024"
+equation = "12.15"
+notation = { Z = "Z_1", z = "z_1", g_n = '\gamma_{45}', phi = '\varphi' }
+
+# The hydrostatic atmosphere: the thickness of a layer from its mean
+# virtual temperature (WMO, IFS), the pressure through a layer whose
+# temperature varies linearly or not at all (U.S. Standard Atmosphere,
+# its general form), the reduction of a station pressure to sea level
+# (WMO), the dry adiabatic gradient (Bechtold).
+
+[formulations.wmo_hypsometric_pressure]
+label = "Pressure at the top of a layer, from its thickness and mean virtual temperature (WMO Guide)"
+expression = "p_1 * exp(-g_n * dZ / (R * T_v))"
+fixed_units = false
+note = "Equation 12.17, ln(p_{i+1}/p_i) = -9.80665 dZ/(R* T_v), solved for the upper pressure: GPS radiosondes compute their pressures so, upwards from the surface pressure. The source calls R* the gas constant for dry air without giving its value; WMO-No. 8 gives 287.05 J kg-1 K-1 in 3.7.2."
+output = { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure at the top of the layer" }
+inputs = [
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure at the bottom of the layer" },
+  { identifier = "dZ", kind = "GeopotentialThickness", unit = "M", description = "Thickness of the layer in geopotential height" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Mean virtual temperature of the layer" },
+]
+constants = ["g_n_cgpm1901", "R_d_wmo2024"]
+keywords = ["hypsometric equation", "thickness", "radiosonde"]
+
+[[formulations.wmo_hypsometric_pressure.citations]]
+reference = "wmo2024"
+equation = "12.17"
+notation = { p_1 = "p_i", p_2 = "p_{i+1}", dZ = '\mathrm{d}Z', R = "R^*" }
+assumptions = ["The hydrostatic relationship, in a discrete form, with the mean virtual temperature of the layer."]
+
+[formulations.ecmwf_ifs_hypsometric_geopotential]
+label = "Geopotential at the top of a layer, from the pressures and the mean virtual temperature (IFS)"
+expression = "Phi_1 + R_d * T_v * ln(p_1 / p_2)"
+fixed_units = false
+note = "Equation 2.20, the discrete analogue of the hydrostatic equation 2.6 between two half levels, phi_{k+1/2} - phi_{k-1/2} = -R_dry (T_v)_k ln(p_{k+1/2}/p_{k-1/2}), half level k+1/2 being the lower one; written here from the lower level to the upper one. The same numbering in CY41R2 (ERA5) and CY50R1."
+output = { identifier = "Phi_2", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the top of the layer" }
+inputs = [
+  { identifier = "Phi_1", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the bottom of the layer" },
+  { identifier = "p_1", kind = "Pressure", unit = "PA", description = "Pressure at the bottom of the layer" },
+  { identifier = "p_2", kind = "Pressure", unit = "PA", description = "Pressure at the top of the layer" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature of the layer" },
+]
+constants = ["R_d_ecmwf_ifs"]
+keywords = ["hypsometric equation", "geopotential", "IFS"]
+
+[[formulations.ecmwf_ifs_hypsometric_geopotential.citations]]
+reference = "ecmwf_ifs_cy49r1_part3"
+equation = "2.20"
+notation = { Phi_1 = '\phi_{k+1/2}', Phi_2 = '\phi_{k-1/2}', p_1 = "p_{k+1/2}", p_2 = "p_{k-1/2}", T_v = '(T_{\mathrm{v}})_k', R_d = '\mathrm{R}_{\mathrm{dry}}' }
+assumptions = ["The hydrostatic equation (2.6), with the virtual temperature of the layer."]
+
+[formulations.ussa1976_pressure_layer_gradient]
+label = "Pressure in a layer of constant temperature gradient (U.S. Standard Atmosphere 1976)"
+expression = "P_b * (T_b / (T_b + L * (H - H_b)))**(g_n * M_0 / (R_star * L))"
+fixed_units = false
+note = "Equation 33a, for a layer whose molecular-scale temperature varies linearly with the geopotential height. The molecular-scale temperature T M0/M equals the temperature below 80 km; in moist air, it is the virtual temperature. Equation 33b holds when the gradient is zero."
+conditions = "A gradient L different from zero."
+output = { identifier = "P", kind = "Pressure", unit = "PA", description = "Pressure at the geopotential height" }
+inputs = [
+  { identifier = "P_b", kind = "Pressure", unit = "PA", description = "Pressure at the base of the layer" },
+  { identifier = "T_b", kind = "ThermodynamicTemperature", unit = "K", description = "Molecular-scale temperature at the base of the layer" },
+  { identifier = "L", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Gradient of the molecular-scale temperature with geopotential height" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the base of the layer" },
+]
+constants = ["g_n_cgpm1901", "M_0_ussa1976", "R_star_ussa1976"]
+keywords = ["barometric formula", "standard atmosphere", "lapse rate"]
+
+[[formulations.ussa1976_pressure_layer_gradient.citations]]
+reference = "ussa1976"
+equation = "33a"
+notation = { T_b = '\mathrm{T}_{M,b}', L = '\mathrm{L}_{M,b}', g_n = "g_0'", R_star = "R^*" }
+assumptions = ["The hydrostatic equation (5), with g dZ replaced by g0' dH (16) and M/T by M0/T_M (22).", "A constant gradient of the molecular-scale temperature through the layer."]
+
+[formulations.ussa1976_pressure_layer_isothermal]
+label = "Pressure in an isothermal layer (U.S. Standard Atmosphere 1976)"
+expression = "P_b * exp(-g_n * M_0 * (H - H_b) / (R_star * T_b))"
+fixed_units = false
+note = "Equation 33b, for a layer whose molecular-scale temperature is constant."
+output = { identifier = "P", kind = "Pressure", unit = "PA", description = "Pressure at the geopotential height" }
+inputs = [
+  { identifier = "P_b", kind = "Pressure", unit = "PA", description = "Pressure at the base of the layer" },
+  { identifier = "T_b", kind = "ThermodynamicTemperature", unit = "K", description = "Molecular-scale temperature of the layer" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the base of the layer" },
+]
+constants = ["g_n_cgpm1901", "M_0_ussa1976", "R_star_ussa1976"]
+keywords = ["barometric formula", "standard atmosphere", "isothermal"]
+
+[[formulations.ussa1976_pressure_layer_isothermal.citations]]
+reference = "ussa1976"
+equation = "33b"
+notation = { T_b = '\mathrm{T}_{M,b}', g_n = "g_0'", R_star = "R^*" }
+assumptions = ["The hydrostatic equation (5), with g dZ replaced by g0' dH (16) and M/T by M0/T_M (22).", "A constant molecular-scale temperature through the layer."]
+
+[formulations.wmo_sea_level_pressure]
+label = "Pressure reduced to sea level, exponential form (WMO Guide)"
+expression = "p_s * exp(g_n * H_p / (R * (T_s + a * H_p / 2 + e_s * C_h)))"
+fixed_units = true
+note = "Equation 3.2, the exponential form of equation 3.1 (WMO, 1964). T_s + a H_p/2 + e_s C_h is the mean virtual temperature of a fictitious column of air below the station, with an assumed gradient a; C_h e_s accounts for the humidity."
+conditions = "Stations below 750 m (WMO-No. 8, 3.7.2)."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "HectoPA", description = "Pressure reduced to sea level" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "HectoPA", description = "Station pressure" },
+  { identifier = "H_p", kind = "GeopotentialHeight", unit = "M", description = "Station elevation, in geopotential metres" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Station temperature" },
+  { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure at the station" },
+]
+coefficients = { a = 0.0065, C_h = 0.12 }
+constants = ["g_n_cgpm1901", "R_d_wmo2024"]
+keywords = ["sea level pressure", "reduction", "station pressure"]
+
+[[formulations.wmo_sea_level_pressure.citations]]
+reference = "wmo2024"
+equation = "3.2"
+notation = { p_0 = "p_0", p_s = "p_S", H_p = "H_p", T_s = "T_S", e_s = "e_S", C_h = "C_h" }
+assumptions = ["A fictitious column of air from sea level to the station, of assumed gradient a = 0.0065 K/gpm."]
+
+[formulations.wmo_sea_level_pressure_log10]
+label = "Pressure reduced to sea level, decimal form (WMO Guide)"
+expression = "p_s * 10**(K_p * H_p / (T_s + a * H_p / 2 + e_s * C_h))"
+fixed_units = true
+note = "Equation 3.1, log10(p_0/p_s) = K_p H_p / T_mv, from WMO (1964), p. 22, equation 2. Its K_p = 0.0148275 K/gpm differs from g_n / (R ln 10) = 0.014837 K/gpm, with R = 287.05 J kg-1 K-1, by 6.4 x 10^-4: the two forms the source calls the same formula differ by that much in the exponent."
+conditions = "Stations below 750 m (WMO-No. 8, 3.7.2)."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "HectoPA", description = "Pressure reduced to sea level" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "HectoPA", description = "Station pressure" },
+  { identifier = "H_p", kind = "GeopotentialHeight", unit = "M", description = "Station elevation, in geopotential metres" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Station temperature" },
+  { identifier = "e_s", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure at the station" },
+]
+coefficients = { K_p = 0.0148275, a = 0.0065, C_h = 0.12 }
+keywords = ["sea level pressure", "reduction", "station pressure"]
+
+[[formulations.wmo_sea_level_pressure_log10.citations]]
+reference = "wmo2024"
+equation = "3.1"
+notation = { p_0 = "p_0", p_s = "p_S", H_p = "H_p", T_s = "T_S", e_s = "e_S", K_p = "K_p", C_h = "C_h" }
+assumptions = ["A fictitious column of air from sea level to the station, of assumed gradient a = 0.0065 K/gpm."]
+
+[formulations.bechtold2015_dry_adiabatic_gradient]
+label = "Dry adiabatic gradient of temperature (Bechtold 2015)"
+expression = "-g / c_pd"
+fixed_units = false
+note = "Equation 38, from the conservation of the dry static energy (37) in hydrostatic equilibrium: a temperature decrease of 0.98 K per 100 m."
+output = { identifier = "dTdz", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Dry adiabatic gradient of temperature" }
+inputs = []
+constants = ["g_bechtold2015", "c_pd_bechtold2015"]
+keywords = ["dry adiabatic lapse rate", "lapse rate"]
+
+[[formulations.bechtold2015_dry_adiabatic_gradient.citations]]
+reference = "bechtold2015"
+equation = "38"
+notation = { dTdz = '\frac{\mathrm{d}T}{\mathrm{d}z}', c_pd = 'c_{p\mathrm{d}}' }
+assumptions = ["Hydrostatic equilibrium, dp = -rho g dz.", "An adiabatic ascent without phase change."]
+
+# The reference atmosphere: a conventional model, not a description of
+# the atmosphere. ITU-R P.835-7 derives it from the U.S. Standard
+# Atmosphere, 1976, identical to the ICAO standard atmosphere up to
+# 32 km. Each layer of its pressure is the general form of the U.S.
+# Standard Atmosphere (equations 33a and 33b) with the values of the
+# layer: written with them as coefficients, the formulas keep the form
+# the source prints. A pressure altitude is the inverse of the pressure.
+
+[formulations.itu_r_p835_temperature]
+label = "Temperature of the ITU-R reference atmosphere, from the geopotential height (ITU-R P.835)"
+expression = "piecewise((T_0 + L_0 * H, 0 <= H <= 11), (T_1, 11 < H <= 20), (T_2 + L_2 * (H - 20), 20 < H <= 32), (T_3 + L_3 * (H - 32), 32 < H <= 47), (T_4, 47 < H <= 51), (T_5 + L_5 * (H - 51), 51 < H <= 71), (T_6 + L_6 * (H - 71), 71 < H <= 84.852))"
+fixed_units = true
+note = "Equations 2a to 2g, for geopotential heights from 0 to 84.852 km' (86 km of geometric height); above, from 86 to 100 km of geometric height, equations 4a and 4b (not entered). T_b are the temperatures at the base of the layers, L_b their gradients in K/km' (table 4 of the U.S. Standard Atmosphere, 1976)."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" }
+inputs = [
+  { identifier = "H", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { T_0 = 288.15, L_0 = -6.5, T_1 = 216.65, T_2 = 216.65, L_2 = 1.0, T_3 = 228.65, L_3 = 2.8, T_4 = 270.65, T_5 = 270.65, L_5 = -2.8, T_6 = 214.65, L_6 = -2.0 }
+keywords = ["standard atmosphere", "reference atmosphere", "temperature profile"]
+
+[[formulations.itu_r_p835_temperature.citations]]
+reference = "itu_r_p835_7"
+equation = "2a-2g"
+
+[[formulations.itu_r_p835_temperature.citations.domains]]
+bounds = { H = [0.0, 84.852] }
+criterion = "The first height regime of the reference atmosphere, geopotential heights from 0 to 84.852 km' (Annex 1, 1.1)."
+
+[formulations.itu_r_p835_pressure]
+label = "Pressure of the ITU-R reference atmosphere, from the geopotential height (ITU-R P.835)"
+expression = "piecewise((P_0 * (T_0 / (T_0 + L_0 * H))**(k / L_0), 0 <= H <= 11), (P_1 * exp(-k * (H - 11) / T_1), 11 < H <= 20), (P_2 * (T_2 / (T_2 + L_2 * (H - 20)))**(k / L_2), 20 < H <= 32), (P_3 * (T_3 / (T_3 + L_3 * (H - 32)))**(k / L_3), 32 < H <= 47), (P_4 * exp(-k * (H - 47) / T_4), 47 < H <= 51), (P_5 * (T_5 / (T_5 + L_5 * (H - 51)))**(k / L_5), 51 < H <= 71), (P_6 * (T_6 / (T_6 + L_6 * (H - 71)))**(k / L_6), 71 < H <= 84.852))"
+fixed_units = true
+note = "Equations 3a to 3g, for geopotential heights from 0 to 84.852 km'; above, equation 5 (not entered). Each layer is equation 33a or 33b of the U.S. Standard Atmosphere, 1976, with P_b the pressure at its base, T_b its base temperature, L_b its gradient and k = 34.1632 K/km', the source's g0' M0 / R* (34.163195 from the constants of the U.S. Standard Atmosphere): 3a is 1013.25 [288.15/(288.15 - 6.5 H)]^(-34.1632/6.5)."
+output = { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Pressure" }
+inputs = [
+  { identifier = "H", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
+]
+coefficients = { P_0 = 1013.25, T_0 = 288.15, L_0 = -6.5, P_1 = 226.3226, T_1 = 216.65, P_2 = 54.74980, T_2 = 216.65, L_2 = 1.0, P_3 = 8.680422, T_3 = 228.65, L_3 = 2.8, P_4 = 1.109106, T_4 = 270.65, P_5 = 0.6694167, T_5 = 270.65, L_5 = -2.8, P_6 = 0.03956649, T_6 = 214.65, L_6 = -2.0, k = 34.1632 }
+keywords = ["standard atmosphere", "reference atmosphere", "pressure profile", "pressure altitude"]
+
+[[formulations.itu_r_p835_pressure.citations]]
+reference = "itu_r_p835_7"
+equation = "3a-3g"
+units = { T_0 = "K" }
+
+[[formulations.itu_r_p835_pressure.citations.domains]]
+bounds = { H = [0.0, 84.852] }
+criterion = "The first height regime of the reference atmosphere, geopotential heights from 0 to 84.852 km' (Annex 1, 1.1)."
+
+[formulations.iso2533_pressure_altitude]
+label = "Pressure altitude from the pressure, ISO standard atmosphere (ISO 2533, Addendum 1)"
+expression = "piecewise(((a_1 - p**n_1) / b_1, 226.32 <= p <= 1200), ((a_2 - log10(p)) / b_2, 54.7487 <= p < 226.32), ((a_3 - p**n_3) / (b_3 * p**n_3), 8.68016 <= p < 54.7487), ((a_4 - p**n_4) / (b_4 * p**n_4), 1.10906 <= p < 8.68016))"
+fixed_units = true
+note = "The geopotential altitude of the standard atmosphere at a pressure, in closed form layer by layer, from -1 450 to 47 000 m: the pressure altitude, which an inversion of itu_r_p835_pressure gives numerically. The pressure in hectopascals, the altitude in standard geopotential metres. The source bounds each formula by altitudes; the pressures at the bounds, 1 200.00, 226.32, 54.7487, 8.68016 and 1.10906 hPa, are those its own formulae of the pressure give there."
+output = { identifier = "H_p", kind = "PressureAltitude", unit = "M", description = "Pressure altitude" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+]
+coefficients = { a_1 = 3.731444, b_1 = 0.841728e-4, n_1 = 0.1902631, a_2 = 3.1080387, b_2 = 0.6848325e-4, a_3 = 1.2386515, b_3 = 0.5085177e-5, n_3 = 0.02927125, a_4 = 1.9630052, b_4 = 0.2013664e-4, n_4 = 0.08195949 }
+keywords = ["pressure altitude", "standard atmosphere", "altimetry", "hypsometric"]
+
+[[formulations.iso2533_pressure_altitude.citations]]
+reference = "iso2533_add1_1985"
+equation = "2.1.1, 2.2.1, 2.3.1, 2.4.1"
+notation = { H_p = "H" }
+
+[formulations.nws_pressure_altitude]
+label = "Pressure altitude from the station pressure, in feet (NWS)"
+expression = "C * (1 - (P / P_0)**n)"
+fixed_units = true
+note = "The pressure in millibars (hPa), the pressure altitude in feet. The sheet states no domain."
+output = { identifier = "h", kind = "PressureAltitude", unit = "FT", description = "Pressure altitude" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Station pressure" },
+]
+coefficients = { C = 145366.45, P_0 = 1013.25, n = 0.190284 }
+keywords = ["pressure altitude", "altimetry", "aviation"]
+
+[[formulations.nws_pressure_altitude.citations]]
+reference = "nws_wxcalc_pressure_altitude"
+notation = { h = '\mathrm{h}_{\mathrm{alt}}', P = '\mathrm{P}_{\mathrm{sta}}' }
+
+# Interpolation between two levels: each scheme is a formulation, cited by
+# every source that uses it, so that schemes compare like any other
+# formulations. The post-processing of ARPEGE and the IFS (FULL-POS)
+# chooses the scheme by variable; MetPy and earthkit-meteo leave it to the
+# user, linear in the coordinate or in its logarithm.
+
+[formulations.log_pressure_interpolation_wind]
+label = "Wind component between two levels, linear in the logarithm of the pressure"
+expression = "u_1 + (u_2 - u_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "FULL-POS interpolates the wind so in the lower layers (quadratically above with the ECMWF option) and keeps it constant below the lowest level; MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log') interpolate any variable so."
+output = { identifier = "u", kind = "Velocity", unit = "M-PER-SEC", description = "Wind component at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "u_1", kind = "Velocity", unit = "M-PER-SEC", description = "Wind component at the first level" },
+  { identifier = "u_2", kind = "Velocity", unit = "M-PER-SEC", description = "Wind component at the second level" },
+]
+keywords = ["vertical interpolation", "wind", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_wind.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.1"
+
+[[formulations.log_pressure_interpolation_wind.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_wind.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.log_pressure_interpolation_temperature]
+label = "Temperature between two levels, linear in the logarithm of the pressure"
+expression = "T_1 + (T_2 - T_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'), between the two levels: outside them, this formula extrapolates where MetPy returns NaN. In a layer whose temperature varies linearly with height, the temperature is a power of the pressure: linear in ln p only approximately."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+keywords = ["vertical interpolation", "temperature", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "earthkit_meteo121"
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "wmo306_vol1_1_2019"
+equation = "35.3.1.3"
+note = "Regulation 35.3.1.3 (a): the significant levels of a TEMP report are chosen so that the temperature interpolated linearly on a T-log P diagram between two adjacent levels departs from the observed one by at most 1 degC, 2 degC above the first significant level above 300 hPa or the first tropopause."
+
+[[formulations.log_pressure_interpolation_temperature.citations]]
+reference = "ziv_alpert1994"
+equation = "8"
+notation = { p_1 = "p_d", p_2 = "p_u", T_1 = "T_d", T_2 = "T_u" }
+note = "Method (c), T = A + B ln p, which NMC uses to interpolate sigma-level analyses to pressure levels (Hoerling and Sanford 1993); the first-order expansion in ln p of the temperature linear in height (method d, after Shen et al. 1986). Radiosondes report significant levels between which the temperature is so (WMO Manual on Codes, 1988)."
+
+[formulations.pressure_interpolation_temperature]
+label = "Temperature between two levels, linear in the pressure (FULL-POS, ECMWF option)"
+expression = "T_1 + (T_2 - T_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "FULL-POS with the ECMWF option (LOLDPP=.T., routine PPT_OLD); Meteo-France's option interpolates quadratically in the logarithm of the pressure."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+keywords = ["vertical interpolation", "temperature", "pressure", "FULL-POS"]
+
+[[formulations.pressure_interpolation_temperature.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.2"
+
+[[formulations.pressure_interpolation_temperature.citations]]
+reference = "metpy171_interpolate"
+note = "interpolate_1d, linear in the pressure, gives the temperature at 850, 700 and 500 hPa to MetPy's stability indices (calc/thermo.py: lifted_index, k_index, galvez_davison_index, showalter_index, total_totals_index, vertical_totals, cross_totals)."
+
+[formulations.pressure_interpolation_specific_humidity]
+label = "Specific humidity between two levels, linear in the pressure (FULL-POS)"
+expression = "q_1 + (q_2 - q_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "FULL-POS interpolates moisture so (routine PPQ), and relative humidity likewise, keeping them constant below the lowest level."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "GM-PER-KiloGM", description = "Specific humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "GM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "GM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "pressure", "FULL-POS"]
+
+[[formulations.pressure_interpolation_specific_humidity.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.5"
+
+[formulations.height_interpolation_temperature]
+label = "Temperature between two levels, linear in the altitude"
+expression = "T_1 + (T_2 - T_1) * (z - z_1) / (z_2 - z_1)"
+fixed_units = false
+note = "The interpolation of MetPy (interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='linear') on heights, between the two levels: outside them, this formula extrapolates where MetPy returns NaN. The layers of a standard atmosphere are linear in the geopotential height: in altitude, the scheme departs from them by a few millikelvins over a few kilometres (+0.004 K at 700 hPa between 850 and 500 hPa of ITU-R P.835)."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the target altitude" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "M", description = "Target altitude" },
+  { identifier = "z_1", kind = "Altitude", unit = "M", description = "Altitude of the first level" },
+  { identifier = "z_2", kind = "Altitude", unit = "M", description = "Altitude of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+keywords = ["vertical interpolation", "temperature", "altitude"]
+
+[[formulations.height_interpolation_temperature.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.height_interpolation_temperature.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.log_pressure_interpolation_geopotential_height]
+label = "Geopotential height between two levels, linear in the logarithm of the pressure"
+expression = "Z_1 + (Z_2 - Z_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "The interpolation of MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log'), between the two levels: outside them, this formula extrapolates where MetPy returns NaN. Exact for an isothermal layer, where the hypsometric equation makes the height linear in ln p."
+output = { identifier = "Z", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "Z_1", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the first level" },
+  { identifier = "Z_2", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the second level" },
+]
+keywords = ["vertical interpolation", "geopotential height", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_geopotential_height.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_geopotential_height.citations]]
+reference = "earthkit_meteo121"
+
+# Below the surface (FULL-POS, the post-processing of ERA5): the
+# temperature of the surface from the lowest levels, and the pressure
+# reduced to mean sea level through the standard gradient. FULL-POS gives
+# no value of R_d and g: those of the IFS are taken.
+
+[formulations.fullpos_surface_temperature]
+label = "Surface temperature from a model level, through the standard gradient (FULL-POS)"
+expression = "T_L + Gamma * R_d / g_n * (p_s / p_L - 1) * T_L"
+fixed_units = false
+note = "Equation 1: the temperature at the surface from the temperature of a model level above it (level NLEXTRAP, at height HEXTRAP), with the standard gradient of the troposphere, 0.0065 K/m. Below the lowest level and the surface, FULL-POS interpolates linearly between the two temperatures; under the surface, it extrapolates from this one."
+output = { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" }
+inputs = [
+  { identifier = "T_L", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the model level" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "p_L", kind = "Pressure", unit = "PA", description = "Pressure of the model level" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["surface temperature", "extrapolation", "FULL-POS", "ERA5"]
+
+[[formulations.fullpos_surface_temperature.citations]]
+reference = "yessad2018_fullpos"
+equation = "1"
+notation = { T_s = '\mathrm{T}_{\mathrm{surf}}', T_L = '\mathrm{T}_{Le}', p_s = '\Pi_{\mathrm{s}}', p_L = '\Pi_{Le}', Gamma = '\left(\frac{dT}{dz}\right)^{\mathrm{st}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["The standard gradient of the temperature in the troposphere, 0.0065 K/m, between the model level and the surface."]
+
+[[formulations.fullpos_surface_temperature.citations]]
+reference = "trenberth1993"
+equation = "5"
+notation = { T_s = 'T_*', T_L = '\mathrm{T}_{NL}', p_s = '\mathrm{p}_{\mathrm{s}}', p_L = '\mathrm{p}_{NL}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+
+[formulations.fullpos_mean_sea_level_pressure]
+label = "Mean sea level pressure through the standard gradient (FULL-POS, ECMWF)"
+expression = "p_s * exp(Phi_s / (R_d * T_s) * (1 - Gamma * Phi_s / (g_n * T_s) / 2 + (Gamma * Phi_s / (g_n * T_s))**2 / 3))"
+fixed_units = false
+note = "Equations 8 and 9 (routine PPPMER), x = Gamma Phi_s / (g T_surf), in the usual case where Gamma is the standard gradient 0.0065 K/m. FULL-POS changes Gamma and T_surf over high and warm surfaces, where the temperature at sea level T_surf + Gamma Phi_s / g would exceed 290.5 K (equation 7), and over cold ones below 255 K; it sets the pressure to the surface pressure where |Phi_s| < 0.001 J/kg."
+conditions = "The usual case: T_surf between 255 K and 290.5 K, and T_surf + 0.0065 Phi_s / g at most 290.5 K."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "PA", description = "Mean sea level pressure" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature, from equation 1" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["sea level pressure", "reduction", "FULL-POS", "ERA5"]
+
+[[formulations.fullpos_mean_sea_level_pressure.citations]]
+reference = "yessad2018_fullpos"
+equation = "8, 9"
+notation = { p_0 = '\Pi_{\mathrm{MSL}}', p_s = '\Pi_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = '\mathrm{T}_{\mathrm{surf}}', Gamma = '\Gamma', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["The standard gradient of the temperature, 0.0065 K/m, below the surface."]
+
+[[formulations.fullpos_mean_sea_level_pressure.citations]]
+reference = "trenberth1993"
+equation = "12"
+notation = { p_0 = '\mathrm{p}_{\mathrm{msl}}', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = 'T_*', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+note = "Written with alpha = 0.0065 R_d / g, the approximation of equation 11 for small alpha."
+
+# The exact forms these approximate, and the extrapolation under the
+# surface. In a dry hydrostatic atmosphere of constant lapse rate Gamma,
+# T = T_s (p/p_s)^alpha with alpha = Gamma R_d / g (Trenberth et al. 1993,
+# 9 to 11); ECMWF uses the expansions to the third order (12, 15, 16), as
+# does FULL-POS, whose documentation prints log(Pi_s/Pi_L) in its
+# equations 3 and 6, where the physics and Trenberth et al. give ln(p/p_s).
+
+[formulations.ecmwf_mean_sea_level_pressure_exact]
+label = "Mean sea level pressure through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
+expression = "p_s * (1 + Gamma * Phi_s / (g_n * T_s))**(g_n / (Gamma * R_d))"
+fixed_units = false
+note = "Equation 11, p_s (1 + alpha Phi_s / (R_d T_s))^(1/alpha) with alpha = Gamma R_d / g: the pressure at sea level of a dry hydrostatic column below the surface whose temperature increases downwards by Gamma."
+output = { identifier = "p_0", kind = "SeaLevelPressure", unit = "PA", description = "Mean sea level pressure" }
+inputs = [
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["sea level pressure", "reduction", "ECMWF"]
+
+[[formulations.ecmwf_mean_sea_level_pressure_exact.citations]]
+reference = "trenberth1993"
+equation = "11"
+notation = { p_0 = '\mathrm{p}_{\mathrm{msl}}', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', T_s = 'T_*', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]
+
+[formulations.ecmwf_temperature_below_ground]
+label = "Temperature below the surface, third-order expansion (ECMWF, FULL-POS)"
+expression = "T_s * (1 + Gamma * R_d / g_n * ln(p / p_s) + (Gamma * R_d / g_n * ln(p / p_s))**2 / 2 + (Gamma * R_d / g_n * ln(p / p_s))**3 / 6)"
+fixed_units = false
+note = "Equation 16 of Trenberth et al. (1993), the expansion of T_s (p/p_s)^alpha, with alpha = Gamma R_d / g. Its ERA5 description reads 'a cubic polynomial extrapolation'. For high orography, Phi_s/g of 2000 m and more, alpha is modified (17 to 19)."
+conditions = "A surface below 2000 m: Phi_s / g < 2000 m."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "temperature", "ECMWF", "ERA5"]
+
+[[formulations.ecmwf_temperature_below_ground.citations]]
+reference = "trenberth1993"
+equation = "16"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+
+[[formulations.ecmwf_temperature_below_ground.citations]]
+reference = "yessad2018_fullpos"
+equation = "2, 3"
+notation = { T = '\mathrm{T}_{\mathrm{extrapolated}}', T_s = '\mathrm{T}_{\mathrm{surf}}', p = '\Pi_L', p_s = '\Pi_{\mathrm{s}}', Gamma = '\Gamma', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+note = "Equation 3 is printed y = Gamma R_d/g log(Pi_s/Pi_L), which would make the temperature decrease below the surface. Equations 1 and 8 of the same document take the pressure ratio the other way, lower level over upper (Pi_s/Pi_Le - 1; Pi_MSL/Pi_s through the exponential), with a positive gradient of 0.0065 K/m (p. 3); Trenberth et al. (1993, 16) give ln(p/p_s), the form entered."
+
+[formulations.ecmwf_temperature_below_ground_exact]
+label = "Temperature below the surface through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
+expression = "T_s * (p / p_s)**(Gamma * R_d / g_n)"
+fixed_units = false
+note = "Equation 9, T_s (p/p_s)^alpha with alpha = Gamma R_d / g, which equations 16 and FULL-POS's 2 expand to the third order."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "temperature", "ECMWF"]
+
+[[formulations.ecmwf_temperature_below_ground_exact.citations]]
+reference = "trenberth1993"
+equation = "9"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]
+
+[formulations.ecmwf_geopotential_below_ground]
+label = "Geopotential below the surface, second-order expansion (ECMWF, FULL-POS)"
+expression = "Phi_s - R_d * T_s * ln(p / p_s) * (1 + Gamma * R_d / g_n * ln(p / p_s) / 2 + (Gamma * R_d / g_n * ln(p / p_s))**2 / 6)"
+fixed_units = false
+note = "Equation 15 of Trenberth et al. (1993), the expansion of equation 10; FULL-POS extrapolates the geopotential height so with the standard gradient in all cases."
+output = { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "geopotential", "ECMWF", "ERA5"]
+
+[[formulations.ecmwf_geopotential_below_ground.citations]]
+reference = "trenberth1993"
+equation = "15"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+
+[[formulations.ecmwf_geopotential_below_ground.citations]]
+reference = "yessad2018_fullpos"
+equation = "6"
+notation = { T_s = '\mathrm{T}_{\mathrm{surf}}', p = '\Pi_L', p_s = '\Pi_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+note = "Printed gz = Phi_s - R_d T_surf log(Pi_s/Pi_L) (1 + y/2 + y^2/6), which would raise the geopotential below the surface; Trenberth et al. (1993, 15) give ln(p/p_s), the form entered. The height is then Phi / g."
+
+[formulations.ecmwf_geopotential_below_ground_exact]
+label = "Geopotential below the surface through a constant lapse rate, exact form (ECMWF, Trenberth et al. 1993)"
+expression = "Phi_s - R_d * T_s / (Gamma * R_d / g_n) * ((p / p_s)**(Gamma * R_d / g_n) - 1)"
+fixed_units = false
+note = "Equation 10, Phi_s - (R_d T_s / alpha) ((p/p_s)^alpha - 1), with alpha = Gamma R_d / g."
+output = { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential at the pressure below the surface" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure below the surface" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+  { identifier = "Phi_s", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Surface geopotential" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Surface temperature" },
+]
+coefficients = { Gamma = 0.0065 }
+constants = ["R_d_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["extrapolation", "below ground", "geopotential", "ECMWF"]
+
+[[formulations.ecmwf_geopotential_below_ground_exact.citations]]
+reference = "trenberth1993"
+equation = "10"
+notation = { T_s = 'T_*', p_s = '\mathrm{p}_{\mathrm{s}}', Phi_s = '\Phi_{\mathrm{s}}', g_n = "g" }
+units = { Gamma = "K-PER-M" }
+assumptions = ["A dry hydrostatic atmosphere below the surface, of uniform lapse rate."]
+
+# The water vapour of the ITU-R reference atmosphere (P.835-7, Annex 1,
+# 1.2), against the geometric height; its equation 7, e = rho T / 216.7,
+# is equation 10 of ITU-R P.453 (itu_r_p453_vapour_pressure_from_density).
+
+[formulations.itu_r_p835_water_vapour_density]
+label = "Water vapour density of the ITU-R reference atmosphere, from the geometric height (ITU-R P.835)"
+expression = "rho_0 * exp(-z / h_0)"
+fixed_units = true
+note = "Equation 6, a negative exponential 'in the absence of reliable local data', up to the geometric height where the mixing ratio e/P reaches 2 x 10^-6; above, equation 8 (itu_r_p835_water_vapour_density_upper)."
+conditions = "Up to the geometric height where e(Z)/P(Z) = 2 x 10^-6."
+output = { identifier = "rho", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Water vapour density" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "KiloM", description = "Geometric height" },
+]
+coefficients = { rho_0 = 7.5, h_0 = 2.0 }
+keywords = ["reference atmosphere", "water vapour", "humidity profile"]
+
+[[formulations.itu_r_p835_water_vapour_density.citations]]
+reference = "itu_r_p835_7"
+equation = "6"
+notation = { rho = '\rho', z = "Z" }
+
+[formulations.itu_r_p835_water_vapour_density_upper]
+label = "Water vapour density of the ITU-R reference atmosphere above the mixing ratio of 2 x 10^-6 (ITU-R P.835)"
+expression = "r * P * C / T"
+fixed_units = true
+note = "Equation 8, above the geometric height where equation 6 reaches the mixing ratio e/P = 2 x 10^-6: the density for that mixing ratio, the pressure and the temperature of the reference atmosphere."
+output = { identifier = "rho", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Water vapour density" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { r = 2e-6, C = 216.7 }
+keywords = ["reference atmosphere", "water vapour", "humidity profile"]
+
+[[formulations.itu_r_p835_water_vapour_density_upper.citations]]
+reference = "itu_r_p835_7"
+equation = "8"
+notation = { rho = '\rho' }
+units = { r = "UNITLESS" }
+
+[formulations.pressure_interpolation_relative_humidity]
+label = "Relative humidity between two levels, linear in the pressure (FULL-POS)"
+expression = "RH_1 + (RH_2 - RH_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "FULL-POS applies to the relative humidity the interpolation of moisture (routine PPQ). Interpolated so, apart from the temperature, the relative humidity is not consistent with it: the vapour pressure it implies with the interpolated temperature differs from the one the interpolated specific humidity gives (docs/vertical.md)."
+output = { identifier = "RH", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "RH_1", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity at the first level" },
+  { identifier = "RH_2", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity at the second level" },
+]
+keywords = ["vertical interpolation", "relative humidity", "pressure", "FULL-POS"]
+
+[[formulations.pressure_interpolation_relative_humidity.citations]]
+reference = "yessad2018_fullpos"
+equation = "3.2.5"
+
+# Humidity between two levels as MetPy practises it. MetPy builds no
+# variable of its own: its indices interpolate the dew point or the
+# mixing ratio linearly in p, its layers bring their variables to their
+# bounds linearly in ln p, its thermodynamic diagrams join the levels by
+# straight segments (the dew point linear in ln p on a Skew-T), and its
+# isentropic analysis interpolates linearly in the potential temperature.
+
+[formulations.log_pressure_interpolation_dew_point]
+label = "Dew point between two levels, linear in the logarithm of the pressure"
+expression = "T_d_1 + (T_d_2 - T_d_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "MetPy brings the dew point to the bounds of a layer so (get_layer, log_interpolate_1d); a Skew-T or an emagram, joining the levels by straight segments against ln p, draws the dew point so between them."
+output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_d_1", kind = "DewPointTemperature", unit = "K", description = "Dew point at the first level" },
+  { identifier = "T_d_2", kind = "DewPointTemperature", unit = "K", description = "Dew point at the second level" },
+]
+keywords = ["vertical interpolation", "dew point", "logarithm of pressure", "Skew-T"]
+
+[[formulations.log_pressure_interpolation_dew_point.citations]]
+reference = "metpy171_calc_tools"
+
+[[formulations.log_pressure_interpolation_dew_point.citations]]
+reference = "metpy171_plots"
+
+[formulations.pressure_interpolation_dew_point]
+label = "Dew point between two levels, linear in the pressure"
+expression = "T_d_1 + (T_d_2 - T_d_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "MetPy's stability indices take the dew point at 850 and 700 hPa so (interpolate_1d), when the sounding has no level there."
+output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_d_1", kind = "DewPointTemperature", unit = "K", description = "Dew point at the first level" },
+  { identifier = "T_d_2", kind = "DewPointTemperature", unit = "K", description = "Dew point at the second level" },
+]
+keywords = ["vertical interpolation", "dew point", "pressure", "stability index"]
+
+[[formulations.pressure_interpolation_dew_point.citations]]
+reference = "metpy171"
+note = "k_index, total_totals_index, cross_totals and showalter_index, calc/thermo.py lines 4846-5460, through interpolate_1d."
+
+[[formulations.pressure_interpolation_dew_point.citations]]
+reference = "metpy171_interpolate"
+
+[formulations.log_pressure_interpolation_specific_humidity]
+label = "Specific humidity between two levels, linear in the logarithm of the pressure"
+expression = "q_1 + (q_2 - q_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "The interpolation MetPy (log_interpolate_1d) and earthkit-meteo (interpolate_monotonic, interpolation='log') apply to any variable, the specific humidity included."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "logarithm of pressure"]
+
+[[formulations.log_pressure_interpolation_specific_humidity.citations]]
+reference = "metpy171_interpolate"
+
+[[formulations.log_pressure_interpolation_specific_humidity.citations]]
+reference = "earthkit_meteo121"
+
+[formulations.log_pressure_interpolation_log_specific_humidity]
+label = "Specific humidity between two levels, its logarithm linear in the logarithm of the pressure"
+expression = "q_1 * (q_2 / q_1) ** (ln(p / p_1) / ln(p_2 / p_1))"
+fixed_units = false
+note = "Written by nomogram, no source found: ln q linear in ln p, so that q is a power of p between the two levels, exact where it is one. A humidity that decreases nearly exponentially with height, as the pressure does, is followed so where a chord in q or ln p lies above it (docs/vertical.md)."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+assumptions = [
+  { text = "The specific humidity is a power of the pressure between the two levels.", status = "deduced" },
+]
+keywords = ["vertical interpolation", "humidity", "logarithm of pressure", "logarithm of humidity"]
+
+[formulations.log_pressure_interpolation_mixing_ratio]
+label = "Mixing ratio between two levels, linear in the logarithm of the pressure"
+expression = "r_1 + (r_2 - r_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "MetPy's mixed parcel brings the mixing ratio to the bounds of its layer so (mixed_layer, get_layer)."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "r_1", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the first level" },
+  { identifier = "r_2", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "mixing ratio", "logarithm of pressure", "mixed layer"]
+
+[[formulations.log_pressure_interpolation_mixing_ratio.citations]]
+reference = "metpy171_calc_tools"
+
+[formulations.pressure_interpolation_mixing_ratio]
+label = "Mixing ratio between two levels, linear in the pressure"
+expression = "r_1 + (r_2 - r_1) * (p - p_1) / (p_2 - p_1)"
+fixed_units = false
+note = "MetPy's Galvez-Davison index takes the mixing ratio at 950, 850, 700 and 500 hPa so (interpolate_1d)."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "r_1", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the first level" },
+  { identifier = "r_2", kind = "MassRatioOfWaterVapourToDryGas", unit = "KiloGM-PER-KiloGM", description = "Mixing ratio at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "mixing ratio", "pressure", "stability index"]
+
+[[formulations.pressure_interpolation_mixing_ratio.citations]]
+reference = "metpy171"
+note = "galvez_davison_index, calc/thermo.py line 4922, through interpolate_1d."
+
+[formulations.log_pressure_interpolation_potential_temperature]
+label = "Potential temperature between two levels, linear in the logarithm of the pressure"
+expression = "theta_1 + (theta_2 - theta_1) * ln(p / p_1) / ln(p_2 / p_1)"
+fixed_units = false
+note = "MetPy's mixed parcel brings the potential temperature to the bounds of its layer so (mixed_layer, get_layer)."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the target pressure" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Target pressure" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the second level" },
+]
+keywords = ["vertical interpolation", "potential temperature", "logarithm of pressure", "mixed layer"]
+
+[[formulations.log_pressure_interpolation_potential_temperature.citations]]
+reference = "metpy171_calc_tools"
+
+[formulations.potential_temperature_interpolation_specific_humidity]
+label = "Specific humidity between two levels, linear in the potential temperature"
+expression = "q_1 + (q_2 - q_1) * (theta - theta_1) / (theta_2 - theta_1)"
+fixed_units = false
+note = "MetPy's isentropic interpolation brings every other variable to an isentropic surface so: its docstring says linear with temperature, its code interpolates in the potential temperature of the levels (interpolate_1d(isentlevels, pres_theta, ...)); its gallery example brings the specific humidity so."
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the target potential temperature" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Target potential temperature" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the second level" },
+  { identifier = "q_1", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the first level" },
+  { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the second level" },
+]
+keywords = ["vertical interpolation", "humidity", "potential temperature", "isentropic"]
+
+[[formulations.potential_temperature_interpolation_specific_humidity.citations]]
+reference = "metpy171"
+note = "isentropic_interpolation, calc/thermo.py line 3027 (the interpolation at line 3186)."
+
+[[formulations.potential_temperature_interpolation_specific_humidity.citations]]
+reference = "metpy171_isentropic_example"
+
+# The potential temperature between two levels whose temperature is
+# linear in ln p: the profile on which MetPy, after Ziv and Alpert (1994),
+# finds the pressure of an isentropic surface, by iteration. Its inverse
+# in p is that pressure.
+
+[formulations.metpy171_potential_temperature_between_levels]
+label = "Potential temperature between two levels, the temperature linear in ln p (MetPy, after Ziv and Alpert)"
+composition = { outer = "metpy171_potential_temperature", inner = { T = "log_pressure_interpolation_temperature" } }
+note = "MetPy's isentropic interpolation solves this for the pressure of the target potential temperature, by Newton's method (calc/thermo.py, _isen_iter)."
+keywords = ["isentropic", "potential temperature", "vertical interpolation"]
+
+[[formulations.metpy171_potential_temperature_between_levels.citations]]
+reference = "metpy171"
+note = "isentropic_interpolation, calc/thermo.py line 3027: 'Pressure is calculated on isentropic surfaces by assuming that temperature varies linearly with the natural log of pressure'."
+
+[[formulations.metpy171_potential_temperature_between_levels.citations]]
+reference = "ziv_alpert1994"
+equation = "9"
+notation = { p_1 = "p_d", p_2 = "p_u", T_1 = "T_d", T_2 = "T_u", p_0 = "p_0" }
+note = "Method (c), theta = A c_p/pi + B c_p/pi ln p with T = A + B ln p (8) and pi = c_p (p/p_0)^kappa their Exner function (5); the pressure of the isentropic level solved by Newton-Raphson from that of method (a), where MetPy starts from the mean of the logarithms of the two pressures."
+
+[formulations.metpy171_isentropic_specific_humidity]
+label = "Specific humidity between two levels, linear in the potential temperature, the temperature linear in ln p (MetPy)"
+composition = { outer = "potential_temperature_interpolation_specific_humidity", inner = { theta = "metpy171_potential_temperature_between_levels", theta_1 = "metpy171_potential_temperature", theta_2 = "metpy171_potential_temperature" }, bind = { theta_1 = { T = "T_1", p = "p_1" }, theta_2 = { T = "T_2", p = "p_2" } } }
+note = "As a function of the pressure: on the isentropic surface MetPy places at p, the potential temperature is that of the levels' profile at p, so that this curve is MetPy's, drawn against the pressure rather than the potential temperature."
+keywords = ["isentropic", "humidity", "vertical interpolation"]
+
+# The pressure of an isentropic level between two pressure levels, by the
+# relations between temperature and pressure Ziv and Alpert (1994)
+# compare. Method (c), the temperature linear in ln p, has no closed form
+# (metpy171_potential_temperature_between_levels); the others follow. The
+# source gives no value of R, c_p and g: those of Bechtold (2015) are taken.
+
+[formulations.potential_temperature_interpolation_pressure]
+label = "Pressure of an isentropic level between two levels, linear in the potential temperature"
+expression = "p_1 + (theta - theta_1) * (p_2 - p_1) / (theta_2 - theta_1)"
+fixed_units = false
+note = "Method (a) of Ziv and Alpert (1994), whose users they name: Bleck (1974), Hoskins et al. (1985), Neeman and Alpert (1990). The worst of the five against radiosondes."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the second level" },
+]
+keywords = ["isentropic", "vertical interpolation", "potential temperature"]
+
+[[formulations.potential_temperature_interpolation_pressure.citations]]
+reference = "ziv_alpert1994"
+equation = "4"
+notation = { p_1 = "p_d", p_2 = "p_u", theta = '\theta', theta_1 = '\theta_d', theta_2 = '\theta_u' }
+assumptions = ["A constant stability factor between the two levels (Table 1)."]
+
+[formulations.ziv_alpert1994_isentropic_pressure_exner]
+label = "Pressure of an isentropic level between two levels, the potential temperature linear in p^kappa (Ziv and Alpert)"
+expression = "((theta - theta_1) * (p_2 ** (R_d / c_pd) - p_1 ** (R_d / c_pd)) / (theta_2 - theta_1) + p_1 ** (R_d / c_pd)) ** (c_pd / R_d)"
+fixed_units = true
+note = "Method (b), whose users Ziv and Alpert name: Bleck (1973), Davis and Emanuel (1991). kappa = R_d / c_pd with the constants of Bechtold (2015): the source gives none."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "theta_1", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the first level" },
+  { identifier = "theta_2", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the second level" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015"]
+keywords = ["isentropic", "vertical interpolation", "potential temperature", "Exner function"]
+
+[[formulations.ziv_alpert1994_isentropic_pressure_exner.citations]]
+reference = "ziv_alpert1994"
+equation = "6"
+notation = { p_1 = "p_d", p_2 = "p_u", theta = '\theta', theta_1 = '\theta_d', theta_2 = '\theta_u', R_d = "R", c_pd = "c_p" }
+assumptions = ["A constant temperature between the two levels (Table 1)."]
+
+[formulations.ziv_alpert1994_isentropic_pressure_constant_lapse_rate]
+label = "Pressure of an isentropic level between two levels of constant lapse rate (Ziv and Alpert)"
+expression = "(theta * p_2 ** (R_d * (T_1 - T_2) / (g * (Z_2 - Z_1))) / (T_2 * p_0 ** (R_d / c_pd))) ** (1 / (R_d * ((T_1 - T_2) / (g * (Z_2 - Z_1)) - 1 / c_pd)))"
+fixed_units = true
+note = "Method (d): the temperature linear in height, T = T_u (p/p_u)^(R Gamma/g) with Gamma from the geopotential heights of the levels (11), so that theta = A p^B (12); the only method that needs more than temperatures. Shen et al. (1986) use it between pressure and sigma levels. Constants of Bechtold (2015): the source gives none."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+  { identifier = "Z_1", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the first level" },
+  { identifier = "Z_2", kind = "GeopotentialHeight", unit = "M", description = "Geopotential height of the second level" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015", "g_bechtold2015"]
+keywords = ["isentropic", "vertical interpolation", "potential temperature", "lapse rate"]
+
+[[formulations.ziv_alpert1994_isentropic_pressure_constant_lapse_rate.citations]]
+reference = "ziv_alpert1994"
+equation = "12"
+notation = { p_2 = "p_u", theta = '\theta', T_1 = "T_d", T_2 = "T_u", Z_1 = "z_d", Z_2 = "z_u", R_d = "R", c_pd = "c_p" }
+note = "Equation 12 defines A = T p_0^kappa / p_u^(R Gamma/g), T being T_u, as equation 11 shows."
+assumptions = ["A constant lapse rate between the two levels (Table 1)."]
+
+[formulations.ziv_alpert1994_isentropic_pressure_temperature_exner]
+label = "Pressure of an isentropic level between two levels, the temperature linear in p^kappa (Ziv and Alpert)"
+expression = "((p_0 ** (R_d / c_pd) * (T_2 - T_1) / (p_2 ** (R_d / c_pd) - p_1 ** (R_d / c_pd)) - theta) / (p_0 ** (R_d / c_pd) * (p_1 ** (R_d / c_pd) * (T_2 - T_1) / (p_2 ** (R_d / c_pd) - p_1 ** (R_d / c_pd)) - T_1))) ** (-c_pd / R_d)"
+fixed_units = true
+note = "Method (e), T = T_d + (p^kappa - p_d^kappa)(T_u - T_d)/(p_u^kappa - p_d^kappa) (14), whose user Ziv and Alpert name: Schaack et al. (1990). Constants of Bechtold (2015): the source gives none."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of the isentropic level" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the isentropic level" },
+  { identifier = "p_1", kind = "Pressure", unit = "HectoPA", description = "Pressure of the first level" },
+  { identifier = "p_2", kind = "Pressure", unit = "HectoPA", description = "Pressure of the second level" },
+  { identifier = "T_1", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the first level" },
+  { identifier = "T_2", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the second level" },
+]
+constants = ["R_d_bechtold2015", "c_pd_bechtold2015", "p_0_bechtold2015"]
+keywords = ["isentropic", "vertical interpolation", "potential temperature", "Exner function"]
+
+[[formulations.ziv_alpert1994_isentropic_pressure_temperature_exner.citations]]
+reference = "ziv_alpert1994"
+equation = "15"
+notation = { p_1 = "p_d", p_2 = "p_u", theta = '\theta', T_1 = "T_d", T_2 = "T_u", R_d = "R", c_pd = "c_p" }
+note = "Equations 15 and 16 print (T_u - T_d)(p_u - p_d)^-1 where equation 14, from which the text derives them, gives (T_u - T_d)/(p_u^kappa - p_d^kappa): the form entered, the only one of consistent dimensions."
+assumptions = ["A dry-adiabatic lapse rate between the two levels (Table 1)."]
+
+# The relative humidity between two levels, by each practice: the
+# variables interpolated, then the relative humidity of MetPy from them.
+
+[formulations.metpy171_relative_humidity_dew_point_log_pressure]
+label = "Relative humidity between two levels, dew point and temperature linear in ln p (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_dew_point", inner = { T_d = "log_pressure_interpolation_dew_point", T = "log_pressure_interpolation_temperature" } }
+note = "What a Skew-T or an emagram shows between two levels, and what MetPy's layers take at their bounds."
+keywords = ["vertical interpolation", "relative humidity", "dew point", "Skew-T"]
+
+[formulations.metpy171_relative_humidity_dew_point_pressure]
+label = "Relative humidity between two levels, dew point and temperature linear in p (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_dew_point", inner = { T_d = "pressure_interpolation_dew_point", T = "pressure_interpolation_temperature" } }
+note = "What MetPy's stability indices take at a missing level."
+keywords = ["vertical interpolation", "relative humidity", "dew point", "stability index"]
+
+[formulations.metpy171_relative_humidity_specific_humidity_log_pressure]
+label = "Relative humidity between two levels, specific humidity and temperature linear in ln p (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "log_pressure_interpolation_specific_humidity", T = "log_pressure_interpolation_temperature" } }
+note = "MetPy's log_interpolate_1d applied to the specific humidity and the temperature."
+keywords = ["vertical interpolation", "relative humidity", "specific humidity"]
+
+[formulations.metpy171_relative_humidity_isentropic]
+label = "Relative humidity between two levels, specific humidity linear in the potential temperature (MetPy)"
+composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "metpy171_isentropic_specific_humidity", T = "log_pressure_interpolation_temperature" } }
+note = "MetPy's gallery example of isentropic analysis: the specific humidity brought to the isentropic surface, then the relative humidity from the pressure and temperature there; drawn against the pressure."
+keywords = ["vertical interpolation", "relative humidity", "isentropic"]
+
+[formulations.relative_humidity_log_specific_humidity_log_pressure]
+label = "Relative humidity between two levels, ln q and temperature linear in ln p"
+composition = { outer = "metpy171_relative_humidity_from_specific_humidity", inner = { q = "log_pressure_interpolation_log_specific_humidity", T = "log_pressure_interpolation_temperature" } }
+note = "The logarithm of the specific humidity interpolated, a scheme written by nomogram, then MetPy's relative humidity."
+keywords = ["vertical interpolation", "relative humidity", "specific humidity", "logarithm of humidity"]
+
+[cross_checks.metpy171_isentropic]
+implementation = "MetPy"
+version = "1.7.1"
+url = "https://github.com/Unidata/MetPy/tree/v1.7.1"
+checked = 2026-10-28
+note = "Values of MetPy's test suite (tests/calc/test_thermo.py), which its continuous integration runs, for levels at 1000, 950, 900 and 850 hPa at 296, 292, 290 and 288 K: the 297 K surface lies between 950 and 900 hPa, at 936.213 hPa (test_isentropic_pressure_interp), at 291.4579 K (test_isentropic_pressure_tmp_out_interp). Both are asserted to 3 decimals: the algorithm gives 291.4592 K at 936.2134 hPa, which nomogram reproduces, 1.3 mK from the test value, within its tolerance. MetPy was not run here."
+
+[[cross_checks.metpy171_isentropic.cases]]
+formulation = "metpy171_potential_temperature_between_levels"
+inputs = { p = 936.213, p_1 = 950.0, p_2 = 900.0, T_1 = 292.0, T_2 = 290.0 }
+value = 297.0
+call = "isentropic_interpolation([296., 297.] * units.kelvin, lev, tmpk): pressure 936.213 hPa at 297 K, to 3 decimals"
+rtol = 5e-7
+
+[[cross_checks.metpy171_isentropic.cases]]
+formulation = "log_pressure_interpolation_temperature"
+inputs = { p = 936.213, p_1 = 950.0, p_2 = 900.0, T_1 = 292.0, T_2 = 290.0 }
+value = 291.4579
+call = "isentropic_interpolation([296., 297.] * units.kelvin, lev, tmpk, temperature_out=True): 291.4579 K at 297 K, to 3 decimals"
+rtol = 5e-6

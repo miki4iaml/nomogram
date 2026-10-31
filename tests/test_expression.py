@@ -75,6 +75,8 @@ def test_compile_requires_every_free_symbol() -> None:
         ("sqrt(x + 1)", 2.0),
         ("ln(exp(x))", 3.0),
         ("2 * pi * x", 6 * math.pi),
+        ("sin(x) ** 2 + cos(x) ** 2", 1.0),
+        ("cos(2 * x)", math.cos(6.0)),
     ],
 )
 def test_supported_syntax(source: str, expected: float) -> None:
@@ -133,6 +135,10 @@ def test_everything_outside_the_whitelist_is_rejected(
 def test_overlong_source_is_rejected() -> None:
     with pytest.raises(ExpressionError, match="longer than"):
         parse_expression("x + " * MAX_SOURCE_LENGTH + "x", ["x"])
+    # Built by nomogram from expressions already read, such as a
+    # composition, a longer one is accepted.
+    name = "x" * (MAX_SOURCE_LENGTH + 1)
+    assert parse_expression(name, [name], limit=None) == sympy.Symbol(name, real=True)
 
 
 @pytest.mark.parametrize(

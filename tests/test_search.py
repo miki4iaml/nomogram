@@ -111,6 +111,11 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.itu_r_p453_vapour_pressure_from_density",
         "formulations.wmo_vapour_concentration_definition",
         "formulations.bechtold2015_virtual_temperature_definition",
+        "formulations.itu_r_p835_water_vapour_density",
+        "formulations.itu_r_p835_water_vapour_density_upper",
+        "formulations.bechtold2015_density",
+        "formulations.metpy171_density_virtual_temperature",
+        "formulations.metpy171_density",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern
@@ -348,8 +353,8 @@ def test_uses_and_used_by() -> None:
     )
     assert refs(built_on_buck) == {"formulations.itu_r_p453_es_water"}
     entry = CATALOG.search(key="radio", section="families")[0]
-    assert refs(CATALOG.uses(entry)) == {"families.moist-air"}
-    assert "families.radio" in (CATALOG.used_by("families.moist-air")).refs
+    assert refs(CATALOG.uses(entry)) == {"families.atmosphere"}
+    assert "families.radio" in (CATALOG.used_by("families.atmosphere")).refs
     assert (
         "cross_checks.itu_rpy_p453"
         in (CATALOG.used_by("formulations.itu_r_p453_refractivity")).refs

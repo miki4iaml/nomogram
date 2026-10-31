@@ -41,6 +41,7 @@ import numpy as np
 import sympy
 
 from nomogram.expression import (
+    MAX_SOURCE_LENGTH,
     _opaque_calls,
     _relations,
     _variants,
@@ -1330,10 +1331,19 @@ class Formulation:
             + tuple(k.identifier for k in self.constants)
         )
 
+    @property
+    def _source_limit(self) -> int | None:
+        """Bound on the length of the expression, for every parse of it.
+
+        The length of a written expression is bounded; that of one derived
+        by nomogram (a composition, branches, calls) is bounded by its parts.
+        """
+        return MAX_SOURCE_LENGTH if self.derivation is None else None
+
     @cached_property
     def sympy_expression(self) -> Any:
         """The expression as a SymPy expression."""
-        return parse_expression(self.expression, self.names)
+        return parse_expression(self.expression, self.names, limit=self._source_limit)
 
     @cached_property
     def written_expression(self) -> Any:
@@ -1386,8 +1396,9 @@ class Formulation:
 
         units = semantic_catalog().units
         # Distinct probe values, so that no difference such as p - e
-        # vanishes; only the unit of the result matters.
-        probe = iter(1.5 ** (i + 1) for i in range(len(self.names)))
+        # vanishes; only the unit of the result matters. They grow slowly:
+        # a composition has dozens of names, and powers of them overflow.
+        probe = iter(1.05 ** (i + 1) for i in range(len(self.names)))
         values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
         # A coefficient is a pure number unless declared otherwise (a
         # threshold T_0 in K, compared with T).

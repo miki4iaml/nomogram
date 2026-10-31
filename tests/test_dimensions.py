@@ -43,6 +43,13 @@ NEEDED = {
     ("dickson2007_osmotic_coefficient_of_salinity", "S_1"),
     ("dickson2007_vapour_pressure", "S_1"),
     ("coare36_salinity_factor", "S_0"),
+    # R = a / (b_1 - b_2 sin^2 phi): b_1 and b_2 could carry the kilometre.
+    ("wmo_effective_radius_mahoney", "a"),
+    ("wmo_geopotential_height_wgs84", "a"),
+    # Temperatures appear in ratios only: one must be declared.
+    ("itu_r_p835_pressure", "T_0"),
+    # rho = r P C / T: r or C must carry a unit.
+    ("itu_r_p835_water_vapour_density_upper", "r"),
 }
 
 
@@ -324,6 +331,22 @@ def test_numerical_values_only_for_fixed_units() -> None:
     assert infer_units(formulation(True))["a"].unit == ureg.dimensionless
     with pytest.raises(DimensionError, match="pure number is required"):
         infer_units(formulation(False))
+
+
+def test_an_angle_in_a_trigonometric_function_is_in_radians() -> None:
+    # pint counts the degree as dimensionless, worth pi/180: without the
+    # rule, 45 degrees would be read as 45 radians.
+    def gravity(unit: str) -> Formulation:
+        return make(
+            "g_0 * (1 - a * cos(2 * phi))",
+            {"g_0": "M-PER-SEC2", "a": None},
+            output=("g", "M-PER-SEC2"),
+            inputs=(("phi", unit),),
+        )
+
+    assert infer_units(gravity("RAD"))["a"].unit == ureg.dimensionless
+    with pytest.raises(DimensionError, match=r"phi in °.*in radians"):
+        infer_units(gravity("DEG"))
 
 
 @pytest.mark.parametrize(
