@@ -58,6 +58,10 @@ def test_readme_code_runs(readme: Path) -> None:
     plt.close("all")
     assert "table" in namespace
     assert "ha" in namespace
+    # The interpolation scheme, its levels fixed: a function of p alone.
+    in_ln_p = namespace["in_ln_p"]
+    at_700 = in_ln_p.evaluate(p=namespace["Q_"](700, "hPa"))  # type: ignore[attr-defined, operator]
+    assert magnitude(at_700.to("K")) == pytest.approx(268.49, abs=0.005)
 
 
 def test_display_guide_code_runs() -> None:
