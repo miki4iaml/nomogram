@@ -66,9 +66,12 @@ comparisons with other tools.
   `nomogram.expression`…) are imported on demand.
 - A formula's mathematical content is written once, as an expression in
   restricted Python syntax. It is parsed with `ast` against a whitelist
-  into a SymPy expression, never with `eval` or `sympy.parse_expr`.
-  LaTeX (per notation), numeric functions and symbolic results all
-  derive from it; nothing is duplicated by hand.
+  into a SymPy expression, never with `eval`, `sympy.parse_expr` or
+  `sympify`, in the package or its tests: a ruff rule (`TID251`) refuses
+  them, and an exception carries a justified `# noqa: TID251`, seen in
+  review (as is `sympy.S` applied to a string, which the rule cannot
+  tell from `sympy.S.One`). LaTeX (per notation), numeric functions and
+  symbolic results all derive from it; nothing is duplicated by hand.
 - Units: nomogram's own pint registry, created once and never modified;
   pint's global registry is never touched. Celsius temperatures are
   points of an interval scale (`degC`); differences use `delta_degC` or

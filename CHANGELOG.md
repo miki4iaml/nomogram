@@ -21,10 +21,21 @@ and this project adheres to
   agents at any depth, `.github/`, `.vscode/`, `.pre-commit-config.yaml`
   and `scripts/` need the maintainer's review. AGENTS.md and the
   contributing guide say how a pull request from someone else is read.
+- An equivalence or a proportionality that simplification leaves open is
+  simplified again with the inputs taken positive when every bound of
+  the relation is above zero, as identities of logarithms and of
+  fractional powers need (`log10(x*y)` and `log10(x) + log10(y)`); the
+  verdict's method says so.
+- A ruff rule (`TID251`) refuses SymPy's parsers (`sympify`,
+  `parse_expr`) in the package and its tests: a formula is read only by
+  `parse_expression`, against its whitelist.
 
 ### Changed
 
 - The build backend `uv_build` is accepted up to 0.13 (below 0.14).
+- Numeric functions compute their common subexpressions once
+  (`lambdify(cse=True)`): about 5 times faster on the longest
+  compositions, to a relative 2e-14.
 - SymPy 1.14 or later is required (was 1.13). SymPy 1.13.0 dates from
   July 2024 and 1.13.3, its last release, from September 2024: more
   than two years, the delay after which SPEC 0 drops a core package.
@@ -51,6 +62,9 @@ and this project adheres to
   and a number beyond the largest float, with an `ExpressionError`
   instead of an `OverflowError` or a NaN at evaluation.
   `compile_numeric` refuses repeated arguments.
+- The dimensional analysis takes a decimal exponent at its exact decimal
+  value, where `nsimplify` could guess a nearby number (`sqrt(2)` for
+  1.4142135623730951).
 - The equation of a composition whose part calls other formulations
   writes their renamed coefficients and constants as their owner does
   (T₀), no longer with the owner's key as a superscript

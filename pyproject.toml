@@ -110,7 +110,16 @@ exclude = ["*.md"]
 
 [tool.ruff.lint]
 # On top of ruff's default selection, which Dependabot bumps surface in CI.
-extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20"]
+extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20", "TID251"]
+
+# A formula is read by nomogram.expression.parse_expression, against a
+# whitelist: never by SymPy's parsers, which rely on eval (AGENTS.md).
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"sympy.sympify".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.core.sympify".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.parse_expr".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.parsing".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.parsing.sympy_parser".msg = "read formulas with nomogram.expression.parse_expression"
 
 [tool.ruff.lint.per-file-ignores]
 # Fixtures requested for their side effects look like unused arguments.

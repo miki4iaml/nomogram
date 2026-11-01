@@ -773,7 +773,9 @@ note = "Table III, r_g."
 - **`equivalent`**: proved with SymPy, coefficients as exact rationals,
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or
-  *unproven*.
+  *unproven*. When every bound of the relation is above zero, a proof
+  may take the inputs positive, as identities of logarithms need; the
+  method says so. The same holds for a proportionality.
 - **`proportional`**: the subject equals the object times a constant
   factor. Proved on the ratio, simplified to a constant (*proven*), or
   sampled on `bounds`, which every input of the subject needs: *held*
