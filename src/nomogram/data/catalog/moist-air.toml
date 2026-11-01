@@ -136,6 +136,16 @@ matches = [
   { target = "http://www.wikidata.org/entity/Q1511415", relation = "close", verified = 2026-10-26 },
 ]
 
+# Siblings under Density: the density of a dry air, without water vapour,
+# never feeds an input of the density of moist air, nor the reverse. The
+# partial density of dry air within moist air, its mass per volume of
+# moist air, is a third quantity, not entered.
+
+[kinds.DensityOfDryAir]
+label = "Density of Dry Air"
+specialization_of = "Density"
+description = "Mass per unit volume of air without water vapour, p / (R_d T) at the pressure of the dry air alone: the air of the ISO standard atmosphere, free from moisture and dust (ISO 2533, 2.1). Not the partial density of dry air within moist air, its mass per volume of moist air."
+
 [kinds.MassRatioOfTotalWaterToDryGas]
 label = "Mass Ratio of Total Water to Dry Gas"
 specialization_of = "MassRatio"
