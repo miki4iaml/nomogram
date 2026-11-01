@@ -746,6 +746,44 @@ equation = "3.1"
 notation = { p_0 = "p_0", p_s = "p_S", H_p = "H_p", T_s = "T_S", e_s = "e_S", K_p = "K_p", C_h = "C_h" }
 assumptions = ["A fictitious column of air from sea level to the station, of assumed gradient a = 0.0065 K/gpm."]
 
+# The two siblings of the temperature gradient, from each other. CF
+# defines a lapse rate as the negative derivative with respect to height:
+# a composition passes through one of these definitions to feed a lapse
+# rate where a vertical gradient is expected, or the reverse, never
+# directly.
+
+[formulations.lapse_rate_definition]
+label = "Lapse rate of air temperature, from its vertical gradient"
+nature = "definition"
+expression = "-dTdz"
+fixed_units = false
+note = "Gamma = -dT/dz: CF defines a lapse rate as the negative derivative of a quantity with respect to increasing height above the surface (standard name air_temperature_lapse_rate)."
+output = { identifier = "Gamma", kind = "LapseRate", unit = "K-PER-M", description = "Lapse rate of air temperature" }
+inputs = [
+  { identifier = "dTdz", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Vertical gradient of air temperature" },
+]
+keywords = ["lapse rate", "temperature gradient", "definition"]
+
+[[formulations.lapse_rate_definition.citations]]
+reference = "cf_standard_names_95"
+note = "Standard name air_temperature_lapse_rate."
+
+[formulations.vertical_temperature_gradient_definition]
+label = "Vertical gradient of air temperature, from its lapse rate"
+nature = "definition"
+expression = "-Gamma"
+fixed_units = false
+note = "dT/dz = -Gamma, the definition of the lapse rate (CF) read the other way."
+output = { identifier = "dTdz", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Vertical gradient of air temperature" }
+inputs = [
+  { identifier = "Gamma", kind = "LapseRate", unit = "K-PER-M", description = "Lapse rate of air temperature" },
+]
+keywords = ["lapse rate", "temperature gradient", "definition"]
+
+[[formulations.vertical_temperature_gradient_definition.citations]]
+reference = "cf_standard_names_95"
+note = "Standard name air_temperature_lapse_rate."
+
 [formulations.bechtold2015_dry_adiabatic_gradient]
 label = "Dry adiabatic gradient of temperature (Bechtold 2015)"
 expression = "-g / c_pd"
@@ -761,6 +799,14 @@ reference = "bechtold2015"
 equation = "38"
 notation = { dTdz = '\frac{\mathrm{d}T}{\mathrm{d}z}', c_pd = 'c_{p\mathrm{d}}' }
 assumptions = ["Hydrostatic equilibrium, dp = -rho g dz.", "An adiabatic ascent without phase change."]
+
+# Bechtold names his equation 38 the dry adiabatic lapse rate and prints
+# it as dT/dz: the lapse rate itself comes through its definition.
+
+[formulations.bechtold2015_dry_adiabatic_lapse_rate]
+label = "Dry adiabatic lapse rate, from the gradient of Bechtold (2015)"
+composition = { outer = "lapse_rate_definition", inner = { dTdz = "bechtold2015_dry_adiabatic_gradient" } }
+keywords = ["dry adiabatic lapse rate", "lapse rate"]
 
 # The reference atmosphere: a conventional model, not a description of
 # the atmosphere. ITU-R P.835-7 derives it from the U.S. Standard

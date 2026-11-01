@@ -4,6 +4,7 @@
 """Tests for the atmosphere family: vertical coordinates and their kinds."""
 
 import math
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -546,3 +547,66 @@ def test_the_standard_acceleration_of_free_fall() -> None:
     assert g_n.value == 9.80665
     assert g_n.unit == "M-PER-SEC2"
     assert g_n.nature is ConstantNature.CONVENTIONAL
+
+
+def test_the_lapse_rate_and_the_vertical_gradient_are_defined_from_each_other() -> None:
+    lapse = CATALOG.formulations["lapse_rate_definition"]
+    gradient = CATALOG.formulations["vertical_temperature_gradient_definition"]
+    assert lapse.output.kind == gradient.inputs[0].kind == "LapseRate"
+    assert gradient.output.kind == lapse.inputs[0].kind == "VerticalTemperatureGradient"
+    cooling = Q_(-0.0065, "K/m")
+    assert lapse.evaluate(dTdz=cooling).magnitude == pytest.approx(0.0065)
+    back = gradient.evaluate(Gamma=lapse.evaluate(dTdz=cooling))
+    assert back.magnitude == pytest.approx(-0.0065)
+
+
+def test_the_dry_adiabatic_lapse_rate_comes_through_the_definition() -> None:
+    # Bechtold prints dT/dz = -g/c_pd (equation 38); his lapse rate is g/c_pd.
+    printed = CATALOG.formulations["bechtold2015_dry_adiabatic_gradient"]
+    composed = CATALOG.formulations["bechtold2015_dry_adiabatic_lapse_rate"]
+    assert printed.output.kind == "VerticalTemperatureGradient"
+    assert composed.output.kind == "LapseRate"
+    assert composed.derivation is not None
+    assert composed.evaluate().magnitude == pytest.approx(-printed.evaluate().magnitude)
+    assert composed.evaluate().magnitude == pytest.approx(0.0098, abs=1e-4)
+
+
+LAYER = """
+[catalog]
+name = "mine"
+format = 2
+requires = ["atmosphere"]
+
+[formulations."mine:layer"]
+label = "Pressure in a layer, from its lapse rate"
+composition = {{ outer = "ussa1976_pressure_layer_gradient", inner = {{ L = "{inner}" }} }}
+"""
+
+
+def test_a_lapse_rate_feeds_a_vertical_gradient_only_through_the_definition(
+    tmp_path: Path,
+) -> None:
+    from nomogram.catalog import CatalogError
+
+    path = tmp_path / "mine.toml"
+    path.write_text(
+        LAYER.format(inner="vertical_temperature_gradient_definition"), encoding="utf-8"
+    )
+    layer = catalog(extra=[path]).formulations["mine:layer"]
+    gradient = CATALOG.formulations["ussa1976_pressure_layer_gradient"]
+    common: dict[str, Any] = {
+        "P_b": Q_(101325.0, "Pa"),
+        "T_b": Q_(288.15, "K"),
+        "H": Q_(5000.0, "m"),
+        "H_b": Q_(0.0, "m"),
+    }
+    expected = gradient.evaluate(L=Q_(-0.0065, "K/m"), **common)
+    found = layer.evaluate(Gamma=Q_(0.0065, "K/m"), **common)
+    assert found.magnitude == pytest.approx(expected.magnitude)
+    # A lapse rate straight into the gradient: siblings never feed each other.
+    direct = tmp_path / "direct.toml"
+    direct.write_text(
+        LAYER.format(inner="bechtold2015_dry_adiabatic_lapse_rate"), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError, match="computes LapseRate, but L is"):
+        catalog(extra=[direct])

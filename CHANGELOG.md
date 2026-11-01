@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Added
 
+- The lapse rate and the vertical gradient of air temperature, two
+  sibling kinds, are defined from each other, Γ = −dT/dz as CF defines
+  `air_temperature_lapse_rate` (`lapse_rate_definition`,
+  `vertical_temperature_gradient_definition`): one feeds an input of the
+  other only through a definition, in a composition. The dry adiabatic
+  lapse rate g/c_pd comes so from Bechtold's equation 38, which prints
+  dT/dz (`bechtold2015_dry_adiabatic_lapse_rate`).
 - Quantity kinds `SpeedOfSound` (with the CF standard name
   `speed_of_sound_in_air`, narrower), `DynamicViscosity`,
   `KinematicViscosity`, `ThermalConductivity` and `InverseSquareTime`,
