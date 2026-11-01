@@ -138,6 +138,10 @@ and this project adheres to
 
 ### Fixed
 
+- The check of the registry of verdicts compares the place of a maximum
+  to 10⁻⁶ of the domain: on a plateau inside it, the rounding of numpy's
+  vectorised functions moves it by about 10⁻⁷ from one processor to
+  another, which failed the check on some machines.
 - No identifier changes a numeric result any more by taking a name of
   the code `lambdify` generates: `e * exp(1)` gave 4 at e = 2 instead of
   2e, and an identifier `nan` replaced the NaN of a piecewise definition
