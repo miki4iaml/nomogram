@@ -215,7 +215,7 @@ def _closed_form(
         # which simplifies every candidate, took up to 20 s for nothing.
         solutions = sympy.solve(varying - z, x, check=False)
         rhs = sympy.logcombine(sympy.log(y) - constant, force=True)
-        solutions = [s.subs(z, rhs) for s in solutions]
+        solutions = [s.xreplace({z: rhs}) for s in solutions]
     except (NotImplementedError, RecursionError):
         # No algorithm, or one that recurses without end (the dew point of
         # metpy171_dew_point, after 7 s): the numerical inverse takes over.

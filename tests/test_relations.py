@@ -226,6 +226,41 @@ def test_an_equivalence_sympy_cannot_settle_stays_unproven() -> None:
 
 
 @pytest.mark.parametrize(
+    ("bounds", "status"),
+    [
+        ("bounds = { x = [0.5, 2.0], y = [0.5, 2.0] }", "proven"),
+        # An input that may be zero: no positivity is assumed.
+        ("bounds = { x = [0.0, 2.0], y = [0.5, 2.0] }", "unproven"),
+    ],
+)
+def test_an_identity_of_logarithms_is_proven_for_positive_bounds(
+    bounds: str, status: str
+) -> None:
+    found, loaded = relation("log_product", "logs", bounds)
+    verdict = verify(found, loaded)  # type: ignore[arg-type]
+    assert verdict.status == status
+    assert ("positive inputs" in verdict.method) is (status == "proven")
+
+
+def test_a_proportionality_is_proven_for_positive_bounds() -> None:
+    document = RELATION.replace('kind = "equivalent"', 'kind = "proportional"')
+    loaded = load_catalog(
+        [
+            BASE
+            + document.format(
+                subject="log_product",
+                object="logs",
+                extra="bounds = { x = [0.5, 2.0], y = [0.5, 2.0] }",
+            )
+        ]
+    )
+    verdict = verify(loaded.relations["r"], loaded)
+    assert verdict.status == "proven"
+    assert verdict.value == pytest.approx(1.0)
+    assert "positive inputs" in verdict.method
+
+
+@pytest.mark.parametrize(
     ("subject", "other", "extra", "message"),
     [
         ("nope", "eq2", "", "unknown formulation 'nope'"),
@@ -627,7 +662,9 @@ inputs = [
     [
         # P - e < 0 on part of the samples: those are left aside.
         ("", "samples real and finite"),
-        ("bounds = { P = [0.5, 1.0], e = [1.5, 2.0] }", "none of 200 samples"),
+        # P - e < 0 on all, and P not positive: no proof for positive
+        # inputs is tried (for e > 0, ln(P_d e) = ln(P_d) + ln(e) holds).
+        ("bounds = { P = [-1.0, 1.0], e = [1.5, 2.0] }", "none of 200 samples"),
     ],
 )
 def test_samples_where_a_side_is_not_real_are_left_aside(

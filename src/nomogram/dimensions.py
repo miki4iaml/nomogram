@@ -505,7 +505,13 @@ def _linear(
         if node.is_Pow:
             if not node.exp.is_Number:
                 return dict.fromkeys(bases, sympy.Integer(0))
-            power = sympy.nsimplify(node.exp)
+            # The exact decimal of a written exponent: nsimplify would guess
+            # (sqrt(2) for 1.4142135623730951).
+            power = (
+                node.exp
+                if node.exp.is_Rational
+                else sympy.Rational(repr(float(node.exp)))
+            )
             return {b: power * e for b, e in vector(node.base).items()}
         if node.is_Mul:
             total = dict.fromkeys(bases, sympy.Integer(0))

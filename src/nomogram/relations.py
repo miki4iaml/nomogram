@@ -607,6 +607,29 @@ def _written(subject: Formulation, other: Formulation) -> bool:
     return subject.derivation is None and other.derivation is None
 
 
+#: What a proof under positive inputs adds to the method of a verdict.
+POSITIVE = "; proven for positive inputs, as the bounds of the relation are"
+
+
+def _positive(relation: Relation, *exprs: Any) -> dict[Any, Any]:
+    """Positive symbols for the inputs, when the bounds of the relation make them so.
+
+    Empty unless every input has bounds, all above zero, and no expression
+    is piecewise. Identities of logarithms and of fractional powers
+    (``log10(x*y)``, ``(p/q)**k``) need positive inputs: a proof with them,
+    tried when the plain one fails, holds where the relation is stated.
+    """
+    if any(e.has(sympy.Piecewise) for e in exprs):
+        return {}
+    symbols: set[Any] = set().union(*(e.free_symbols for e in exprs))
+    bounds = relation.bounds
+    if not symbols or any(
+        s.name not in bounds or bounds[s.name][0] <= 0 for s in symbols
+    ):
+        return {}
+    return {s: sympy.Symbol(s.name, positive=True) for s in symbols}
+
+
 def _difference(left: Any, right: Any, *, simplify: bool = True) -> Any:
     """The difference of two expressions, simplified where it surely ends.
 
@@ -694,6 +717,12 @@ def _equivalence(
     simplified = _difference(left, right, simplify=written)
     if simplified == 0:
         return Verdict("proven", method)
+    positive = _positive(relation, left, right) if written else {}
+    if (
+        positive
+        and sympy.simplify(sympy.expand_func(simplified.xreplace(positive))) == 0
+    ):
+        return Verdict("proven", method + POSITIVE)
     # Look for a counterexample on positive values, or on the stated domain,
     # where both sides are real: outside, the formulations mean nothing.
     symbols = sorted(simplified.free_symbols | left.free_symbols, key=lambda s: s.name)
@@ -1108,11 +1137,18 @@ def _proportionality(
         method += f"; scales ignored: {'; '.join(differences)}"
     left, right, replacements = _sides(relation, subject, other)
     ratio = sympy.nsimplify(left / right, rational=True)
-    if _written(subject, other):
+    written = _written(subject, other)
+    if written:
         ratio = sympy.simplify(ratio)
     else:
         method = method.replace("simplified with SymPy", "not simplified")
         method += ", a derived expression"
+    positive = _positive(relation, left, right) if written else {}
+    if ratio.free_symbols and positive:
+        retried = sympy.simplify(sympy.expand_func(ratio.xreplace(positive)))
+        if not retried.free_symbols:
+            ratio = retried
+            method += POSITIVE
     if not ratio.free_symbols:
         factor = float(ratio)
         detail, _ = _factor_text(factor, subject, other)

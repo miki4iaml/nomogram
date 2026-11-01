@@ -15,7 +15,12 @@ each side is brought into its output unit, the object's inputs are
 replaced as the relation says (`given`) or by the subject inputs that
 feed them, and the difference must simplify to zero.
 
-- **proven**: the difference simplifies to zero. This is a proof.
+- **proven**: the difference simplifies to zero. This is a proof. When
+  it does not, and every bound of the relation is above zero, it is
+  simplified again with the inputs taken positive, which identities of
+  logarithms and of fractional powers need (`log10(x*y)` and
+  `log10(x) + log10(y)`): a proof where the relation is stated, which
+  the verdict's `method` says.
 - **refuted**: SymPy does not conclude, and a point is found where the
   two sides differ. This is a counterexample.
 - **unproven**: SymPy does not conclude, and no counterexample is found
