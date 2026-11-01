@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- The physical characteristics of the ISO standard atmosphere (ISO 2533):
+  the acceleration of free fall against the geometric altitude, the air
+  density, the pressure scale height (a new kind, `PressureScaleHeight`),
+  the speed of sound, the dynamic viscosity of Sutherland, the kinematic
+  viscosity and the thermal conductivity, with the constants of the
+  standard (`R_iso2533`, `kappa_iso2533`); at mean sea level they give the
+  values of its Table 3. ISO 2533 is cited for Lambert's normal gravity
+  and for the geopotential altitude, a new trade term.
 - `docs/rosetta.md` gains a glossary of physical assumptions (adiabatic,
   isentropic, dry adiabatic, moist adiabatic, pseudoadiabatic, ideal
   gas, hydrostatic, isothermal, lapse rate and vertical gradient), after
