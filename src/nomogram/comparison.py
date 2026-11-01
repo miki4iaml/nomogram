@@ -103,6 +103,24 @@ def feeds(output_kind: str, input_kind: str) -> bool:
     return output_kind == input_kind
 
 
+def _may_feed(output_kind: str, input_kind: str) -> bool:
+    """Whether a computed value may feed an input of a composition.
+
+    As :func:`feeds`; or a temperature in the same state, in kelvins or in
+    degrees Celsius; or the temperature of a point at which the receiving
+    formulation is evaluated (a dew or frost point, a wet- or ice-bulb
+    temperature), as a formulation of the catalog calling another may pass
+    it.
+    """
+    from nomogram.catalog import _EVALUATION_POINTS
+
+    return (
+        feeds(output_kind, input_kind)
+        or same_state(output_kind, input_kind)
+        or input_kind in _EVALUATION_POINTS.get(output_kind, ())
+    )
+
+
 def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, Any]:
     arguments = {}
     fed: dict[str, list[str]] = {}
@@ -341,7 +359,10 @@ def compose(
     inner : mapping of str to Formulation
         For some inputs of ``outer``, by identifier, the formulation that
         computes them; its output kind must be the input's kind or a
-        specialization of it (see :func:`feeds`).
+        specialization of it (see :func:`feeds`), a temperature in the
+        same state (kelvins and degrees Celsius), or the temperature of a
+        point at which ``outer`` is evaluated: a dew point feeds the
+        temperature of a saturation vapour pressure.
     bind : mapping of str to str, optional
         Inputs of inner formulations to take from inputs of ``outer``, by
         identifier, for example ``{"t": "T"}``: the binding is declared,
@@ -367,7 +388,7 @@ def compose(
         if target is None:
             msg = f"{outer.key} has no input {identifier!r}"
             raise ValueError(msg)
-        if not feeds(formulation.output.kind, target.kind):
+        if not _may_feed(formulation.output.kind, target.kind):
             msg = (
                 f"{formulation.key} computes {formulation.output.kind}, "
                 f"but {identifier} is {target.kind}"

@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- `nomogram.plot.plot_deviation_profile`: the relative deviations from
+  the reference along a vertical coordinate, a height upwards, a pressure
+  downwards on a logarithmic axis, with reference levels as vertical
+  lines (`references`) and off-scale curves as in `plot_deviations`.
+- `docs/humidity-aloft.md`: the formula of a radiosonde's producer
+  against its users' along the reference atmosphere, the false round trip
+  through the dew point, which widens the gap aloft (-13.6 % with Tetens
+  at 11 km for a relative humidity of 20 %), and WMO's OSCAR requirements
+  in %RH; with its figure and script (`docs/examples/humidity_aloft.py`).
 - The saturation vapour pressure formulations of radiosonde humidity
   producers: Vaisala's conversion formulas (2013), a simplified base-10
   form over water (-20 to 50 °C) and over ice (-70 to 0 °C), its equation
@@ -107,6 +116,12 @@ and this project adheres to
 
 ### Changed
 
+- `nomogram.comparison.compose` lets a temperature feed one in the other
+  unit (kelvins and degrees Celsius, as `compare` does) and a dew or frost
+  point feed the temperature of the formula evaluated at it, as calls in
+  the catalog already allow.
+- The axis of deviations names the reference once when it cites nothing,
+  such as a composition, rather than repeating its label below.
 - The build backend `uv_build` is accepted up to 0.13 (below 0.14).
 - The square of the first eccentricity in `wmo_normal_gravity_wgs84` is
   named `e__2`, written e², no longer `e2`, written e₂: the WMO Guide

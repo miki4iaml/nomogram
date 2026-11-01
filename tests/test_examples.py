@@ -5,6 +5,7 @@
 
 import ast
 import importlib.util
+import math
 import re
 from pathlib import Path
 
@@ -215,3 +216,59 @@ reference = "my_family:src"
     mine = namespace["mine"]
     assert "my_family:my_key" in mine.formulations  # type: ignore[attr-defined]
     assert "my_family:my_key" not in catalog().formulations
+
+
+ALOFT = ROOT / "docs" / "examples" / "humidity_aloft.py"
+ALOFT_GUIDE = ROOT / "docs" / "humidity-aloft.md"
+
+
+def test_humidity_aloft_example_is_the_script_that_draws_the_image() -> None:
+    script = code_lines(ALOFT.read_text(encoding="utf-8"))
+    (shown,) = python_blocks(ALOFT_GUIDE)
+    for line in code_lines(shown):
+        assert any(line in candidate for candidate in script), line
+
+
+def test_humidity_aloft_example_writes_its_plot(tmp_path: Path) -> None:
+    spec = importlib.util.spec_from_file_location("humidity_aloft", ALOFT)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    output = tmp_path / "plot.png"
+    module.main(str(output))
+    assert output.read_bytes().startswith(b"\x89PNG")
+
+
+def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    namespace: dict[str, object] = {}
+    for block in python_blocks(ALOFT_GUIDE):
+        exec(compile(block, str(ALOFT_GUIDE), "exec"), namespace)  # noqa: S102
+    plt.close("all")
+    at_11_km = 110  # 0 to 14 km by steps of 0.1 km
+
+    def percent(table: object) -> dict[str, float]:
+        deviations = table.relative_deviations  # type: ignore[attr-defined]
+        return {
+            key.split("[")[0]: round(100 * float(np.asarray(value)[at_11_km]), 2)
+            for key, value in deviations.items()
+        }
+
+    saturation = percent(namespace["saturation"])
+    assert saturation["metpy171_saturation_vapour_pressure"] == -0.62
+    assert saturation["bolton1980"] == -2.32
+    assert saturation["tetens1930"] == -7.73
+    assert saturation["buck1996"] == -1.09
+    assert saturation["hyland_wexler1983"] == 0.18
+    # Each curve stops where its source does: below -45, -50 and -20 degC.
+    assert all(
+        math.isnan(saturation[key])
+        for key in ("sonntag1990_magnus", "goff_gratch1946", "vaisala2013_water")
+    )
+    decoded = percent(namespace["decoded"])
+    assert decoded["metpy171_saturation_vapour_pressure"] == -1.14
+    assert decoded["bolton1980"] == -5.33
+    assert decoded["tetens1930"] == -13.63

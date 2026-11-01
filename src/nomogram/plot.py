@@ -21,7 +21,8 @@ preset ``DisplayOptions.DOCUMENTATION`` gives the figures of nomogram's
 documentation.
 
 A curve whose deviation stands far above those of the others is drawn off
-scale, so that it does not flatten them (:func:`plot_deviations`); values
+scale, so that it does not flatten them (:func:`plot_deviations`, and
+along a vertical profile :func:`plot_deviation_profile`); values
 spanning several decades are plotted on a logarithmic scale
 (:func:`plot_values`).
 
@@ -56,6 +57,7 @@ from nomogram.units import is_offset_unit, ureg
 
 __all__ = [
     "SIGNATURE_HEIGHT",
+    "plot_deviation_profile",
     "plot_deviations",
     "plot_profile",
     "plot_profiles",
@@ -387,6 +389,64 @@ def _values_scale(curves: Iterable[Any]) -> str:
     return "linear"
 
 
+def _deviations(comparison: Comparison, shape: tuple[int, ...]) -> dict[str, Any]:
+    """The relative deviations of the formulations but the reference, in %."""
+    return {
+        key: 100 * np.broadcast_to(np.asarray(deviation, dtype=float), shape)
+        for key, deviation in comparison.relative_deviations.items()
+        if key != comparison.reference
+    }
+
+
+def _off_curves(
+    shown: Mapping[str, Any], limits: Any, automatic: bool
+) -> dict[str, float]:
+    """The curves off scale: those leaving limits given, or standing far above."""
+    if limits is not None:
+        return _beyond(shown, *limits)
+    return _off_scale(shown) if automatic else {}
+
+
+def _deviation_labels(
+    comparison: Comparison, curves: Mapping[str, Any], off: Mapping[str, float]
+) -> list[tuple[str, str]]:
+    """The legend entry of each curve, saying how far a curve off scale goes."""
+    names = _names(comparison, curves)
+    notes = get_display_options().off_scale_notes
+    return [
+        (
+            key,
+            _off_scale_label(names[key], off[key])
+            if key in off and notes
+            else names[key],
+        )
+        for key in curves
+    ]
+
+
+def _kept_range(
+    shown: Mapping[str, Any], off: Mapping[str, float]
+) -> tuple[float, float] | None:
+    """Limits holding zero and the curves left on scale, with a margin."""
+    kept = np.concatenate(
+        [np.zeros(1), *(v[np.isfinite(v)] for k, v in shown.items() if k not in off)]
+    )
+    low, high = float(kept.min()), float(kept.max())
+    if high <= low:
+        return None
+    margin = 0.05 * (high - low)
+    return low - margin, high + margin
+
+
+def _deviation_axis(comparison: Comparison) -> str:
+    """The label of the axis of deviations: from which reference, in %."""
+    label = _label(comparison, comparison.reference)
+    cited = _cited(comparison, comparison.reference)
+    name = f"Relative deviation from {cited or label}"
+    # The label on a second line, unless the first already gives it.
+    return _axis_text(name, r"\delta", "%", None, second=label if cited else None)
+
+
 def plot_deviations(
     comparison: Comparison,
     *,
@@ -452,45 +512,23 @@ def plot_deviations(
         x_label, x = _abscissa(comparison, input_kind)
         created = ax is None
         ax = _axes(ax)
-        curves = {
-            key: 100 * np.broadcast_to(np.asarray(deviation, dtype=float), x.shape)
-            for key, deviation in comparison.relative_deviations.items()
-            if key != comparison.reference
-        }
+        curves = _deviations(comparison, x.shape)
         automatic = created if off_scale is None else off_scale
         window = axes.get("xlim")
         shown = _within(curves, x, window)
         limits = axes.get("ylim")
-        if limits is not None:
-            off = _beyond(shown, *limits)
-        elif automatic:
-            off = _off_scale(shown)
-        else:
-            off = {}
-        names = _names(comparison, curves)
-        notes = get_display_options().off_scale_notes
-        for index, (key, values) in enumerate(curves.items()):
-            label = names[key]
-            if key in off and notes:
-                label = _off_scale_label(label, off[key])
-            ax.plot(x, values, label=label, **_style(index))
+        off = _off_curves(shown, limits, automatic)
+        for index, (key, label) in enumerate(
+            _deviation_labels(comparison, curves, off)
+        ):
+            ax.plot(x, curves[key], label=label, **_style(index))
         ax.axhline(0.0, color="0.4", linewidth=0.8, linestyle="--")
         if limits is None and (off or (automatic and window is not None)):
-            kept = np.concatenate(
-                [
-                    np.zeros(1),
-                    *(v[np.isfinite(v)] for k, v in shown.items() if k not in off),
-                ]
-            )
-            low, high = float(kept.min()), float(kept.max())
-            if high > low:
-                margin = 0.05 * (high - low)
-                ax.set_ylim(low - margin, high + margin)
+            kept = _kept_range(shown, off)
+            if kept is not None:
+                ax.set_ylim(*kept)
         ax.set_xlabel(x_label)
-        label = _label(comparison, comparison.reference)
-        cited = _cited(comparison, comparison.reference)
-        name = f"Relative deviation from {cited or label}"
-        ax.set_ylabel(_axis_text(name, r"\delta", "%", None, second=label))
+        ax.set_ylabel(_deviation_axis(comparison))
         ax.set(**axes)
         _grid(ax)
         _legend(ax)
@@ -674,6 +712,122 @@ def plot_profile(
         if created:
             _vertical_axis(ax, kind)
         ax.set_xlabel(_values_label(comparison, notation))
+        ax.set_ylabel(y_label)
+        ax.set(**axes)
+        _grid(ax)
+        _legend(ax)
+        if created and signature:
+            sign(ax.figure, axes=ax)
+        return ax
+
+
+#: Line styles of reference levels, taken in turn: grey, behind the curves.
+_REFERENCE_STYLES = (":", "--", "-.")
+
+
+def plot_deviation_profile(
+    comparison: Comparison,
+    *,
+    input_kind: str | None = None,
+    notation: Notation | None = None,
+    references: Mapping[str, float | Iterable[float]] | None = None,
+    ax: Any = None,
+    signature: bool = True,
+    off_scale: bool | None = None,
+    options: DisplayOptions | None = None,
+    **axes: Any,
+) -> Any:
+    """Plot the relative deviation of each formulation along a vertical profile.
+
+    The deviations from the reference, in %, go along x and the vertical
+    coordinate along y, as in :func:`plot_profile`: on axes the function
+    creates, a pressure goes downwards on a logarithmic axis, a height
+    upwards on a linear one. Curves standing far above the others go off
+    scale as in :func:`plot_deviations`, the roles of the axes swapped:
+    ``xlim`` gives the limits of the deviations, ``ylim`` the part of the
+    profile the x axis holds.
+
+    Parameters
+    ----------
+    comparison : Comparison
+        The result of :func:`nomogram.comparison.compare`, over a vertical
+        coordinate.
+    input_kind : str, optional
+        Quantity kind of the vertical coordinate.
+    notation : Notation, optional
+        Notation of the symbol of the vertical coordinate; the display
+        options in force otherwise (:mod:`nomogram.display`).
+    references : mapping of str to float or floats, optional
+        Reference levels drawn as vertical grey lines behind the curves,
+        in %, by their legend entry: one number draws one line, several
+        (``(-2, 2)``) one line each under one entry. A level beyond the x
+        limits is not seen; give ``xlim`` to show it.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; new ones are created otherwise.
+    signature : bool
+        Sign the figure with the logo (:func:`sign`) when the function
+        creates it; a figure given through ``ax`` is never signed.
+    off_scale : bool, optional
+        Draw off scale the curves standing far above the others; ``False``
+        holds every curve on the x axis. By default, only on axes the
+        function creates.
+    options : DisplayOptions, optional
+        Display options for this call, such as a preset
+        (``DisplayOptions.DOCUMENTATION``); those in force otherwise
+        (:func:`nomogram.display.display_options`).
+    **axes
+        Properties of the axes, set once the curves are drawn
+        (:meth:`matplotlib.axes.Axes.set`): ``xlim=(-1, 1)`` zooms in on
+        the deviations, the curves beyond going off scale; ``ylim=(0, 11)``
+        narrows the profile, and the x axis holds what it shows.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The axes, for further customisation.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed (extra ``viz``).
+    ValueError
+        If the vertical coordinate cannot be determined.
+    """
+    with display_options(options):
+        kind = input_kind or _varying_kind(comparison)
+        y_label, y = _abscissa(comparison, kind, notation, axis="y")
+        created = ax is None
+        ax = _axes(ax)
+        curves = _deviations(comparison, y.shape)
+        automatic = created if off_scale is None else off_scale
+        window = axes.get("ylim")
+        shown = _within(curves, y, window)
+        limits = axes.get("xlim")
+        off = _off_curves(shown, limits, automatic)
+        for index, (key, label) in enumerate(
+            _deviation_labels(comparison, curves, off)
+        ):
+            ax.plot(curves[key], y, label=label, **_style(index))
+        ax.axvline(0.0, color="0.4", linewidth=0.8, linestyle="--")
+        for index, (label, levels) in enumerate((references or {}).items()):
+            values = np.atleast_1d(np.asarray(levels, dtype=float))
+            style = _REFERENCE_STYLES[index % len(_REFERENCE_STYLES)]
+            for position, level in enumerate(values):
+                ax.axvline(
+                    level,
+                    color="0.55",
+                    linewidth=1.0,
+                    linestyle=style,
+                    zorder=0,
+                    label=label if position == 0 else None,
+                )
+        if limits is None and (off or (automatic and window is not None)):
+            kept = _kept_range(shown, off)
+            if kept is not None:
+                ax.set_xlim(*kept)
+        if created:
+            _vertical_axis(ax, kind)
+        ax.set_xlabel(_deviation_axis(comparison))
         ax.set_ylabel(y_label)
         ax.set(**axes)
         _grid(ax)

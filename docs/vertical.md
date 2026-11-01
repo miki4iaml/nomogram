@@ -302,7 +302,9 @@ significant levels redundant.
 ## Humidity between two levels
 
 A humidity between two levels depends on the variable interpolated and
-on the coordinate it is interpolated in. MetPy 1.7.1, read in its code,
+on the coordinate it is interpolated in; at one level, it depends on the
+saturation formula too, and the gap between formulas grows aloft
+([Humidity aloft](humidity-aloft.md)). MetPy 1.7.1, read in its code,
 builds no variable of its own for that; FULL-POS, which produces ERA5's
 pressure levels, interpolates the humidities linearly in p:
 

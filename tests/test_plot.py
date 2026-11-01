@@ -31,6 +31,7 @@ from nomogram.display import (
 )
 from nomogram.expression import LATEX_COMMANDS
 from nomogram.plot import (
+    plot_deviation_profile,
     plot_deviations,
     plot_profile,
     plot_profiles,
@@ -943,3 +944,95 @@ def test_the_grid_follows_the_display_options() -> None:
     gridded = plot_profile(table, options=DisplayOptions.DOCUMENTATION)
     assert not any(line.get_visible() for line in plain.xaxis.get_gridlines())
     assert all(line.get_visible() for line in gridded.xaxis.get_gridlines())
+
+
+def _saturation_along_the_standard_atmosphere(keys: list[str]) -> Comparison:
+    from nomogram.comparison import compose
+
+    profile = FORMULATIONS["iso2533_temperature"]
+    composed = [
+        compose(
+            FORMULATIONS[key],
+            {FORMULATIONS[key].inputs[0].identifier: profile},
+            label=FORMULATIONS[key].label,
+        )
+        for key in keys
+    ]
+    heights = Q_(np.linspace(0.0, 11.0, 23), "km")
+    return compare(
+        composed, composed[0], {"GeopotentialHeight": heights}, outside="ignore"
+    )
+
+
+def test_a_deviation_profile_puts_the_deviations_along_x() -> None:
+    table = _saturation_along_the_standard_atmosphere(
+        ["hardy1998_water", "sonntag1990", "tetens1930"]
+    )
+    ax = plot_deviation_profile(table, references={"Goal": (-2.0, 2.0)})
+    curves = [
+        line
+        for line in ax.lines
+        if not line.get_label().startswith("_") and line.get_zorder() > 0
+    ]
+    assert len(curves) == 2  # the reference is not drawn against itself
+    for curve in curves:
+        assert list(curve.get_ydata()) == pytest.approx(np.linspace(0.0, 11.0, 23))
+    # Tetens drifts below Hardy as the air cools: -7.8 % at 11 km.
+    tetens = curves[1].get_xdata()
+    assert tetens[0] == pytest.approx(0.0, abs=0.1)
+    assert tetens[-1] == pytest.approx(-7.8, abs=0.1)
+    assert ax.get_ylabel().startswith("Geopotential height")
+    assert ax.get_xlabel().startswith("Relative deviation")
+    assert ax.get_yscale() == "linear"
+    assert signatures(ax.figure)
+
+
+def test_reference_levels_are_grey_lines_under_one_entry() -> None:
+    table = _saturation_along_the_standard_atmosphere(
+        ["hardy1998_water", "sonntag1990"]
+    )
+    ax = plot_deviation_profile(
+        table, references={"Goal": (-2.0, 2.0), "Threshold": 10.0}, xlim=(-12, 12)
+    )
+    levels = [line for line in ax.lines if line.get_zorder() == 0]
+    assert sorted(line.get_xdata()[0] for line in levels) == [-2.0, 2.0, 10.0]
+    labels = ax.get_legend_handles_labels()[1]
+    assert labels.count("Goal") == 1
+    assert "Threshold" in labels
+    assert ax.get_xlim() == (-12, 12)
+
+
+def test_a_deviation_profile_sends_a_far_curve_off_scale() -> None:
+    table = _saturation_along_the_standard_atmosphere(
+        ["hardy1998_water", "sonntag1990", "hyland_wexler1983", "tetens1930"]
+    )
+    ax = plot_deviation_profile(table, options=DisplayOptions.DOCUMENTATION)
+    labels = ax.get_legend_handles_labels()[1]
+    # Tetens, ten times further than the others, leaves the axis.
+    assert ax.get_xlim()[0] > -7.0
+    assert any("Tetens" in label or "1930" in label for label in labels)
+    # On axes of one's own, nothing goes off scale and nothing is signed.
+    _, own = plt.subplots()
+    kept = plot_deviation_profile(table, ax=own)
+    assert kept.get_xlim()[0] < -7.0
+    assert not signatures(own.figure)
+
+
+def test_a_pressure_deviation_profile_goes_down() -> None:
+    altitude = FORMULATIONS["nws_pressure_altitude"]
+    pressures = Q_(np.array([1000.0, 850.0, 500.0, 200.0]), "hPa")
+    reference = FORMULATIONS["itu_r_p835_pressure"]
+    from nomogram.inversion import invert
+    from nomogram.model import Variable
+
+    inverse = invert(
+        reference,
+        "H",
+        output=Variable("H_p", "PressureAltitude", "KiloM", "Pressure altitude"),
+        input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+    )
+    table = compare([altitude, inverse], inverse, {"Pressure": pressures})
+    ax = plot_deviation_profile(table)
+    assert ax.get_yscale() == "log"
+    top, bottom = ax.get_ylim()
+    assert top > bottom
