@@ -218,6 +218,31 @@ algorithms is applied to the saturation specific humidity (IFS, Beljaars
 1998, Fairall et al. 1996) or to the saturation vapour pressure (COARE
 code); since q is not linear in e, the two differ slightly.
 
+## Physical assumptions
+
+The assumptions of a formula name physical processes and states whose
+words vary between authors. nomogram writes them in one form, given
+below, and leaves the variants to the citations, which keep the words of
+their source. A test refuses a variant elsewhere in the catalog and in
+this documentation.
+
+| Term nomogram writes | Meaning | Variants left to citations | Sources |
+|---|---|---|---|
+| adiabatic | Without heat exchanged with the surroundings; in thermodynamics, a process in a thermally insulated system. The word has other meanings, in reaction dynamics among others: a text that uses it says which. The AMS also excludes any exchange of mass. | — | IUPAC A00141; AMS *adiabatic process* |
+| isentropic | Of constant entropy; in meteorology, of constant potential temperature, the sense of isentropic coordinates and of the interpolation to a potential temperature. A reversible adiabatic process is isentropic. | — | AMS *isentropic* |
+| dry adiabatic | Adiabatic, without condensation of water vapour and without liquid water. The dry adiabatic lapse rate, g/c_pd, about 9.8 K/km, is a process lapse rate (below); potential temperature is constant in a layer with this lapse rate. | `dry-adiabatic` | AMS *dry-adiabatic process*, *adiabatic lapse rate* |
+| moist adiabatic, saturated adiabatic | Adiabatic, for saturated air that may contain liquid water: reversible when the total water is conserved, pseudoadiabatic when the condensed water leaves. | `moist-adiabatic`, `saturation-adiabatic` | AMS *moist-adiabatic process* |
+| pseudoadiabatic | Moist adiabatic, the condensed water removed as soon as it forms, by an idealized instantaneous precipitation: irreversible, and defined for an ascent only. | `pseudo-adiabatic` | AMS *pseudoadiabatic process*, *pseudoadiabatic lapse rate* |
+| ideal gas | A gas whose pressure, volume, amount of substance and temperature follow pV = nRT; its internal energy depends on its temperature only. The gases of the atmosphere are ideal to a very good approximation at normal terrestrial temperatures and pressures. | `perfect gas` | IUPAC I02935; AMS *ideal gas* |
+| hydrostatic | The vertical equation of motion reduced to the balance of the vertical pressure force and gravity, dp/dz = −ρg, the Coriolis, curvature, friction and vertical acceleration terms neglected: an error below 0.01 % for cyclonic-scale motions, of 1 % or more in strong convection or mountain waves. | — | AMS *hydrostatic equation*, *hydrostatic equilibrium* |
+| isothermal | At constant temperature. In an isothermal atmosphere in hydrostatic equilibrium, the pressure decreases exponentially with height, and vanishes at no finite height. | — | AMS *isothermal process*, *isothermal atmosphere* |
+| lapse rate, vertical gradient | The lapse rate is the decrease of temperature with height, −dT/dz (`LapseRate`); the vertical gradient, its derivative, dT/dz (`VerticalTemperatureGradient`), of opposite sign. The AMS tells the environmental lapse rate, the vertical profile at a time and place, from a process lapse rate, followed by a parcel (the dry adiabatic lapse rate). | `lapse-rate` | CF `air_temperature_lapse_rate`; AMS *lapse rate*, *environmental lapse rate* |
+
+The AMS entries were read on 1 November 2026, the IUPAC entries in the
+online version 5.0.0 of the Gold Book on the same day. ISO 80000-5,
+which defines the thermodynamic quantities, was not read for this
+glossary.
+
 ## QUDT findings
 
 Found while reading QUDT 3.5.2; documented here, not worked around
@@ -376,6 +401,17 @@ qualifier P9758 *symbol represents*).
 - pint, *Temperature conversion*,
   <https://pint.readthedocs.io/en/stable/user/nonmult.html>.
 - SymPy, *Printing*, <https://docs.sympy.org/latest/modules/printing.html>.
+- American Meteorological Society, *Glossary of Meteorology*, entries
+  *adiabatic process*, *isentropic*, *dry-adiabatic process*, *adiabatic
+  lapse rate*, *moist-adiabatic process*, *pseudoadiabatic process*,
+  *pseudoadiabatic lapse rate*, *ideal gas*, *hydrostatic equation*,
+  *hydrostatic equilibrium*, *isothermal process*, *isothermal
+  atmosphere*, *lapse rate*, *environmental lapse rate*,
+  <https://glossary.ametsoc.org/>, read on 1 November 2026.
+- IUPAC, *Compendium of Chemical Terminology* (the Gold Book), 5th
+  edition, online version 5.0.0, 2025: *adiabatic*,
+  doi:10.1351/goldbook.A00141; *ideal gas*, doi:10.1351/goldbook.I02935
+  (CC BY-SA 4.0).
 - SymPy 1.14, *Glossary*,
   <https://docs.sympy.org/latest/explanation/glossary.html>.
 - SymPy 1.14, *Solve an Equation Algebraically*,

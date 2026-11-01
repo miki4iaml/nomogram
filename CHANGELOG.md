@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- `docs/rosetta.md` gains a glossary of physical assumptions (adiabatic,
+  isentropic, dry adiabatic, moist adiabatic, pseudoadiabatic, ideal
+  gas, hydrostatic, isothermal, lapse rate and vertical gradient), after
+  the AMS Glossary of Meteorology and the IUPAC Gold Book. The catalog
+  and the documentation write one form of each; a test refuses the
+  variants left to citations (`perfect gas`, `dry-adiabatic`...).
 - The lapse rate and the vertical gradient of air temperature, two
   sibling kinds, are defined from each other, Γ = −dT/dz as CF defines
   `air_temperature_lapse_rate` (`lapse_rate_definition`,
