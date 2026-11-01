@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- The saturation vapour pressure formulations of radiosonde humidity
+  producers: Vaisala's conversion formulas (2013), a simplified base-10
+  form over water (-20 to 50 °C) and over ice (-70 to 0 °C), its equation
+  over ice, its dew point and its absolute humidity; Hardy's ITS-90
+  refit of Wexler's formulations (1998), over water and over ice, with
+  his dew and frost point inverses, the formulation of Vaisala's RS41.
+  Vaisala's stated fits, 0.083 % against Wagner and Pruss and 0.052 %
+  over ice, are relations nomogram verifies (reproduced).
+- The WMO report on the 2022 upper-air instrument intercomparison (IOM
+  No. 143) names the formulation of each radiosonde: those of the
+  catalog carry it in their note and the keyword `radiosonde`.
 - Simple formulas of the ECMWF IFS (CY49R1, the same numbers in CY50R1):
   the square of the Brunt–Väisälä frequency (equation 5.2; a new kind,
   `SquareOfBruntVaisalaFrequency`, CF

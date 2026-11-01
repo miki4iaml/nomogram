@@ -93,7 +93,7 @@ def test_command_line_lists_the_verdicts(capsys: pytest.CaptureFixture[str]) -> 
     assert main(["verify"]) == 0
     out = capsys.readouterr().out
     assert "ae96_sa90_gg46: exceeded 0.6098 %" in out
-    assert out.count(": reproduced") == 10
+    assert out.count(": reproduced") == 12
 
 
 def test_command_line_records(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
