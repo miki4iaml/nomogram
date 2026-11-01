@@ -71,7 +71,8 @@ geopotential height, dT/dH (ISO 2533, equation 11).
   height above an ellipsoid; the altitude is about that height minus the
   geoid height, which reaches tens of metres.
 - **Lapse rate and vertical temperature gradient.** The same quantity
-  with opposite signs: two sibling kinds.
+  with opposite signs: two sibling kinds. One feeds an input of the
+  other only through its definition, Γ = −dT/dz (below).
 - **QNH and pressure at mean sea level.** The QNH is computed from the
   QFE through the ICAO standard atmosphere, "this virtual atmosphere";
   the pressure reduced to sea level, through a fictitious column of air
@@ -88,6 +89,7 @@ geopotential height, dT/dH (ISO 2533, equation 11).
 | geometric height and latitude → geopotential height | `wmo_geopotential_height_wgs84`, composed of `wmo_geopotential_height_from_normal_gravity`, `wmo_normal_gravity_wgs84` and `wmo_effective_radius_mahoney` | WMO-No. 8, equations 12.15 and 12.16 |
 | latitude → normal gravity | `wmo_normal_gravity_wgs84`, `wmo_normal_gravity_smithsonian` | WMO-No. 8, equations 12.16 and 12.14 |
 | altitude and surface altitude → height | `height_above_surface` | CF |
+| vertical temperature gradient ↔ lapse rate | `lapse_rate_definition`, `vertical_temperature_gradient_definition`, Γ = −dT/dz | CF (`air_temperature_lapse_rate`) |
 
 The conversions differ by their Earth: 10 km of geopotential height are
 15.7 m higher geometrically on the sphere of the IFS, a little more on
@@ -109,6 +111,7 @@ input.
 | pressure in an isothermal layer | `ussa1976_pressure_layer_isothermal` | U.S. Standard Atmosphere 1976, equation 33b |
 | pressure reduced to sea level | `wmo_sea_level_pressure`, `wmo_sea_level_pressure_log10` | WMO-No. 8, equations 3.2 and 3.1 |
 | dry adiabatic gradient of temperature | `bechtold2015_dry_adiabatic_gradient` | Bechtold (2015), equation 38 |
+| dry adiabatic lapse rate | `bechtold2015_dry_adiabatic_lapse_rate`, the same through the definition of the lapse rate | Bechtold (2015), equation 38; CF |
 
 All rest on the hydrostatic equation and the ideal gas law; each
 citation records the assumptions its source states. The thickness of a

@@ -643,6 +643,13 @@ One rule keeps the kinds consistent over time, whoever adds them:
   - `LapseRate` and `VerticalTemperatureGradient`;
   - `PressureAltitude` and `GeopotentialHeight`;
   - `AltimetricAltitude` and `Altitude`.
+- **Two siblings that a definition relates get a formulation of that
+  definition, cited**, through which compositions pass: a lapse rate
+  feeds a vertical temperature gradient input only through
+  `vertical_temperature_gradient_definition` (dT/dz = −Γ, CF), never
+  directly. A source keeps its own form: Bechtold prints his dry
+  adiabatic lapse rate as dT/dz (equation 38), and the lapse rate comes
+  through the definition.
 - **A trade term is a label, never a kind** (`[trade_terms.<key>]`).
   Each of its meanings names a community, a kind, a definition and
   sources.
