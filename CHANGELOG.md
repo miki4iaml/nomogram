@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- The profiles of the ISO standard atmosphere (ISO 2533): the temperature
+  against the geopotential altitude, from −2 to 80 km in the standard and
+  from −5 km in its Addendum 2, two citations whose domains add up; the
+  temperature and the pressure of one layer (equations 11 to 13), with
+  the gas constant of the standard; the pressure against the pressure
+  altitude (Addendum 1), the inverse of `iso2533_pressure_altitude`
+  within a few millimetres.
+- A kind `DensityOfDryAir`, sibling of `DensityOfMoistAir`: the density
+  of air without water vapour, such as that of the ISO standard
+  atmosphere. Neither feeds an input of the other.
 - The physical characteristics of the ISO standard atmosphere (ISO 2533):
   the acceleration of free fall against the geometric altitude, the air
   density, the pressure scale height (a new kind, `PressureScaleHeight`),

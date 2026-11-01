@@ -58,7 +58,7 @@ year = 1985
 title = "Standard Atmosphere, Addendum 1: Hypsometrical tables (ISO 2533:1975/Add 1:1985)"
 container = "ISO, Geneva, 1985-02-15"
 status = "verified"
-note = "Read: section 2 (pp. 2-4), the formulae of its tables between geopotential altitude and pressure, from equations 12 and 13 of ISO 2533, in hectopascals and in millimetres of mercury, for -1 450 to 11 000 m (2.1), 11 000 to 20 000 m (2.2), 20 000 to 32 000 m (2.3) and 32 000 to 47 000 m (2.4). After the hypsometrical tables of the USSR standard and the U.S. Standard Atmosphere, 1976. Copy obtained by the user."
+note = "Read: section 2 (pp. 2-4), the formulae of its tables between geopotential altitude and pressure, from equations 12 and 13 of ISO 2533, in hectopascals and in millimetres of mercury, for -1 450 to 11 000 m (2.1), 11 000 to 20 000 m (2.2), 20 000 to 32 000 m (2.3) and 32 000 to 47 000 m (2.4), each giving the pressure against the altitude and the altitude against the pressure. After the hypsometrical tables of the USSR standard and the U.S. Standard Atmosphere, 1976. Copy obtained by the user."
 
 [references.wmo306_vol1_1_2019]
 authors = "World Meteorological Organization"
@@ -75,6 +75,14 @@ title = "IFS Documentation CY49R1 - Part III: Dynamics and Numerical Procedures"
 url = "https://www.ecmwf.int/en/elibrary/81625-ifs-documentation-cy49r1-part-iii-dynamics-and-numerical-procedures"
 status = "verified"
 note = "Section 2.1, equation 2.6: the geopotential, defined by the hydrostatic equation with the virtual temperature and the gas constant of dry air. Section 2.2.1, equation 2.20: its discrete analogue between two half levels, the hypsometric equation. The numbering is the same in CY41R2, whose documentation ERA5 follows, and in CY50R1."
+
+[references.iso2533_add2_1997]
+authors = "International Organization for Standardization"
+year = 1997
+title = "Standard Atmosphere, Addendum 2: Extension to -5 000 m and standard atmosphere as a function of altitude in feet (ISO 2533:1975/Add 2:1997)"
+container = "ISO, Geneva, 1997-11"
+status = "verified"
+note = "Read: sections 1 to 3 (pp. 1-2): tables from -5 000 to +2 000 m in steps of 50 m, computed with the formulae and constants of ISO 2533 and of its Addendum 1, on the standard model of the troposphere extrapolated into that range; tables in feet up to 262 500 ft. Copy obtained by the user."
 
 [references.itu_r_p835_7]
 authors = "International Telecommunication Union, Radiocommunication Sector"
@@ -919,6 +927,124 @@ reference = "iso2533_add1_1985"
 equation = "2.1.1, 2.2.1, 2.3.1, 2.4.1"
 notation = { H_p = "H" }
 
+# ISO 2533, its profiles: the temperature linear in the geopotential
+# altitude, layer by layer (equation 11, Table 4), and the pressure of a
+# layer (12, 13), with the specific gas constant of the standard; the
+# pressure against the pressure altitude in closed form (Addendum 1),
+# whose inverse is iso2533_pressure_altitude.
+
+[formulations.iso2533_temperature_layer]
+label = "Temperature in a layer of constant gradient, from the geopotential altitude (ISO 2533)"
+expression = "T_b + beta * (H - H_b)"
+fixed_units = false
+note = "Equation 11, the temperature of a layer linear in the geopotential altitude, beta = dT/dH its vertical gradient."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" }
+inputs = [
+  { identifier = "T_b", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the base of the layer" },
+  { identifier = "beta", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Vertical temperature gradient against the geopotential altitude" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential altitude" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential altitude of the base of the layer" },
+]
+keywords = ["standard atmosphere", "temperature profile", "lapse rate"]
+
+[[formulations.iso2533_temperature_layer.citations]]
+reference = "iso2533_1975"
+equation = "11"
+notation = { beta = '\beta' }
+
+[formulations.iso2533_temperature]
+label = "Temperature of the ISO standard atmosphere, from the geopotential altitude (ISO 2533)"
+expression = "piecewise((T_0 + L_0 * H, H <= 11), (T_1, 11 < H <= 20), (T_2 + L_2 * (H - 20), 20 < H <= 32), (T_3 + L_3 * (H - 32), 32 < H <= 47), (T_4, 47 < H <= 51), (T_5 + L_5 * (H - 51), 51 < H <= 71), (T_6 + L_6 * (H - 71), 71 < H <= 80))"
+fixed_units = true
+note = "Equation 11 with the temperatures and gradients of Table 4, layer by layer from -2 to 80 km of geopotential altitude, in K and K/km. Addendum 2 extrapolates the first layer, the troposphere, down to -5 km. The layers are those of ITU-R P.835 up to 80 km, whose first layer starts at 0."
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" }
+inputs = [
+  { identifier = "H", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential altitude" },
+]
+coefficients = { T_0 = 288.15, L_0 = -6.5, T_1 = 216.65, T_2 = 216.65, L_2 = 1.0, T_3 = 228.65, L_3 = 2.8, T_4 = 270.65, T_5 = 270.65, L_5 = -2.8, T_6 = 214.65, L_6 = -2.0 }
+keywords = ["standard atmosphere", "temperature profile"]
+
+[[formulations.iso2533_temperature.citations]]
+reference = "iso2533_1975"
+equation = "11"
+note = "Table 4."
+
+[[formulations.iso2533_temperature.citations.domains]]
+bounds = { H = [-2.0, 80.0] }
+criterion = "The layers of Table 4, from -2 to 80 km of geopotential altitude."
+
+[[formulations.iso2533_temperature.citations]]
+reference = "iso2533_add2_1997"
+note = "Section 2: the standard model of the troposphere extrapolated from -5 000 to +2 000 m."
+
+[[formulations.iso2533_temperature.citations.domains]]
+bounds = { H = [-5.0, 2.0] }
+criterion = "The range of Addendum 2, the troposphere extrapolated."
+
+[formulations.iso2533_pressure_layer_gradient]
+label = "Pressure in a layer of constant temperature gradient, from the geopotential altitude (ISO 2533)"
+expression = "p_b * (1 + beta / T_b * (H - H_b))**(-g_n / (beta * R))"
+fixed_units = false
+note = "Equation 12, the static atmosphere (equation 1) and the ideal gas law (equation 2) solved together for a temperature linear in the geopotential altitude, with the specific gas constant of the standard. The same form as equation 33a of the U.S. Standard Atmosphere, 1976, with R in place of R*/M_0."
+conditions = "A gradient beta different from zero."
+output = { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure at the geopotential altitude" }
+inputs = [
+  { identifier = "p_b", kind = "Pressure", unit = "PA", description = "Pressure at the base of the layer" },
+  { identifier = "T_b", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the base of the layer" },
+  { identifier = "beta", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Vertical temperature gradient against the geopotential altitude" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential altitude" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential altitude of the base of the layer" },
+]
+constants = ["g_n_cgpm1901", "R_iso2533"]
+keywords = ["barometric formula", "standard atmosphere", "lapse rate"]
+
+[[formulations.iso2533_pressure_layer_gradient.citations]]
+reference = "iso2533_1975"
+equation = "12"
+notation = { beta = '\beta' }
+assumptions = ["A temperature linear in the geopotential altitude through the layer.", "Air a perfect gas free from moisture and dust (2.1)."]
+
+[formulations.iso2533_pressure_layer_isothermal]
+label = "Pressure in an isothermal layer, from the geopotential altitude (ISO 2533)"
+expression = "p_b * exp(-g_n * (H - H_b) / (R * T))"
+fixed_units = false
+note = "Equation 13, for a layer whose temperature is constant. The same form as equation 33b of the U.S. Standard Atmosphere, 1976, with R in place of R*/M_0."
+output = { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure at the geopotential altitude" }
+inputs = [
+  { identifier = "p_b", kind = "Pressure", unit = "PA", description = "Pressure at the base of the layer" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the layer" },
+  { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "Geopotential altitude" },
+  { identifier = "H_b", kind = "GeopotentialHeight", unit = "M", description = "Geopotential altitude of the base of the layer" },
+]
+constants = ["g_n_cgpm1901", "R_iso2533"]
+keywords = ["barometric formula", "standard atmosphere"]
+
+[[formulations.iso2533_pressure_layer_isothermal.citations]]
+reference = "iso2533_1975"
+equation = "13"
+assumptions = ["A constant temperature through the layer.", "Air a perfect gas free from moisture and dust (2.1)."]
+
+[formulations.iso2533_pressure]
+label = "Pressure of the ISO standard atmosphere, from the pressure altitude (ISO 2533, Addendum 1)"
+expression = "piecewise(((a_1 - b_1 * H_p)**e_1, H_p <= 11000), (p_2 * exp(c_2 - k_2 * H_p), 11000 < H_p <= 20000), ((a_3 / (1 + b_3 * H_p))**e_3, 20000 < H_p <= 32000), ((a_4 / (1 + b_4 * H_p))**e_4, 32000 < H_p <= 47000))"
+fixed_units = true
+note = "The pressure of the standard atmosphere at a geopotential altitude, in closed form layer by layer from -1 450 to 47 000 m, from equations 12 and 13 of ISO 2533: the inverse of iso2533_pressure_altitude, written in the same equations of Addendum 1. The pressure in hectopascals, the altitude in metres; the altitude is that of the standard atmosphere, a pressure altitude. The two forms agree within the precision of their printed coefficients: a few millimetres inside the layers (3 mm at most), 9 mm at 20 000 m, where the layers meet; at 47 000 m the pressure, 1.109059 hPa, falls just below the 1.10906 hPa from which the inverse starts."
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure" }
+inputs = [
+  { identifier = "H_p", kind = "PressureAltitude", unit = "M", description = "Pressure altitude" },
+]
+coefficients = { a_1 = 3.731444, b_1 = 0.841728e-4, e_1 = 5.255880, p_2 = 226.320, c_2 = 1.7345737, k_2 = 1.5768852e-4, a_3 = 1.2386515, b_3 = 0.5085177e-5, e_3 = 34.16321878, a_4 = 1.9630052, b_4 = 0.2013664e-4, e_4 = 12.20114957 }
+keywords = ["pressure altitude", "standard atmosphere", "hypsometric", "pressure profile"]
+
+[[formulations.iso2533_pressure.citations]]
+reference = "iso2533_add1_1985"
+equation = "2.1.1, 2.2.1, 2.3.1, 2.4.1"
+notation = { H_p = "H" }
+
+[[formulations.iso2533_pressure.citations.domains]]
+bounds = { H_p = [-1450.0, 47000.0] }
+criterion = "The four layers of Addendum 1, from -1 450 to 47 000 m above sea level."
+
 # ISO 2533, section 2: the physical characteristics of its standard
 # atmosphere, air taken as a perfect gas free from moisture and dust
 # (2.1). Table 3 gives their values at mean sea level; the tests check
@@ -947,7 +1073,7 @@ label = "Air density, from the pressure and the temperature (ISO 2533)"
 expression = "p / (R * T)"
 fixed_units = false
 note = "Equation 14, the ideal gas law (equation 3), with the specific gas constant of the standard atmosphere."
-output = { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Air density" }
+output = { identifier = "rho", kind = "DensityOfDryAir", unit = "KiloGM-PER-M3", description = "Density of dry air" }
 inputs = [
   { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure" },
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },

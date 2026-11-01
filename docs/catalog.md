@@ -639,6 +639,7 @@ One rule keeps the kinds consistent over time, whoever adds them:
   reference, its sign, its instrument or its definition. Examples:
   - `FrostPointTemperature` and `DewPointTemperature`;
   - `RelativeHumidityWithRespectToIce` and `RelativeHumidity`;
+  - `DensityOfDryAir` and `DensityOfMoistAir`;
   - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
   - `LapseRate` and `VerticalTemperatureGradient`;
   - `PressureAltitude` and `GeopotentialHeight`;

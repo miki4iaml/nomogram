@@ -665,3 +665,69 @@ def test_a_scale_height_is_a_length_but_no_vertical_coordinate() -> None:
     assert feeds("PressureScaleHeight", "Length")
     assert not feeds("PressureScaleHeight", "GeopotentialHeight")
     assert not feeds("PressureScaleHeight", "Altitude")
+
+
+@pytest.mark.parametrize(
+    ("height", "printed"),
+    # ISO 2533, Table 4; Addendum 2 extrapolates the troposphere to -5 km.
+    [(-5.0, 320.65), (-2.0, 301.15), (0.0, 288.15), (11.0, 216.65), (47.0, 270.65)]
+    + [(71.0, 214.65), (80.0, 196.65)],
+)
+def test_the_iso_temperature_follows_table_4(height: float, printed: float) -> None:
+    temperature = CATALOG.formulations["iso2533_temperature"]
+    found = temperature.evaluate(H=Q_(height, "km"), outside="raise")
+    assert found.magnitude == pytest.approx(printed)
+
+
+def test_the_iso_temperature_holds_where_one_of_its_sources_says() -> None:
+    temperature = CATALOG.formulations["iso2533_temperature"]
+    stated = {
+        c.reference: d.bounds["H"] for c in temperature.citations for d in c.domains
+    }
+    assert stated == {"iso2533_1975": (-2.0, 80.0), "iso2533_add2_1997": (-5.0, 2.0)}
+    assert math.isnan(temperature.evaluate(H=Q_(-6.0, "km")).magnitude)
+
+
+def test_the_pressure_of_addendum_1_inverts_its_pressure_altitude() -> None:
+    pressure = CATALOG.formulations["iso2533_pressure"]
+    altitude = CATALOG.formulations["iso2533_pressure_altitude"]
+    assert pressure.inputs[0].kind == altitude.output.kind == "PressureAltitude"
+    assert pressure.evaluate(H_p=Q_(0.0, "m")).magnitude == pytest.approx(
+        1013.25, abs=1e-3
+    )
+    heights = np.linspace(-1449.0, 46999.0, 2001)
+    back = (
+        altitude.evaluate(p=pressure.evaluate(H_p=Q_(heights, "m"))).to("m").magnitude
+    )
+    # Within the precision of the printed coefficients: a few millimetres.
+    assert np.nanmax(np.abs(back - heights)) < 0.01
+    assert not np.isnan(back).any()
+
+
+def test_the_iso_pressure_of_a_layer_differs_from_the_us_one_by_its_gas_constant() -> (
+    None
+):
+    iso = CATALOG.formulations["iso2533_pressure_layer_gradient"]
+    us = CATALOG.formulations["ussa1976_pressure_layer_gradient"]
+    base: dict[str, Any] = {
+        "T_b": Q_(288.15, "K"),
+        "H": Q_(11000.0, "m"),
+        "H_b": Q_(0.0, "m"),
+    }
+    found = iso.evaluate(p_b=Q_(101325.0, "Pa"), beta=Q_(-0.0065, "K/m"), **base)
+    reference = us.evaluate(P_b=Q_(101325.0, "Pa"), L=Q_(-0.0065, "K/m"), **base)
+    # R = 287.052 87 against R*/M_0 = 287.053 01 J/(kg K).
+    assert found.magnitude == pytest.approx(reference.magnitude, rel=2e-6)
+    assert found.magnitude != pytest.approx(reference.magnitude, rel=1e-7)
+    isothermal = CATALOG.formulations["iso2533_pressure_layer_isothermal"]
+    top = isothermal.evaluate(
+        p_b=found, T=Q_(216.65, "K"), H=Q_(20000.0, "m"), H_b=Q_(11000.0, "m")
+    )
+    assert top.to("hPa").magnitude == pytest.approx(54.7487, rel=1e-5)
+
+
+def test_dry_and_moist_air_densities_never_feed_each_other() -> None:
+    assert CATALOG.formulations["iso2533_air_density"].output.kind == "DensityOfDryAir"
+    assert feeds("DensityOfDryAir", "Density")
+    assert not feeds("DensityOfDryAir", "DensityOfMoistAir")
+    assert not feeds("DensityOfMoistAir", "DensityOfDryAir")

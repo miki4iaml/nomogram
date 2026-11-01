@@ -147,6 +147,9 @@ geometric altitudes, with r = 6 356 766 m, is that of ISO 2533
 | temperature against geopotential height | `itu_r_p835_temperature` | ITU-R P.835-7, equations 2a to 2g |
 | pressure against geopotential height | `itu_r_p835_pressure` | ITU-R P.835-7, equations 3a to 3g |
 | pressure altitude, in closed form up to 47 km | `iso2533_pressure_altitude` | ISO 2533, Addendum 1 (1985), 2.1 to 2.4 |
+| pressure against pressure altitude, its inverse | `iso2533_pressure` | ISO 2533, Addendum 1 (1985), 2.1 to 2.4 |
+| temperature against geopotential altitude, −5 to 80 km | `iso2533_temperature` | ISO 2533, equation 11 and Table 4; Addendum 2 (1997) below −2 km |
+| temperature, pressure of one layer | `iso2533_temperature_layer`, `iso2533_pressure_layer_gradient`, `iso2533_pressure_layer_isothermal` | ISO 2533, equations 11, 12 and 13 |
 | pressure altitude, in feet | `nws_pressure_altitude` | NWS calculation sheet |
 
 Each layer of the pressure is the general form of the U.S. Standard
@@ -177,7 +180,15 @@ The formula of the NWS, with rounded constants, gives 5572.10 m at
 500 hPa: 2.3 m lower. ISO 2533's Addendum 1 gives the pressure altitude
 in closed form, layer by layer from −1 450 to 47 000 m, from which its
 hypsometrical tables are printed: 5574.43 m at 500 hPa, 1 cm from the
-inversion of P.835.
+inversion of P.835. Its pressure against the altitude, `iso2533_pressure`,
+is written in the same equations: the two agree within the precision of
+their printed coefficients, a few millimetres. The ISO temperature holds
+from −2 to 80 km in the standard itself and from −5 to +2 km in its
+Addendum 2, which extrapolates the troposphere: two citations, whose
+domains add up. The ISO layers (equations 12 and 13) take the specific
+gas constant of the standard, 287.052 87 J/(kg K), where the U.S.
+Standard Atmosphere writes R*/M_0: a relative difference of 10⁻⁶ in the
+pressure at 11 km.
 
 `nomogram.plot.plot_profile` draws such a profile, the vertical
 coordinate along y (a pressure downwards on a logarithmic axis, a height
