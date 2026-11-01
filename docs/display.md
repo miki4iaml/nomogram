@@ -50,7 +50,12 @@ style below. `nomogram.plot.plot_profile` draws the same values as a
 vertical profile: the input, a vertical coordinate, along y, the values
 along x; a pressure goes downwards on a logarithmic axis labelled with
 plain numbers (100, 200, 300, 500, 1000), a height upwards
-([vertical.md](vertical.md)). `nomogram.plot.plot_profiles` draws
+([vertical.md](vertical.md)). `nomogram.plot.plot_deviation_profile`
+draws the relative deviations from the reference the same way, the
+deviations along x, with reference levels given as vertical lines
+(`references={"Goal": (-2, 2)}`), off-scale curves as in
+`plot_deviations`, the roles of the axes swapped
+([humidity-aloft.md](humidity-aloft.md)). `nomogram.plot.plot_profiles` draws
 several of them side by side, one panel per comparison, on a shared
 vertical coordinate, in the unit of the first panel: quantities of
 different kinds and units, a temperature and a humidity, each keep an

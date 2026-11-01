@@ -135,8 +135,11 @@ qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
 anglais) montre l'affichage des formules dans un notebook, en Markdown et
 sur un graphique. [Sea water](docs/sea-water.md) (en anglais) présente les
 échelles de salinité et la pression de vapeur de l'eau de mer, et ce que
-son abaissement de 2 % change à la surface de la mer. [Le logo](docs/logo.md)
-(en anglais) est un vrai nomogramme.
+son abaissement de 2 % change à la surface de la mer. [Humidity
+aloft](docs/humidity-aloft.md) (en anglais) confronte la formule du
+fabricant d'une radiosonde à celles de ses utilisateurs, le long d'un
+profil vertical, au travers du point de rosée, et face aux exigences de
+l'OMM. [Le logo](docs/logo.md) (en anglais) est un vrai nomogramme.
 
 ## Contribuer
 

@@ -213,3 +213,24 @@ def test_a_specialized_kind_feeds_its_parent_never_the_reverse() -> None:
     vapour = FORMULATIONS["vapour_pressure_from_relative_humidity"]
     with pytest.raises(ValueError, match="computes VapourPressure"):
         compose(IDEAL_GAS, {"e_s": vapour})
+
+
+def test_a_temperature_feeds_one_in_the_other_unit_and_a_dew_point_a_temperature() -> (
+    None
+):
+    from nomogram.inversion import dew_point
+
+    # The ISO standard atmosphere gives kelvins; Tetens takes degrees Celsius.
+    profile = compose(
+        FORMULATIONS["tetens1930"], {"t": FORMULATIONS["iso2533_temperature"]}
+    )
+    at_sea_level = profile.evaluate(H=Q_(0.0, "km"))
+    direct = FORMULATIONS["tetens1930"].evaluate(t=Q_(15.0, "degC"))
+    assert at_sea_level.magnitude == pytest.approx(direct.magnitude)
+    # A dew point is the temperature at which the saturation vapour
+    # pressure is evaluated: through the inverse, the round trip is exact.
+    back = compose(SONNTAG, {"t": dew_point(SONNTAG)})
+    assert back.evaluate(e=Q_(12.0, "hPa")).to("hPa").magnitude == pytest.approx(12.0)
+    # A difference never feeds a point, nor a pressure a temperature.
+    with pytest.raises(ValueError, match="but t is CelsiusTemperature"):
+        compose(SONNTAG, {"t": FORMULATIONS["sonntag1990_magnus"]})

@@ -130,8 +130,10 @@ references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
 how, and [Displaying formulas](docs/display.md) shows formulas in notebooks,
 Markdown and plots. [Sea water](docs/sea-water.md) shows the salinity
 scales and the vapour pressure of sea water, and what its 2 % lowering
-changes at the sea surface. [The logo](docs/logo.md) is a working
-nomogram.
+changes at the sea surface. [Humidity aloft](docs/humidity-aloft.md)
+sets the formula of a radiosonde's producer against its users' along a
+vertical profile, through the dew point, and against WMO's requirements.
+[The logo](docs/logo.md) is a working nomogram.
 
 ## Contributing
 
