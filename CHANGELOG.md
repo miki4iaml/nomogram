@@ -10,6 +10,8 @@ and this project adheres to
 
 ### Added
 
+- The CF standard name `square_of_brunt_vaisala_frequency_in_air` joins
+  the frozen CF subset, for the static stability of the IFS.
 - The profiles of the ISO standard atmosphere (ISO 2533): the temperature
   against the geopotential altitude, from −2 to 80 km in the standard and
   from −5 km in its Addendum 2, two citations whose domains add up; the

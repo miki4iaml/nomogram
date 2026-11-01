@@ -345,6 +345,8 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "height_above_reference_ellipsoid",
     "geoid_height_above_reference_ellipsoid",
     "latitude",
+    # Static stability (ECMWF IFS).
+    "square_of_brunt_vaisala_frequency_in_air",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
