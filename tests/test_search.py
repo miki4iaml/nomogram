@@ -116,6 +116,8 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.bechtold2015_density",
         "formulations.metpy171_density_virtual_temperature",
         "formulations.metpy171_density",
+        "formulations.ecmwf_ifs_density",
+        "formulations.ecmwf_ifs_density_specific_humidity",
         "formulations.iso2533_air_density",
         "formulations.iso2533_kinematic_viscosity",
     }

@@ -74,7 +74,7 @@ year = 2024
 title = "IFS Documentation CY49R1 - Part III: Dynamics and Numerical Procedures"
 url = "https://www.ecmwf.int/en/elibrary/81625-ifs-documentation-cy49r1-part-iii-dynamics-and-numerical-procedures"
 status = "verified"
-note = "Section 2.1, equation 2.6: the geopotential, defined by the hydrostatic equation with the virtual temperature and the gas constant of dry air. Section 2.2.1, equation 2.20: its discrete analogue between two half levels, the hypsometric equation. The numbering is the same in CY41R2, whose documentation ERA5 follows, and in CY50R1."
+note = "Section 2.1, equation 2.6: the geopotential, defined by the hydrostatic equation with the virtual temperature and the gas constant of dry air. Section 2.2.1, equation 2.11: the pressure of the half levels from the surface pressure (p. 6), and on p. 7 that of the full levels, the half sum of the two half levels around; equation 2.20: the discrete analogue of 2.6 between two half levels, the hypsometric equation. The numbering is the same in CY41R2, whose documentation ERA5 follows, and in CY50R1."
 
 [references.iso2533_add2_1997]
 authors = "International Organization for Standardization"
@@ -291,6 +291,19 @@ label = "Pressure Scale Height"
 specialization_of = "Length"
 description = "Height over which the pressure of an isothermal atmosphere decreases by a factor e, R T / g (ISO 2533, 2.9, equation 16): a length that characterizes a layer, not a vertical coordinate."
 
+# Static stability and the energy of dry air (ECMWF IFS).
+
+[kinds.SquareOfBruntVaisalaFrequency]
+label = "Square of Brunt-Vaisala Frequency"
+specialization_of = "InverseSquareTime"
+description = "Square of the Brunt-Vaisala frequency, also called the buoyancy frequency, a measure of the vertical stratification of the air (CF). Its formulas give it negative where the stratification is unstable: the square is the quantity, not the frequency."
+cf_standard_names = [{ name = "square_of_brunt_vaisala_frequency_in_air", relation = "exact", verified = 2026-11-01 }]
+
+[kinds.DryStaticEnergy]
+label = "Dry Static Energy"
+specialization_of = "SpecificEnergy"
+description = "Specific enthalpy of dry air plus the geopotential, c_p T + Phi: conserved by an adiabatic ascent without phase change in hydrostatic equilibrium (Bechtold 2015, 8.4). CF uses it in contents and fluxes (dry_static_energy_content_of_atmosphere_layer), with no standard name of its own."
+
 # Pressures of the surface and of the sea level; the altimeter settings
 # of aviation, which go through the standard atmosphere.
 
@@ -375,6 +388,24 @@ unit = "M-PER-SEC2"
 description = "Gravity acceleration of Bechtold (2015), section 8.4, in the hydrostatic approximation"
 reference = "bechtold2015"
 nature = "conventional"
+
+[constants.a_ecmwf_ifs]
+identifier = "a"
+value = 6371229
+unit = "M"
+description = "Radius of the spherical Earth of the ECMWF IFS, the average value of the reference ellipsoid (CY49R1, Part IV, section 12.2)"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+note = "The radius of era5_geometric_altitude, which ERA5 gives in kilometres."
+
+[constants.N_0_squared_ecmwf_ifs]
+identifier = "N_0__2"
+value = 2.5e-4
+unit = "PER-SEC2"
+description = "Transition value of the square of the Brunt-Vaisala frequency for the stability tropopause of the ECMWF IFS (CY49R1, Part IV, section 6.12)"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+note = "Going down from 70 hPa, the tropopause is the first level where N^2 falls to this value (criterion 6.79, with 6.77 and 6.78). Equation 6.78 prints N_0^2 where the N^2 of the level is meant."
 
 # --- Trade terms ------------------------------------------------------
 
@@ -710,6 +741,45 @@ equation = "2.20"
 notation = { Phi_1 = '\phi_{k+1/2}', Phi_2 = '\phi_{k-1/2}', p_1 = "p_{k+1/2}", p_2 = "p_{k-1/2}", T_v = '(T_{\mathrm{v}})_k', R_d = '\mathrm{R}_{\mathrm{dry}}' }
 assumptions = ["The hydrostatic equation (2.6), with the virtual temperature of the layer."]
 
+# The model levels of the IFS (Part III, 2.2.1), those of ERA5: the
+# pressure of each half level, between two layers, from coefficients
+# stored with the fields, and that of the full level, the middle of the
+# layer.
+
+[formulations.ecmwf_ifs_half_level_pressure]
+label = "Pressure at a half level from the surface pressure and the coefficients of the level (IFS)"
+expression = "A + B * p_s"
+fixed_units = false
+note = "Equation 2.11, after Simmons and Strufing (1983). The coefficients A and B of each half level, 0 to NLEV, define the vertical coordinate; they are stored in the GRIB header of every field archived on model levels."
+output = { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure at the half level" }
+inputs = [
+  { identifier = "A", kind = "Pressure", unit = "PA", description = "Coefficient A of the half level" },
+  { identifier = "B", kind = "DimensionlessRatio", unit = "UNITLESS", description = "Coefficient B of the half level" },
+  { identifier = "p_s", kind = "SurfaceAirPressure", unit = "PA", description = "Surface pressure" },
+]
+keywords = ["model level", "half level", "hybrid coordinate", "ERA5", "IFS"]
+
+[[formulations.ecmwf_ifs_half_level_pressure.citations]]
+reference = "ecmwf_ifs_cy49r1_part3"
+equation = "2.11"
+notation = { p = "p_{k+1/2}", A = "A_{k+1/2}", B = "B_{k+1/2}", p_s = 'p_{\mathrm{s}}' }
+
+[formulations.ecmwf_ifs_full_level_pressure]
+label = "Pressure at a full level, the middle of a layer, from the pressures of its half levels (IFS)"
+expression = "(p_1 + p_2) / 2"
+fixed_units = false
+output = { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure at the full level" }
+inputs = [
+  { identifier = "p_1", kind = "Pressure", unit = "PA", description = "Pressure at the half level above the layer" },
+  { identifier = "p_2", kind = "Pressure", unit = "PA", description = "Pressure at the half level below the layer" },
+]
+keywords = ["model level", "full level", "hybrid coordinate", "ERA5", "IFS"]
+
+[[formulations.ecmwf_ifs_full_level_pressure.citations]]
+reference = "ecmwf_ifs_cy49r1_part3"
+note = "Section 2.2.1 (p. 7), under equation 2.11: p_k = (p_{k-1/2} + p_{k+1/2}) / 2, the pressure the prognostic variables are represented at."
+notation = { p = "p_k", p_1 = "p_{k-1/2}", p_2 = "p_{k+1/2}" }
+
 [formulations.ussa1976_pressure_layer_gradient]
 label = "Pressure in a layer of constant temperature gradient (U.S. Standard Atmosphere 1976)"
 expression = "P_b * (T_b / (T_b + L * (H - H_b)))**(g_n * M_0 / (R_star * L))"
@@ -860,6 +930,121 @@ assumptions = ["Hydrostatic equilibrium, dp = -rho g dz.", "An adiabatic ascent 
 label = "Dry adiabatic lapse rate, from the gradient of Bechtold (2015)"
 composition = { outer = "lapse_rate_definition", inner = { dTdz = "bechtold2015_dry_adiabatic_gradient" } }
 keywords = ["dry adiabatic lapse rate", "lapse rate"]
+
+# The ECMWF IFS (CY49R1, Part IV; the same numbering in CY50R1): the
+# geopotential at a constant gravity (12.2), the static stability (5.2)
+# and the dry static energy (12.36, 3.5), with its constants. Bechtold's
+# notes write the dry static energy with their own g.
+
+[formulations.ecmwf_ifs_geopotential]
+label = "Geopotential from the geometric altitude, at a constant gravity (IFS)"
+expression = "g_n * z"
+fixed_units = false
+note = "The IFS takes a constant gravity, so that its geopotential height equals the geometric altitude. ERA5, from the same model, converts one into the other with the radius of its spherical Earth (era5_geometric_altitude): they part by 16 m at 10 km and 141 m at 30 km. Section 12.2 names Phi the geopotential height, in J/kg: it is the geopotential."
+output = { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential" }
+inputs = [
+  { identifier = "z", kind = "Altitude", unit = "M", description = "Geometric altitude" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["geopotential", "IFS"]
+
+[[formulations.ecmwf_ifs_geopotential.citations]]
+reference = "ecmwf_ifs_cy49r1"
+note = "Section 12.2 (p. 245): g = 9.80665 m s-2, then Phi = g z."
+notation = { Phi = '\Phi', g_n = "g" }
+assumptions = ["A constant gravity, g = 9.80665 m s-2, on a spherical Earth (12.2)."]
+
+[formulations.ecmwf_ifs_square_of_brunt_vaisala_frequency]
+label = "Square of the Brunt-Vaisala frequency from the temperature and its vertical gradient (IFS)"
+expression = "g_n**2 / (c_pd * T) + g_n / T * dTdz"
+fixed_units = false
+note = "Equation 5.2, in height coordinate, for the gravity wave drag. The text calls c_p the specific heat of dry air 'at constant volume', a slip for constant pressure: the symbol and the formula are those of c_p (also in CY50R1). The floor N >= 1e-12 is numerical, not a validity domain."
+output = { identifier = "N__2", kind = "SquareOfBruntVaisalaFrequency", unit = "PER-SEC2", description = "Square of the Brunt-Vaisala frequency" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "dTdz", kind = "VerticalTemperatureGradient", unit = "K-PER-M", description = "Vertical gradient of temperature" },
+]
+constants = ["g_n_cgpm1901", "c_pd_ecmwf_ifs"]
+keywords = ["Brunt-Vaisala frequency", "buoyancy frequency", "static stability", "IFS"]
+
+[[formulations.ecmwf_ifs_square_of_brunt_vaisala_frequency.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "5.2"
+notation = { N__2 = "N^2", g_n = "g", c_pd = "c_p", dTdz = '\frac{\partial T}{\partial z}' }
+assumptions = ["The specific heat of dry air, the moisture left out (text under 5.2)."]
+
+# Equation 5.2 against the lapse rate, through its definition. The
+# stability tropopause of the IFS (6.12) is the first level, going down
+# from 70 hPa, where N^2 falls to N_0^2 (6.79 with 6.77 and 6.78): this
+# formulation, solved for Gamma at N_0^2, gives the critical lapse rate
+# g/c_p - T N_0^2/g, from 3.6 to 4.7 K/km between 240 and 200 K.
+
+[formulations.ecmwf_ifs_square_of_brunt_vaisala_frequency_lapse_rate]
+label = "Square of the Brunt-Vaisala frequency from the temperature and the lapse rate (IFS)"
+composition = { outer = "ecmwf_ifs_square_of_brunt_vaisala_frequency", inner = { dTdz = "vertical_temperature_gradient_definition" } }
+keywords = ["Brunt-Vaisala frequency", "static stability", "tropopause", "lapse rate", "IFS"]
+
+[formulations.ecmwf_ifs_tropopause_critical_lapse_rate]
+label = "Critical lapse rate of the stability tropopause, from the temperature (IFS criterion)"
+expression = "g_n / c_pd - T * N_0__2 / g_n"
+fixed_units = false
+note = "Written by nomogram, which the IFS does not print: its criterion 6.79, with 6.77 and 6.78, is N^2 <= N_0^2, and equation 5.2 against the lapse rate (ecmwf_ifs_square_of_brunt_vaisala_frequency_lapse_rate) gives N^2 = N_0^2 at this lapse rate. Going down from 70 hPa, the tropopause is the first level whose lapse rate reaches it: from 3.6 to 4.7 K/km between 240 and 200 K. WMO defines it by 2 K/km instead (6.12)."
+conditions = "The stability tropopause, searched between 70 and 500 hPa (6.12)."
+output = { identifier = "Gamma_c", kind = "LapseRate", unit = "K-PER-M", description = "Critical lapse rate" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the level" },
+]
+constants = ["g_n_cgpm1901", "c_pd_ecmwf_ifs", "N_0_squared_ecmwf_ifs"]
+assumptions = [
+  { text = "Hydrostatic equilibrium, to pass from the pressure of criterion 6.79 to the height of equation 5.2.", status = "deduced" },
+]
+keywords = ["tropopause", "lapse rate", "static stability", "IFS"]
+
+[formulations.ecmwf_ifs_dry_static_energy]
+label = "Dry static energy from the temperature and the geopotential (IFS)"
+expression = "c_pd * T + Phi"
+fixed_units = false
+output = { identifier = "s", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "Phi", kind = "Geopotential", unit = "M2-PER-SEC2", description = "Geopotential" },
+]
+constants = ["c_pd_ecmwf_ifs"]
+keywords = ["dry static energy", "IFS"]
+
+[[formulations.ecmwf_ifs_dry_static_energy.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.36"
+notation = { c_pd = 'c_{p\mathrm{d}}', Phi = '\Phi' }
+
+[formulations.ecmwf_ifs_dry_static_energy_altitude]
+label = "Dry static energy from the temperature and the geometric altitude (IFS)"
+composition = { outer = "ecmwf_ifs_dry_static_energy", inner = { Phi = "ecmwf_ifs_geopotential" } }
+keywords = ["dry static energy", "IFS"]
+
+[[formulations.ecmwf_ifs_dry_static_energy_altitude.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.5"
+note = "For the surface boundary condition of the vertical diffusion, written g z + c_p T, with the g of 12.2."
+notation = { c_pd = "c_p", g_n = "g" }
+
+[formulations.bechtold2015_dry_static_energy]
+label = "Dry static energy from the temperature and the height (Bechtold 2015)"
+expression = "c_pd * T + g * z"
+fixed_units = false
+note = "Conserved during an adiabatic ascent without phase change in hydrostatic equilibrium, and linear in T and z, unlike the potential temperature: the quantity numerical weather prediction prefers (8.4)."
+output = { identifier = "s", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "z", kind = "Altitude", unit = "M", description = "Geometric height" },
+]
+constants = ["c_pd_bechtold2015", "g_bechtold2015"]
+keywords = ["dry static energy"]
+
+[[formulations.bechtold2015_dry_static_energy.citations]]
+reference = "bechtold2015"
+note = "Section 8.4 (p. 7), under equation 37: s_z = c_p T + g z, with g = 9.81 m s-2; s is kept for the entropy."
+notation = { s = "s_z", c_pd = "c_p" }
 
 # The reference atmosphere: a conventional model, not a description of
 # the atmosphere. ITU-R P.835-7 derives it from the U.S. Standard

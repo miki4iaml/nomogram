@@ -10,6 +10,26 @@ and this project adheres to
 
 ### Added
 
+- Simple formulas of the ECMWF IFS (CY49R1, the same numbers in CY50R1):
+  the square of the Brunt–Väisälä frequency (equation 5.2; a new kind,
+  `SquareOfBruntVaisalaFrequency`, CF
+  `square_of_brunt_vaisala_frequency_in_air`), also against the lapse
+  rate through its definition; the dry static energy (12.36 and 3.5; a
+  new kind, `DryStaticEnergy`), beside Bechtold's form; the geopotential
+  at a constant gravity, Φ = g z (12.2), whose geopotential height is the
+  geometric altitude, 16 m from ERA5's conversion at 10 km; the pressure
+  of the half and full model levels (Part III, 2.11). The radius of its
+  Earth and the N₀² of its stability tropopause are constants.
+- The critical lapse rate of the stability tropopause of the IFS,
+  g/c_p − T N₀²/g, written by nomogram from its criterion 6.79 and
+  equation 5.2: from 3.6 to 4.7 K/km between 240 and 200 K.
+- The specific humidity from the vapour pressure (12.4), the virtual
+  temperature without condensates (12.7) and the density of moist air
+  (12.6) with the constants of the IFS, and the density from the
+  pressure, the temperature and the specific humidity, as its physics
+  computes it.
+- Notations may use `\partial`, which MathJax, KaTeX and mathtext all
+  render.
 - The CF standard name `square_of_brunt_vaisala_frequency_in_air` joins
   the frozen CF subset, for the static stability of the IFS.
 - The profiles of the ISO standard atmosphere (ISO 2533): the temperature
