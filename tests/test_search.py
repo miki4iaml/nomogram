@@ -61,6 +61,8 @@ def test_terms_are_wildcards_matched_against_words() -> None:
         "kinds.AbsoluteHumidity",
         "trade_terms.absolute_humidity",
         "formulations.wmo_vapour_concentration_definition",
+        "formulations.vaisala2013_absolute_humidity",
+        "references.vaisala2013",
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
@@ -118,6 +120,7 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.metpy171_density",
         "formulations.ecmwf_ifs_density",
         "formulations.ecmwf_ifs_density_specific_humidity",
+        "formulations.vaisala2013_absolute_humidity",
         "formulations.iso2533_air_density",
         "formulations.iso2533_kinematic_viscosity",
     }
@@ -126,6 +129,7 @@ def test_variables_whatever_their_notation() -> None:
     assert refs(CATALOG.search(variable=r"\rho_{\mathrm{v}}")) == {
         "formulations.mass_concentration_ideal_gas",
         "formulations.wmo_vapour_concentration_definition",
+        "formulations.vaisala2013_absolute_humidity",
     }
     assert (
         "formulations.itu_r_p453_vapour_pressure"

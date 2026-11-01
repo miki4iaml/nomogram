@@ -74,6 +74,8 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "ambaum2020_constant_latent_heat",
         "metpy171_saturation_vapour_pressure",
         "ecmwf_ifs_saturation_water",
+        "vaisala2013_water",
+        "hardy1998_water",
     }
 
 
@@ -484,6 +486,16 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("iapws_r14_08_sublimation", "p_t"): "stated",
         ("goff_gratch1946", "e_st"): "added",
         ("goff_gratch1946_ice", "e_i0"): "added",
+        ("vaisala2013_saturation_ice", "P_n"): "stated",
+        ("vaisala2013_saturation_ice", "T_n"): "stated",
+        **{
+            ("hardy1998_dew_point", name): "added"
+            for name in ("c0", "c1", "c2", "c3", "d0", "d1", "d2", "d3")
+        },
+        **{
+            ("hardy1998_frost_point", name): "added"
+            for name in ("c0", "c1", "c2", "d0", "d1", "d2", "d3")
+        },
         ("itu_r_p453_reference_profile", "h_0"): "stated",
         ("itu_r_p453_surface_refractivity", "h_0"): "stated",
         ("ittc2011_vapour_pressure", "T_c"): "stated",

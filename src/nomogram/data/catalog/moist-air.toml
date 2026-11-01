@@ -1058,6 +1058,99 @@ inputs = [
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
 ]
 
+# The inverses the producers of humidity data print: a dew or frost point
+# from the vapour pressure, by Vaisala (2013) and by Hardy (1998), whose
+# formulation Vaisala's RS41 radiosonde uses (UAII 2022, Table 3.3).
+
+[formulations.vaisala2013_dew_point]
+label = "Dew point from the vapour pressure, inverse of Vaisala's simplified form (2013)"
+expression = "B / (A / log10(e / C) - 1)"
+fixed_units = true
+note = "Equation 7, the explicit inverse of equation 6 (vaisala2013_water) with the same constants, those of Table 1 from -20 to +50 degC: the range of the dew point, an output, stays in this note. The source's example (p. 8): 36.88 hPa gives 27.6 degC; it prints 36.88 hPa for half of Pws(40 degC), where equation 6 gives 36.91 hPa and equation 3 36.93 hPa."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+coefficients = { A = 7.591386, B = 240.7263, C = 6.116441 }
+keywords = ["dew point", "radiosonde"]
+
+[[formulations.vaisala2013_dew_point.citations]]
+reference = "vaisala2013"
+equation = "7"
+notation = { t_d = 'T_d', e = 'P_w', C = "A", A = "m", B = 'T_n' }
+
+[formulations.hardy1998_dew_point]
+label = "Dew point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation on ITS-90"
+expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2 + c3 * ln(e) ** 3) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
+fixed_units = true
+note = "Equation 4, fitted to equation 2 (hardy1998_water) from -100 to 100 degC, which it reproduces within 0.3 mK: the range of the dew point, an output, stays in this note. The vapour pressure in Pa, the dew point in K."
+output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+]
+keywords = ["dew point", "radiosonde"]
+
+[formulations.hardy1998_dew_point.coefficients]
+c0 = { value = 2.0798233e2, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+c1 = { value = -2.0156028e1, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+c2 = { value = 4.6778925e-1, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+c3 = { value = -9.2288067e-6, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+d0 = { value = 1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d1 = { value = -1.3319669e-1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d2 = { value = 5.6577518e-3, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d3 = { value = -7.5172865e-5, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+
+[[formulations.hardy1998_dew_point.citations]]
+reference = "hardy1998"
+equation = "4"
+notation = { e = 'e_s' }
+scales = { T_d = "its90" }
+
+[formulations.hardy1998_frost_point]
+label = "Frost point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation over ice on ITS-90"
+expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
+fixed_units = true
+note = "Equation 5, fitted to equation 3 (hardy1998_ice) from -150 to 0.01 degC, which it reproduces within 0.1 mK: the range of the frost point, an output, stays in this note. The vapour pressure in Pa, the frost point in K."
+output = { identifier = "T_f", kind = "FrostPointTemperature", unit = "K", description = "Frost point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+]
+keywords = ["frost point", "radiosonde"]
+
+[formulations.hardy1998_frost_point.coefficients]
+c0 = { value = 2.1257969e2, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+c1 = { value = -1.0264612e1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+c2 = { value = 1.4354796e-1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+d0 = { value = 1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d1 = { value = -8.2871619e-2, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d2 = { value = 2.3540411e-3, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d3 = { value = -2.4363951e-5, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+
+[[formulations.hardy1998_frost_point.citations]]
+reference = "hardy1998"
+equation = "5"
+notation = { e = 'e_s' }
+scales = { T_f = "its90" }
+
+[formulations.vaisala2013_absolute_humidity]
+label = "Absolute humidity of an ideal gas from the vapour pressure, Vaisala (2013)"
+expression = "C * e / T"
+fixed_units = true
+note = "Equation 17. The source gives C = 2.16679 g K/J, which no unit of the bundled QUDT subset expresses: the formula holds in its units, the vapour pressure in Pa, the temperature in K and the absolute humidity in g/m3. 1000/C = 461.51 J/(kg K) is the specific gas constant of water vapour (deduced). The source's example: 1870 Pa at 20 degC give 13.82 g/m3 (p. 14). The inverse form of itu_r_p453_vapour_pressure_from_density."
+output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Absolute humidity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+coefficients = { C = 2.16679 }
+keywords = ["humidity", "absolute humidity"]
+
+[[formulations.vaisala2013_absolute_humidity.citations]]
+reference = "vaisala2013"
+equation = "17"
+notation = { rho_v = "A", e = 'P_w' }
+assumptions = ["The gas as an ideal gas (p. 14)."]
+
 [formulations.wmo_psychrometer_water]
 label = "Vapour pressure from an Assmann psychrometer with a wet bulb, WMO Guide (CIMO)"
 expression = "e_w(p=p, t=t_w) - A * (1 + B * t_w) * p * (t - t_w)"
