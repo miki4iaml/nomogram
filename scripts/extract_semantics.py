@@ -242,6 +242,18 @@ KINDS: dict[str, KindSpec] = {
     # The parent of the geodetic latitude (catalog), in normal gravity
     # formulas.
     "PlaneAngle": KindSpec("ratio", delta=False),
+    # ISO 2533: the speed of sound (equation 21), the dynamic viscosity of
+    # Sutherland (22), the kinematic viscosity (23) and the thermal
+    # conductivity (24) of air. CF names the speed of sound by its medium.
+    "SpeedOfSound": KindSpec(
+        "ratio", delta=False, cf_standard_names=(("speed_of_sound_in_air", "narrow"),)
+    ),
+    "DynamicViscosity": KindSpec("ratio", delta=False),
+    "KinematicViscosity": KindSpec("ratio", delta=False),
+    "ThermalConductivity": KindSpec("ratio", delta=False),
+    # The IFS: the parent of the square of the Brunt-Vaisala frequency
+    # (catalog), in s-2.
+    "InverseSquareTime": KindSpec("ratio", delta=False),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -294,6 +306,12 @@ UNITS: dict[str, str] = {
     # Angles: the latitude, in radians where sin or cos take it.
     "RAD": "radian",
     "DEG": "degree",
+    # ISO 2533 and the IFS: the viscosities, the thermal conductivity of
+    # air, and the square of a frequency.
+    "PA-SEC": "Pa*s",
+    "M2-PER-SEC": "m^2/s",
+    "W-PER-M-K": "W/(m*K)",
+    "PER-SEC2": "1/s^2",
 }
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
@@ -344,6 +362,8 @@ SYMBOLS: dict[str, str] = {
     "PER-MOL": "mol⁻¹",
     # Likewise "/K" for QUDT, K⁻¹ for the SI Brochure.
     "PER-K": "K⁻¹",
+    # And "/s²" for QUDT, s⁻² for the SI Brochure.
+    "PER-SEC2": "s⁻²",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping

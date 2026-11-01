@@ -43,7 +43,7 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 def test_sources_are_recorded() -> None:
     assert CATALOG.qudt_version == "3.5.2"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 10, 28)
+    assert CATALOG.extracted == datetime.date(2026, 11, 1)
 
 
 def test_catalog_is_read_once() -> None:
@@ -197,7 +197,7 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
 
 def test_external_links_carry_their_relation_and_verification_date() -> None:
     kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
-    checked = datetime.date(2026, 10, 28)
+    checked = datetime.date(2026, 11, 1)
     assert kind.matches == (
         ExternalMatch(
             "http://www.wikidata.org/entity/Q76378808", MatchRelation.CLOSE, checked

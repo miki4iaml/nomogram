@@ -10,6 +10,11 @@ and this project adheres to
 
 ### Added
 
+- Quantity kinds `SpeedOfSound` (with the CF standard name
+  `speed_of_sound_in_air`, narrower), `DynamicViscosity`,
+  `KinematicViscosity`, `ThermalConductivity` and `InverseSquareTime`,
+  and units Pa·s, m²/s, W/(m·K) and s⁻² (QUDT writes /s²), from QUDT
+  3.5.2: the standard atmosphere and the IFS need them.
 - Pre-commit hook `check-integrity`, replayed by CI on the whole
   repository: it refuses hidden characters (format, private use and
   unassigned code points, variation selectors, control characters other
