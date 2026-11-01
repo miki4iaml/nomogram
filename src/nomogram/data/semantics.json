@@ -124,6 +124,10 @@
       "canonical_units": "m s-1",
       "pint": "m * s ** -1"
     },
+    "square_of_brunt_vaisala_frequency_in_air": {
+      "canonical_units": "s-2",
+      "pint": "s ** -2"
+    },
     "surface_air_pressure": {
       "canonical_units": "Pa",
       "pint": "Pa"
