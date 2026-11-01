@@ -731,3 +731,145 @@ def test_dry_and_moist_air_densities_never_feed_each_other() -> None:
     assert feeds("DensityOfDryAir", "Density")
     assert not feeds("DensityOfDryAir", "DensityOfMoistAir")
     assert not feeds("DensityOfMoistAir", "DensityOfDryAir")
+
+
+# --- Simple formulas of the ECMWF IFS ----------------------------------------------
+
+G_N = 9.80665
+C_PD_IFS = 1004.709
+R_D_IFS = 287.0597
+
+
+def test_the_geopotential_of_the_ifs_takes_a_constant_gravity() -> None:
+    ifs = CATALOG.formulations["ecmwf_ifs_geopotential"]
+    phi = ifs.evaluate(z=Q_(10000.0, "m"))
+    assert phi.to("m**2/s**2").magnitude == pytest.approx(98066.5)
+    # Its geopotential height is the geometric altitude...
+    height = FORMULATIONS["geopotential_height_definition"].evaluate(Phi=phi)
+    assert height.to("m").magnitude == pytest.approx(10000.0)
+    # ...which ERA5, from the same model, puts 16 m lower.
+    era5 = FORMULATIONS["era5_geometric_altitude"].evaluate(Z=height)
+    assert era5.to("m").magnitude - 10000.0 == pytest.approx(15.72, abs=0.01)
+    radius = CATALOG.constants["a_ecmwf_ifs"]
+    (r_e,) = FORMULATIONS["era5_geometric_altitude"].coefficients
+    assert radius.value == pytest.approx(r_e.value * 1000)
+
+
+def test_the_square_of_the_brunt_vaisala_frequency() -> None:
+    n2 = CATALOG.formulations["ecmwf_ifs_square_of_brunt_vaisala_frequency"]
+    isothermal = n2.evaluate(T=Q_(250.0, "K"), dTdz=Q_(0.0, "K/m"))
+    assert isothermal.to("1/s**2").magnitude == pytest.approx(
+        G_N**2 / (C_PD_IFS * 250.0)
+    )
+    # Neutral on the dry adiabat of the same constants, unstable beyond.
+    adiabat = Q_(-G_N / C_PD_IFS, "K/m")
+    assert n2.evaluate(T=Q_(250.0, "K"), dTdz=adiabat).magnitude == pytest.approx(
+        0.0, abs=1e-15
+    )
+    assert n2.evaluate(T=Q_(250.0, "K"), dTdz=Q_(-0.012, "K/m")).magnitude < 0
+    assert n2.output.kind == "SquareOfBruntVaisalaFrequency"
+    assert feeds("SquareOfBruntVaisalaFrequency", "InverseSquareTime")
+    kind = CATALOG.kinds["SquareOfBruntVaisalaFrequency"]
+    assert kind.cf_standard_names == ("square_of_brunt_vaisala_frequency_in_air",)
+
+
+def test_the_critical_lapse_rate_of_the_stability_tropopause() -> None:
+    import sympy
+
+    against_lapse_rate = CATALOG.formulations[
+        "ecmwf_ifs_square_of_brunt_vaisala_frequency_lapse_rate"
+    ]
+    critical = CATALOG.formulations["ecmwf_ifs_tropopause_critical_lapse_rate"]
+    assert against_lapse_rate.derived
+    assert not critical.citations
+    assert critical.derivation is None
+    n0_squared = CATALOG.constants["N_0_squared_ecmwf_ifs"]
+    assert (n0_squared.value, n0_squared.unit) == (2.5e-4, "PER-SEC2")
+    # The derived formulation, solved for the lapse rate at N_0^2, gives
+    # the critical lapse rate written by nomogram.
+    symbols = {
+        s.name: s
+        for f in (against_lapse_rate, critical)
+        for s in f.sympy_expression.free_symbols
+    }
+    solved = sympy.solve(
+        sympy.Eq(against_lapse_rate.sympy_expression, symbols["N_0__2"]),
+        symbols["Gamma"],
+    )
+    assert solved == [critical.sympy_expression]
+    temperatures = np.array([200.0, 220.0, 240.0])
+    gamma = critical.evaluate(T=Q_(temperatures, "K")).to("K/m").magnitude
+    assert gamma * 1000 == pytest.approx([4.662, 4.152, 3.642], abs=1e-3)
+    n2 = against_lapse_rate.evaluate(T=Q_(temperatures, "K"), Gamma=Q_(gamma, "K/m"))
+    assert n2.to("1/s**2").magnitude == pytest.approx(2.5e-4)
+    # Criterion 6.79 on a hydrostatic profile of that lapse rate, in
+    # pressure: T = T_b (p/p_b)^(R_d Gamma/g); (p/T) dT/dp by differences.
+    for t, rate in zip(temperatures, gamma, strict=True):
+        p = np.linspace(19000.0, 21000.0, 2001)
+        profile = t * (p / 20000.0) ** (R_D_IFS * rate / G_N)
+        log_slope = np.gradient(np.log(profile), np.log(p))[1000]
+        criterion = log_slope + R_D_IFS * t / G_N**2 * 2.5e-4
+        assert criterion == pytest.approx(R_D_IFS / C_PD_IFS, rel=1e-6)
+
+
+def test_the_dry_static_energy_by_the_ifs_and_by_bechtold() -> None:
+    ifs = CATALOG.formulations["ecmwf_ifs_dry_static_energy"]
+    composed = CATALOG.formulations["ecmwf_ifs_dry_static_energy_altitude"]
+    bechtold = CATALOG.formulations["bechtold2015_dry_static_energy"]
+    t, z = Q_(280.0, "K"), Q_(1000.0, "m")
+    phi = CATALOG.formulations["ecmwf_ifs_geopotential"].evaluate(z=z)
+    s = composed.evaluate(T=t, z=z).to("J/kg").magnitude
+    assert s == pytest.approx(ifs.evaluate(T=t, Phi=phi).to("J/kg").magnitude)
+    assert s == pytest.approx(C_PD_IFS * 280.0 + G_N * 1000.0)
+    # Cited to equation 3.5, the composition is not derived by nomogram.
+    assert not composed.derived
+    # Bechtold's g = 9.81 m/s2 and c_pd = 1004.7: 4 J/kg more at 1 km.
+    s_b = bechtold.evaluate(T=t, z=z).to("J/kg").magnitude
+    assert s_b - s == pytest.approx(1004.7 * 280.0 + 9810.0 - s)
+    # Conserved along the dry adiabat of the same constants.
+    heights = np.linspace(0.0, 10000.0, 11)
+    temperatures = 290.0 - G_N / C_PD_IFS * heights
+    along = composed.evaluate(T=Q_(temperatures, "K"), z=Q_(heights, "m"))
+    assert np.ptp(along.to("J/kg").magnitude) == pytest.approx(0.0, abs=1e-8)
+    assert feeds("DryStaticEnergy", "SpecificEnergy")
+    assert not feeds("DryStaticEnergy", "Geopotential")
+
+
+def test_the_pressure_of_the_model_levels() -> None:
+    half = CATALOG.formulations["ecmwf_ifs_half_level_pressure"]
+    full = CATALOG.formulations["ecmwf_ifs_full_level_pressure"]
+    p_s = Q_(100000.0, "Pa")
+    # The top of the model, B = 0, and the surface, A = 0 and B = 1.
+    assert half.evaluate(A=Q_(0.0, "Pa"), B=Q_(0.0, ""), p_s=p_s).magnitude == 0.0
+    assert half.evaluate(A=Q_(0.0, "Pa"), B=Q_(1.0, ""), p_s=p_s).magnitude == 100000.0
+    above = half.evaluate(A=Q_(5000.0, "Pa"), B=Q_(0.5, ""), p_s=p_s)
+    below = half.evaluate(A=Q_(2000.0, "Pa"), B=Q_(0.7, ""), p_s=p_s)
+    assert above.magnitude == pytest.approx(55000.0)
+    assert full.evaluate(p_1=above, p_2=below).magnitude == pytest.approx(63500.0)
+
+
+def test_the_density_of_moist_air_in_the_ifs_physics() -> None:
+    q_from_e = CATALOG.formulations["ecmwf_ifs_specific_humidity_from_vapour_pressure"]
+    q = q_from_e.evaluate(e=Q_(1000.0, "Pa"), p=Q_(100000.0, "Pa"))
+    assert q.magnitude == pytest.approx(
+        0.621981 * 1000.0 / (100000.0 - 0.378019 * 1000.0)
+    )
+    virtual = CATALOG.formulations["ecmwf_ifs_virtual_temperature"]
+    t_v = virtual.evaluate(T=Q_(300.0, "K"), q=Q_(0.01, ""))
+    assert t_v.magnitude == pytest.approx(300.0 * (1 + (461.525 / R_D_IFS - 1) * 0.01))
+    # epsilon* = R_v/R_d - 1 against (1 - epsilon)/epsilon of Bechtold.
+    bechtold = FORMULATIONS["bechtold2015_virtual_temperature"]
+    t_v_b = bechtold.evaluate(T=Q_(300.0, "K"), q=Q_(0.01, ""))
+    assert t_v.magnitude == pytest.approx(t_v_b.magnitude, rel=2e-6)
+    density = CATALOG.formulations["ecmwf_ifs_density_specific_humidity"]
+    assert not density.derived
+    dry = density.evaluate(p=Q_(101325.0, "Pa"), T=Q_(288.15, "K"), q=Q_(0.0, ""))
+    assert dry.magnitude == pytest.approx(101325.0 / (R_D_IFS * 288.15))
+    # The gas constant of the IFS against that of the ISO standard
+    # atmosphere: 2.4e-5 apart on the density of dry air.
+    iso = FORMULATIONS["iso2533_air_density"].evaluate(
+        p=Q_(101325.0, "Pa"), T=Q_(288.15, "K")
+    )
+    assert dry.magnitude / iso.magnitude - 1 == pytest.approx(-2.4e-5, abs=1e-6)
+    moist = density.evaluate(p=Q_(101325.0, "Pa"), T=Q_(288.15, "K"), q=Q_(0.01, ""))
+    assert moist.magnitude < dry.magnitude

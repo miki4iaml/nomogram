@@ -193,7 +193,7 @@ title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
 doi = "10.21957/c731ee1102"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197. Chapter 3 (p. 46): the dry static energy, eq. 3.5. Section 5.3 (p. 86): the Brunt-Vaisala frequency in height coordinate, eq. 5.2. Section 6.12 (p. 108): the stability tropopause, eqs. 6.77-6.79, with N_0^2 = 2.5e-4 s-2. Section 12.2 (p. 245): a = 6371229 m, g = 9.80665 m s-2 and Phi = g z. Section 12.6 (p. 247): the basic state variables, eqs. 12.3-12.7. Section 12.9 (p. 250): s = c_pd T + Phi, eq. 12.36. The same equation numbers in CY50R1."
 
 [references.bechtold2015]
 authors = "Bechtold, P."
@@ -1861,6 +1861,75 @@ equation = "12.10"
 notation = { e_sat = 'e_{\mathrm{sat,i}}' }
 note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is -a4, a4 = -0.7 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
 units = { e_0 = "PA", B = "K" }
+
+# Basic state variables of the ECMWF IFS (CY49R1, Part IV, section 12.6,
+# p. 247), with its constants: the physics computes the air density from
+# the virtual temperature without condensates.
+
+[formulations.ecmwf_ifs_specific_humidity_from_vapour_pressure]
+label = "Specific humidity from vapour pressure, ECMWF IFS"
+expression = "epsilon * e / (p - (1 - epsilon) * e)"
+fixed_units = false
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+]
+constants = ["epsilon_ecmwf_ifs"]
+keywords = ["humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_specific_humidity_from_vapour_pressure.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.4"
+notation = { q = 'q_{\mathrm{v}}' }
+assumptions = ["The pressure of moist air is the sum of the partial pressures of dry air and water vapour, p = p_d + e (12.3)."]
+
+[formulations.ecmwf_ifs_virtual_temperature]
+label = "Virtual temperature from the temperature and the specific humidity, without condensates, ECMWF IFS"
+expression = "T * (1 + (R_v / R_d - 1) * q)"
+fixed_units = false
+note = "Equation 12.7 without the specific masses of liquid water, ice, rain and snow: the form the physics uses for the air density. The factor is epsilon* = R_v / R_d - 1 (12.5), which the IFS does not print as a number."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+constants = ["R_v_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["virtual temperature", "humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_virtual_temperature.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.7"
+notation = { q = 'q_{\mathrm{v}}', R_v = 'R_{\mathrm{v}}', R_d = 'R_{\mathrm{d}}' }
+note = "Text under equation 12.7: 'when air density is required in the physics it is computed using T_v = (1 + epsilon* q_v) T only'."
+assumptions = ["The specific volume of the condensed water phases neglected (text under 12.7).", "No condensate: liquid water, ice, rain and snow left out."]
+
+[formulations.ecmwf_ifs_density]
+label = "Density of moist air from the pressure and the virtual temperature, ECMWF IFS"
+expression = "p / (R_d * T_v)"
+fixed_units = false
+output = { identifier = "rho", kind = "DensityOfMoistAir", unit = "KiloGM-PER-M3", description = "Density of moist air" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" },
+]
+constants = ["R_d_ecmwf_ifs"]
+keywords = ["density", "virtual temperature", "equation of state", "IFS"]
+
+[[formulations.ecmwf_ifs_density.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.6"
+notation = { T_v = 'T_{\mathrm{v}}', R_d = 'R_{\mathrm{d}}' }
+
+[formulations.ecmwf_ifs_density_specific_humidity]
+label = "Density of moist air from the pressure, the temperature and the specific humidity, ECMWF IFS physics"
+composition = { outer = "ecmwf_ifs_density", inner = { T_v = "ecmwf_ifs_virtual_temperature" } }
+keywords = ["density", "humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_density_specific_humidity.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.6"
+note = "With the virtual temperature without condensates, as the text under equation 12.7 says the physics computes the air density."
 
 # Stated by the notes: the two forms of equation 25.
 [relations.bechtold2015_virtual_temperature_two_forms]

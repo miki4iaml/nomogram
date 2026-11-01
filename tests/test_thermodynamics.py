@@ -226,4 +226,5 @@ def test_the_new_kinds_find_their_formulations() -> None:
         "bechtold2015_virtual_temperature_mixing_ratio",
         "bechtold2015_virtual_temperature_rounded",
         "metpy171_virtual_temperature",
+        "ecmwf_ifs_virtual_temperature",
     }

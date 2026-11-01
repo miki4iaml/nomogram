@@ -180,6 +180,9 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\;",
         r"\leq",
         r"\geq",
+        # Partial derivatives in notations (in the lists of MathJax and
+        # KaTeX on 2026-11-01; parsed by mathtext).
+        r"\partial",
     }
     | {"\\" + letter for letter in _GREEK}
 )
