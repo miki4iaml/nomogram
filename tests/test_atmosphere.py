@@ -610,3 +610,58 @@ def test_a_lapse_rate_feeds_a_vertical_gradient_only_through_the_definition(
     )
     with pytest.raises(CatalogError, match="computes LapseRate, but L is"):
         catalog(extra=[direct])
+
+
+@pytest.mark.parametrize(
+    ("key", "inputs", "printed"),
+    [
+        # ISO 2533, Table 3: the characteristics at mean sea level.
+        ("iso2533_air_density", {"p": Q_(101325.0, "Pa"), "T": Q_(288.15, "K")}, 1.225),
+        (
+            "iso2533_pressure_scale_height",
+            {"T": Q_(288.15, "K"), "g": Q_(9.80665, "m/s^2")},
+            8434.5,
+        ),
+        ("iso2533_speed_of_sound", {"T": Q_(288.15, "K")}, 340.294),
+        ("iso2533_dynamic_viscosity", {"T": Q_(288.15, "K")}, 17.894e-6),
+        (
+            "iso2533_kinematic_viscosity_of_air",
+            {"p": Q_(101325.0, "Pa"), "T": Q_(288.15, "K")},
+            14.607e-6,
+        ),
+        ("iso2533_thermal_conductivity", {"T": Q_(288.15, "K")}, 25.343e-3),
+    ],
+)
+def test_the_iso_standard_atmosphere_gives_its_sea_level_characteristics(
+    key: str, inputs: dict[str, Any], printed: float
+) -> None:
+    found = CATALOG.formulations[key].evaluate(**inputs)
+    assert found.magnitude == pytest.approx(printed, rel=5e-5)
+
+
+def test_the_acceleration_of_free_fall_decreases_with_altitude() -> None:
+    gravity = CATALOG.formulations["iso2533_acceleration_of_free_fall"]
+    assert gravity.evaluate(h=Q_(0.0, "m")).magnitude == pytest.approx(9.80665)
+    # g_n (r / (r + h))^2 with r = 6 356 766 m.
+    expected = 9.80665 * (6356766.0 / (6356766.0 + 11000.0)) ** 2
+    assert gravity.evaluate(h=Q_(11.0, "km")).magnitude == pytest.approx(expected)
+
+
+def test_the_iso_standard_cites_lambert_and_the_geopotential_altitude() -> None:
+    lambert = CATALOG.formulations["wmo_normal_gravity_smithsonian"]
+    assert "iso2533_1975" in {c.reference for c in lambert.citations}
+    definition = CATALOG.formulations["geopotential_height_definition"]
+    assert any(
+        c.reference == "iso2533_1975" and c.equation == "6"
+        for c in definition.citations
+    )
+    meaning = CATALOG.trade_terms["geopotential_altitude"].meanings[0]
+    assert meaning.kind == "GeopotentialHeight"
+    assert meaning.sources == ("iso2533_1975",)
+
+
+def test_a_scale_height_is_a_length_but_no_vertical_coordinate() -> None:
+    assert CATALOG.kinds["PressureScaleHeight"].specialization_of == "Length"
+    assert feeds("PressureScaleHeight", "Length")
+    assert not feeds("PressureScaleHeight", "GeopotentialHeight")
+    assert not feeds("PressureScaleHeight", "Altitude")

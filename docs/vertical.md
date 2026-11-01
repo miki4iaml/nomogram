@@ -197,6 +197,30 @@ documentation = nomo.display.DisplayOptions.DOCUMENTATION
 ax = nomo.plot.plot_profile(profile, options=documentation)  # extra viz
 ```
 
+### Physical characteristics of the ISO standard atmosphere
+
+ISO 2533 derives the other characteristics of its atmosphere from the
+temperature, the pressure and the acceleration of free fall, for air
+"free from moisture and dust" taken as an ideal gas:
+
+| Quantity | Formulation | ISO 2533 |
+|---|---|---|
+| acceleration of free fall against geometric altitude | `iso2533_acceleration_of_free_fall` | equation 7 |
+| air density | `iso2533_air_density` | equation 14 |
+| pressure scale height | `iso2533_pressure_scale_height` | equation 16 |
+| speed of sound | `iso2533_speed_of_sound` | equation 21 |
+| dynamic viscosity (Sutherland) | `iso2533_dynamic_viscosity` | equation 22 |
+| kinematic viscosity | `iso2533_kinematic_viscosity`, and `iso2533_kinematic_viscosity_of_air` from the pressure and the temperature | equation 23 |
+| thermal conductivity | `iso2533_thermal_conductivity` | equation 24 |
+
+At mean sea level they give the values of its Table 3, such as 340.294
+m/s for the speed of sound and 8434.5 m for the pressure scale height.
+What the source restricts goes in `conditions`: the speed of sound is
+that of an infinitesimal perturbation, not of a shock wave, and
+Sutherland's law is "invalid for very high or very low temperatures"
+and above 90 km. Equation 7 comes with a precision, 0.001 % up to
+60 000 m, which is no validity domain.
+
 ## Interpolation between two levels
 
 Each interpolation scheme is a formulation, cited by every source that

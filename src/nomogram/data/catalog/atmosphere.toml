@@ -50,7 +50,7 @@ year = 1975
 title = "Standard Atmosphere (ISO 2533:1975)"
 container = "ISO, Geneva, first edition, 1975-05-15"
 status = "verified"
-note = "Read: section 2 (pp. 1-3), the primary constants (Table 1: g_n = 9.806 65 m s-2, M = 28.964 420 kg/kmol, R* = 8 314.32 J K-1 kmol-1, R = 287.052 87 J K-1 kg-1, p_n = 101 325 Pa, T_n = 288.15 K), the static atmosphere and the perfect gas law (1-3), the geopotential and the geometric altitudes (6-9) with r = 6 356 766 m, the temperature by layers (11). Identical with the ICAO and WMO standard atmospheres from -2 to 32 km (title); after the ICAO 1964 and USA 1962 standard atmospheres from -2 to 50 km, an interim standard atmosphere from 50 to 80 km. A footnote dates the standard geopotential metre, 9.806 65 m2 s-2, adopted by WMO from 1 July 1972 in place of the geopotential metre of 9.8 m2 s-2. Copy obtained by the user."
+note = "Read: section 2 (pp. 1-3), the primary constants (Table 1: g_n = 9.806 65 m s-2, M = 28.964 420 kg/kmol, R* = 8 314.32 J K-1 kmol-1, R = 287.052 87 J K-1 kg-1, p_n = 101 325 Pa, T_n = 288.15 K), the static atmosphere and the perfect gas law (1-3), the geopotential and the geometric altitudes (6-9) with r = 6 356 766 m, the temperature by layers (11), and on pp. 4-5 the pressure (12, 13), the density and the specific weight (14, 15), the pressure scale height (16), the kinetic quantities (17-20), the speed of sound (21), the dynamic and kinematic viscosities (22, 23) and the thermal conductivity (24), with Sutherland's coefficients (Table 1: S = 110.4 K, beta_s = 1.458 x 10-6 kg m-1 s-1 K-1/2, kappa = 1.4) and the characteristics at mean sea level (Table 3). Section 2.1 gives Lambert's equation of the acceleration of free fall with the latitude. Identical with the ICAO and WMO standard atmospheres from -2 to 32 km (title); after the ICAO 1964 and USA 1962 standard atmospheres from -2 to 50 km, an interim standard atmosphere from 50 to 80 km. A footnote dates the standard geopotential metre, 9.806 65 m2 s-2, adopted by WMO from 1 July 1972 in place of the geopotential metre of 9.8 m2 s-2. Copy obtained by the user."
 
 [references.iso2533_add1_1985]
 authors = "International Organization for Standardization"
@@ -278,6 +278,11 @@ label = "Vertical Gradient of Air Temperature"
 specialization_of = "TemperatureGradient"
 description = "Derivative of the air temperature with respect to height, dT/dz: negative when the temperature decreases upwards. The layers of a standard atmosphere write it with respect to the geopotential height, dT/dH (ISO 2533, equation 11), which differs from dT/dz by the ratio g/g_n, about 0.99 at 30 km. Never fed by a lapse rate, of opposite sign."
 
+[kinds.PressureScaleHeight]
+label = "Pressure Scale Height"
+specialization_of = "Length"
+description = "Height over which the pressure of an isothermal atmosphere decreases by a factor e, R T / g (ISO 2533, 2.9, equation 16): a length that characterizes a layer, not a vertical coordinate."
+
 # Pressures of the surface and of the sea level; the altimeter settings
 # of aviation, which go through the standard atmosphere.
 
@@ -328,6 +333,25 @@ description = "Mean molecular weight of air at sea level of the U.S. Standard At
 reference = "ussa1976"
 nature = "conventional"
 
+# ISO 2533 (Table 1): the specific gas constant of the air of its standard
+# atmosphere, R*/M, and its adiabatic index.
+
+[constants.R_iso2533]
+identifier = "R"
+value = 287.05287
+unit = "J-PER-KiloGM-K"
+description = "Specific gas constant of the air of the ISO standard atmosphere, R*/M (ISO 2533, Table 1)"
+reference = "iso2533_1975"
+nature = "conventional"
+
+[constants.kappa_iso2533]
+identifier = "kappa"
+value = 1.4
+unit = "UNITLESS"
+description = "Adiabatic index of the air of the ISO standard atmosphere, c_p / c_v (ISO 2533, Table 1)"
+reference = "iso2533_1975"
+nature = "conventional"
+
 [constants.R_d_wmo2024]
 identifier = "R"
 value = 287.05
@@ -361,6 +385,16 @@ community = "WMO upper-air observations"
 kind = "GeopotentialHeight"
 definition = "Given in standard geopotential metres (WMO-No. 8, Volume I, chapter 1, list of units, item (o)): the geopotential height of CF."
 sources = ["wmo2024"]
+
+[trade_terms.geopotential_altitude]
+term = "geopotential altitude"
+language = "en"
+
+[[trade_terms.geopotential_altitude.meanings]]
+community = "ISO standard atmosphere"
+kind = "GeopotentialHeight"
+definition = "The geopotential divided by the standard acceleration of free fall, a length numerically equal to the altitude in standard geopotential metres, from mean sea level (ISO 2533, 2.3, equation 6)."
+sources = ["iso2533_1975"]
 
 [trade_terms.altitude]
 term = "altitude"
@@ -470,6 +504,12 @@ notation = { Z = "Z_1", Phi = '\Phi_1', g_n = '\gamma_{45}' }
 reference = "era5_documentation"
 notation = { Z = "h", Phi = "z" }
 
+[[formulations.geopotential_height_definition.citations]]
+reference = "iso2533_1975"
+equation = "6"
+note = "The geopotential altitude, expressed in standard geopotential metres; mean sea level is its reference."
+notation = { Z = "H", Phi = '\Phi' }
+
 [formulations.itu_r_p835_geopotential_height]
 label = "Geopotential height from the geometric altitude, U.S. Standard Atmosphere 1976 (ITU-R P.835)"
 expression = "r_0 * z / (r_0 + z)"
@@ -566,6 +606,11 @@ keywords = ["normal gravity", "latitude"]
 reference = "wmo2024"
 equation = "12.14"
 notation = { gamma = '\gamma_{\mathrm{SMT}}', phi = '\varphi' }
+
+[[formulations.wmo_normal_gravity_smithsonian.citations]]
+reference = "iso2533_1975"
+note = "Section 2.1: Lambert's equation of the acceleration of free fall as a function of latitude, after its reference [5]; g_n conforms with the latitude 45 deg 32' 33''."
+notation = { gamma = 'g_{\varphi}', phi = '\varphi' }
 
 [formulations.wmo_normal_gravity_wgs84]
 label = "Normal gravity on the surface of the ellipsoid at the latitude, WGS 84 (WMO Guide)"
@@ -840,7 +885,7 @@ criterion = "The first height regime of the reference atmosphere, geopotential h
 label = "Pressure of the ITU-R reference atmosphere, from the geopotential height (ITU-R P.835)"
 expression = "piecewise((P_0 * (T_0 / (T_0 + L_0 * H))**(k / L_0), 0 <= H <= 11), (P_1 * exp(-k * (H - 11) / T_1), 11 < H <= 20), (P_2 * (T_2 / (T_2 + L_2 * (H - 20)))**(k / L_2), 20 < H <= 32), (P_3 * (T_3 / (T_3 + L_3 * (H - 32)))**(k / L_3), 32 < H <= 47), (P_4 * exp(-k * (H - 47) / T_4), 47 < H <= 51), (P_5 * (T_5 / (T_5 + L_5 * (H - 51)))**(k / L_5), 51 < H <= 71), (P_6 * (T_6 / (T_6 + L_6 * (H - 71)))**(k / L_6), 71 < H <= 84.852))"
 fixed_units = true
-note = "Equations 3a to 3g, for geopotential heights from 0 to 84.852 km'; above, equation 5 (not entered). Each layer is equation 33a or 33b of the U.S. Standard Atmosphere, 1976, with P_b the pressure at its base, T_b its base temperature, L_b its gradient and k = 34.1632 K/km', the source's g0' M0 / R* (34.163195 from the constants of the U.S. Standard Atmosphere): 3a is 1013.25 [288.15/(288.15 - 6.5 H)]^(-34.1632/6.5)."
+note = "Equations 3a to 3g, for geopotential heights from 0 to 84.852 km'; above, equation 5 (not entered). Each layer is equation 33a or 33b of the U.S. Standard Atmosphere, 1976, with P_b the pressure at its base, T_b its base temperature, L_b its gradient and k = 34.1632 K/km', the source's g0' M0 / R* (34.163195 from the constants of the U.S. Standard Atmosphere): 3a is 1013.25 [288.15/(288.15 - 6.5 H)]^(-34.1632/6.5). The pressures at the bases of the layers, as printed, do not continue the source's own equations exactly: 3a gives 226.3206 hPa at 11 km for P_1 = 226.3226, and 3b 54.74935 hPa at 20 km for P_2 = 54.7498, about 9e-6 apart."
 output = { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Pressure" }
 inputs = [
   { identifier = "H", kind = "GeopotentialHeight", unit = "KiloM", description = "Geopotential height" },
@@ -873,6 +918,142 @@ keywords = ["pressure altitude", "standard atmosphere", "altimetry", "hypsometri
 reference = "iso2533_add1_1985"
 equation = "2.1.1, 2.2.1, 2.3.1, 2.4.1"
 notation = { H_p = "H" }
+
+# ISO 2533, section 2: the physical characteristics of its standard
+# atmosphere, air taken as a perfect gas free from moisture and dust
+# (2.1). Table 3 gives their values at mean sea level; the tests check
+# them, the catalog reproduces no table.
+
+[formulations.iso2533_acceleration_of_free_fall]
+label = "Acceleration of free fall at the geometric altitude (ISO 2533)"
+expression = "g_n * (r / (r + h))**2"
+fixed_units = false
+note = "Equation 7, Newton's law of gravitation, the centrifugal acceleration neglected, with r = 6 356 766 m, the nominal radius of the Earth. The source gives a precision, not a domain: up to 60 000 m, it departs by no more than 0.001 % from the more accurate equation of its reference [6]."
+output = { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of free fall" }
+inputs = [
+  { identifier = "h", kind = "Altitude", unit = "M", description = "Geometric altitude" },
+]
+coefficients = { r = 6356766.0 }
+constants = ["g_n_cgpm1901"]
+keywords = ["acceleration of free fall", "gravity", "standard atmosphere"]
+
+[[formulations.iso2533_acceleration_of_free_fall.citations]]
+reference = "iso2533_1975"
+equation = "7"
+units = { r = "M" }
+
+[formulations.iso2533_air_density]
+label = "Air density, from the pressure and the temperature (ISO 2533)"
+expression = "p / (R * T)"
+fixed_units = false
+note = "Equation 14, the ideal gas law (equation 3), with the specific gas constant of the standard atmosphere."
+output = { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Air density" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["R_iso2533"]
+keywords = ["air density", "ideal gas", "standard atmosphere"]
+
+[[formulations.iso2533_air_density.citations]]
+reference = "iso2533_1975"
+equation = "14"
+notation = { rho = '\rho' }
+assumptions = ["Air a perfect gas free from moisture and dust (2.1)."]
+
+[formulations.iso2533_pressure_scale_height]
+label = "Pressure scale height, from the temperature and the acceleration of free fall (ISO 2533)"
+expression = "R * T / g"
+fixed_units = false
+note = "Equation 16, H_p = R* T / (M g) = R T / g."
+output = { identifier = "H_p", kind = "PressureScaleHeight", unit = "M", description = "Pressure scale height" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of free fall" },
+]
+constants = ["R_iso2533"]
+keywords = ["scale height", "standard atmosphere"]
+
+[[formulations.iso2533_pressure_scale_height.citations]]
+reference = "iso2533_1975"
+equation = "16"
+assumptions = ["Air a perfect gas free from moisture and dust (2.1)."]
+
+[formulations.iso2533_speed_of_sound]
+label = "Speed of sound in air, from the temperature (ISO 2533)"
+expression = "sqrt(kappa * R * T)"
+fixed_units = false
+note = "Equation 21, a = 20.046 796 T^(1/2), with kappa = c_p / c_v = 1.4."
+conditions = "The speed of propagation of an infinitesimal perturbation in a gas: not that of the shock waves of a blast, a detonation or a body moving at supersonic speed. The concept loses its meaning with the intense attenuation of sound pulses above the altitudes of the standard atmosphere."
+output = { identifier = "a", kind = "SpeedOfSound", unit = "M-PER-SEC", description = "Speed of sound" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+constants = ["kappa_iso2533", "R_iso2533"]
+keywords = ["speed of sound", "standard atmosphere"]
+
+[[formulations.iso2533_speed_of_sound.citations]]
+reference = "iso2533_1975"
+equation = "21"
+assumptions = ["Air a perfect gas free from moisture and dust (2.1)."]
+
+[formulations.iso2533_dynamic_viscosity]
+label = "Dynamic viscosity of air, from the temperature, Sutherland's law (ISO 2533)"
+expression = "beta_s * T**(3 / 2) / (T + S)"
+fixed_units = true
+note = "Equation 22, from the kinetic theory with Sutherland's empirical coefficients (Table 1): beta_s = 1.458 x 10-6 kg m-1 s-1 K-1/2 and S = 110.4 K."
+conditions = "Invalid for very high or very low temperatures, and under the conditions above 90 km (2.15)."
+output = { identifier = "mu", kind = "DynamicViscosity", unit = "PA-SEC", description = "Dynamic viscosity" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { beta_s = 1.458e-6, S = 110.4 }
+keywords = ["dynamic viscosity", "Sutherland", "standard atmosphere"]
+
+[[formulations.iso2533_dynamic_viscosity.citations]]
+reference = "iso2533_1975"
+equation = "22"
+notation = { beta_s = '\beta_{\mathrm{s}}' }
+
+[formulations.iso2533_kinematic_viscosity]
+label = "Kinematic viscosity, the dynamic viscosity over the density (ISO 2533)"
+nature = "definition"
+expression = "mu / rho"
+fixed_units = false
+note = "Equation 23, the ratio of the dynamic viscosity of the air to its density."
+conditions = "The limits of equation 22, as the source says."
+output = { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity" }
+inputs = [
+  { identifier = "mu", kind = "DynamicViscosity", unit = "PA-SEC", description = "Dynamic viscosity" },
+  { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Density" },
+]
+keywords = ["kinematic viscosity", "definition", "standard atmosphere"]
+
+[[formulations.iso2533_kinematic_viscosity.citations]]
+reference = "iso2533_1975"
+equation = "23"
+
+[formulations.iso2533_kinematic_viscosity_of_air]
+label = "Kinematic viscosity of air, from the pressure and the temperature (ISO 2533)"
+composition = { outer = "iso2533_kinematic_viscosity", inner = { mu = "iso2533_dynamic_viscosity", rho = "iso2533_air_density" } }
+keywords = ["kinematic viscosity", "standard atmosphere"]
+
+[formulations.iso2533_thermal_conductivity]
+label = "Thermal conductivity of air, from the temperature (ISO 2533)"
+expression = "a * T**(3 / 2) / (T + b * 10**(-c / T))"
+fixed_units = true
+note = "Equation 24, an empirical formula, lambda in W m-1 K-1 and T in kelvins."
+output = { identifier = "lambda_a", kind = "ThermalConductivity", unit = "W-PER-M-K", description = "Thermal conductivity" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { a = 2.648151e-3, b = 245.4, c = 12.0 }
+keywords = ["thermal conductivity", "standard atmosphere"]
+
+[[formulations.iso2533_thermal_conductivity.citations]]
+reference = "iso2533_1975"
+equation = "24"
+notation = { lambda_a = '\lambda' }
 
 [formulations.nws_pressure_altitude]
 label = "Pressure altitude from the station pressure, in feet (NWS)"

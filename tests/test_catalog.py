@@ -478,6 +478,7 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         if not k[1].endswith("__metpy171_saturation_vapour_pressure")
     } == {
         ("iapws_sr1_86", "T_c"): "stated",
+        ("iso2533_acceleration_of_free_fall", "r"): "stated",
         ("iapws_sr1_86", "p_c"): "stated",
         ("iapws_r14_08_sublimation", "T_t"): "stated",
         ("iapws_r14_08_sublimation", "p_t"): "stated",
