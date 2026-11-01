@@ -801,11 +801,16 @@ def _numeric(symbols: Iterable[Any], expr: Any) -> Callable[..., Any]:
     lambdify names each argument after its symbol in the code it
     generates, where an identifier ``e`` would hide Euler's number
     (``exp(1)``) and ``nan`` the value of a piecewise definition where no
-    condition holds: a wrong result, without error. Dummy symbols get
-    names that no identifier can take.
+    condition holds: a wrong result, without error. Every argument gets
+    the prefix ``_v_``, which no name of that code bears; replaced at
+    once, they cannot collide. Dummy symbols would do too, but lambdify
+    then replaces every argument once more, a walk through the whole
+    expression each (17 s for a long composition); and a common prefix
+    keeps the order of the terms, which follows the names, so the
+    floating-point result.
     """
     symbols = list(symbols)
-    dummies = [sympy.Dummy(s.name) for s in symbols]
-    body = expr.xreplace(dict(zip(symbols, dummies, strict=True)))
-    function: Callable[..., Any] = sympy.lambdify(dummies, body, modules="numpy")
+    renamed = [sympy.Symbol(f"_v_{s.name}", **s.assumptions0) for s in symbols]
+    body = expr.xreplace(dict(zip(symbols, renamed, strict=True)))
+    function: Callable[..., Any] = sympy.lambdify(renamed, body, modules="numpy")
     return function

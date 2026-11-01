@@ -10,11 +10,12 @@ import pytest
 import sympy
 
 from nomogram.catalog import CatalogError, catalog, check, load_catalog
-from nomogram.expression import MAX_SOURCE_LENGTH
+from nomogram.expression import MAX_SOURCE_LENGTH, parse_expression
 from nomogram.model import Relation, RelationKind
 from nomogram.relations import (
     Verdict,
     _common_bounds,
+    _power_of,
     match_inputs,
     per_axis,
     report,
@@ -194,7 +195,27 @@ def test_a_relation_on_a_long_derived_expression_is_decided_on_samples(
     assert len(subject.expression) > MAX_SOURCE_LENGTH
     verdict = verify(loaded.relations["mine:r"], loaded)
     assert verdict.status == "refuted"
-    assert "longer than a written one" in verdict.method
+    assert "a derived expression" in verdict.method
+
+
+@pytest.mark.parametrize("kind", ["equivalent", "proportional"])
+def test_a_relation_on_a_short_derived_expression_is_decided_on_samples(
+    kind: str, tmp_path: Path
+) -> None:
+    # Two compositions within the length of a written expression, whose
+    # difference SymPy did not simplify in 280 s.
+    short = LONG.replace(
+        '"metpy171_relative_humidity_isentropic"',
+        '"relative_humidity_log_specific_humidity_log_pressure"',
+    )
+    mine = tmp_path / f"mine_{kind}.toml"
+    mine.write_text(short.replace("{kind}", kind), encoding="utf-8")
+    loaded = catalog(extra=[mine])
+    relation = loaded.relations["mine:r"]
+    for key in (relation.subject, relation.object):
+        assert len(loaded.formulations[key].expression) <= MAX_SOURCE_LENGTH
+    verdict = verify(relation, loaded)
+    assert "a derived expression" in verdict.method
 
 
 def test_an_equivalence_sympy_cannot_settle_stays_unproven() -> None:
@@ -784,3 +805,23 @@ def test_exact_rationals_and_real_values() -> None:
     assert _real(x + y, {x: 1.0}) is None  # not a number
     assert _real(sympy.exp(x), {x: 1000.0}) is None  # not finite
     assert _real(sympy.sqrt(x), {x: -4.0}) is None  # not real
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("3 * x ** 2 * y", True),
+        ("exp(x) * y", False),
+        # Nowhere real: nothing tells it is a power.
+        ("ln(-x) * y", False),
+    ],
+)
+def test_a_power_of_an_input_is_told_on_the_samples(
+    source: str, expected: bool
+) -> None:
+    import numpy as np
+
+    x, y = sympy.symbols("x y", real=True)
+    expr = parse_expression(source, ["x", "y"])
+    columns = [np.linspace(1.0, 5.0, 50), np.linspace(2.0, 3.0, 50)]
+    assert _power_of(expr, x, [x, y], columns) is expected

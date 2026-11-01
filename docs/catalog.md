@@ -325,8 +325,11 @@ inputs = [
     epsilon of another source) takes a name qualified by its key
     (`epsilon__epsilon_ashrae2017`).
 
-  The display keeps the name as written, with its owner. `__` is kept
-  for these names: the entry's own identifiers may not contain it.
+  The display keeps the name as written: in the equation, also of a
+  composition whose part calls others, and in the legend, with its
+  owner. `__` is kept for these names: an entry that calls others may
+  not use it in its own identifiers. Elsewhere it marks a superscript, as
+  SymPy reads it (`a__w` is written aʷ).
 - **Validity domains**: those of each formulation called apply to the
   values each call receives (t_d and t above, each against −45 to 60 °C).
   Those the entry states apply as well; they never replace them.
@@ -784,6 +787,12 @@ note = "Table III, r_g."
   explain it (a matter of scale; a factor of an input the object is
   proportional to cannot tell). An equivalence is a proportionality of
   factor 1 (`RelationKind.broader`).
+- **A derived formulation** (a composition, branches, calls), whatever
+  the length of its expression, is not simplified: SymPy's simplification
+  has no bound on its cost. An equivalence or a proportionality that
+  involves one is proven only when its two sides cancel as they stand;
+  otherwise the samples decide: *refuted*, with a counterexample, or
+  *unproven* (an equivalence) and *held* (a proportionality).
 - **Computed by nomogram**: an equivalence or a proportionality without
   a `citation` is one nomogram computes; its verdict proves it or holds
   it, and searching for "computed by nomogram" finds it. An approximation

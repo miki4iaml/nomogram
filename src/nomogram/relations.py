@@ -63,7 +63,6 @@ import sympy
 
 from nomogram.comparison import same_state
 from nomogram.expression import (
-    MAX_SOURCE_LENGTH,
     Piecewise,
     _numeric,
     compile_numeric,
@@ -598,12 +597,14 @@ def _same_conditions(left: Any, right: Any) -> bool:
 
 
 def _written(subject: Formulation, other: Formulation) -> bool:
-    """Whether both expressions are of a written length, which SymPy simplifies.
+    """Whether both expressions are written ones, which SymPy simplifies.
 
-    SymPy's simplification has no bound on its cost: an expression longer
-    than a written one (a derived formulation) is decided on samples.
+    SymPy's simplification has no bound on its cost: a relation involving
+    a derived formulation (a composition, branches, calls), whatever its
+    length, is decided on samples. Two compositions of 1 875 characters,
+    within the length of a written expression, did not simplify in 280 s.
     """
-    return max(len(subject.expression), len(other.expression)) <= MAX_SOURCE_LENGTH
+    return subject.derivation is None and other.derivation is None
 
 
 def _difference(left: Any, right: Any, *, simplify: bool = True) -> Any:
@@ -613,7 +614,7 @@ def _difference(left: Any, right: Any, *, simplify: bool = True) -> Any:
     branch; otherwise their difference is not simplified (SymPy would
     combine the conditions, at a cost without bound), and the search for a
     counterexample on samples decides. So it goes with ``simplify=False``,
-    for expressions longer than a written one.
+    for a derived expression.
     """
     if _same_conditions(left, right):
         branches = [
@@ -689,7 +690,7 @@ def _equivalence(
     written = _written(subject, other)
     if not written:
         method = method.replace("simplified with SymPy", "compared on samples")
-        method += "; an expression longer than a written one is not simplified"
+        method += "; a derived expression is not simplified"
     simplified = _difference(left, right, simplify=written)
     if simplified == 0:
         return Verdict("proven", method)
@@ -1004,7 +1005,7 @@ def _scale_text(
         x = symbols[index]
         most, factor = _scale_windows(variable, columns[index], catalog)
         moves = [("a shift", x + shift, -most, most)] if most else []
-        if sympy.simplify(x * sympy.diff(sympy.log(right), x)).free_symbols:
+        if not _power_of(right, x, symbols, columns):
             if factor:
                 moves.append(("a factor", x * shift, 1 - factor, 1 + factor))
         else:
@@ -1046,6 +1047,26 @@ def _scale_text(
     )
     tried = f"no shift of {names}" + (f" nor factor of {factors}" if factors else "")
     return "; ".join([f"{tried} {within} makes them as close", *notes])
+
+
+def _power_of(expr: Any, x: Any, symbols: list[Any], columns: list[Any]) -> bool:
+    """Whether an expression is proportional to a power of ``x``, on the samples.
+
+    It is when x d(ln f)/dx is constant. The derivative is evaluated on the
+    samples rather than simplified: SymPy's simplification of a derived
+    expression has no bound on its cost (more than 150 s for a composition
+    of 1 115 characters).
+    """
+    elasticity = _numeric(symbols, x * sympy.diff(sympy.log(expr), x))
+    with np.errstate(all="ignore"):
+        values = np.broadcast_to(
+            np.asarray(elasticity(*columns), dtype=float), np.shape(columns[0])
+        )
+    values = values[np.isfinite(values)]
+    if not values.size:
+        return False
+    spread = float(values.max() - values.min())
+    return spread <= EQUALITY_TOLERANCE * max(float(np.abs(values).max()), 1.0)
 
 
 def _golden(function: Any, low: float, high: float, steps: int = 80) -> float:
@@ -1091,7 +1112,7 @@ def _proportionality(
         ratio = sympy.simplify(ratio)
     else:
         method = method.replace("simplified with SymPy", "not simplified")
-        method += ", an expression longer than a written one"
+        method += ", a derived expression"
     if not ratio.free_symbols:
         factor = float(ratio)
         detail, _ = _factor_text(factor, subject, other)

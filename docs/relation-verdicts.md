@@ -27,6 +27,12 @@ feed them, and the difference must simplify to zero.
 - **unverified**: the claim cannot be checked as it stands, for a
   reason the verdict's `method` gives (different scales, below).
 
+SymPy's simplification has no bound on its cost: a relation involving a
+derived formulation (a composition, branches, calls) is not simplified.
+It is proven only when its two sides cancel as they stand; otherwise the
+search for a counterexample decides, as for a proportionality the
+samples of its ratio.
+
 The proof compares the **expressions as written**, brought into the
 same units by an exact factor: the result of the object into the output
 unit of the subject, and each input of the object fed by a subject input

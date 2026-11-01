@@ -346,3 +346,23 @@ def test_sentence_case() -> None:
     )
     assert sentence_case("IAPWS Formulation") == "IAPWS formulation"
     assert sentence_case("Temperature in Fahrenheit") == "Temperature in Fahrenheit"
+
+
+def test_no_equation_of_the_catalog_names_the_owner_of_a_renamed_symbol() -> None:
+    # Six compositions of 0.5.0 printed T_0 of
+    # metpy171_saturation_vapour_pressure as T_{0,saturation,...}^{metpy171}.
+    from nomogram.model import _origin
+
+    renamed = 0
+    for formulation in FORMULATIONS.values():
+        latex = formulation.render().latex
+        identifiers = [c.identifier for c in formulation.coefficients]
+        identifiers += [k.identifier for k in formulation.constants]
+        for identifier in identifiers:
+            owner, name = _origin(formulation, identifier)
+            if name != identifier:
+                renamed += 1
+                assert owner.split("_")[0] not in latex, formulation.key
+    assert renamed
+    found = FORMULATIONS["metpy171_relative_humidity_dew_point_pressure"].render()
+    assert "T_{0}" in found.latex

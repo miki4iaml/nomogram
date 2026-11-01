@@ -753,6 +753,46 @@ def test_double_underscores_of_a_formulation_called_are_its_own() -> None:
     assert ", of" not in own
 
 
+def test_a_composition_writes_the_names_of_the_formulations_called() -> None:
+    # The part of a composition calls others, whose renamed coefficients
+    # the composition prints expanded: as written, never with their owner.
+    first = superscripts(magnus("m1", 17.27, 237.3, -45.0, 60.0))
+    second = superscripts(magnus("m2", 21.87, 265.5, -65.0, 0.0))
+    document = """
+[formulations.both]
+label = "both"
+expression = "f(t=t) + g(t=t)"
+calls = { f = "m1", g = "m2" }
+fixed_units = true
+output = { identifier = "e_b", kind = "VapourPressure", unit = "HectoPA", description = "e" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "t" }]
+
+[[formulations.both.citations]]
+reference = "src"
+
+[formulations.scaled]
+label = "scaled"
+expression = "k * e"
+fixed_units = true
+output = { identifier = "y", kind = "VapourPressure", unit = "HectoPA", description = "y" }
+inputs = [{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }]
+coefficients = { k = 3.0 }
+
+[[formulations.scaled.citations]]
+reference = "src"
+
+[formulations.composed]
+label = "composed"
+composition = { outer = "scaled", inner = { e = "both" } }
+"""
+    f = load(first, second, document).formulations["composed"]
+    assert "a__w__m1" in {c.identifier for c in f.coefficients}
+    latex = f.render().latex
+    assert r"a^{\mathrm{w}}" in latex
+    assert "m1" not in latex
+    assert "m2" not in latex
+
+
 def test_a_constant_declared_but_used_only_by_a_call_is_refused() -> None:
     document = MIXING.format(
         expression="w(e=e, p=p) - w(e=e_2, p=p)",
