@@ -36,9 +36,18 @@ def test_bundled_registry_matches_a_fresh_verification() -> None:
             fresh.detail,
         ), relation.key
         assert recorded.value == pytest.approx(fresh.value, rel=1e-9), relation.key
-        assert dict(recorded.at) == pytest.approx(dict(fresh.at), rel=1e-9), (
-            relation.key
-        )
+        # The place of a maximum on a plateau inside the domain moves by
+        # about 1e-7 of the domain from one processor to another, with the
+        # rounding of numpy's vectorised functions; its value does not.
+        span = {
+            name: high - low for name, (low, high) in (relation.bounds or {}).items()
+        }
+        assert set(recorded.at) == set(fresh.at), relation.key
+        for name, place in fresh.at.items():
+            tolerance = 1e-6 * span[name] if name in span else 1e-9 * abs(place)
+            assert recorded.at[name] == pytest.approx(place, abs=tolerance), (
+                relation.key
+            )
 
 
 def test_verdict_reads_the_registry_without_recomputing(

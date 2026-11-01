@@ -239,7 +239,11 @@ never edited by hand:
   is missing, reuses the rest and drops entries matching no relation: a
   contributor checks locally the new relations alone;
 - the continuous integration recomputes every verdict and compares it
-  with the registry: it has the last word.
+  with the registry: it has the last word. The value of a maximum agrees
+  to 10⁻⁹, its place to 10⁻⁶ of the domain: on a plateau inside the
+  domain, the rounding of numpy's vectorised functions moves it by about
+  10⁻⁷ of the domain from one processor to another (6.6 × 10⁻⁶ °C over
+  the 70 °C of `vaisala2013_water_iapws`).
 
 A personal catalog can keep its own registry
 (`nomogram.relations.record(catalog, path)`), or none: verdicts are then
