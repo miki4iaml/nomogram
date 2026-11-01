@@ -569,14 +569,14 @@ notation = { gamma = '\gamma_{\mathrm{SMT}}', phi = '\varphi' }
 
 [formulations.wmo_normal_gravity_wgs84]
 label = "Normal gravity on the surface of the ellipsoid at the latitude, WGS 84 (WMO Guide)"
-expression = "gamma_e * (1 + k * sin(phi)**2) / sqrt(1 - e2 * sin(phi)**2)"
+expression = "gamma_e * (1 + k * sin(phi)**2) / sqrt(1 - e__2 * sin(phi)**2)"
 fixed_units = true
-note = "The normal gravity on the surface of an ellipsoid of revolution of Mahoney's expression, based on WGS 84."
+note = "The normal gravity on the surface of an ellipsoid of revolution of Mahoney's expression, based on WGS 84. Equation 12.16 prints only numbers: their names, k and e__2 (written e², the square of the first eccentricity), follow Somigliana's form."
 output = { identifier = "gamma", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Normal gravity on the ellipsoid" }
 inputs = [
   { identifier = "phi", kind = "GeodeticLatitude", unit = "RAD", description = "Geodetic latitude" },
 ]
-coefficients = { gamma_e = 9.780325, k = 0.00193185, e2 = 0.00669435 }
+coefficients = { gamma_e = 9.780325, k = 0.00193185, e__2 = 0.00669435 }
 keywords = ["normal gravity", "latitude", "WGS 84"]
 
 [[formulations.wmo_normal_gravity_wgs84.citations]]
