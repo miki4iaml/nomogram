@@ -29,10 +29,19 @@ and this project adheres to
 - A ruff rule (`TID251`) refuses SymPy's parsers (`sympify`,
   `parse_expr`) in the package and its tests: a formula is read only by
   `parse_expression`, against its whitelist.
+- `docs/rosetta.md` maps nomogram's mathematical terms to SymPy's: the
+  same concept under two names, the same name for another concept,
+  identifiers read as typography, and the three senses of equality. Two
+  of its entries are corrected: SymPy's physical constant is
+  `sympy.physics.units.quantities.PhysicalConstant`, and a composition
+  substitutes as `xreplace` does, not `subs`.
 
 ### Changed
 
 - The build backend `uv_build` is accepted up to 0.13 (below 0.14).
+- The square of the first eccentricity in `wmo_normal_gravity_wgs84` is
+  named `e__2`, written e², no longer `e2`, written e₂: the WMO Guide
+  prints only its value.
 - Numeric functions compute their common subexpressions once
   (`lambdify(cse=True)`): about 5 times faster on the longest
   compositions, to a relative 2e-14.
