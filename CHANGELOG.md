@@ -51,6 +51,18 @@ and this project adheres to
   and a number beyond the largest float, with an `ExpressionError`
   instead of an `OverflowError` or a NaN at evaluation.
   `compile_numeric` refuses repeated arguments.
+- The equation of a composition whose part calls other formulations
+  writes their renamed coefficients and constants as their owner does
+  (T₀), no longer with the owner's key as a superscript
+  (`T_{0,saturation,vapour,pressure}^{metpy171}` in six compositions,
+  such as `metpy171_relative_humidity_dew_point_pressure`).
+- A relation involving a derived formulation is no longer simplified,
+  whatever its length, as 0.5.0 stated: two compositions of 1 875
+  characters did not simplify in 280 s. Whether the object of a
+  proportionality is proportional to a power of an input with a
+  conventional scale is tested on the samples, no longer simplified
+  (more than 150 s for a composition). No verdict of the catalog
+  changes.
 
 ### Security
 
