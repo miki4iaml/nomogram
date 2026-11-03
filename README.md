@@ -135,6 +135,9 @@ scales and the vapour pressure of sea water, and what its 2 % lowering
 changes at the sea surface. [Humidity aloft](docs/humidity-aloft.md)
 sets the formula of a radiosonde's producer against its users' along a
 vertical profile, through the dew point, and against WMO's requirements.
+[Security and compliance](docs/security-and-compliance.md) gathers, for
+those who approve its use on a laboratory network, how nomogram is
+developed, checked and published, what remains to do, and a checklist.
 [The logo](docs/logo.md) is a working nomogram.
 
 ## Contributing
