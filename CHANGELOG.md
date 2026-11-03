@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- `docs/shared-vocabularies.md`: how nomogram builds on QUDT, CF and
+  Wikidata and contributes to them in return, and, technically, the chain
+  a contribution to QUDT goes through, from the issue to a release (the
+  manual pre-test and QUDT's CI in the fork, SHACL inference and
+  validation), with how nomogram follows QUDT offline. Linked from the
+  README.
 - `nomogram.plot.plot_deviation_profile`: the relative deviations from
   the reference along a vertical coordinate, a height upwards, a pressure
   downwards on a logarithmic axis, with reference levels as vertical
