@@ -125,7 +125,9 @@ catalog.search(kind="VapourPressure", source="buck*")
 ```
 
 Each formulation keeps its units, validity domain, temperature scale and
-references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
+references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md),
+and [Shared vocabularies](docs/shared-vocabularies.md) explains how nomogram
+builds on QUDT, CF and Wikidata and contributes to them;
 [How nomogram earns trust](docs/approach.md) explains what is checked and
 how, and [Displaying formulas](docs/display.md) shows formulas in notebooks,
 Markdown and plots. [Sea water](docs/sea-water.md) shows the salinity

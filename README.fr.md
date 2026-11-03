@@ -129,7 +129,10 @@ catalog.search(kind="VapourPressure", source="buck*")
 
 Chaque formulation garde ses unités, son domaine de validité, son
 échelle de température et ses références. Le vocabulaire est mis en
-correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais) ; la
+correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais), et la
+page [Shared vocabularies](docs/shared-vocabularies.md) (en anglais)
+explique comment nomogram s'appuie sur QUDT, CF et Wikidata et y
+contribue ; la
 page [How nomogram earns trust](docs/approach.md) (en anglais) explique ce
 qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
 anglais) montre l'affichage des formules dans un notebook, en Markdown et
