@@ -142,7 +142,11 @@ son abaissement de 2 % change à la surface de la mer. [Humidity
 aloft](docs/humidity-aloft.md) (en anglais) confronte la formule du
 fabricant d'une radiosonde à celles de ses utilisateurs, le long d'un
 profil vertical, au travers du point de rosée, et face aux exigences de
-l'OMM. [Le logo](docs/logo.md) (en anglais) est un vrai nomogramme.
+l'OMM. [Security and compliance](docs/security-and-compliance.md) (en
+anglais) rassemble, pour ceux qui autorisent son usage sur le réseau
+d'un laboratoire, la manière dont nomogram est développé, vérifié et
+publié, ce qui reste à faire, et une liste de contrôle. [Le
+logo](docs/logo.md) (en anglais) est un vrai nomogramme.
 
 ## Contribuer
 

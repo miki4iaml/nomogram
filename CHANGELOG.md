@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Added
 
+- `docs/security-and-compliance.md`: an assessment file for those who
+  approve the use of nomogram on a laboratory network, offline in
+  particular: run-time behaviour, the checks of development and
+  publication with their evidence, offline installation, licences and
+  rights of sources, regulatory landmarks (GDPR, Cyber Resilience Act,
+  text and data mining), known limits, and a checklist mapped onto the
+  DevSecOps cycle and the NIST SSDF. Linked from the README.
 - `docs/shared-vocabularies.md`: how nomogram builds on QUDT, CF and
   Wikidata and contributes to them in return, and, technically, the chain
   a contribution to QUDT goes through, from the issue to a release (the
