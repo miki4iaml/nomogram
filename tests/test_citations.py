@@ -232,7 +232,7 @@ def test_catalog_citations_follow_their_sources() -> None:
     assert "gibbins1990" in FORMULATIONS["goff_gratch1946"].references
     sonntag = FORMULATIONS["sonntag1990"]
     stating = [c.reference for c in sonntag.citations if "T" in c.scales]
-    assert stating == ["sonntag1990", "alduchov_eskridge1996"]
+    assert stating == ["sonntag1990", "alduchov_eskridge1996", "sonntag1994"]
     r14 = FORMULATIONS["iapws_r14_08_sublimation"]
     assert r14.citations[0].accuracy is not None
 

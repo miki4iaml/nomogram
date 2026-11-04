@@ -99,5 +99,11 @@ def test_the_formulations_wmo_names_for_radiosondes_are_found_by_search() -> Non
     # The rule of the dew point in BUFR, and the regulations it refers to.
     assert "references.wmo306_vol1_2_2025" in CATALOG.search("BUFR").refs
     assert "references.wmo49_vol1_2025" in CATALOG.search("Technical Regulations").refs
+    # Of the three, only Sonntag states a range below 0 degC over water.
     (domain,) = (d for c in F["hyland_wexler1983"].citations for d in c.domains)
-    assert domain.bounds["T"] == (173.15, 473.15)
+    assert (domain.bounds["T"], domain.reference) == (
+        (273.15, 473.15),
+        "murphy_koop2005",
+    )
+    (domain,) = (d for c in F["sonntag1990"].citations for d in c.domains)
+    assert (domain.bounds["T"], domain.reference) == ((173.15, 373.15), "sonntag1994")

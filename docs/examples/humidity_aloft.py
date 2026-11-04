@@ -40,7 +40,7 @@ def main(output: str) -> None:
         point = formulation.inputs[0].identifier
         return compose(formulation, {point: temperature}, label=label)
 
-    wmo = "hyland_wexler1983"  # named by WMO for radiosondes (WMO-No. 8, 12.4.1)
+    wmo = "sonntag1990"  # Sonntag (1994), named for radiosondes (WMO-No. 8, 12.4.1)
     users = {
         "hardy1998_water": "Hardy (1998), RS41",
         "metpy171_saturation_vapour_pressure": "MetPy 1.7.1",
@@ -50,9 +50,10 @@ def main(output: str) -> None:
         "goff_gratch1946": "Goff and Gratch (1946)",
         "buck1996": "Buck (1996), ITU-R P.453",
         "murphy_koop2005_water": "Murphy and Koop (2005)",
+        "hyland_wexler1983": "Hyland and Wexler (1983)",
     }
     grid = {"GeopotentialHeight": Q_(np.linspace(0, 12, 121), "km")}
-    reference = along(wmo, "Hyland and Wexler (1983)")
+    reference = along(wmo, "Sonntag (1994)")
     saturation = compare(
         [reference, *(along(k, label) for k, label in users.items())], reference, grid
     )
@@ -62,13 +63,13 @@ def main(output: str) -> None:
         f[wmo],
         "T",
         output=Variable("T_d", "DewPointTemperature", "K", "Dew point temperature"),
-        input=Variable("e", "VapourPressure", "PA", "Vapour pressure"),
+        input=Variable("e", "VapourPressure", "HectoPA", "Vapour pressure"),
     )
     vapour = compose(f["vapour_pressure_from_relative_humidity"], {"e_s": reference})
     dew_point = compose(inverse, {"e": vapour})
     names = ("hardy1998_water", "metpy171_saturation_vapour_pressure", "bolton1980")
     decoders = {k: users[k] for k in (*names, "tetens1930", "sonntag1990_magnus")}
-    back = along(wmo, "Hyland and Wexler (1983), strict round trip", dew_point)
+    back = along(wmo, "Sonntag (1994), strict round trip", dew_point)
     decoded = compare(
         [back, *(along(k, label, dew_point) for k, label in decoders.items())],
         back,

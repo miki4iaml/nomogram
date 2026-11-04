@@ -442,7 +442,12 @@ def test_numerical_inversion_needs_a_search_interval() -> None:
     output = Variable("T_d", "ThermodynamicTemperature", "K", "x")
     vapour = Variable("e", "VapourPressure", "HectoPA", "e")
     with pytest.raises(InversionError, match="give a search interval"):
-        invert(FORMULATIONS["sonntag1990"], "T", output=output, input=vapour)
+        invert(
+            FORMULATIONS["metpy171_saturation_vapour_pressure"],
+            "T",
+            output=output,
+            input=vapour,
+        )
 
 
 def test_symbolic_inversion_into_kelvin() -> None:
