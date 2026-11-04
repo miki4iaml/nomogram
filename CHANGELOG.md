@@ -24,6 +24,11 @@ and this project adheres to
   number, the surface drag coefficients and the sea ice area fraction,
   with their CF standard names; the trade term "drag coefficient". The
   sources the IFS cites are recorded as to-confirm.
+- Wikidata links of the surface layer: the Monin-Obukhov length (narrow,
+  the atmosphere's), the friction velocity, the roughness length (narrow,
+  the wind's), the bulk Richardson number and the sea ice concentration;
+  and the first references linked, Hogstrom (1988) and Holtslag and De
+  Bruin (1988), found by their DOI.
 - The arctangent of one argument, `atan`, in the expressions of the
   catalog, written `\arctan`; `atan2` is not allowed.
 - `docs/security-and-compliance.md`: an assessment file for those who
