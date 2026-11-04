@@ -1,20 +1,35 @@
 # Humidity aloft: the formula of the producer and that of the user
 
-A radiosonde measures the relative humidity; its manufacturer computes
-what it reports with one saturation vapour pressure formulation, and the
-user often recomputes a dew point, a vapour pressure or an absolute
-humidity with another. Near the ground the two agree; as the air cools
-aloft, their gap grows, and it becomes a bias of the order of the
-uncertainty of the sensors. This page shows the gap along a vertical
-profile, then the false round trip through the dew point, then the
-larger gap between saturation over water and over ice, and sets them
-against the requirements of the World Meteorological Organization (WMO).
+Air humidity has several representations: with the temperature, the
+relative humidity (over water or over ice), the dew or frost point, the
+vapour pressure, the absolute humidity, the wet-bulb temperature; with
+the pressure as well, the specific humidity, the mixing ratio, the mole
+fraction. Several formulations, and sets of formulations, convert one
+into another, and they disagree: as the air cools aloft, a conversion,
+and more so a chain of them, can bias the data by as much as their
+uncertainty, or more. Such a bias can be corrected only when the data
+name the formulations that made them.
+
+The lineage of an observation, a computation or a model output should
+therefore cite its formulas, as it cites its instruments; without that,
+the uncertainty paid for in a sensor, a measuring chain or a model can be
+lost at the first post-processing.
+
+The report of the 2022 upper-air instrument intercomparison of the World
+Meteorological Organization (WMO), held at Lindenberg in August and
+September 2022 (IOM No. 143, 2024), gives the occasion to measure these
+gaps. It names the vapour pressure equation of each radiosonde, finds
+that the dew point and the relative humidity of the same sounding
+disagree aloft, and recalls that converting between them requires the
+vapour pressure equation and its inverse (section 10.1.4). This page
+computes, with nomogram, the gaps these formulations produce along a
+vertical profile, through the dew point, over water or over ice, and
+sets them against WMO's requirements.
 
 ## The formula of each radiosonde
 
-The report of WMO's 2022 upper-air instrument intercomparison (IOM No.
-143, 2024, Table 3.3) names the vapour pressure equation of each
-radiosonde, as its manufacturer states it:
+The report names, in its Table 3.3, the vapour pressure equation of
+each radiosonde, as its manufacturer states it:
 
 | Radiosonde | Vapour pressure equation | In the catalog |
 |---|---|---|
