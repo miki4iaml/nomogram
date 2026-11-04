@@ -81,7 +81,7 @@ description = "Relative humidity of moist air with respect to ice: the vapour mo
 [kinds.MixedPhaseLiquidFraction]
 label = "Mixed-Phase Liquid Fraction"
 specialization_of = "MassFraction"
-description = "Liquid part, by mass, of the condensed water (liquid and ice, as CF calls it), when both coexist below the triple point; the IFS diagnoses it from the temperature and weights with it the saturation functions and the latent heats of water and ice. No CF standard name."
+description = "Liquid part, by mass, of the condensed water (liquid and ice, as CF calls it), when both coexist below the triple point; the IFS diagnoses it from the temperature and weights with it the saturation functions and the latent heats of water and ice, calling it the mixed phase parameter. No CF standard name, QUDT kind or Wikidata item (checked 2026-11-04)."
 
 [kinds.MoleFractionOfWaterVapour]
 label = "Mole Fraction of Water Vapour"
@@ -361,6 +361,22 @@ identifier = "c_i"
 value = 2090
 unit = "J-PER-KiloGM-K"
 description = "Specific heat of ice of MetPy (ice_specific_heat)"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.T_0_metpy]
+identifier = "T_0"
+value = 273.16
+unit = "K"
+description = "Triple point temperature of water of MetPy (T0, water_triple_point_temperature), its reference for both phases"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.e_s0_metpy]
+identifier = "e_s0"
+value = 6.112
+unit = "HectoPA"
+description = "Saturation vapour pressure of MetPy at its reference temperature (sat_pressure_0c, 6.112 millibar), for both phases"
 reference = "metpy171"
 nature = "conventional"
 
@@ -2015,7 +2031,7 @@ inputs = [
 ]
 coefficients = { T_ice = 250.16 }
 constants = ["T_0_ecmwf_ifs"]
-keywords = ["mixed phase", "supercooled water", "IFS"]
+keywords = ["mixed phase", "mixed phase parameter", "supercooled water", "IFS"]
 
 [[formulations.ecmwf_ifs_mixed_phase_fraction.citations]]
 reference = "ecmwf_ifs_cy49r1"
@@ -2238,38 +2254,31 @@ output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit 
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
-coefficients = { e_s0 = 6.112, T_0 = 273.16 }
-constants = ["L_v0_metpy", "c_l_metpy", "c_pv_metpy", "R_v_metpy"]
+constants = ["e_s0_metpy", "T_0_metpy", "L_v0_metpy", "c_l_metpy", "c_pv_metpy", "R_v_metpy"]
 keywords = ["saturation", "Clausius-Clapeyron"]
 
 [[formulations.metpy171_saturation_vapour_pressure.citations]]
 reference = "metpy171"
-note = "saturation_vapor_pressure with phase='liquid' and water_latent_heat_vaporization, in metpy.calc.thermo; e_s0 is sat_pressure_0c, 6.112 millibar."
-units = { e_s0 = "HectoPA", T_0 = "K" }
+note = "saturation_vapor_pressure with phase='liquid' and water_latent_heat_vaporization, in metpy.calc.thermo."
 
-# MetPy over ice, and its choice of phase by temperature. The coefficients
-# of the formulation over ice are named apart (e_i0, T_i0), since branches
-# may not share a coefficient name, though MetPy takes the same values:
-# sat_pressure_0c and T0 for both phases.
+# MetPy over ice, and its choice of phase by temperature, with the same
+# named constants as over water: sat_pressure_0c and T0.
 
 [formulations.metpy171_saturation_vapour_pressure_ice]
 label = "Saturation vapour pressure over ice of MetPy, Ambaum (2020) equation 17 with MetPy constants"
-expression = "e_i0 * (T_i0 / T) ** ((c_i - c_pv) / R_v) * exp(((L_v0 + L_f) / T_i0 - (L_v0 + L_f - (c_i - c_pv) * (T - T_i0)) / T) / R_v)"
+expression = "e_s0 * (T_0 / T) ** ((c_i - c_pv) / R_v) * exp(((L_v0 + L_f) / T_0 - (L_v0 + L_f - (c_i - c_pv) * (T - T_0)) / T) / R_v)"
 fixed_units = false
 note = "The form of Ambaum (2020) equation 17, with the latent heat of sublimation L_s0 - (c_i - c_pv)(T - T_0), L_s0 = L_v0 + L_f, and MetPy's constants; MetPy takes for ice the same e_s0 = 6.112 hPa at T_0 = 273.16 K as for water."
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
-coefficients = { e_i0 = 6.112, T_i0 = 273.16 }
-constants = ["L_v0_metpy", "L_f_metpy", "c_i_metpy", "c_pv_metpy", "R_v_metpy"]
+constants = ["e_s0_metpy", "T_0_metpy", "L_v0_metpy", "L_f_metpy", "c_i_metpy", "c_pv_metpy", "R_v_metpy"]
 keywords = ["saturation", "Clausius-Clapeyron", "ice"]
 
 [[formulations.metpy171_saturation_vapour_pressure_ice.citations]]
 reference = "metpy171"
-note = "saturation_vapor_pressure with phase='solid', _saturation_vapor_pressure_solid and water_latent_heat_sublimation, in metpy.calc.thermo; e_i0 is sat_pressure_0c, T_i0 is T0."
-units = { e_i0 = "HectoPA", T_i0 = "K" }
-notation = { e_i0 = 'e_{i0}', T_i0 = "T_0" }
+note = "saturation_vapor_pressure with phase='solid', _saturation_vapor_pressure_solid and water_latent_heat_sublimation, in metpy.calc.thermo."
 
 [formulations.metpy171_saturation_vapour_pressure_auto]
 label = "Saturation vapour pressure of MetPy over ice, then over water, from the triple point (phase='auto')"
