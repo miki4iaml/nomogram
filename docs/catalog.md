@@ -620,7 +620,11 @@ cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verifie
   catalog's object to the CF name: `air_temperature` is *narrow* for the
   thermodynamic temperature (the temperature of air only), a CF salinity
   name is *close* for a salinity scale (it names the quantity on the
-  scale).
+  scale). A CF name that names a medium (`_in_air`, `air_`,
+  `atmosphere_`, `sea_water_`, `ocean_`) is *narrow* for a kind neutral
+  as to the medium (`air_potential_temperature` for
+  `PotentialTemperature`), *exact* only for a kind that names the same
+  medium.
 - A bare name, as format 2 writes it (`cf_standard_names =
   ["virtual_temperature"]`), is read as an exact match, checked on the
   date the frozen CF subset was extracted. A missing
@@ -646,6 +650,15 @@ One rule keeps the kinds consistent over time, whoever adds them:
   - `LapseRate` and `VerticalTemperatureGradient`;
   - `PressureAltitude` and `GeopotentialHeight`;
   - `AltimetricAltitude` and `Altitude`.
+- **A kind is neutral as to the medium**, as QUDT's are: a potential
+  temperature, a friction velocity, an Obukhov length are those of a
+  fluid, air or sea water. A kind names its medium only when the medium
+  is part of the quantity (`DensityOfMoistAir`, `SeaWaterSalinity`,
+  `SurfaceAirPressure`, a lapse rate of air temperature, the roughness
+  length for humidity) or when a formula must not receive the value of
+  another medium, as above. The medium a formula holds for, air when it
+  takes the gas constant of dry air, belongs to the formulation, not to
+  the kind it computes.
 - **Two siblings that a definition relates get a formulation of that
   definition, cited**, through which compositions pass: a lapse rate
   feeds a vertical temperature gradient input only through

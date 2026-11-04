@@ -373,6 +373,21 @@ def test_a_local_kind_may_carry_cf_standard_names() -> None:
         load_catalog([document + 'cf_standard_names = ["sea_water_salinity"]\n'])
 
 
+def test_a_cf_name_of_a_medium_is_narrow_for_a_kind_neutral_as_to_it() -> None:
+    from nomogram.semantics import CF_NAMESPACE, MatchRelation
+
+    def cf_relation(kind: str) -> MatchRelation:
+        (link,) = [
+            m for m in CATALOG.kinds[kind].matches if m.target.startswith(CF_NAMESPACE)
+        ]
+        return link.relation
+
+    for neutral in ("PotentialTemperature", "ObukhovLength", "FrictionVelocity"):
+        assert cf_relation(neutral) is MatchRelation.NARROW
+    for named in ("DensityOfMoistAir", "SeaWaterSalinity", "LapseRate"):
+        assert cf_relation(named) is MatchRelation.EXACT
+
+
 def test_cf_links_carry_their_relation_and_verification_date() -> None:
     from nomogram.semantics import CF_NAMESPACE, MatchRelation, semantic_catalog
 

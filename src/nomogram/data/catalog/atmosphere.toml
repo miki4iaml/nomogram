@@ -296,8 +296,8 @@ description = "Height over which the pressure of an isothermal atmosphere decrea
 [kinds.SquareOfBruntVaisalaFrequency]
 label = "Square of Brunt-Vaisala Frequency"
 specialization_of = "InverseSquareTime"
-description = "Square of the Brunt-Vaisala frequency, also called the buoyancy frequency, a measure of the vertical stratification of the air (CF). Its formulas give it negative where the stratification is unstable: the square is the quantity, not the frequency."
-cf_standard_names = [{ name = "square_of_brunt_vaisala_frequency_in_air", relation = "exact", verified = 2026-11-01 }]
+description = "Square of the Brunt-Vaisala frequency, also called the buoyancy frequency, a measure of the vertical stratification of a fluid, air or sea water (CF). Its formulas give it negative where the stratification is unstable: the square is the quantity, not the frequency."
+cf_standard_names = [{ name = "square_of_brunt_vaisala_frequency_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.DryStaticEnergy]
 label = "Dry Static Energy"
