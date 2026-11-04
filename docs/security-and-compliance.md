@@ -7,7 +7,7 @@ and for the users who prepare that request. State as of 4 November 2026.
 | Item | Value |
 |---|---|
 | Component | nomogram, a Python library of scientific formulas |
-| Published version assessed | 0.5.0 (31 October 2026), on PyPI |
+| Published version assessed | 0.6.0 (4 November 2026), on PyPI |
 | State of development | `develop` branch as of 4 November 2026 |
 | Repository | <https://github.com/miki4iaml/nomogram> |
 | Licence | BSD-3-Clause (code); CC BY 4.0 and CC0 1.0 (third-party data) |
@@ -270,7 +270,7 @@ The maintainer keeps a log of the alerts and of how each was handled
 **Verification** [user, on a connected workstation]:
 
 ```
-gh attestation verify nomogram-0.5.0-py3-none-any.whl --repo miki4iaml/nomogram
+gh attestation verify nomogram-0.6.0-py3-none-any.whl --repo miki4iaml/nomogram
 ```
 
 ## 7. Installation on a network without Internet access
@@ -280,7 +280,7 @@ A suggested procedure, to adapt to local rules [user]:
    for the target platform:
 
    ```
-   python -m pip download nomogram==0.5.0 --dest packages --only-binary=:all:
+   python -m pip download nomogram==0.6.0 --dest packages --only-binary=:all:
    ```
 
    For a platform or Python version other than the workstation's, add
@@ -292,7 +292,7 @@ A suggested procedure, to adapt to local rules [user]:
 4. On the target workstation, install without network access:
 
    ```
-   python -m pip install --no-index --find-links packages nomogram==0.5.0
+   python -m pip install --no-index --find-links packages nomogram==0.6.0
    ```
 
    To lock versions and digests, use a requirements file with hashes
