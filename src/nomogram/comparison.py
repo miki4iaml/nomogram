@@ -198,6 +198,7 @@ def compare(
     reference: Evaluable,
     inputs: Mapping[str, Any],
     *,
+    kind: str | None = None,
     outside: Outside = "nan",
     basis: Basis = "stated",
     scale: ScaleConversion = "convert",
@@ -214,6 +215,12 @@ def compare(
         One value per quantity kind, for example
         ``{"ThermodynamicTemperature": Q_(grid, "degC")}``; numpy arrays
         give the whole table in one pass.
+    kind : str, optional
+        A quantity kind every formulation, the reference included,
+        computes or specializes: asked for, it compares formulations of
+        sibling kinds, as saturation over ice against saturation over
+        water, both a ``"SaturationVapourPressure"``. By default, every
+        formulation computes the reference's kind.
     outside, basis, scale
         Passed to each evaluation (see
         :meth:`nomogram.model.Formulation.evaluate`). ``"nan"`` keeps
@@ -228,17 +235,21 @@ def compare(
     Raises
     ------
     ValueError
-        If a formulation computes another kind than the reference, an input
+        If a formulation computes another kind than the reference (or,
+        with ``kind``, a kind that does not specialize it), an input
         cannot be matched to exactly one value, or one value would feed
         several inputs of a formulation (fix the others with :func:`partial`).
     """
-    kind = reference.output.kind
     unit = None
     values: dict[str, Any] = {}
     candidates = [reference, *(f for f in formulations if f.key != reference.key)]
     for formulation in candidates:
-        if formulation.output.kind != kind:
-            msg = f"{formulation.key} computes {formulation.output.kind}, not {kind}"
+        computed = formulation.output.kind
+        if kind is None and computed != reference.output.kind:
+            msg = f"{formulation.key} computes {computed}, not {reference.output.kind}"
+            raise ValueError(msg)
+        if kind is not None and not feeds(computed, kind):
+            msg = f"{formulation.key} computes {computed}, which does not specialize {kind}"
             raise ValueError(msg)
         result = formulation.evaluate(
             outside=outside, basis=basis, scale=scale, **_arguments(formulation, inputs)

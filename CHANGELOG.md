@@ -10,6 +10,11 @@ and this project adheres to
 
 ### Added
 
+- `nomogram.comparison.compare(..., kind=...)` compares formulations of
+  sibling kinds when asked: every formulation, the reference included,
+  computes the kind given or one that specializes it, as saturation over
+  ice against saturation over water, both a `SaturationVapourPressure`. By
+  default, every formulation still computes the reference's kind.
 - Catalog family `boundary-layer`: the surface layer of the ECMWF IFS
   (CY49R1 and CY50R1, Part IV, section 3.2), after Monin-Obukhov
   similarity: the Obukhov length from the surface-layer scales, the
