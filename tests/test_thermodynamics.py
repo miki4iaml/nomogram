@@ -4,6 +4,7 @@
 """Tests for the atmospheric thermodynamics of Bechtold (2015): humidity
 variables, virtual and potential temperatures, saturation."""
 
+import math
 from typing import Any
 
 import pytest
@@ -228,3 +229,35 @@ def test_the_new_kinds_find_their_formulations() -> None:
         "metpy171_virtual_temperature",
         "ecmwf_ifs_virtual_temperature",
     }
+
+
+def test_the_lifting_condensation_level_of_the_ifs() -> None:
+    # Davies-Jones (1983) as the IFS writes it (6.74), by hand, with T_0 =
+    # 273.16 K: 20 degC and a dew point of 10 degC give 7.81 degC; Bolton
+    # (1980, eq. 15) gives 280.93 K, 0.03 K below.
+    t_d, t = 283.15, 293.15
+    t_lcl = F["ecmwf_ifs_lcl_temperature"].evaluate(T_d=Q_(t_d, "K"), T=Q_(t, "K"))
+    by_hand = t_d - (0.212 + 1.571e-3 * (t_d - 273.16) - 4.36e-4 * (t - 273.16)) * (
+        t - t_d
+    )
+    assert t_lcl.to("K").magnitude == pytest.approx(by_hand, rel=1e-12)
+    bolton = 1 / (1 / (t_d - 56) + math.log(t / t_d) / 800) + 56
+    assert t_lcl.to("K").magnitude == pytest.approx(bolton, abs=0.05)
+    # The reference pressure cancels when theta is computed with it.
+    kappa = 287.0597 / 1004.7090
+    pressures = []
+    for p_0 in (1000.0, 1013.25):
+        theta = t * (p_0 / 950.0) ** kappa
+        p_lcl = F["ecmwf_ifs_lcl_pressure"].evaluate(
+            T_LCL=t_lcl, theta=Q_(theta, "K"), p_0=Q_(p_0, "hPa")
+        )
+        pressures.append(p_lcl.to("hPa").magnitude)
+    expected = 950.0 * (t_lcl.to("K").magnitude / t) ** (1 / kappa)
+    assert pressures == pytest.approx([expected, expected], rel=1e-12)
+    composed = F["ecmwf_ifs_lcl_pressure_dew_point"].evaluate(
+        T_d=Q_(t_d, "K"),
+        T=Q_(t, "K"),
+        theta=Q_(t * (1000.0 / 950.0) ** kappa, "K"),
+        p_0=Q_(1000.0, "hPa"),
+    )
+    assert composed.to("hPa").magnitude == pytest.approx(expected, rel=1e-12)
