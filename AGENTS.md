@@ -176,10 +176,9 @@ No safety rule is bypassed, including during project bootstrap.
   date.
 - Figures in the documentation use the presets of `DisplayOptions`:
   the code shown passes only what is the example's own, such as the
-  limits of the axes;
-  the rest of the formatting stays in the script that draws the figure.
-  A setting several figures need becomes an option or a preset; an
-  example showing an option sets it.
+  limits of the axes; the rest of the formatting stays in the script
+  that draws the figure. A setting several figures need becomes an
+  option or a preset; an example showing an option sets it.
 - No new dependency without explicit approval.
 - The lowest supported versions of the dependencies are a goal, not a
   constraint: when keeping one would cost complexity, readability,
