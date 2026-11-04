@@ -30,12 +30,14 @@ def test_bundled_families_are_layered() -> None:
         "atmosphere",
         "radio",
         "sea-water",
+        "boundary-layer",
     }
     assert families["core"].requires == ()
     assert families["water-vapour"].requires == ("core",)
     assert families["moist-air"].requires == ("water-vapour",)
     assert families["atmosphere"].requires == ("moist-air",)
     assert families["radio"].requires == ("atmosphere",)
+    assert families["boundary-layer"].requires == ("atmosphere",)
     humidity = families["humidity"]
     assert isinstance(humidity, Family)
     assert humidity.is_aggregate

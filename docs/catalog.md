@@ -15,7 +15,9 @@ can also be proposed through an issue (see the
 
 - **A formula is written once**, as an expression in restricted Python
   syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
-  functions `exp`, `ln`, `log10`, `sqrt`, `sin` and `cos`, the constant
+  functions `exp`, `ln`, `log10`, `sqrt`, `sin`, `cos`, `atan` (the
+  arctangent of one argument; `atan2` is not allowed) and `tanh`, the
+  constant
   `pi` (a reserved name, which no identifier may take), and a
   [piecewise definition](#piecewise-definitions). LaTeX, numeric
   functions and symbolic results all derive from it. An angle in the
@@ -26,6 +28,8 @@ can also be proposed through an issue (see the
   when the detail was **read in the source itself**; anything else is
   `to-confirm`, with a note saying what remains to check. A formula
   quoted by a review is entered as quoted, and the review is cited too.
+  The document that gives a formula keeps its own rights: see
+  [Rights of sources](../.github/CONTRIBUTING.md#rights-of-sources).
 - **Disagreements are recorded, not smoothed over.** When secondary
   sources differ (a constant, a year, an attribution), say so in the
   note.
@@ -79,7 +83,8 @@ keywords = ["humidity", "psychrometrics"]
 
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
-(`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`), and **aggregates** holding no entry, only
+(`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`,
+`boundary-layer`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -325,8 +330,11 @@ inputs = [
     epsilon of another source) takes a name qualified by its key
     (`epsilon__epsilon_ashrae2017`).
 
-  The display keeps the name as written, with its owner. `__` is kept
-  for these names: the entry's own identifiers may not contain it.
+  The display keeps the name as written: in the equation, also of a
+  composition whose part calls others, and in the legend, with its
+  owner. `__` is kept for these names: an entry that calls others may
+  not use it in its own identifiers. Elsewhere it marks a superscript, as
+  SymPy reads it (`a__w` is written aʷ).
 - **Validity domains**: those of each formulation called apply to the
   values each call receives (t_d and t above, each against −45 to 60 °C).
   Those the entry states apply as well; they never replace them.
@@ -615,7 +623,11 @@ cf_standard_names = [{ name = "virtual_temperature", relation = "exact", verifie
   catalog's object to the CF name: `air_temperature` is *narrow* for the
   thermodynamic temperature (the temperature of air only), a CF salinity
   name is *close* for a salinity scale (it names the quantity on the
-  scale).
+  scale). A CF name that names a medium (`_in_air`, `air_`,
+  `atmosphere_`, `sea_water_`, `ocean_`) is *narrow* for a kind neutral
+  as to the medium (`air_potential_temperature` for
+  `PotentialTemperature`), *exact* only for a kind that names the same
+  medium.
 - A bare name, as format 2 writes it (`cf_standard_names =
   ["virtual_temperature"]`), is read as an exact match, checked on the
   date the frozen CF subset was extracted. A missing
@@ -636,10 +648,27 @@ One rule keeps the kinds consistent over time, whoever adds them:
   reference, its sign, its instrument or its definition. Examples:
   - `FrostPointTemperature` and `DewPointTemperature`;
   - `RelativeHumidityWithRespectToIce` and `RelativeHumidity`;
+  - `DensityOfDryAir` and `DensityOfMoistAir`;
   - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
   - `LapseRate` and `VerticalTemperatureGradient`;
   - `PressureAltitude` and `GeopotentialHeight`;
   - `AltimetricAltitude` and `Altitude`.
+- **A kind is neutral as to the medium**, as QUDT's are: a potential
+  temperature, a friction velocity, an Obukhov length are those of a
+  fluid, air or sea water. A kind names its medium only when the medium
+  is part of the quantity (`DensityOfMoistAir`, `SeaWaterSalinity`,
+  `SurfaceAirPressure`, a lapse rate of air temperature, the roughness
+  length for humidity) or when a formula must not receive the value of
+  another medium, as above. The medium a formula holds for, air when it
+  takes the gas constant of dry air, belongs to the formulation, not to
+  the kind it computes.
+- **Two siblings that a definition relates get a formulation of that
+  definition, cited**, through which compositions pass: a lapse rate
+  feeds a vertical temperature gradient input only through
+  `vertical_temperature_gradient_definition` (dT/dz = −Γ, CF), never
+  directly. A source keeps its own form: Bechtold prints his dry
+  adiabatic lapse rate as dT/dz (equation 38), and the lapse rate comes
+  through the definition.
 - **A trade term is a label, never a kind** (`[trade_terms.<key>]`).
   Each of its meanings names a community, a kind, a definition and
   sources.
@@ -770,7 +799,9 @@ note = "Table III, r_g."
 - **`equivalent`**: proved with SymPy, coefficients as exact rationals,
   the object's inputs replaced as `given` says (`given = { P_d = "P - e" }`).
   Verdict: *proven*, *refuted* (with a numerical counterexample) or
-  *unproven*.
+  *unproven*. When every bound of the relation is above zero, a proof
+  may take the inputs positive, as identities of logarithms need; the
+  method says so. The same holds for a proportionality.
 - **`proportional`**: the subject equals the object times a constant
   factor. Proved on the ratio, simplified to a constant (*proven*), or
   sampled on `bounds`, which every input of the subject needs: *held*
@@ -784,6 +815,12 @@ note = "Table III, r_g."
   explain it (a matter of scale; a factor of an input the object is
   proportional to cannot tell). An equivalence is a proportionality of
   factor 1 (`RelationKind.broader`).
+- **A derived formulation** (a composition, branches, calls), whatever
+  the length of its expression, is not simplified: SymPy's simplification
+  has no bound on its cost. An equivalence or a proportionality that
+  involves one is proven only when its two sides cancel as they stand;
+  otherwise the samples decide: *refuted*, with a counterexample, or
+  *unproven* (an equivalence) and *held* (a proportionality).
 - **Computed by nomogram**: an equivalence or a proportionality without
   a `citation` is one nomogram computes; its verdict proves it or holds
   it, and searching for "computed by nomogram" finds it. An approximation

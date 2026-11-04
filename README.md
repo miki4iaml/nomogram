@@ -125,13 +125,21 @@ catalog.search(kind="VapourPressure", source="buck*")
 ```
 
 Each formulation keeps its units, validity domain, temperature scale and
-references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md);
+references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md),
+and [Shared vocabularies](docs/shared-vocabularies.md) explains how nomogram
+builds on QUDT, CF and Wikidata and contributes to them;
 [How nomogram earns trust](docs/approach.md) explains what is checked and
 how, and [Displaying formulas](docs/display.md) shows formulas in notebooks,
 Markdown and plots. [Sea water](docs/sea-water.md) shows the salinity
 scales and the vapour pressure of sea water, and what its 2 % lowering
-changes at the sea surface. [The logo](docs/logo.md) is a working
-nomogram.
+changes at the sea surface. [Humidity aloft](docs/humidity-aloft.md)
+sets the formula of a radiosonde's producer against its users' along a
+vertical profile, through the dew point, over water or over ice, and
+against WMO's requirements.
+[Security and compliance](docs/security-and-compliance.md) gathers, for
+those who approve its use on a laboratory network, how nomogram is
+developed, checked and published, what remains to do, and a checklist.
+[The logo](docs/logo.md) is a working nomogram.
 
 ## Contributing
 
@@ -149,7 +157,7 @@ their canonical units, from the CF standard name table. The package
 bundles a subset of each source:
 
 - QUDT — Quantities, Units, Dimensions and Types, by QUDT.org
-  (<https://qudt.org>), release 3.5.2, licensed under
+  (<https://qudt.org>), release 3.5.3, licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
 - the [CF standard name table](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
   version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/);

@@ -4,8 +4,10 @@
 """Tests for the atmospheric thermodynamics of Bechtold (2015): humidity
 variables, virtual and potential temperatures, saturation."""
 
+import math
 from typing import Any
 
+import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
@@ -226,4 +228,146 @@ def test_the_new_kinds_find_their_formulations() -> None:
         "bechtold2015_virtual_temperature_mixing_ratio",
         "bechtold2015_virtual_temperature_rounded",
         "metpy171_virtual_temperature",
+        "ecmwf_ifs_virtual_temperature",
     }
+
+
+def test_the_lifting_condensation_level_of_the_ifs() -> None:
+    # Davies-Jones (1983) as the IFS writes it (6.74), by hand, with T_0 =
+    # 273.16 K: 20 degC and a dew point of 10 degC give 7.81 degC; Bolton
+    # (1980, eq. 15) gives 280.93 K, 0.03 K below.
+    t_d, t = 283.15, 293.15
+    t_lcl = F["ecmwf_ifs_lcl_temperature"].evaluate(T_d=Q_(t_d, "K"), T=Q_(t, "K"))
+    by_hand = t_d - (0.212 + 1.571e-3 * (t_d - 273.16) - 4.36e-4 * (t - 273.16)) * (
+        t - t_d
+    )
+    assert t_lcl.to("K").magnitude == pytest.approx(by_hand, rel=1e-12)
+    bolton = 1 / (1 / (t_d - 56) + math.log(t / t_d) / 800) + 56
+    assert t_lcl.to("K").magnitude == pytest.approx(bolton, abs=0.05)
+    # The reference pressure cancels when theta is computed with it.
+    kappa = 287.0597 / 1004.7090
+    pressures = []
+    for p_0 in (1000.0, 1013.25):
+        theta = t * (p_0 / 950.0) ** kappa
+        p_lcl = F["ecmwf_ifs_lcl_pressure"].evaluate(
+            T_LCL=t_lcl, theta=Q_(theta, "K"), p_0=Q_(p_0, "hPa")
+        )
+        pressures.append(p_lcl.to("hPa").magnitude)
+    expected = 950.0 * (t_lcl.to("K").magnitude / t) ** (1 / kappa)
+    assert pressures == pytest.approx([expected, expected], rel=1e-12)
+    composed = F["ecmwf_ifs_lcl_pressure_dew_point"].evaluate(
+        T_d=Q_(t_d, "K"),
+        T=Q_(t, "K"),
+        theta=Q_(t * (1000.0 / 950.0) ** kappa, "K"),
+        p_0=Q_(1000.0, "hPa"),
+    )
+    assert composed.to("hPa").magnitude == pytest.approx(expected, rel=1e-12)
+
+
+# Murphy and Koop (2005), appendix C: "values recommended for checking
+# computer codes", in Pa.
+MURPHY_KOOP_CHECK = [
+    (150.0, "6.106e-06", "1.562e-05"),
+    (180.0, "0.0053975", "0.011239"),
+    (210.0, "0.70202", "1.2335"),
+    (240.0, "27.272", "37.667"),
+    (273.15, "611.154", "611.213"),
+    (273.16, "611.657", "611.657"),
+]
+
+
+@pytest.mark.parametrize(("kelvins", "ice", "water"), MURPHY_KOOP_CHECK)
+def test_murphy_and_koop_give_their_check_values(
+    kelvins: float, ice: str, water: str
+) -> None:
+    def printed(key: str, value: str) -> float:
+        """The value of the formulation, rounded as the article prints it."""
+        pascals = F[key].evaluate(T=Q_(kelvins, "K")).to("Pa").magnitude
+        digits = len(value.split("e")[0].replace(".", "").lstrip("0"))
+        return float(f"{pascals:.{digits}g}")
+
+    assert printed("murphy_koop2005_ice", ice) == float(ice)
+    assert printed("murphy_koop2005_water", water) == float(water)
+
+
+def test_goff_1957_takes_the_range_of_the_technical_regulations() -> None:
+    (domain,) = (d for c in F["goff1957"].citations for d in c.domains)
+    assert (domain.bounds["T"], domain.reference) == (
+        (223.15, 373.15),
+        "wmo49_vol1_2012",
+    )
+    assert "references.wmo49_vol1_2012" in CATALOG.search("Technical Regulations").refs
+    below = F["goff1957"].evaluate(T=Q_(220.0, "K")).magnitude
+    assert math.isnan(below)
+
+
+def test_murphy_and_koop_over_water_meets_ice_and_iapws() -> None:
+    # Both forms of Murphy and Koop (2005) meet at the triple point, as
+    # IAPWS does; above freezing the form over water follows IAPWS.
+    triple = Q_(273.16, "K")
+    water = F["murphy_koop2005_water"].evaluate(T=triple).to("Pa").magnitude
+    ice = F["murphy_koop2005_ice"].evaluate(T=triple).to("Pa").magnitude
+    assert water == pytest.approx(611.657, abs=0.001)
+    assert ice == pytest.approx(water, rel=1e-5)
+    t = Q_(np.linspace(273.16, 330.0, 50), "K")
+    mk = F["murphy_koop2005_water"].evaluate(T=t).to("Pa").magnitude
+    iapws = F["iapws_sr1_86"].evaluate(T=t).to("Pa").magnitude
+    assert np.max(np.abs(mk / iapws - 1)) < 2e-4
+
+
+def test_metpy_over_ice_and_its_choice_of_phase() -> None:
+    # _saturation_vapor_pressure_solid of MetPy 1.7.1, by hand, at -20 degC.
+    r_v, c_pv, c_i, l_v, l_f, t_0, e_0 = (
+        461.52312,
+        1860.0780,
+        2090.0,
+        2.50084e6,
+        3.337e5,
+        273.16,
+        6.112,
+    )
+    t = 253.15
+    l_s0 = l_v + l_f
+    by_hand = (
+        e_0
+        * (t_0 / t) ** ((c_i - c_pv) / r_v)
+        * math.exp((l_s0 / t_0 - (l_s0 - (c_i - c_pv) * (t - t_0)) / t) / r_v)
+    )
+    ice = F["metpy171_saturation_vapour_pressure_ice"].evaluate(T=Q_(t, "K"))
+    assert ice.to("hPa").magnitude == pytest.approx(by_hand, rel=1e-9)
+    # phase='auto': over ice up to the triple point, over water above.
+    temperatures = Q_(np.array([263.15, 273.16, 273.17, 283.15]), "K")
+    auto = F["metpy171_saturation_vapour_pressure_auto"].evaluate(T=temperatures)
+    over_ice = F["metpy171_saturation_vapour_pressure_ice"].evaluate(T=temperatures)
+    over_water = F["metpy171_saturation_vapour_pressure"].evaluate(T=temperatures)
+    expected = np.where(
+        temperatures.magnitude > 273.16, over_water.magnitude, over_ice.magnitude
+    )
+    assert auto.to("hPa").magnitude == pytest.approx(expected, rel=1e-12)
+
+
+def test_the_mixed_phase_of_the_ifs() -> None:
+    # 7.101 and 12.16: ice below 250.16 K, water from 273.16 K, weighted
+    # by ((T - 250.16)/23)^2 in between (0.25 halfway).
+    t = Q_(np.array([240.0, 250.16, 261.66, 273.16, 280.0]), "K")
+    alpha = F["ecmwf_ifs_mixed_phase_fraction"].evaluate(T=t).magnitude
+    assert alpha == pytest.approx([0.0, 0.0, 0.25, 1.0, 1.0], abs=1e-12)
+    mixed = F["ecmwf_ifs_saturation_mixed_phase"].evaluate(T=t).to("Pa").magnitude
+    water = F["ecmwf_ifs_saturation_water"].evaluate(T=t).to("Pa").magnitude
+    ice = F["ecmwf_ifs_saturation_ice"].evaluate(T=t).to("Pa").magnitude
+    assert mixed == pytest.approx(alpha * water + (1 - alpha) * ice, rel=1e-12)
+    # Continuous at both thresholds.
+    for edge in (250.16, 273.16):
+        around = Q_(np.array([edge - 1e-6, edge + 1e-6]), "K")
+        values = F["ecmwf_ifs_saturation_mixed_phase"].evaluate(T=around).magnitude
+        assert values[0] == pytest.approx(values[1], rel=1e-6)
+
+
+def test_the_water_and_ice_pairs_are_found_by_search() -> None:
+    found = set(CATALOG.search(keyword="mixed phase", section="formulations").refs)
+    assert {
+        "formulations.ecmwf_ifs_saturation_mixed_phase",
+        "formulations.metpy171_saturation_vapour_pressure_auto",
+    } <= found
+    used = set(CATALOG.used_by("references.alduchov_eskridge1996").refs)
+    assert "formulations.ecmwf_ifs_saturation_ice" in used

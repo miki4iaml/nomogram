@@ -62,6 +62,12 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = MappingProxyType(
         # the catalog refuses an angle in degrees in their argument.
         "sin": sympy.sin,
         "cos": sympy.cos,
+        # The arctangent of one argument, in radians (the profile functions
+        # of Paulson, 1970); atan2, of two, is not allowed.
+        "atan": sympy.atan,
+        # The hyperbolic tangent, of a pure number (the vapour pressure of
+        # supercooled water of Murphy and Koop, 2005).
+        "tanh": sympy.tanh,
     }
 )
 
@@ -165,6 +171,13 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\log",
         r"\sin",
         r"\cos",
+        # The arctangent, as SymPy writes it with inv_trig_style="full" (in
+        # the lists of MathJax, base package, KaTeX and mathtext on
+        # 2026-11-04).
+        r"\arctan",
+        # The hyperbolic tangent (in the lists of MathJax, base package,
+        # KaTeX and mathtext on 2026-11-04).
+        r"\tanh",
         r"\frac",
         r"\sqrt",
         r"\left",
@@ -180,6 +193,9 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\;",
         r"\leq",
         r"\geq",
+        # Partial derivatives in notations (in the lists of MathJax and
+        # KaTeX on 2026-11-01; parsed by mathtext).
+        r"\partial",
     }
     | {"\\" + letter for letter in _GREEK}
 )
@@ -201,14 +217,68 @@ _UNARY_OPERATORS: Mapping[type[ast.unaryop], Callable[[Any], Any]] = {
 
 
 def _power(base: Any, exponent: Any) -> Any:
-    """A power, refused when two numbers would give too many digits."""
-    numbers = isinstance(base, sympy.Number) and isinstance(exponent, sympy.Number)
-    if numbers and abs(base) not in (0, 1):
-        digits = abs(float(exponent)) * abs(float(sympy.log(abs(base), 10)))
+    """A power, refused when its numbers would give too many digits.
+
+    A number is any expression free of names: ``sqrt(3) ** 30000000`` is
+    computed exactly too.
+    """
+    if base.is_number and exponent.is_number and abs(base) not in (0, 1):
+        try:
+            digits = abs(float(exponent)) * abs(float(sympy.log(abs(base), 10)))
+        except TypeError:
+            # A complex exponent: refused once the whole expression is read.
+            return base**exponent
         if digits > _MAX_POWER_DIGITS:
-            msg = f"power of two numbers beyond {_MAX_POWER_DIGITS} digits"
+            msg = f"power of numbers beyond {_MAX_POWER_DIGITS} digits"
             raise ExpressionError(msg)
     return base**exponent
+
+
+def _exponential(argument: Any) -> Any:
+    """``exp``, refused when a number would give too many digits.
+
+    SymPy turns ``exp(ln(3) * 30000000)`` into the exact power of 3.
+    """
+    if argument.is_number:
+        try:
+            digits = abs(float(argument)) / math.log(10)
+        except OverflowError:
+            digits = math.inf
+        except TypeError:
+            # A complex argument: refused once the whole expression is read.
+            return sympy.exp(argument)
+        if digits > _MAX_POWER_DIGITS:
+            msg = f"exponential of a number beyond {_MAX_POWER_DIGITS} digits"
+            raise ExpressionError(msg)
+    return sympy.exp(argument)
+
+
+def _check_numbers(expr: Any) -> None:
+    """Refuse a number numpy cannot evaluate as a finite real one.
+
+    ``(-1.0) ** 0.5`` gives the imaginary unit, ``0 ** -1`` the complex
+    infinity, ``(-8) ** (1/3)`` a complex number without either, and a
+    decimal number of SymPy may exceed the largest float.
+    """
+    if expr.has(sympy.I, sympy.zoo, sympy.oo, -sympy.oo, sympy.nan):
+        msg = "complex, infinite or undefined number"
+        raise ExpressionError(msg)
+    for node in sympy.preorder_traversal(expr):
+        if isinstance(node, sympy.Number):
+            try:
+                finite = math.isfinite(float(node))
+            except OverflowError:
+                finite = False
+            if not finite:
+                msg = "number too large"
+                raise ExpressionError(msg)
+        elif (
+            isinstance(node, sympy.Expr)
+            and node.is_number
+            and node.is_extended_real is False
+        ):
+            msg = f"complex number: {node}"
+            raise ExpressionError(msg)
 
 
 class ExpressionError(ValueError):
@@ -261,8 +331,10 @@ def parse_expression(
     Raises
     ------
     ExpressionError
-        If the text is too long, is not valid Python syntax, or uses
-        anything outside the whitelist.
+        If the text is too long, is not valid Python syntax, uses anything
+        outside the whitelist, or holds a number numpy cannot evaluate as
+        a finite real one (a complex number, an infinity) or one whose
+        exact value would have too many digits.
     """
     if limit is not None and len(source) > limit:
         msg = f"expression longer than {limit} characters"
@@ -277,7 +349,9 @@ def parse_expression(
     number = sympy.Rational if exact else sympy.Float
     try:
         tree = ast.parse(source.strip(), mode="eval")
-        return _build(tree.body, symbols, number)
+        expression = _build(tree.body, symbols, number)
+        _check_numbers(expression)
+        return expression
     except SyntaxError as exc:
         msg = f"invalid syntax: {exc.msg}"
         raise ExpressionError(msg) from None
@@ -299,8 +373,13 @@ def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
         if isinstance(value, bool) or not isinstance(value, int | float):
             msg = f"unsupported constant: {value!r}"
             raise ExpressionError(msg)
-        if not math.isfinite(value):
-            msg = f"number too large: {value!r}"
+        try:
+            finite = math.isfinite(value)
+        except OverflowError:
+            # An integer beyond the largest float.
+            finite = False
+        if not finite:
+            msg = "number too large"
             raise ExpressionError(msg)
         return sympy.Integer(value) if isinstance(value, int) else number(repr(value))
     if isinstance(node, ast.Name):
@@ -320,7 +399,10 @@ def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
         if node.keywords or len(node.args) != 1:
             msg = f"{node.func.id}() takes exactly one positional argument"
             raise ExpressionError(msg)
-        return FUNCTIONS[node.func.id](_build(node.args[0], symbols, number))
+        argument = _build(node.args[0], symbols, number)
+        if node.func.id == "exp":
+            return _exponential(argument)
+        return FUNCTIONS[node.func.id](argument)
     if isinstance(node, ast.Compare):
         msg = "comparisons are allowed only as the conditions of piecewise()"
         raise ExpressionError(msg)
@@ -678,6 +760,7 @@ def to_latex(
         {
             "symbol_names": names,
             "ln_notation": True,
+            "inv_trig_style": "full",
             "mul_symbol": mul_symbol,
             "decimal_separator": decimal_separator,
         }
@@ -715,11 +798,40 @@ def compile_numeric(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]
     if missing:
         msg = "missing arguments: " + ", ".join(missing)
         raise ExpressionError(msg)
+    repeated = sorted({name for name in arguments if arguments.count(name) > 1})
+    if repeated:
+        msg = "repeated arguments: " + ", ".join(repeated)
+        raise ExpressionError(msg)
     return _lambdify(expr, arguments)
 
 
 @lru_cache(maxsize=256)
 def _lambdify(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]:
-    symbols = [sympy.Symbol(name, real=True) for name in arguments]
-    function: Callable[..., Any] = sympy.lambdify(symbols, expr, modules="numpy")
+    named = {s.name: s for s in expr.free_symbols}
+    symbols = [named.get(name, sympy.Symbol(name, real=True)) for name in arguments]
+    return _numeric(symbols, expr)
+
+
+def _numeric(symbols: Iterable[Any], expr: Any) -> Callable[..., Any]:
+    """``sympy.lambdify`` with arguments that no identifier can shadow.
+
+    lambdify names each argument after its symbol in the code it
+    generates, where an identifier ``e`` would hide Euler's number
+    (``exp(1)``) and ``nan`` the value of a piecewise definition where no
+    condition holds: a wrong result, without error. Every argument gets
+    the prefix ``_v_``, which no name of that code bears; replaced at
+    once, they cannot collide. Dummy symbols would do too, but lambdify
+    then replaces every argument once more, a walk through the whole
+    expression each (17 s for a long composition); and a common prefix
+    keeps the order of the terms, which follows the names, so the
+    floating-point result.
+    """
+    symbols = list(symbols)
+    renamed = [sympy.Symbol(f"_v_{s.name}", **s.assumptions0) for s in symbols]
+    body = expr.xreplace(dict(zip(symbols, renamed, strict=True)))
+    # Common subexpressions computed once: 5 to 6 times faster on the
+    # longest compositions, to a relative 1e-11 or so.
+    function: Callable[..., Any] = sympy.lambdify(
+        renamed, body, modules="numpy", cse=True, docstring_limit=0
+    )
     return function

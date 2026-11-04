@@ -220,14 +220,19 @@ def test_physical_domains_always_apply() -> None:
 
 def test_catalog_citations_follow_their_sources() -> None:
     iapws = FORMULATIONS["iapws_sr1_86"]
-    assert iapws.references == ("iapws_sr1_86", "wagner_pruss1993", "dickson2007")
+    assert iapws.references == (
+        "iapws_sr1_86",
+        "wagner_pruss1993",
+        "dickson2007",
+        "vaisala2013",
+    )
     assert dict(iapws.citations[0].units) == {"T_c": "K", "p_c": "PA"}
     assert iapws.coefficient_units["T_c"].citation == "iapws_sr1_86"
     # The source of the Goff-Gratch range, once implicit, is now cited.
     assert "gibbins1990" in FORMULATIONS["goff_gratch1946"].references
     sonntag = FORMULATIONS["sonntag1990"]
     stating = [c.reference for c in sonntag.citations if "T" in c.scales]
-    assert stating == ["sonntag1990", "alduchov_eskridge1996"]
+    assert stating == ["sonntag1990", "alduchov_eskridge1996", "sonntag1994"]
     r14 = FORMULATIONS["iapws_r14_08_sublimation"]
     assert r14.citations[0].accuracy is not None
 

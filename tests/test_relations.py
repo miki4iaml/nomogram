@@ -10,11 +10,12 @@ import pytest
 import sympy
 
 from nomogram.catalog import CatalogError, catalog, check, load_catalog
-from nomogram.expression import MAX_SOURCE_LENGTH
+from nomogram.expression import MAX_SOURCE_LENGTH, parse_expression
 from nomogram.model import Relation, RelationKind
 from nomogram.relations import (
     Verdict,
     _common_bounds,
+    _power_of,
     match_inputs,
     per_axis,
     report,
@@ -182,19 +183,39 @@ bounds = { p = [600.0, 800.0], q_1 = [0.004, 0.006], q_2 = [0.001, 0.002], p_1 =
 
 
 @pytest.mark.parametrize("kind", ["equivalent", "proportional"])
-def test_a_relation_on_a_long_derived_expression_is_decided_on_samples(
+def test_a_relation_on_a_composed_expression_is_decided_on_samples(
     kind: str, tmp_path: Path
 ) -> None:
-    # SymPy's simplification of a composition longer than a written
-    # expression would not end: the samples decide.
+    # SymPy's simplification of this composition, close to the length of
+    # the longest written expression, would not end: the samples decide.
     mine = tmp_path / f"mine_{kind}.toml"
     mine.write_text(LONG.replace("{kind}", kind), encoding="utf-8")
     loaded = catalog(extra=[mine])
     subject = loaded.formulations["metpy171_relative_humidity_isentropic"]
-    assert len(subject.expression) > MAX_SOURCE_LENGTH
+    assert subject.parts
     verdict = verify(loaded.relations["mine:r"], loaded)
     assert verdict.status == "refuted"
-    assert "longer than a written one" in verdict.method
+    assert "a derived expression" in verdict.method
+
+
+@pytest.mark.parametrize("kind", ["equivalent", "proportional"])
+def test_a_relation_on_a_short_derived_expression_is_decided_on_samples(
+    kind: str, tmp_path: Path
+) -> None:
+    # Two compositions within the length of a written expression, whose
+    # difference SymPy did not simplify in 280 s.
+    short = LONG.replace(
+        '"metpy171_relative_humidity_isentropic"',
+        '"relative_humidity_log_specific_humidity_log_pressure"',
+    )
+    mine = tmp_path / f"mine_{kind}.toml"
+    mine.write_text(short.replace("{kind}", kind), encoding="utf-8")
+    loaded = catalog(extra=[mine])
+    relation = loaded.relations["mine:r"]
+    for key in (relation.subject, relation.object):
+        assert len(loaded.formulations[key].expression) <= MAX_SOURCE_LENGTH
+    verdict = verify(relation, loaded)
+    assert "a derived expression" in verdict.method
 
 
 def test_an_equivalence_sympy_cannot_settle_stays_unproven() -> None:
@@ -202,6 +223,41 @@ def test_an_equivalence_sympy_cannot_settle_stays_unproven() -> None:
     verdict = verify(found, loaded)  # type: ignore[arg-type]
     assert verdict.status == "unproven"
     assert verdict.detail is not None
+
+
+@pytest.mark.parametrize(
+    ("bounds", "status"),
+    [
+        ("bounds = { x = [0.5, 2.0], y = [0.5, 2.0] }", "proven"),
+        # An input that may be zero: no positivity is assumed.
+        ("bounds = { x = [0.0, 2.0], y = [0.5, 2.0] }", "unproven"),
+    ],
+)
+def test_an_identity_of_logarithms_is_proven_for_positive_bounds(
+    bounds: str, status: str
+) -> None:
+    found, loaded = relation("log_product", "logs", bounds)
+    verdict = verify(found, loaded)  # type: ignore[arg-type]
+    assert verdict.status == status
+    assert ("positive inputs" in verdict.method) is (status == "proven")
+
+
+def test_a_proportionality_is_proven_for_positive_bounds() -> None:
+    document = RELATION.replace('kind = "equivalent"', 'kind = "proportional"')
+    loaded = load_catalog(
+        [
+            BASE
+            + document.format(
+                subject="log_product",
+                object="logs",
+                extra="bounds = { x = [0.5, 2.0], y = [0.5, 2.0] }",
+            )
+        ]
+    )
+    verdict = verify(loaded.relations["r"], loaded)
+    assert verdict.status == "proven"
+    assert verdict.value == pytest.approx(1.0)
+    assert "positive inputs" in verdict.method
 
 
 @pytest.mark.parametrize(
@@ -606,7 +662,9 @@ inputs = [
     [
         # P - e < 0 on part of the samples: those are left aside.
         ("", "samples real and finite"),
-        ("bounds = { P = [0.5, 1.0], e = [1.5, 2.0] }", "none of 200 samples"),
+        # P - e < 0 on all, and P not positive: no proof for positive
+        # inputs is tried (for e > 0, ln(P_d e) = ln(P_d) + ln(e) holds).
+        ("bounds = { P = [-1.0, 1.0], e = [1.5, 2.0] }", "none of 200 samples"),
     ],
 )
 def test_samples_where_a_side_is_not_real_are_left_aside(
@@ -784,3 +842,23 @@ def test_exact_rationals_and_real_values() -> None:
     assert _real(x + y, {x: 1.0}) is None  # not a number
     assert _real(sympy.exp(x), {x: 1000.0}) is None  # not finite
     assert _real(sympy.sqrt(x), {x: -4.0}) is None  # not real
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("3 * x ** 2 * y", True),
+        ("exp(x) * y", False),
+        # Nowhere real: nothing tells it is a power.
+        ("ln(-x) * y", False),
+    ],
+)
+def test_a_power_of_an_input_is_told_on_the_samples(
+    source: str, expected: bool
+) -> None:
+    import numpy as np
+
+    x, y = sympy.symbols("x y", real=True)
+    expr = parse_expression(source, ["x", "y"])
+    columns = [np.linspace(1.0, 5.0, 50), np.linspace(2.0, 3.0, 50)]
+    assert _power_of(expr, x, [x, y], columns) is expected

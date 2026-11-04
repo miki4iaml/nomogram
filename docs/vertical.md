@@ -71,7 +71,8 @@ geopotential height, dT/dH (ISO 2533, equation 11).
   height above an ellipsoid; the altitude is about that height minus the
   geoid height, which reaches tens of metres.
 - **Lapse rate and vertical temperature gradient.** The same quantity
-  with opposite signs: two sibling kinds.
+  with opposite signs: two sibling kinds. One feeds an input of the
+  other only through its definition, Γ = −dT/dz (below).
 - **QNH and pressure at mean sea level.** The QNH is computed from the
   QFE through the ICAO standard atmosphere, "this virtual atmosphere";
   the pressure reduced to sea level, through a fictitious column of air
@@ -85,13 +86,18 @@ geopotential height, dT/dH (ISO 2533, equation 11).
 | geopotential → geopotential height | `geopotential_height_definition`, Z = Φ / g_n | WMO-No. 8, equation 12.12; CF; ERA5 |
 | geometric altitude ↔ geopotential height, radius 6356.766 km | `itu_r_p835_geopotential_height`, `itu_r_p835_geometric_altitude` | ITU-R P.835-7, equations 1a and 1b (the U.S. Standard Atmosphere, 1976) |
 | geopotential height → geometric altitude, radius 6371.229 km | `era5_geometric_altitude` | ERA5 documentation (the spherical Earth of the IFS) |
+| geometric altitude → geopotential, constant gravity | `ecmwf_ifs_geopotential`, Φ = g z | IFS CY49R1, Part IV, section 12.2 |
 | geometric height and latitude → geopotential height | `wmo_geopotential_height_wgs84`, composed of `wmo_geopotential_height_from_normal_gravity`, `wmo_normal_gravity_wgs84` and `wmo_effective_radius_mahoney` | WMO-No. 8, equations 12.15 and 12.16 |
 | latitude → normal gravity | `wmo_normal_gravity_wgs84`, `wmo_normal_gravity_smithsonian` | WMO-No. 8, equations 12.16 and 12.14 |
 | altitude and surface altitude → height | `height_above_surface` | CF |
+| vertical temperature gradient ↔ lapse rate | `lapse_rate_definition`, `vertical_temperature_gradient_definition`, Γ = −dT/dz | CF (`air_temperature_lapse_rate`) |
 
 The conversions differ by their Earth: 10 km of geopotential height are
 15.7 m higher geometrically on the sphere of the IFS, a little more on
-the smaller radius of the standard atmosphere. For a GPS radiosonde, WMO
+the smaller radius of the standard atmosphere. The physics of the IFS
+takes a constant gravity instead, Φ = g z: its geopotential height is the
+geometric altitude, so that the two practices of one model part by
+16 m at 10 km and by 141 m at 30 km; the formulation says so. For a GPS radiosonde, WMO
 takes the latitude into account: 30 km of geometric height give
 29.7785 km of geopotential height at the Equator and 29.932 km at 80°N.
 WMO's equation 12.13 has the same form as 12.15, with the normal gravity
@@ -109,6 +115,11 @@ input.
 | pressure in an isothermal layer | `ussa1976_pressure_layer_isothermal` | U.S. Standard Atmosphere 1976, equation 33b |
 | pressure reduced to sea level | `wmo_sea_level_pressure`, `wmo_sea_level_pressure_log10` | WMO-No. 8, equations 3.2 and 3.1 |
 | dry adiabatic gradient of temperature | `bechtold2015_dry_adiabatic_gradient` | Bechtold (2015), equation 38 |
+| dry adiabatic lapse rate | `bechtold2015_dry_adiabatic_lapse_rate`, the same through the definition of the lapse rate | Bechtold (2015), equation 38; CF |
+| square of the Brunt–Väisälä frequency, from the temperature and its vertical gradient | `ecmwf_ifs_square_of_brunt_vaisala_frequency` | IFS, Part IV, equation 5.2 |
+| the same from the lapse rate | `ecmwf_ifs_square_of_brunt_vaisala_frequency_lapse_rate`, derived through the definition of the lapse rate | IFS, Part IV, equation 5.2; CF |
+| critical lapse rate of the stability tropopause | `ecmwf_ifs_tropopause_critical_lapse_rate`, written by nomogram | IFS, Part IV, criterion 6.79 and equation 5.2 |
+| dry static energy | `ecmwf_ifs_dry_static_energy` (from the geopotential), `ecmwf_ifs_dry_static_energy_altitude` (from the altitude), `bechtold2015_dry_static_energy` | IFS, Part IV, equations 12.36 and 3.5; Bechtold (2015), 8.4 |
 
 All rest on the hydrostatic equation and the ideal gas law; each
 citation records the assumptions its source states. The thickness of a
@@ -120,6 +131,17 @@ linearly with the geopotential height, or not at all: below 80 km, its
 molecular-scale temperature is the temperature, and in moist air the
 virtual temperature. The unknown of any of them (a thickness, a
 pressure, a height) comes by inversion.
+
+The square of the Brunt–Väisälä frequency (`SquareOfBruntVaisalaFrequency`,
+CF `square_of_brunt_vaisala_frequency_in_air`) measures the static
+stability: zero on the dry adiabat, negative beyond. The IFS finds its
+stability tropopause from 70 hPa downward, at the first level where it
+falls to N₀² = 2.5 × 10⁻⁴ s⁻² (`N_0_squared_ecmwf_ifs`). The IFS does not
+print the lapse rate at which that happens; nomogram writes it,
+g/c_p − T N₀²/g, from 3.6 to 4.7 K/km between 240 and 200 K, against
+the 2 K/km of WMO. The dry static energy (`DryStaticEnergy`), c_p T + Φ,
+is conserved along the dry adiabat; Bechtold writes it with his
+g = 9.81 m s⁻².
 
 The reduction to sea level goes through a fictitious column of air
 below the station, of assumed gradient 0.0065 K/gpm, "feasible for
@@ -144,6 +166,9 @@ geometric altitudes, with r = 6 356 766 m, is that of ISO 2533
 | temperature against geopotential height | `itu_r_p835_temperature` | ITU-R P.835-7, equations 2a to 2g |
 | pressure against geopotential height | `itu_r_p835_pressure` | ITU-R P.835-7, equations 3a to 3g |
 | pressure altitude, in closed form up to 47 km | `iso2533_pressure_altitude` | ISO 2533, Addendum 1 (1985), 2.1 to 2.4 |
+| pressure against pressure altitude, its inverse | `iso2533_pressure` | ISO 2533, Addendum 1 (1985), 2.1 to 2.4 |
+| temperature against geopotential altitude, −5 to 80 km | `iso2533_temperature` | ISO 2533, equation 11 and Table 4; Addendum 2 (1997) below −2 km |
+| temperature, pressure of one layer | `iso2533_temperature_layer`, `iso2533_pressure_layer_gradient`, `iso2533_pressure_layer_isothermal` | ISO 2533, equations 11, 12 and 13 |
 | pressure altitude, in feet | `nws_pressure_altitude` | NWS calculation sheet |
 
 Each layer of the pressure is the general form of the U.S. Standard
@@ -174,7 +199,15 @@ The formula of the NWS, with rounded constants, gives 5572.10 m at
 500 hPa: 2.3 m lower. ISO 2533's Addendum 1 gives the pressure altitude
 in closed form, layer by layer from −1 450 to 47 000 m, from which its
 hypsometrical tables are printed: 5574.43 m at 500 hPa, 1 cm from the
-inversion of P.835.
+inversion of P.835. Its pressure against the altitude, `iso2533_pressure`,
+is written in the same equations: the two agree within the precision of
+their printed coefficients, a few millimetres. The ISO temperature holds
+from −2 to 80 km in the standard itself and from −5 to +2 km in its
+Addendum 2, which extrapolates the troposphere: two citations, whose
+domains add up. The ISO layers (equations 12 and 13) take the specific
+gas constant of the standard, 287.052 87 J/(kg K), where the U.S.
+Standard Atmosphere writes R*/M_0: a relative difference of 10⁻⁶ in the
+pressure at 11 km.
 
 `nomogram.plot.plot_profile` draws such a profile, the vertical
 coordinate along y (a pressure downwards on a logarithmic axis, a height
@@ -193,6 +226,30 @@ profile = nomo.comparison.compare(
 documentation = nomo.display.DisplayOptions.DOCUMENTATION
 ax = nomo.plot.plot_profile(profile, options=documentation)  # extra viz
 ```
+
+### Physical characteristics of the ISO standard atmosphere
+
+ISO 2533 derives the other characteristics of its atmosphere from the
+temperature, the pressure and the acceleration of free fall, for air
+"free from moisture and dust" taken as an ideal gas:
+
+| Quantity | Formulation | ISO 2533 |
+|---|---|---|
+| acceleration of free fall against geometric altitude | `iso2533_acceleration_of_free_fall` | equation 7 |
+| air density | `iso2533_air_density` | equation 14 |
+| pressure scale height | `iso2533_pressure_scale_height` | equation 16 |
+| speed of sound | `iso2533_speed_of_sound` | equation 21 |
+| dynamic viscosity (Sutherland) | `iso2533_dynamic_viscosity` | equation 22 |
+| kinematic viscosity | `iso2533_kinematic_viscosity`, and `iso2533_kinematic_viscosity_of_air` from the pressure and the temperature | equation 23 |
+| thermal conductivity | `iso2533_thermal_conductivity` | equation 24 |
+
+At mean sea level they give the values of its Table 3, such as 340.294
+m/s for the speed of sound and 8434.5 m for the pressure scale height.
+What the source restricts goes in `conditions`: the speed of sound is
+that of an infinitesimal perturbation, not of a shock wave, and
+Sutherland's law is "invalid for very high or very low temperatures"
+and above 90 km. Equation 7 comes with a precision, 0.001 % up to
+60 000 m, which is no validity domain.
 
 ## Interpolation between two levels
 
@@ -245,7 +302,9 @@ significant levels redundant.
 ## Humidity between two levels
 
 A humidity between two levels depends on the variable interpolated and
-on the coordinate it is interpolated in. MetPy 1.7.1, read in its code,
+on the coordinate it is interpolated in; at one level, it depends on the
+saturation formula too, and the gap between formulas grows aloft
+([Humidity aloft](humidity-aloft.md)). MetPy 1.7.1, read in its code,
 builds no variable of its own for that; FULL-POS, which produces ERA5's
 pressure levels, interpolates the humidities linearly in p:
 
@@ -542,6 +601,12 @@ the geopotential divided by 9.80665 m s⁻², "a fixed value in the IFS"
 follows the documentation of IFS cycle CY41R2; the equations used here
 have the same numbers in CY49R1 and CY50R1.
 
+On model levels, the pressure of each half level, between two layers,
+is A + B p_s (`ecmwf_ifs_half_level_pressure`, Part III, equation 2.11),
+where A and B are stored in the GRIB header of every field archived on
+model levels; that of a full level, the middle of a layer, is the half
+sum of the two half levels around it (`ecmwf_ifs_full_level_pressure`).
+
 ## Search
 
 `search("geopotential height")`, a CF name (`geopotential_height`) or a
@@ -551,4 +616,6 @@ level")`) finds the trade term, whose meanings name the kinds;
 (`references.sera2012`) lists what it defines. The keywords
 `vertical interpolation`, `isentropic` and `mixed layer` find the
 schemes and what is built from them, and `search(source="metpy171*")`
-what MetPy's code was read for.
+what MetPy's code was read for. The keywords `static stability`,
+`tropopause`, `dry static energy` and `model level` find the formulas of
+the IFS above.

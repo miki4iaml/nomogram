@@ -383,24 +383,47 @@ nature = "exact"
     assert "k of f" not in found.detail
 
 
-def test_a_ratio_constant_without_coefficients_is_held() -> None:
-    # sqrt(t^2) / t is 1 for t > 0, which SymPy does not conclude for a
-    # real t.
-    def plain(key: str, expression: str) -> str:
-        return (
-            exponential(key, 1.0)
-            .replace('"C * exp(a * t)"', f'"{expression}"')
-            .replace("coefficients = { C = 1.0, a = 0.07 }\n", "")
-        )
+def plain(key: str, expression: str) -> str:
+    """A formulation of t without coefficients, written for a test."""
+    return (
+        exponential(key, 1.0)
+        .replace('"C * exp(a * t)"', f'"{expression}"')
+        .replace("coefficients = { C = 1.0, a = 0.07 }\n", "")
+    )
 
+
+def test_a_ratio_constant_without_coefficients_is_held() -> None:
+    # sqrt((t - 100)^2) / (100 - t) is 1 for t < 100, which SymPy does
+    # not conclude, even for a positive t.
     document = relation("f", "g").replace("t = [-40.0, 50.0]", "t = [1.0, 50.0]")
     loaded = load_catalog(
-        [SOURCE + plain("f", "sqrt(t ** 2)") + plain("g", "t") + document]
+        [SOURCE + plain("f", "sqrt((t - 100) ** 2)") + plain("g", "100 - t") + document]
     )
     found = verify(loaded.relations["r"], loaded)
     assert found.status == "held"
     assert found.detail is not None
     assert "within the precision of the computation" in found.detail
+
+
+@pytest.mark.parametrize(
+    ("bounds", "status"),
+    [
+        # sqrt(t^2) / t is 1 for t > 0, which SymPy concludes only so.
+        ("t = [1.0, 50.0]", "proven"),
+        # -1 below zero, 1 above: no factor.
+        ("t = [-40.0, 50.0]", "refuted"),
+    ],
+)
+def test_a_ratio_constant_for_positive_inputs_is_proven(
+    bounds: str, status: str
+) -> None:
+    document = relation("f", "g").replace("t = [-40.0, 50.0]", bounds)
+    loaded = load_catalog(
+        [SOURCE + plain("f", "sqrt(t ** 2)") + plain("g", "t") + document]
+    )
+    found = verify(loaded.relations["r"], loaded)
+    assert found.status == status
+    assert ("positive inputs" in found.method) is (status == "proven")
 
 
 def test_a_salinity_is_moved_only_as_far_as_its_scales_go() -> None:

@@ -103,6 +103,24 @@ def feeds(output_kind: str, input_kind: str) -> bool:
     return output_kind == input_kind
 
 
+def _may_feed(output_kind: str, input_kind: str) -> bool:
+    """Whether a computed value may feed an input of a composition.
+
+    As :func:`feeds`; or a temperature in the same state, in kelvins or in
+    degrees Celsius; or the temperature of a point at which the receiving
+    formulation is evaluated (a dew or frost point, a wet- or ice-bulb
+    temperature), as a formulation of the catalog calling another may pass
+    it.
+    """
+    from nomogram.catalog import _EVALUATION_POINTS
+
+    return (
+        feeds(output_kind, input_kind)
+        or same_state(output_kind, input_kind)
+        or input_kind in _EVALUATION_POINTS.get(output_kind, ())
+    )
+
+
 def _arguments(formulation: Evaluable, values: Mapping[str, Any]) -> dict[str, Any]:
     arguments = {}
     fed: dict[str, list[str]] = {}
@@ -180,6 +198,7 @@ def compare(
     reference: Evaluable,
     inputs: Mapping[str, Any],
     *,
+    kind: str | None = None,
     outside: Outside = "nan",
     basis: Basis = "stated",
     scale: ScaleConversion = "convert",
@@ -196,6 +215,12 @@ def compare(
         One value per quantity kind, for example
         ``{"ThermodynamicTemperature": Q_(grid, "degC")}``; numpy arrays
         give the whole table in one pass.
+    kind : str, optional
+        A quantity kind every formulation, the reference included,
+        computes or specializes: asked for, it compares formulations of
+        sibling kinds, as saturation over ice against saturation over
+        water, both a ``"SaturationVapourPressure"``. By default, every
+        formulation computes the reference's kind.
     outside, basis, scale
         Passed to each evaluation (see
         :meth:`nomogram.model.Formulation.evaluate`). ``"nan"`` keeps
@@ -210,17 +235,21 @@ def compare(
     Raises
     ------
     ValueError
-        If a formulation computes another kind than the reference, an input
+        If a formulation computes another kind than the reference (or,
+        with ``kind``, a kind that does not specialize it), an input
         cannot be matched to exactly one value, or one value would feed
         several inputs of a formulation (fix the others with :func:`partial`).
     """
-    kind = reference.output.kind
     unit = None
     values: dict[str, Any] = {}
     candidates = [reference, *(f for f in formulations if f.key != reference.key)]
     for formulation in candidates:
-        if formulation.output.kind != kind:
-            msg = f"{formulation.key} computes {formulation.output.kind}, not {kind}"
+        computed = formulation.output.kind
+        if kind is None and computed != reference.output.kind:
+            msg = f"{formulation.key} computes {computed}, not {reference.output.kind}"
+            raise ValueError(msg)
+        if kind is not None and not feeds(computed, kind):
+            msg = f"{formulation.key} computes {computed}, which does not specialize {kind}"
             raise ValueError(msg)
         result = formulation.evaluate(
             outside=outside, basis=basis, scale=scale, **_arguments(formulation, inputs)
@@ -341,7 +370,10 @@ def compose(
     inner : mapping of str to Formulation
         For some inputs of ``outer``, by identifier, the formulation that
         computes them; its output kind must be the input's kind or a
-        specialization of it (see :func:`feeds`).
+        specialization of it (see :func:`feeds`), a temperature in the
+        same state (kelvins and degrees Celsius), or the temperature of a
+        point at which ``outer`` is evaluated: a dew point feeds the
+        temperature of a saturation vapour pressure.
     bind : mapping of str to str, optional
         Inputs of inner formulations to take from inputs of ``outer``, by
         identifier, for example ``{"t": "T"}``: the binding is declared,
@@ -367,7 +399,7 @@ def compose(
         if target is None:
             msg = f"{outer.key} has no input {identifier!r}"
             raise ValueError(msg)
-        if not feeds(formulation.output.kind, target.kind):
+        if not _may_feed(formulation.output.kind, target.kind):
             msg = (
                 f"{formulation.key} computes {formulation.output.kind}, "
                 f"but {identifier} is {target.kind}"

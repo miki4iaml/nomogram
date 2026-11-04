@@ -63,8 +63,8 @@ import sympy
 
 from nomogram.comparison import same_state
 from nomogram.expression import (
-    MAX_SOURCE_LENGTH,
     Piecewise,
+    _numeric,
     compile_numeric,
     parse_expression,
 )
@@ -597,12 +597,37 @@ def _same_conditions(left: Any, right: Any) -> bool:
 
 
 def _written(subject: Formulation, other: Formulation) -> bool:
-    """Whether both expressions are of a written length, which SymPy simplifies.
+    """Whether both expressions are written ones, which SymPy simplifies.
 
-    SymPy's simplification has no bound on its cost: an expression longer
-    than a written one (a derived formulation) is decided on samples.
+    SymPy's simplification has no bound on its cost: a relation involving
+    a derived formulation (a composition, branches, calls), whatever its
+    length, is decided on samples. Two compositions of 1 875 characters,
+    within the length of a written expression, did not simplify in 280 s.
     """
-    return max(len(subject.expression), len(other.expression)) <= MAX_SOURCE_LENGTH
+    return subject.derivation is None and other.derivation is None
+
+
+#: What a proof under positive inputs adds to the method of a verdict.
+POSITIVE = "; proven for positive inputs, as the bounds of the relation are"
+
+
+def _positive(relation: Relation, *exprs: Any) -> dict[Any, Any]:
+    """Positive symbols for the inputs, when the bounds of the relation make them so.
+
+    Empty unless every input has bounds, all above zero, and no expression
+    is piecewise. Identities of logarithms and of fractional powers
+    (``log10(x*y)``, ``(p/q)**k``) need positive inputs: a proof with them,
+    tried when the plain one fails, holds where the relation is stated.
+    """
+    if any(e.has(sympy.Piecewise) for e in exprs):
+        return {}
+    symbols: set[Any] = set().union(*(e.free_symbols for e in exprs))
+    bounds = relation.bounds
+    if not symbols or any(
+        s.name not in bounds or bounds[s.name][0] <= 0 for s in symbols
+    ):
+        return {}
+    return {s: sympy.Symbol(s.name, positive=True) for s in symbols}
 
 
 def _difference(left: Any, right: Any, *, simplify: bool = True) -> Any:
@@ -612,7 +637,7 @@ def _difference(left: Any, right: Any, *, simplify: bool = True) -> Any:
     branch; otherwise their difference is not simplified (SymPy would
     combine the conditions, at a cost without bound), and the search for a
     counterexample on samples decides. So it goes with ``simplify=False``,
-    for expressions longer than a written one.
+    for a derived expression.
     """
     if _same_conditions(left, right):
         branches = [
@@ -688,10 +713,16 @@ def _equivalence(
     written = _written(subject, other)
     if not written:
         method = method.replace("simplified with SymPy", "compared on samples")
-        method += "; an expression longer than a written one is not simplified"
+        method += "; a derived expression is not simplified"
     simplified = _difference(left, right, simplify=written)
     if simplified == 0:
         return Verdict("proven", method)
+    positive = _positive(relation, left, right) if written else {}
+    if (
+        positive
+        and sympy.simplify(sympy.expand_func(simplified.xreplace(positive))) == 0
+    ):
+        return Verdict("proven", method + POSITIVE)
     # Look for a counterexample on positive values, or on the stated domain,
     # where both sides are real: outside, the formulations mean nothing.
     symbols = sorted(simplified.free_symbols | left.free_symbols, key=lambda s: s.name)
@@ -802,7 +833,7 @@ def _ratio_check(
     refuted), where it strays most, and the share of the samples compared.
     """
     symbols, columns = _samples(relation, subject, points)
-    function = sympy.lambdify(symbols, left / right, "numpy")
+    function = _numeric(symbols, left / right)
     with np.errstate(all="ignore"):
         ratios = np.broadcast_to(np.asarray(function(*columns), dtype=float), (points,))
     usable = np.isfinite(ratios) & (ratios != 0)
@@ -840,7 +871,7 @@ def _ratio_check(
     for label, derivative, step in sensitivities:
         if step == 0:
             continue
-        function = sympy.lambdify(symbols, derivative, "numpy")
+        function = _numeric(symbols, derivative)
         with np.errstate(all="ignore"):
             values = np.broadcast_to(
                 np.asarray(function(*columns), dtype=float), logs.shape
@@ -998,20 +1029,18 @@ def _scale_text(
         return "no input with a conventional scale"
     found = []
     blind = []
-    shift = sympy.Symbol("_shift", real=True)
+    shift = sympy.Dummy("shift", real=True)
     for index, variable in candidates:
         x = symbols[index]
         most, factor = _scale_windows(variable, columns[index], catalog)
         moves = [("a shift", x + shift, -most, most)] if most else []
-        if sympy.simplify(x * sympy.diff(sympy.log(right), x)).free_symbols:
+        if not _power_of(right, x, symbols, columns):
             if factor:
                 moves.append(("a factor", x * shift, 1 - factor, 1 + factor))
         else:
             blind.append(variable.identifier)
         for name, image, low, high in moves:
-            moved = sympy.lambdify(
-                [*symbols, shift], left / right.xreplace({x: image}), "numpy"
-            )
+            moved = _numeric([*symbols, shift], left / right.xreplace({x: image}))
 
             def worst(value: float, moved: Any = moved) -> float:
                 with np.errstate(all="ignore"):
@@ -1047,6 +1076,26 @@ def _scale_text(
     )
     tried = f"no shift of {names}" + (f" nor factor of {factors}" if factors else "")
     return "; ".join([f"{tried} {within} makes them as close", *notes])
+
+
+def _power_of(expr: Any, x: Any, symbols: list[Any], columns: list[Any]) -> bool:
+    """Whether an expression is proportional to a power of ``x``, on the samples.
+
+    It is when x d(ln f)/dx is constant. The derivative is evaluated on the
+    samples rather than simplified: SymPy's simplification of a derived
+    expression has no bound on its cost (more than 150 s for a composition
+    of 1 115 characters).
+    """
+    elasticity = _numeric(symbols, x * sympy.diff(sympy.log(expr), x))
+    with np.errstate(all="ignore"):
+        values = np.broadcast_to(
+            np.asarray(elasticity(*columns), dtype=float), np.shape(columns[0])
+        )
+    values = values[np.isfinite(values)]
+    if not values.size:
+        return False
+    spread = float(values.max() - values.min())
+    return spread <= EQUALITY_TOLERANCE * max(float(np.abs(values).max()), 1.0)
 
 
 def _golden(function: Any, low: float, high: float, steps: int = 80) -> float:
@@ -1088,11 +1137,18 @@ def _proportionality(
         method += f"; scales ignored: {'; '.join(differences)}"
     left, right, replacements = _sides(relation, subject, other)
     ratio = sympy.nsimplify(left / right, rational=True)
-    if _written(subject, other):
+    written = _written(subject, other)
+    if written:
         ratio = sympy.simplify(ratio)
     else:
         method = method.replace("simplified with SymPy", "not simplified")
-        method += ", an expression longer than a written one"
+        method += ", a derived expression"
+    positive = _positive(relation, left, right) if written else {}
+    if ratio.free_symbols and positive:
+        retried = sympy.simplify(sympy.expand_func(ratio.xreplace(positive)))
+        if not retried.free_symbols:
+            ratio = retried
+            method += POSITIVE
     if not ratio.free_symbols:
         factor = float(ratio)
         detail, _ = _factor_text(factor, subject, other)

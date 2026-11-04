@@ -12,8 +12,8 @@ neither rdflib nor any network access is needed then.
 Never edit ``semantics.json`` by hand: change the selection below and run
 the script again. Sources (download them into a local folder first):
 
-- QUDT 3.5.2 (CC BY 4.0),
-  ``https://raw.githubusercontent.com/qudt/qudt-public-repo/v3.5.2/src/main/rdf/``
+- QUDT 3.5.3 (CC BY 4.0),
+  ``https://raw.githubusercontent.com/qudt/qudt-public-repo/v3.5.3/src/main/rdf/``
   + ``vocab/quantitykinds/VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl`` and
   ``vocab/unit/VOCAB_QUDT-UNITS-ALL.ttl``;
 - CF standard name table 95 (CC0 1.0),
@@ -21,7 +21,7 @@ the script again. Sources (download them into a local folder first):
 
 Usage::
 
-    uv run python scripts/extract_semantics.py --qudt-version 3.5.2 \\
+    uv run python scripts/extract_semantics.py --qudt-version 3.5.3 \\
         --kinds VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl \\
         --units VOCAB_QUDT-UNITS-ALL.ttl \\
         --cf cf-standard-name-table.xml \\
@@ -72,6 +72,9 @@ class KindSpec(NamedTuple):
     #: surface rather than a unit (altitude) takes multiplicative units;
     #: ``"any"`` takes both (a temperature point written in degC or in K).
     offset_units: bool | Literal["any"] | None = None
+    #: Date its links were read, for a kind added after the extraction date
+    #: of the others; the extraction date by default.
+    checked: str | None = None
 
 
 #: Quantity kinds kept, by QUDT local name.
@@ -112,7 +115,7 @@ KINDS: dict[str, KindSpec] = {
     "TemperatureDifference": KindSpec("ratio", delta=True),
     # ISO 80000 psi = x / x_sat, the mixing ratio over its saturation value:
     # the "relative humidity" r / r_sat of some textbooks (TEOS-10 3.40.2).
-    # QUDT 3.5.2 declares the unit 1; a ratio, it takes % too.
+    # QUDT 3.5.3 declares the unit 1; a ratio, it takes % too.
     "RelativeMassRatioOfVapour": KindSpec(
         "ratio",
         delta=False,
@@ -121,7 +124,7 @@ KINDS: dict[str, KindSpec] = {
     # p / p_sat over either phase, the parent of the relative humidity (with
     # respect to water, as QUDT defines it) under which the catalog declares
     # the relative humidity with respect to ice as its sibling: one must
-    # not feed an input of the other. QUDT 3.5.2 gives it no unit; a ratio,
+    # not feed an input of the other. QUDT 3.5.3 gives it no unit; a ratio,
     # it takes 1 and %.
     "RelativePartialPressure": KindSpec(
         "ratio",
@@ -192,7 +195,7 @@ KINDS: dict[str, KindSpec] = {
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
     # kind for either (nomogram defines them in the sea-water family). QUDT
-    # 3.5.2 gives MassFraction FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM;
+    # 3.5.3 gives MassFraction FRACTION, PERCENT and UNITLESS;
     # CF writes salinities in 1e-3 (per mille) and g/kg, added here.
     "MassFraction": KindSpec(
         "ratio",
@@ -242,6 +245,21 @@ KINDS: dict[str, KindSpec] = {
     # The parent of the geodetic latitude (catalog), in normal gravity
     # formulas.
     "PlaneAngle": KindSpec("ratio", delta=False),
+    # ISO 2533: the speed of sound (equation 21), the dynamic viscosity of
+    # Sutherland (22), the kinematic viscosity (23) and the thermal
+    # conductivity (24) of air. CF names the speed of sound by its medium.
+    "SpeedOfSound": KindSpec(
+        "ratio", delta=False, cf_standard_names=(("speed_of_sound_in_air", "narrow"),)
+    ),
+    "DynamicViscosity": KindSpec("ratio", delta=False),
+    "KinematicViscosity": KindSpec("ratio", delta=False),
+    "ThermalConductivity": KindSpec("ratio", delta=False),
+    # The IFS: the parent of the square of the Brunt-Vaisala frequency
+    # (catalog), in s-2.
+    "InverseSquareTime": KindSpec("ratio", delta=False),
+    # The IFS: the extinction coefficient of its visibility, in m-1;
+    # QUDT's LinearAttenuationCoefficient, narrower, declares no unit.
+    "AttenuationCoefficient": KindSpec("ratio", delta=False, checked="2026-11-04"),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -294,7 +312,20 @@ UNITS: dict[str, str] = {
     # Angles: the latitude, in radians where sin or cos take it.
     "RAD": "radian",
     "DEG": "degree",
+    # ISO 2533 and the IFS: the viscosities, the thermal conductivity of
+    # air, and the square of a frequency.
+    "PA-SEC": "Pa*s",
+    "M2-PER-SEC": "m^2/s",
+    "W-PER-M-K": "W/(m*K)",
+    "PER-SEC2": "1/s^2",
+    # The IFS: the extinction coefficient of the visibility.
+    "PER-M": "1/m",
+    "PER-KiloM": "1/km",
 }
+
+#: Date the links of a unit added after the extraction date of the
+#: others were read; the extraction date for the others.
+UNITS_CHECKED: dict[str, str] = {"PER-M": "2026-11-04", "PER-KiloM": "2026-11-04"}
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
 #: in the frozen subset so that the catalog can check them.
@@ -327,6 +358,18 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "height_above_reference_ellipsoid",
     "geoid_height_above_reference_ellipsoid",
     "latitude",
+    # Static stability (ECMWF IFS).
+    "square_of_brunt_vaisala_frequency_in_air",
+    # Surface layer (boundary-layer family, ECMWF IFS).
+    "atmosphere_obukhov_length",
+    "magnitude_of_surface_friction_velocity_in_air",
+    "surface_roughness_length_for_momentum_in_air",
+    "surface_roughness_length_for_heat_in_air",
+    "surface_roughness_length_for_humidity_in_air",
+    "surface_drag_coefficient_for_momentum_in_air",
+    "surface_drag_coefficient_for_heat_in_air",
+    "sea_ice_area_fraction",
+    "visibility_in_air",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
@@ -344,6 +387,8 @@ SYMBOLS: dict[str, str] = {
     "PER-MOL": "mol⁻¹",
     # Likewise "/K" for QUDT, K⁻¹ for the SI Brochure.
     "PER-K": "K⁻¹",
+    # And "/s²" for QUDT, s⁻² for the SI Brochure.
+    "PER-SEC2": "s⁻²",
 }
 
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
@@ -470,7 +515,10 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
             "ucum": _value(graph, subject, QUDT.ucumCode),
             "udunits": _value(graph, subject, QUDT.udunitsCode),
             "pint": pint_expression,
-            "matches": _matches(_value(graph, subject, QUDT.wikidataMatch), date),
+            "matches": _matches(
+                _value(graph, subject, QUDT.wikidataMatch),
+                UNITS_CHECKED.get(name, date),
+            ),
         }
     return units
 
@@ -517,12 +565,14 @@ def extract_kinds(
             "delta": spec.delta,
             "applicable_units": sorted(applicable | added),
             "added_units": sorted(added),
-            "matches": _matches(_value(graph, subject, QUDT.wikidataMatch), date)
+            "matches": _matches(
+                _value(graph, subject, QUDT.wikidataMatch), spec.checked or date
+            )
             + [
                 {
                     "target": f"{CF_NAMESPACE}{cf}/",
                     "relation": relation,
-                    "verified": date,
+                    "verified": spec.checked or date,
                 }
                 for cf, relation in spec.cf_standard_names
             ],

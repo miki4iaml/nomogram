@@ -78,11 +78,16 @@ label = "Relative Humidity with respect to Ice"
 specialization_of = "RelativePartialPressure"
 description = "Relative humidity of moist air with respect to ice: the vapour mole fraction over the one the air would have if saturated with respect to a plane surface of ice at the same pressure and temperature. A sibling of the relative humidity, which QUDT defines with respect to water, as WMO-No. 8 evaluates it even below 0 degC (4.A, para. 17): it never feeds a relative humidity input."
 
+[kinds.MixedPhaseLiquidFraction]
+label = "Mixed-Phase Liquid Fraction"
+specialization_of = "MassFraction"
+description = "Liquid part, by mass, of the condensed water (liquid and ice, as CF calls it), when both coexist below the triple point; the IFS diagnoses it from the temperature and weights with it the saturation functions and the latent heats of water and ice, calling it the mixed phase parameter. No CF standard name, QUDT kind or Wikidata item (checked 2026-11-04)."
+
 [kinds.MoleFractionOfWaterVapour]
 label = "Mole Fraction of Water Vapour"
 specialization_of = "MoleFraction"
-description = "Number of moles of water vapour over the total number of moles of a sample of moist air."
-cf_standard_names = [{ name = "mole_fraction_of_water_vapor_in_air", relation = "exact", verified = 2026-10-26 }]
+description = "Number of moles of water vapour over the total number of moles of a gas mixture, such as moist air."
+cf_standard_names = [{ name = "mole_fraction_of_water_vapor_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SaturationMixingRatioOverWater]
 label = "Saturation Mixing Ratio over Water"
@@ -106,8 +111,8 @@ matches = [
 [kinds.PotentialTemperature]
 label = "Potential Temperature"
 specialization_of = "ThermodynamicTemperature"
-description = "Temperature a parcel of air would reach if brought adiabatically to a reference pressure, usually 1000 hPa."
-cf_standard_names = [{ name = "air_potential_temperature", relation = "exact", verified = 2026-10-26 }]
+description = "Temperature a parcel of fluid would reach if brought adiabatically to a reference pressure, usually 1000 hPa in the atmosphere."
+cf_standard_names = [{ name = "air_potential_temperature", relation = "narrow", verified = 2026-11-04 }]
 matches = [
   { target = "http://www.wikidata.org/entity/Q760765", relation = "exact", verified = 2026-10-26 },
 ]
@@ -131,9 +136,23 @@ label = "Density of Moist Air"
 specialization_of = "Density"
 description = "Mass of moist air, dry air and water vapour, per unit volume."
 cf_standard_names = [{ name = "air_density", relation = "exact", verified = 2026-10-26 }]
-# The Wikidata item is the density of the Earth's atmosphere.
+# The Wikidata item is the density of the Earth's atmosphere, moist or
+# dry: broader than this kind and than DensityOfDryAir.
 matches = [
-  { target = "http://www.wikidata.org/entity/Q1511415", relation = "close", verified = 2026-10-26 },
+  { target = "http://www.wikidata.org/entity/Q1511415", relation = "broad", verified = 2026-11-04 },
+]
+
+# Siblings under Density: the density of a dry air, without water vapour,
+# never feeds an input of the density of moist air, nor the reverse. The
+# partial density of dry air within moist air, its mass per volume of
+# moist air, is a third quantity, not entered.
+
+[kinds.DensityOfDryAir]
+label = "Density of Dry Air"
+specialization_of = "Density"
+description = "Mass per unit volume of air without water vapour, p / (R_d T) at the pressure of the dry air alone: the air of the ISO standard atmosphere, free from moisture and dust (ISO 2533, 2.1). Not the partial density of dry air within moist air, its mass per volume of moist air."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1511415", relation = "broad", verified = 2026-11-04 },
 ]
 
 [kinds.MassRatioOfTotalWaterToDryGas]
@@ -183,7 +202,16 @@ title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
 doi = "10.21957/c731ee1102"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197."
+note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197. Chapter 3 (p. 46): the dry static energy, eq. 3.5. Section 5.3 (p. 86): the Brunt-Vaisala frequency in height coordinate, eq. 5.2. Section 6.12 (p. 108): the stability tropopause, eqs. 6.77-6.79, with N_0^2 = 2.5e-4 s-2. Section 12.2 (p. 245): a = 6371229 m, g = 9.80665 m s-2 and Phi = g z. Section 12.6 (p. 247): the basic state variables, eqs. 12.3-12.7. Section 12.9 (p. 250): s = c_pd T + Phi, eq. 12.36. Section 6.11 (p. 107): the temperature and the pressure of the lifting condensation level, eq. 6.74, after Davies-Jones (1983). The same equation numbers in CY50R1."
+
+[references.davies_jones1983]
+authors = "Davies-Jones, R."
+year = 1983
+title = "An accurate theoretical approximation for adiabatic condensation temperature"
+container = "Monthly Weather Review, 111, 1119-1121"
+doi = "10.1175/1520-0493(1983)111<1119:AATAFA>2.0.CO;2"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 6.11) for the temperature of the lifting condensation level, equation 6.74; not read. DOI checked with Crossref on 2026-11-04."
 
 [references.bechtold2015]
 authors = "Bechtold, P."
@@ -317,6 +345,38 @@ identifier = "L_v0"
 value = 2.50084e6
 unit = "J-PER-KiloGM"
 description = "Specific latent heat of vaporization of MetPy, at its reference temperature 273.16 K"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.L_f_metpy]
+identifier = "L_f"
+value = 3.337e5
+unit = "J-PER-KiloGM"
+description = "Specific latent heat of fusion of MetPy (water_heat_fusion), its latent heat of sublimation being L_v0 + L_f"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.c_i_metpy]
+identifier = "c_i"
+value = 2090
+unit = "J-PER-KiloGM-K"
+description = "Specific heat of ice of MetPy (ice_specific_heat)"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.T_0_metpy]
+identifier = "T_0"
+value = 273.16
+unit = "K"
+description = "Triple point temperature of water of MetPy (T0, water_triple_point_temperature), its reference for both phases"
+reference = "metpy171"
+nature = "conventional"
+
+[constants.e_s0_metpy]
+identifier = "e_s0"
+value = 6.112
+unit = "HectoPA"
+description = "Saturation vapour pressure of MetPy at its reference temperature (sat_pressure_0c, 6.112 millibar), for both phases"
 reference = "metpy171"
 nature = "conventional"
 
@@ -1047,6 +1107,99 @@ inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Pressure of moist air" },
 ]
+
+# The inverses the producers of humidity data print: a dew or frost point
+# from the vapour pressure, by Vaisala (2013) and by Hardy (1998), whose
+# formulation Vaisala's RS41 radiosonde uses (UAII 2022, Table 3.3).
+
+[formulations.vaisala2013_dew_point]
+label = "Dew point from the vapour pressure, inverse of Vaisala's simplified form (2013)"
+expression = "B / (A / log10(e / C) - 1)"
+fixed_units = true
+note = "Equation 7, the explicit inverse of equation 6 (vaisala2013_water) with the same constants, those of Table 1 from -20 to +50 degC: the range of the dew point, an output, stays in this note. The source's example (p. 8): 36.88 hPa gives 27.6 degC; it prints 36.88 hPa for half of Pws(40 degC), where equation 6 gives 36.91 hPa and equation 3 36.93 hPa."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+coefficients = { A = 7.591386, B = 240.7263, C = 6.116441 }
+keywords = ["dew point"]
+
+[[formulations.vaisala2013_dew_point.citations]]
+reference = "vaisala2013"
+equation = "7"
+notation = { t_d = 'T_d', e = 'P_w', C = "A", A = "m", B = 'T_n' }
+
+[formulations.hardy1998_dew_point]
+label = "Dew point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation on ITS-90"
+expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2 + c3 * ln(e) ** 3) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
+fixed_units = true
+note = "Equation 4, fitted to equation 2 (hardy1998_water) from -100 to 100 degC, which it reproduces within 0.3 mK: the range of the dew point, an output, stays in this note. The vapour pressure in Pa, the dew point in K."
+output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+]
+keywords = ["dew point", "radiosonde"]
+
+[formulations.hardy1998_dew_point.coefficients]
+c0 = { value = 2.0798233e2, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+c1 = { value = -2.0156028e1, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+c2 = { value = 4.6778925e-1, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+c3 = { value = -9.2288067e-6, unit = "K", unit_basis = "added", note = "implied by the dew point in K over a dimensionless denominator: the source prints it without unit" }
+d0 = { value = 1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d1 = { value = -1.3319669e-1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d2 = { value = 5.6577518e-3, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d3 = { value = -7.5172865e-5, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+
+[[formulations.hardy1998_dew_point.citations]]
+reference = "hardy1998"
+equation = "4"
+notation = { e = 'e_s' }
+scales = { T_d = "its90" }
+
+[formulations.hardy1998_frost_point]
+label = "Frost point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation over ice on ITS-90"
+expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
+fixed_units = true
+note = "Equation 5, fitted to equation 3 (hardy1998_ice) from -150 to 0.01 degC, which it reproduces within 0.1 mK: the range of the frost point, an output, stays in this note. The vapour pressure in Pa, the frost point in K."
+output = { identifier = "T_f", kind = "FrostPointTemperature", unit = "K", description = "Frost point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+]
+keywords = ["frost point", "radiosonde"]
+
+[formulations.hardy1998_frost_point.coefficients]
+c0 = { value = 2.1257969e2, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+c1 = { value = -1.0264612e1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+c2 = { value = 1.4354796e-1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+d0 = { value = 1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d1 = { value = -8.2871619e-2, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d2 = { value = 2.3540411e-3, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d3 = { value = -2.4363951e-5, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+
+[[formulations.hardy1998_frost_point.citations]]
+reference = "hardy1998"
+equation = "5"
+notation = { e = 'e_s' }
+scales = { T_f = "its90" }
+
+[formulations.vaisala2013_absolute_humidity]
+label = "Absolute humidity of an ideal gas from the vapour pressure, Vaisala (2013)"
+expression = "C * e / T"
+fixed_units = true
+note = "Equation 17. The source gives C = 2.16679 g K/J, which no unit of the bundled QUDT subset expresses: the formula holds in its units, the vapour pressure in Pa, the temperature in K and the absolute humidity in g/m3. 1000/C = 461.51 J/(kg K) is the specific gas constant of water vapour (deduced). The source's example: 1870 Pa at 20 degC give 13.82 g/m3 (p. 14). The inverse form of itu_r_p453_vapour_pressure_from_density."
+output = { identifier = "rho_v", kind = "MassConcentrationOfWaterVapour", unit = "GM-PER-M3", description = "Absolute humidity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+coefficients = { C = 2.16679 }
+keywords = ["humidity", "absolute humidity"]
+
+[[formulations.vaisala2013_absolute_humidity.citations]]
+reference = "vaisala2013"
+equation = "17"
+notation = { rho_v = "A", e = 'P_w' }
+assumptions = ["The gas as an ideal gas (p. 14)."]
 
 [formulations.wmo_psychrometer_water]
 label = "Vapour pressure from an Assmann psychrometer with a wet bulb, WMO Guide (CIMO)"
@@ -1828,6 +1981,10 @@ notation = { e_sat = 'e_{\mathrm{sat,l}}' }
 note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is a4 = 32.19 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
 units = { e_0 = "PA", B = "K" }
 
+[[formulations.ecmwf_ifs_saturation_water.citations]]
+reference = "buck1981"
+note = "As the IFS names it: 'the parameters set according to Buck (1981) for saturation over water' (7.5, p. 116; 7.100, p. 136)."
+
 [formulations.ecmwf_ifs_saturation_ice]
 label = "Saturation vapour pressure over ice, Magnus form in kelvins, ECMWF IFS"
 expression = "e_0 * exp(A * (T - T_0) / (T + B))"
@@ -1851,6 +2008,180 @@ equation = "12.10"
 notation = { e_sat = 'e_{\mathrm{sat,i}}' }
 note = "With e_0 = e_sat(T_0) = 611.21 Pa, equation 12.11; B is -a4, a4 = -0.7 K of equation 7.5 (section 7.2.1, p. 116; again in 7.5.2, p. 136)."
 units = { e_0 = "PA", B = "K" }
+
+[[formulations.ecmwf_ifs_saturation_ice.citations]]
+reference = "alduchov_eskridge1996"
+note = "As the IFS names it: 'the AERKi formula of Alduchov and Eskridge (1996) for saturation over ice' (7.5, p. 116; 7.100, p. 136). The form of the journal article, in degrees Celsius, is not read."
+
+# Mixed phase: the IFS interpolates its saturation functions, and its
+# latent heats, between water and ice with the liquid fraction of the
+# condensate, quadratic in temperature between 250.16 K and the triple
+# point (7.6 and 7.101; 12.12 to 12.16, T_i = 23 K). The diagnostic
+# relative humidity of 7.5.2 takes the same saturation (7.99): with
+# respect to water above "0 degC", to ice below "-23 degC", in the words
+# of the text for 273.16 and 250.16 K.
+
+[formulations.ecmwf_ifs_mixed_phase_fraction]
+label = "Liquid fraction of the condensate in mixed phase, quadratic in temperature between 250.16 and 273.16 K (IFS)"
+expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_ice < T < T_0), (1, T >= T_0))"
+fixed_units = false
+output = { identifier = "alpha", kind = "MixedPhaseLiquidFraction", unit = "UNITLESS", description = "Liquid fraction of the condensate" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { T_ice = 250.16 }
+constants = ["T_0_ecmwf_ifs"]
+keywords = ["mixed phase", "mixed phase parameter", "supercooled water", "IFS"]
+
+[[formulations.ecmwf_ifs_mixed_phase_fraction.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "7.101"
+units = { T_ice = "K" }
+notation = { alpha = '\alpha', T_ice = 'T_{\mathrm{ice}}' }
+note = "The same function as 7.6 (p. 116), the liquid fraction of the condensate that convection detrains, and as 12.12 to 12.14 (p. 247), written ((T - T_0 + T_i)/T_i)^2 with T_i = 23 K for the saturation (38 K for convection, whose freezing goes down to 235.16 K, 6.43)."
+
+[formulations.ecmwf_ifs_saturation_mixed_phase]
+label = "Saturation vapour pressure over water, over ice or in mixed phase, from the temperature (IFS)"
+expression = "alpha(T=T) * e_l(T=T) + (1 - alpha(T=T)) * e_i(T=T)"
+calls = { alpha = "ecmwf_ifs_mixed_phase_fraction", e_l = "ecmwf_ifs_saturation_water", e_i = "ecmwf_ifs_saturation_ice" }
+fixed_units = false
+note = "Over ice below 250.16 K, over water from 273.16 K, in between weighted by the liquid fraction of the condensate; the forms over water and over ice are those the IFS names, Buck (1981) and the AERKi formula of Alduchov and Eskridge (1996)."
+output = { identifier = "e_sat", kind = "SaturationVapourPressure", unit = "PA", description = "Saturation vapour pressure" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+keywords = ["saturation", "mixed phase", "relative humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_saturation_mixed_phase.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.16"
+notation = { e_sat = 'e_{\mathrm{sat}}' }
+note = "With 12.9, 12.10 and 12.12 to 12.14; the same as 7.99 with 7.100 and 7.101 (p. 135-136), for the diagnostic relative humidity."
+
+# Basic state variables of the ECMWF IFS (CY49R1, Part IV, section 12.6,
+# p. 247), with its constants: the physics computes the air density from
+# the virtual temperature without condensates.
+
+[formulations.ecmwf_ifs_specific_humidity_from_vapour_pressure]
+label = "Specific humidity from vapour pressure, ECMWF IFS"
+expression = "epsilon * e / (p - (1 - epsilon) * e)"
+fixed_units = false
+output = { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+]
+constants = ["epsilon_ecmwf_ifs"]
+keywords = ["humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_specific_humidity_from_vapour_pressure.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.4"
+notation = { q = 'q_{\mathrm{v}}' }
+assumptions = ["The pressure of moist air is the sum of the partial pressures of dry air and water vapour, p = p_d + e (12.3)."]
+
+[formulations.ecmwf_ifs_virtual_temperature]
+label = "Virtual temperature from the temperature and the specific humidity, without condensates, ECMWF IFS"
+expression = "T * (1 + (R_v / R_d - 1) * q)"
+fixed_units = false
+note = "Equation 12.7 without the specific masses of liquid water, ice, rain and snow: the form the physics uses for the air density. The factor is epsilon* = R_v / R_d - 1 (12.5), which the IFS does not print as a number."
+output = { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of moist air" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity" },
+]
+constants = ["R_v_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["virtual temperature", "humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_virtual_temperature.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.7"
+notation = { q = 'q_{\mathrm{v}}', R_v = 'R_{\mathrm{v}}', R_d = 'R_{\mathrm{d}}' }
+note = "Text under equation 12.7: 'when air density is required in the physics it is computed using T_v = (1 + epsilon* q_v) T only'."
+assumptions = ["The specific volume of the condensed water phases neglected (text under 12.7).", "No condensate: liquid water, ice, rain and snow left out."]
+
+[formulations.ecmwf_ifs_density]
+label = "Density of moist air from the pressure and the virtual temperature, ECMWF IFS"
+expression = "p / (R_d * T_v)"
+fixed_units = false
+output = { identifier = "rho", kind = "DensityOfMoistAir", unit = "KiloGM-PER-M3", description = "Density of moist air" }
+inputs = [
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Pressure of moist air" },
+  { identifier = "T_v", kind = "VirtualTemperature", unit = "K", description = "Virtual temperature" },
+]
+constants = ["R_d_ecmwf_ifs"]
+keywords = ["density", "virtual temperature", "equation of state", "IFS"]
+
+[[formulations.ecmwf_ifs_density.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.6"
+notation = { T_v = 'T_{\mathrm{v}}', R_d = 'R_{\mathrm{d}}' }
+
+[formulations.ecmwf_ifs_density_specific_humidity]
+label = "Density of moist air from the pressure, the temperature and the specific humidity, ECMWF IFS physics"
+composition = { outer = "ecmwf_ifs_density", inner = { T_v = "ecmwf_ifs_virtual_temperature" } }
+keywords = ["density", "humidity", "IFS"]
+
+[[formulations.ecmwf_ifs_density_specific_humidity.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "12.6"
+note = "With the virtual temperature without condensates, as the text under equation 12.7 says the physics computes the air density."
+
+# The lifting condensation level of the IFS diagnostics (6.11): its
+# temperature by the empirical formula of Davies-Jones (1983), then its
+# pressure from the potential temperature of the departure level.
+
+[formulations.ecmwf_ifs_lcl_temperature]
+label = "Temperature of the lifting condensation level from the temperature and the dew point (IFS, after Davies-Jones)"
+expression = "T_d - (a + b * (T_d - T_0) - c * (T - T_0)) * (T - T_d)"
+fixed_units = true
+note = "Equation 6.74, first line, at the departure model level of the parcel. The section does not define T_0; it is taken as the T_0 of the IFS, 273.16 K (section 12.5): 0.01 K more or less moves the result by less than 0.001 K."
+output = { identifier = "T_LCL", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the lifting condensation level" }
+inputs = [
+  { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point at the departure level" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the departure level" },
+]
+coefficients = { a = 0.212, b = 1.571e-3, c = 4.36e-4 }
+constants = ["T_0_ecmwf_ifs"]
+keywords = ["lifting condensation level", "LCL", "convection", "IFS"]
+
+[[formulations.ecmwf_ifs_lcl_temperature.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "6.74"
+notation = { T_LCL = 'T_{\mathrm{LCL}}', T_d = 'T_{\mathrm{d}}' }
+
+[[formulations.ecmwf_ifs_lcl_temperature.citations]]
+reference = "davies_jones1983"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_lcl_pressure]
+label = "Pressure of the lifting condensation level from its temperature and the potential temperature (IFS)"
+expression = "p_0 * (T_LCL / theta) ** (c_pd / R_d)"
+fixed_units = false
+note = "Equation 6.74, second line, theta being the potential temperature of the departure level. The section does not give p_0: it is an input, the reference pressure theta was computed with. With the same p_0, it cancels: p_LCL = p (T_LCL/T)^(c_p/R_d), p and T those of the departure level."
+output = { identifier = "p_LCL", kind = "Pressure", unit = "HectoPA", description = "Pressure of the lifting condensation level" }
+inputs = [
+  { identifier = "T_LCL", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the lifting condensation level" },
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the departure level" },
+  { identifier = "p_0", kind = "Pressure", unit = "HectoPA", description = "Reference pressure of the potential temperature" },
+]
+constants = ["c_pd_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["lifting condensation level", "LCL", "convection", "IFS"]
+
+[[formulations.ecmwf_ifs_lcl_pressure.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "6.74"
+notation = { p_LCL = 'p_{\mathrm{LCL}}', T_LCL = 'T_{\mathrm{LCL}}', theta = '\theta', c_pd = "c_p", R_d = 'R_{\mathrm{d}}' }
+
+[formulations.ecmwf_ifs_lcl_pressure_dew_point]
+label = "Pressure of the lifting condensation level from the temperature, the dew point and the potential temperature (IFS)"
+composition = { outer = "ecmwf_ifs_lcl_pressure", inner = { T_LCL = "ecmwf_ifs_lcl_temperature" } }
+keywords = ["lifting condensation level", "LCL", "convection", "IFS"]
+
+[[formulations.ecmwf_ifs_lcl_pressure_dew_point.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "6.74"
+note = "Both lines of the equation."
 
 # Stated by the notes: the two forms of equation 25.
 [relations.bechtold2015_virtual_temperature_two_forms]
@@ -1923,14 +2254,44 @@ output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit 
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
-coefficients = { e_s0 = 6.112, T_0 = 273.16 }
-constants = ["L_v0_metpy", "c_l_metpy", "c_pv_metpy", "R_v_metpy"]
+constants = ["e_s0_metpy", "T_0_metpy", "L_v0_metpy", "c_l_metpy", "c_pv_metpy", "R_v_metpy"]
 keywords = ["saturation", "Clausius-Clapeyron"]
 
 [[formulations.metpy171_saturation_vapour_pressure.citations]]
 reference = "metpy171"
-note = "saturation_vapor_pressure with phase='liquid' and water_latent_heat_vaporization, in metpy.calc.thermo; e_s0 is sat_pressure_0c, 6.112 millibar."
-units = { e_s0 = "HectoPA", T_0 = "K" }
+note = "saturation_vapor_pressure with phase='liquid' and water_latent_heat_vaporization, in metpy.calc.thermo."
+
+# MetPy over ice, and its choice of phase by temperature, with the same
+# named constants as over water: sat_pressure_0c and T0.
+
+[formulations.metpy171_saturation_vapour_pressure_ice]
+label = "Saturation vapour pressure over ice of MetPy, Ambaum (2020) equation 17 with MetPy constants"
+expression = "e_s0 * (T_0 / T) ** ((c_i - c_pv) / R_v) * exp(((L_v0 + L_f) / T_0 - (L_v0 + L_f - (c_i - c_pv) * (T - T_0)) / T) / R_v)"
+fixed_units = false
+note = "The form of Ambaum (2020) equation 17, with the latent heat of sublimation L_s0 - (c_i - c_pv)(T - T_0), L_s0 = L_v0 + L_f, and MetPy's constants; MetPy takes for ice the same e_s0 = 6.112 hPa at T_0 = 273.16 K as for water."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+constants = ["e_s0_metpy", "T_0_metpy", "L_v0_metpy", "L_f_metpy", "c_i_metpy", "c_pv_metpy", "R_v_metpy"]
+keywords = ["saturation", "Clausius-Clapeyron", "ice"]
+
+[[formulations.metpy171_saturation_vapour_pressure_ice.citations]]
+reference = "metpy171"
+note = "saturation_vapor_pressure with phase='solid', _saturation_vapor_pressure_solid and water_latent_heat_sublimation, in metpy.calc.thermo."
+
+[formulations.metpy171_saturation_vapour_pressure_auto]
+label = "Saturation vapour pressure of MetPy over ice, then over water, from the triple point (phase='auto')"
+branches = [
+  { formulation = "metpy171_saturation_vapour_pressure_ice", where = "T <= T_0" },
+  { formulation = "metpy171_saturation_vapour_pressure", where = "T > T_0" },
+]
+output = { identifier = "e_s", kind = "SaturationVapourPressure", unit = "HectoPA", description = "Saturation vapour pressure" }
+keywords = ["saturation", "mixed phase", "MetPy"]
+
+[[formulations.metpy171_saturation_vapour_pressure_auto.citations]]
+reference = "metpy171"
+note = "saturation_vapor_pressure with phase='auto': np.where(temperature > T0, liquid, solid), T0 = 273.16 K, the triple point (constants/default.py)."
 
 [formulations.metpy171_psychrometric_vapour_pressure]
 label = "Vapour pressure from a psychrometer with a wet bulb, MetPy default coefficient"

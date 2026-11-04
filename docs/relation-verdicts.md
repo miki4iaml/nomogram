@@ -15,7 +15,12 @@ each side is brought into its output unit, the object's inputs are
 replaced as the relation says (`given`) or by the subject inputs that
 feed them, and the difference must simplify to zero.
 
-- **proven**: the difference simplifies to zero. This is a proof.
+- **proven**: the difference simplifies to zero. This is a proof. When
+  it does not, and every bound of the relation is above zero, it is
+  simplified again with the inputs taken positive, which identities of
+  logarithms and of fractional powers need (`log10(x*y)` and
+  `log10(x) + log10(y)`): a proof where the relation is stated, which
+  the verdict's `method` says.
 - **refuted**: SymPy does not conclude, and a point is found where the
   two sides differ. This is a counterexample.
 - **unproven**: SymPy does not conclude, and no counterexample is found
@@ -26,6 +31,12 @@ feed them, and the difference must simplify to zero.
   remained.
 - **unverified**: the claim cannot be checked as it stands, for a
   reason the verdict's `method` gives (different scales, below).
+
+SymPy's simplification has no bound on its cost: a relation involving a
+derived formulation (a composition, branches, calls) is not simplified.
+It is proven only when its two sides cancel as they stand; otherwise the
+search for a counterexample decides, as for a proportionality the
+samples of its ratio.
 
 The proof compares the **expressions as written**, brought into the
 same units by an exact factor: the result of the object into the output
@@ -228,7 +239,11 @@ never edited by hand:
   is missing, reuses the rest and drops entries matching no relation: a
   contributor checks locally the new relations alone;
 - the continuous integration recomputes every verdict and compares it
-  with the registry: it has the last word.
+  with the registry: it has the last word. The value of a maximum agrees
+  to 10⁻⁹, its place to 10⁻⁶ of the domain: on a plateau inside the
+  domain, the rounding of numpy's vectorised functions moves it by about
+  10⁻⁷ of the domain from one processor to another (6.6 × 10⁻⁶ °C over
+  the 70 °C of `vaisala2013_water_iapws`).
 
 A personal catalog can keep its own registry
 (`nomogram.relations.record(catalog, path)`), or none: verdicts are then

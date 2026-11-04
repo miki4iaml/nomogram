@@ -78,6 +78,31 @@ def test_units_are_extracted_with_qudt_conversions() -> None:
     assert units["DEG_C"]["matches"] == []
 
 
+def test_links_read_after_the_extraction_date_keep_their_own(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A unit or a kind added later: its links are dated when they were read,
+    # the others keep the extraction date.
+    monkeypatch.setattr(extract_semantics, "UNITS_CHECKED", {"K": "2026-11-04"})
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = KindSpec(
+        "ratio",
+        delta=False,
+        cf_standard_names=(("air_temperature", "narrow"),),
+        checked="2026-11-04",
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    data = run()
+    units, found = data["units"], data["quantity_kinds"]
+    assert isinstance(units, dict)
+    assert isinstance(found, dict)
+    assert units["K"]["matches"][0]["verified"] == "2026-11-04"
+    assert {m["verified"] for m in found["ThermodynamicTemperature"]["matches"]} == {
+        "2026-11-04"
+    }
+    assert {m["verified"] for m in found["VapourPressure"]["matches"]} == {"2026-10-14"}
+
+
 def test_symbols_declared_by_nomogram_replace_qudt_ones(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -35,10 +35,23 @@ def test_bundled_registry_matches_a_fresh_verification() -> None:
             fresh.method,
             fresh.detail,
         ), relation.key
-        assert recorded.value == pytest.approx(fresh.value, rel=1e-9), relation.key
-        assert dict(recorded.at) == pytest.approx(dict(fresh.at), rel=1e-9), (
-            relation.key
-        )
+        # A proof has no value; pytest.approx refuses None from pytest 9.2.
+        if fresh.value is None:
+            assert recorded.value is None, relation.key
+        else:
+            assert recorded.value == pytest.approx(fresh.value, rel=1e-9), relation.key
+        # The place of a maximum on a plateau inside the domain moves by
+        # about 1e-7 of the domain from one processor to another, with the
+        # rounding of numpy's vectorised functions; its value does not.
+        span = {
+            name: high - low for name, (low, high) in (relation.bounds or {}).items()
+        }
+        assert set(recorded.at) == set(fresh.at), relation.key
+        for name, place in fresh.at.items():
+            tolerance = 1e-6 * span[name] if name in span else 1e-9 * abs(place)
+            assert recorded.at[name] == pytest.approx(place, abs=tolerance), (
+                relation.key
+            )
 
 
 def test_verdict_reads_the_registry_without_recomputing(
@@ -93,7 +106,7 @@ def test_command_line_lists_the_verdicts(capsys: pytest.CaptureFixture[str]) -> 
     assert main(["verify"]) == 0
     out = capsys.readouterr().out
     assert "ae96_sa90_gg46: exceeded 0.6098 %" in out
-    assert out.count(": reproduced") == 10
+    assert out.count(": reproduced") == 12
 
 
 def test_command_line_records(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

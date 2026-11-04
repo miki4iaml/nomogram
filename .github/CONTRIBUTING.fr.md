@@ -5,8 +5,10 @@
 > Traduction de [CONTRIBUTING.md](CONTRIBUTING.md) ; en cas d'écart,
 > la version anglaise fait foi.
 
-Merci de votre intérêt. Ce guide décrit l'installation, les contrôles
-et le circuit d'une contribution. Les règles de code et d'architecture
+Merci de votre intérêt. Ce guide décrit l'installation, les contrôles,
+les commandes, le circuit d'une contribution, la publication d'une
+version et les raisons des décisions arrêtées. Les règles de code et
+d'architecture
 sont dans [AGENTS.md](../AGENTS.md), qui s'applique aux humains comme
 aux agents de codage.
 
@@ -33,6 +35,27 @@ Quelle que soit la voie, une formule entre au catalogue avec sa source,
 ses unités et son domaine de validité ; un détail n'est marqué
 `verified` qu'une fois lu dans la source elle-même.
 
+## Droits des sources
+
+Une formule se cite ; le document qui la donne garde ses propres droits.
+Ces règles engagent tout contributeur, quel que soit l'outil employé :
+
+- **Les normes sous licence** (ISO, AFNOR…) ne sont jamais reproduites :
+  le catalogue cite leurs équations et leurs constantes, jamais leurs
+  tableaux ni leurs extraits.
+- **Aucun document source n'est redistribué**, ni dans le dépôt ni dans
+  le paquet : une référence donne son titre, son DOI ou son lien.
+- **Fouille de textes et de données** : avant qu'un document soit traité
+  par un agent de codage ou un autre outil automatique, vérifier qu'il ne
+  porte pas de clause interdisant la fouille de textes et de données ou
+  le traitement par une intelligence artificielle ; un document qui en
+  porte une n'est pas traité ainsi.
+- **Les protections contre les robots et les accès payants ne sont
+  jamais contournées.**
+- **Les mentions de droit d'auteur sont respectées** : une formule se
+  cite, une citation reste brève et dans ce que la mention permet, le
+  document n'est pas reproduit.
+
 ## Prérequis
 
 - Python 3.12 ou plus récent.
@@ -57,7 +80,7 @@ commit-msg, pre-push).
 
 | Stade | Contrôles |
 |---|---|
-| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation, métadonnées des images |
+| pre-commit | hygiène des fichiers (espaces, fin de fichier, fins de ligne LF, BOM, YAML, TOML, conflits, gros fichiers), clé privée, refus de commit direct sur `main` et `develop`, `ruff check --fix` et `ruff format`, codespell (orthographe), zizmor (audit de sécurité des workflows), gitleaks, nbstripout, anonymisation, métadonnées des images, caractères cachés et fichiers locaux |
 | commit-msg | anonymisation du message, Conventional Commits, sujet sans accent |
 | pre-push | mypy strict, pytest |
 
@@ -162,6 +185,22 @@ publier. Le hook peut aussi être sauté en local
 génériques et le contrôle de la ligne repère, mais jamais vos motifs
 personnels, qui restent sur votre poste par conception.
 
+## Commandes
+
+```
+uv sync --all-extras                       # environnement
+uv run pytest                              # tests
+uv run coverage run -m pytest && uv run coverage report   # couverture
+uv run ruff check --fix && uv run ruff format
+uv run mypy                                # typage strict
+uv run --isolated --python 3.13 --all-extras pytest   # reproduire la CI
+uv run --isolated --resolution lowest-direct --all-extras pytest   # versions minimales
+```
+
+`--isolated` compte pour les deux dernières commandes : sans lui,
+`uv run` reverrouille `uv.lock` avec la résolution demandée et remplace
+le `.venv` du projet.
+
 ## Circuit d'une contribution
 
 1. Créer une branche depuis `develop` (branche par défaut), par
@@ -191,6 +230,81 @@ Puis enregistrer la clé publique sur GitHub comme *Signing key*
 (Settings → SSH and GPG keys). Le badge « Verified » doit apparaître
 sur vos commits. Une clé GPG convient aussi.
 
+## Publier une version
+
+Pour le mainteneur, dans cet ordre :
+
+1. Pour une version mineure, une PR préalable réextrait `semantics.json`
+   depuis les dernières versions officielles de QUDT et de CF
+   (`scripts/extract_semantics.py`), chacune enregistrée avec sa version ;
+   les versions de correctif gardent l'extrait. Un genre ou une unité
+   qu'une nouvelle version de QUDT définit remplace le genre ou l'unité
+   local dans la même PR, avec une entrée au CHANGELOG.
+2. PR vers `develop` (squash) : version dans `pyproject.toml` et
+   `CITATION.cff`, section `[Unreleased]` du `CHANGELOG.md` devenue
+   `[x.y.z] - date`, titre `chore: release x.y.z`. La même PR met à
+   jour `docs/security-and-compliance.md` : la date, la version évaluée,
+   les versions des dépendances, le nombre de tests et la couverture,
+   les alertes traitées, la liste de contrôle.
+3. PR `develop` → `main`, fusionnée par un commit de fusion (seule
+   exception au squash : `main` doit garder l'historique exact de
+   `develop`, sinon les deux branches divergent à chaque version).
+4. Avant le tag, vérifier localement : `uv build` puis
+   `uvx --from twine twine check --strict dist/*`.
+5. Tag signé `vx.y.z` sur `main`, puis publication d'une release GitHub
+   depuis ce tag, ses notes étant la section du `CHANGELOG.md` de la
+   version, liens rendus absolus : `python scripts/absolute_links.py
+   rewrite --repo miki4iaml/nomogram --ref vx.y.z notes.md`. Le workflow
+   de publication (`.github/workflows/release.yml`) vérifie que le tag
+   correspond à la version du projet, rend absolus les liens du README au
+   tag (PyPI l'affiche hors du dépôt), construit une seule fois, vérifie
+   qu'aucun lien relatif ne reste, atteste la provenance de la
+   construction et la SBOM CycloneDX, et publie exactement ces fichiers
+   sur PyPI par Trusted Publishing (OIDC, aucun jeton stocké), après
+   approbation de l'environnement protégé `pypi`.
+6. Vérifier : `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+
+Répétition : lancer le workflow de publication à la main
+(`workflow_dispatch`). Il publie une version unique `x.y.z.devN` sur
+TestPyPI sans créer de release. Ne jamais publier une release GitHub
+pour essayer : chaque release publiée archive aussi un DOI Zenodo
+permanent.
+
+## Décisions arrêtées
+
+Les décisions qu'[AGENTS.md](../AGENTS.md) énonce en une ligne, avec
+leurs raisons.
+
+- **Matrice de CI** : complète et bloquante, Ubuntu et Windows × Python
+  3.12 et 3.13. La portabilité et `requires-python >=3.12` sont des
+  promesses faites aux utilisateurs du paquet ; une cellule non
+  bloquante finit ignorée, et la promesse n'est plus vérifiée. Ce choix
+  découle du profil du paquet — Python pur, dépendances légères, publics
+  variés —, qui rend l'intégration peu coûteuse et la portabilité
+  réellement importante. Ne pas aligner cette matrice sur celle d'un
+  dépôt plus lourd par souci d'uniformité : le profil du paquet décide.
+- **Signatures des contributeurs** : une fusion par squash produit un
+  commit signé par GitHub, qui masque les commits de la PR ; le job de
+  CI `signatures` exige donc que chacun d'eux soit signé et vérifié.
+- **`.vscode` versionné en partie** : `settings.json`, `extensions.json`
+  et `tasks.json` sont partagés (ruff et mypy de l'environnement,
+  extensions recommandées et indésirables, tâche « Quality gates ») ; le
+  reste du dossier reste local. L'interpréteur n'est pas fixé :
+  l'extension Python trouve `.venv` seule. Ne pas réintroduire
+  `python.defaultInterpreterPath` pointant vers un dossier : l'extension
+  Python le résout pour elle seule, mais le passe tel quel aux extensions
+  ruff et mypy, qui ne parviennent pas à le lancer. Un chemin
+  d'exécutable dépendrait du système.
+- **mypy au pre-push** : recouvrement voulu avec la CI, pour que les
+  échecs surviennent sur le poste plutôt qu'après la poussée. Surveiller
+  le temps de poussée.
+- **Couverture** : couverture des branches mesurée par coverage.py (sans
+  pytest-cov) ; un plancher de 80 % est imposé dans chaque cellule de la
+  matrice de tests de la CI, la cible courante (recommandation usuelle
+  de Codecov ; le guide de Google juge 75 % louable, 90 % exemplaire).
+  Le hook de pre-push lance pytest seul, pour rester rapide ; la CI fait
+  foi pour la couverture.
+
 ## Sécurité
 
 Ne signalez jamais une vulnérabilité dans une issue publique : suivez
@@ -208,6 +322,19 @@ Ce projet utilise des agents de codage ; toute contribution est relue
 et signée par un contributeur humain. Aucune mention d'outil n'est
 ajoutée aux commits ni aux PR : la signature humaine engage le
 contributeur, quel que soit l'outil employé.
+
+Les fichiers d'instructions des agents de codage se relisent comme du
+code. AGENTS.md est le seul suivi, à la racine : le hook
+`check-integrity` refuse un AGENTS.md dans un sous-dossier, les fichiers
+d'instructions des autres outils (`GEMINI.md`, `.cursorrules`,
+`.github/copilot-instructions.md`…), les fichiers qui restent locaux
+(`CLAUDE.md`, `.claude/`, `.mcp.json`) et les caractères cachés (largeur
+nulle, bidirectionnels, étiquettes, sélecteurs de variante, caractères de
+contrôle). Un mainteneur lit une PR d'un tiers comme un diff, sur GitHub
+ou avec `gh pr diff`, et ne l'extrait jamais dans un arbre de travail où
+tourne un agent de codage : l'agent chargerait les instructions qu'elle
+apporte. `.github/CODEOWNERS` liste les chemins dont les modifications
+demandent la relecture du mainteneur.
 
 ## Licence
 

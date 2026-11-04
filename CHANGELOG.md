@@ -8,6 +8,291 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
+### Added
+
+- `nomogram.comparison.compare(..., kind=...)` compares formulations of
+  sibling kinds when asked: every formulation, the reference included,
+  computes the kind given or one that specializes it, as saturation over
+  ice against saturation over water, both a `SaturationVapourPressure`. By
+  default, every formulation still computes the reference's kind.
+- Catalog family `boundary-layer`: the surface layer of the ECMWF IFS
+  (CY49R1 and CY50R1, Part IV, section 3.2), after Monin-Obukhov
+  similarity: the Obukhov length from the surface-layer scales, the
+  gradient functions (Dyer and Hicks, Hogstrom) and profile functions
+  (Paulson; Holtslag and De Bruin) of stability, joined by branches at
+  neutral, the explicit bulk Richardson numbers, the roughness lengths
+  over sea (smooth surface and Charnock) and over sea ice, the transfer
+  coefficients for momentum and heat, which call the profile functions at
+  two heights, and the friction velocity. Quantity kinds for the Obukhov
+  length, the friction velocity, the roughness lengths, the stability
+  parameter, the gradient and profile functions, the bulk Richardson
+  number, the surface drag coefficients and the sea ice area fraction,
+  with their CF standard names; the trade term "drag coefficient". The
+  sources the IFS cites are recorded as to-confirm.
+- Water and ice in pairs, checked source by source: the formulation of
+  Murphy and Koop (2005) over liquid water, supercooled included, which
+  meets theirs over ice at the triple point; MetPy 1.7.1 over ice
+  (Ambaum's equation 17 with MetPy's constants) and its choice of phase
+  at the triple point (`phase='auto'`); the mixed phase of the ECMWF IFS,
+  over ice below 250.16 K, over water from 273.16 K and weighted by the
+  liquid fraction of the condensate in between, with a quantity kind
+  `MixedPhaseLiquidFraction` (under QUDT's `MassFraction`). The IFS
+  formulations over water and ice cite Buck (1981) and the AERKi formula
+  of Alduchov and Eskridge (1996), which the IFS names.
+- The hyperbolic tangent, `tanh`, in the expressions of the catalog.
+- The rules of WMO behind the dew point of a radiosonde: the Manual on
+  Codes (WMO-No. 306, Volume I.2, 2025), whose Regulation B/C25.7.2.7.1
+  derives it from the function of the Technical Regulations or a near
+  equivalent, and the Technical Regulations (WMO-No. 49, Volume I), which
+  refer formulas to the guides. The formulations WMO-No. 8 (12.4.1) names
+  for radiosondes say so in their notes, found by `search("12.4.1")`.
+  Sonntag (1994) and Murphy and Koop (2005), now read, give the ranges
+  the authors state: -100 to 100 °C over water for Sonntag, above 0 °C
+  over water for Hyland and Wexler (1983), and those of Murphy and Koop;
+  these formulations invert without a search interval. The 2011 edition
+  of the Technical Regulations, updated in 2012, gives Goff (1957) its
+  range, -50 to 100 °C, and the rule that Members use it.
+- The lifting condensation level of the ECMWF IFS (6.74): its temperature
+  by the empirical formula of Davies-Jones (1983), and its pressure from
+  the potential temperature of the departure level, whose reference
+  pressure, which the IFS does not give, is an input and cancels; their
+  composition from the temperature and the dew point.
+- The diagnostics of the ECMWF IFS near the surface (CY49R1 3.9, CY50R1
+  3.10, cited in both): the dry static energy and the specific humidity
+  at 2 m, interpolated with the profile functions and the arctangent
+  weight of CY49R1; the wind speed at 10 m from a blending height, with
+  the rule choosing it in the note; the friction velocity of the
+  diagnostics; the visibility by Koschmieder's law, with a quantity kind
+  `Visibility` and the extinction coefficient as QUDT's
+  `AttenuationCoefficient`, in m-1.
+- Wikidata links of the surface layer: the Monin-Obukhov length (narrow,
+  the atmosphere's), the friction velocity, the roughness length (narrow,
+  the wind's), the bulk Richardson number and the sea ice concentration;
+  and the first references linked, Hogstrom (1988) and Holtslag and De
+  Bruin (1988), found by their DOI.
+- The arctangent of one argument, `atan`, in the expressions of the
+  catalog, written `\arctan`; `atan2` is not allowed.
+- `docs/security-and-compliance.md`: an assessment file for those who
+  approve the use of nomogram on a laboratory network, offline in
+  particular: run-time behaviour, the checks of development and
+  publication with their evidence, offline installation, licences and
+  rights of sources, regulatory landmarks (GDPR, Cyber Resilience Act,
+  text and data mining), known limits, and a checklist mapped onto the
+  DevSecOps cycle and the NIST SSDF. Linked from the README.
+- `docs/shared-vocabularies.md`: how nomogram builds on QUDT, CF and
+  Wikidata and contributes to them in return, and, technically, the chain
+  a contribution to QUDT goes through, from the issue to a release (the
+  manual pre-test and QUDT's CI in the fork, SHACL inference and
+  validation), with how nomogram follows QUDT offline. Linked from the
+  README.
+- `nomogram.plot.plot_deviation_profile`: the relative deviations from
+  the reference along a vertical coordinate, a height upwards, a pressure
+  downwards on a logarithmic axis, with reference levels as vertical
+  lines (`references`) and off-scale curves as in `plot_deviations`.
+- `docs/humidity-aloft.md`: why the lineage of data should cite the
+  formulations that made them; the formulas of WMO and its rule for the
+  dew point in BUFR messages; the formulations a user may take against
+  Sonntag (1994), which WMO names for radiosondes, along the
+  reference atmosphere, the false round trip through the dew point,
+  which widens the gap aloft (-10.1 % on the vapour pressure with Tetens
+  at 11 km for a relative humidity of 50 %, -1.3 %RH on the relative
+  humidity recomputed from it), the saturation over ice or in mixed phase
+  against that over water, which the relative humidity of a radiosonde,
+  of MetPy or of the IFS takes below 0 °C (-42.6 % at 11 km), and WMO's
+  OSCAR requirements in %RH; with its figure and script
+  (`docs/examples/humidity_aloft.py`).
+- The saturation vapour pressure formulations of radiosonde humidity
+  producers: Vaisala's conversion formulas (2013), a simplified base-10
+  form over water (-20 to 50 °C) and over ice (-70 to 0 °C), its equation
+  over ice, its dew point and its absolute humidity; Hardy's ITS-90
+  refit of Wexler's formulations (1998), over water and over ice, with
+  his dew and frost point inverses, the formulation of Vaisala's RS41.
+  Vaisala's stated fits, 0.083 % against Wagner and Pruss and 0.052 %
+  over ice, are relations nomogram verifies (reproduced).
+- The WMO report on the 2022 upper-air instrument intercomparison (IOM
+  No. 143) names the formulation of each radiosonde: those of the
+  catalog carry it in their note and the keyword `radiosonde`.
+- Simple formulas of the ECMWF IFS (CY49R1, the same numbers in CY50R1):
+  the square of the Brunt–Väisälä frequency (equation 5.2; a new kind,
+  `SquareOfBruntVaisalaFrequency`, CF
+  `square_of_brunt_vaisala_frequency_in_air`), also against the lapse
+  rate through its definition; the dry static energy (12.36 and 3.5; a
+  new kind, `DryStaticEnergy`), beside Bechtold's form; the geopotential
+  at a constant gravity, Φ = g z (12.2), whose geopotential height is the
+  geometric altitude, 16 m from ERA5's conversion at 10 km; the pressure
+  of the half and full model levels (Part III, 2.11). The radius of its
+  Earth and the N₀² of its stability tropopause are constants.
+- The critical lapse rate of the stability tropopause of the IFS,
+  g/c_p − T N₀²/g, written by nomogram from its criterion 6.79 and
+  equation 5.2: from 3.6 to 4.7 K/km between 240 and 200 K.
+- The specific humidity from the vapour pressure (12.4), the virtual
+  temperature without condensates (12.7) and the density of moist air
+  (12.6) with the constants of the IFS, and the density from the
+  pressure, the temperature and the specific humidity, as its physics
+  computes it.
+- Notations may use `\partial`, which MathJax, KaTeX and mathtext all
+  render.
+- The CF standard name `square_of_brunt_vaisala_frequency_in_air` joins
+  the frozen CF subset, for the static stability of the IFS.
+- The profiles of the ISO standard atmosphere (ISO 2533): the temperature
+  against the geopotential altitude, from −2 to 80 km in the standard and
+  from −5 km in its Addendum 2, two citations whose domains add up; the
+  temperature and the pressure of one layer (equations 11 to 13), with
+  the gas constant of the standard; the pressure against the pressure
+  altitude (Addendum 1), the inverse of `iso2533_pressure_altitude`
+  within a few millimetres.
+- A kind `DensityOfDryAir`, sibling of `DensityOfMoistAir`: the density
+  of air without water vapour, such as that of the ISO standard
+  atmosphere. Neither feeds an input of the other.
+- The physical characteristics of the ISO standard atmosphere (ISO 2533):
+  the acceleration of free fall against the geometric altitude, the air
+  density, the pressure scale height (a new kind, `PressureScaleHeight`),
+  the speed of sound, the dynamic viscosity of Sutherland, the kinematic
+  viscosity and the thermal conductivity, with the constants of the
+  standard (`R_iso2533`, `kappa_iso2533`); at mean sea level they give the
+  values of its Table 3. ISO 2533 is cited for Lambert's normal gravity
+  and for the geopotential altitude, a new trade term.
+- `docs/rosetta.md` gains a glossary of physical assumptions (adiabatic,
+  isentropic, dry adiabatic, moist adiabatic, pseudoadiabatic, ideal
+  gas, hydrostatic, isothermal, lapse rate and vertical gradient), after
+  the AMS Glossary of Meteorology and the IUPAC Gold Book. The catalog
+  and the documentation write one form of each; a test refuses the
+  variants left to citations (`perfect gas`, `dry-adiabatic`...).
+- The lapse rate and the vertical gradient of air temperature, two
+  sibling kinds, are defined from each other, Γ = −dT/dz as CF defines
+  `air_temperature_lapse_rate` (`lapse_rate_definition`,
+  `vertical_temperature_gradient_definition`): one feeds an input of the
+  other only through a definition, in a composition. The dry adiabatic
+  lapse rate g/c_pd comes so from Bechtold's equation 38, which prints
+  dT/dz (`bechtold2015_dry_adiabatic_lapse_rate`).
+- Quantity kinds `SpeedOfSound` (with the CF standard name
+  `speed_of_sound_in_air`, narrower), `DynamicViscosity`,
+  `KinematicViscosity`, `ThermalConductivity` and `InverseSquareTime`,
+  and units Pa·s, m²/s, W/(m·K) and s⁻² (QUDT writes /s²), from QUDT
+  3.5.2: the standard atmosphere and the IFS need them.
+- Pre-commit hook `check-integrity`, replayed by CI on the whole
+  repository: it refuses hidden characters (format, private use and
+  unassigned code points, variation selectors, control characters other
+  than tab and line ends), files that stay local (`_priv/`, `.claude/`,
+  `CLAUDE.md`, `CLAUDE.local.md`, `.mcp.json`), an AGENTS.md outside the
+  root, and the instruction files of other coding agents. The messages
+  name the file, the line and the code point, never the text.
+- `.github/CODEOWNERS`: AGENTS.md and the instruction files of coding
+  agents at any depth, `.github/`, `.vscode/`, `.pre-commit-config.yaml`
+  and `scripts/` need the maintainer's review. AGENTS.md and the
+  contributing guide say how a pull request from someone else is read.
+- An equivalence or a proportionality that simplification leaves open is
+  simplified again with the inputs taken positive when every bound of
+  the relation is above zero, as identities of logarithms and of
+  fractional powers need (`log10(x*y)` and `log10(x) + log10(y)`); the
+  verdict's method says so.
+- A ruff rule (`TID251`) refuses SymPy's parsers (`sympify`,
+  `parse_expr`) in the package and its tests: a formula is read only by
+  `parse_expression`, against its whitelist.
+- `docs/rosetta.md` maps nomogram's mathematical terms to SymPy's: the
+  same concept under two names, the same name for another concept,
+  identifiers read as typography, and the three senses of equality. Two
+  of its entries are corrected: SymPy's physical constant is
+  `sympy.physics.units.quantities.PhysicalConstant`, and a composition
+  substitutes as `xreplace` does, not `subs`.
+
+### Changed
+
+- `docs/security-and-compliance.md` as of 4 November 2026: the data
+  nomogram reads, plain TOML and JSON read by the standard library, and
+  the only file it writes; two-factor authentication; the alerts raised
+  and handled; randomized tests of the expression parser, now in the
+  tests (`tests/test_expression_fuzz.py`). The rules on the rights of
+  sources are written in CONTRIBUTING (checklist item 13, done), and
+  bringing this page up to date is a step of releasing.
+- The bundled QUDT subset is extracted from release 3.5.3 (20 October
+  2026), the latest, rather than 3.5.2: the kinds, units and CF links
+  nomogram bundles are unchanged, and no new QUDT kind replaces a local
+  one. The CF standard name table stays at version 95, still the
+  current one.
+- The formulation over ice of Sonntag takes the constant of the original,
+  24.7219, where Vömel prints 24.721994 (0.0094 % more); the note keeps
+  both.
+- MetPy's saturation vapour pressure over water takes its reference point
+  from two named constants, as MetPy does (`sat_pressure_0c`, 6.112 hPa,
+  and `T0`, 273.16 K), shared with its form over ice.
+- Quantity kinds are neutral as to the medium, as QUDT's are, unless the
+  medium is part of the quantity; a CF name that names a medium is then a
+  narrow match: `air_potential_temperature` for `PotentialTemperature`
+  and `mole_fraction_of_water_vapor_in_air` for
+  `MoleFractionOfWaterVapour`, no longer exact ones, whose descriptions
+  name a fluid and a gas mixture rather than air. The rule is in the
+  catalog guide, and the kinds added in this version follow it.
+- The Wikidata item "density of air" (Q1511415), the density of the
+  atmosphere moist or dry, is a broad match of `DensityOfMoistAir`, no
+  longer a close one, and of `DensityOfDryAir`.
+- `nomogram.comparison.compose` lets a temperature feed one in the other
+  unit (kelvins and degrees Celsius, as `compare` does) and a dew or frost
+  point feed the temperature of the formula evaluated at it, as calls in
+  the catalog already allow.
+- The axis of deviations names the reference once when it cites nothing,
+  such as a composition, rather than repeating its label below.
+- The build backend `uv_build` is accepted up to 0.13 (below 0.14).
+- The square of the first eccentricity in `wmo_normal_gravity_wgs84` is
+  named `e__2`, written e², no longer `e2`, written e₂: the WMO Guide
+  prints only its value.
+- Numeric functions compute their common subexpressions once
+  (`lambdify(cse=True)`): about 5 times faster on the longest
+  compositions, to a relative 2e-14.
+- SymPy 1.14 or later is required (was 1.13). SymPy 1.13.0 dates from
+  July 2024 and 1.13.3, its last release, from September 2024: more
+  than two years, the delay after which SPEC 0 drops a core package.
+  SymPy 1.14 is the version the CI tests. Only environments pinned to
+  torch 2.6 (`sympy==1.13.1`) are left out; torch 2.7 and later require
+  `sympy>=1.13.3`.
+
+### Fixed
+
+- The check of the registry of verdicts compares the place of a maximum
+  to 10⁻⁶ of the domain: on a plateau inside it, the rounding of numpy's
+  vectorised functions moves it by about 10⁻⁷ from one processor to
+  another, which failed the check on some machines.
+- No identifier changes a numeric result any more by taking a name of
+  the code `lambdify` generates: `e * exp(1)` gave 4 at e = 2 instead of
+  2e, and an identifier `nan` replaced the NaN of a piecewise definition
+  where no condition holds. The samples of relation verdicts are
+  computed the same way.
+- Inversion: a solver recursing without end (the dew point of
+  `metpy171_dew_point`) no longer crashes; the numerical inverse takes
+  over, as it does for the inverse of a scale conversion. A closed form
+  holding Euler's number is no longer discarded, and the Celsius offset
+  of a closed form no longer takes the name of a coefficient.
+- Reading an expression: a number computed exactly with too many digits
+  is refused even when it is not written as two numbers
+  (`sqrt(3) ** 30000000`, `exp(ln(3) * 30000000)`), and so are a complex
+  number (`(-1.0) ** 0.5`, `(-8) ** (1/3)`), an infinity (`0 ** -1`)
+  and a number beyond the largest float, with an `ExpressionError`
+  instead of an `OverflowError` or a NaN at evaluation.
+  `compile_numeric` refuses repeated arguments.
+- The dimensional analysis takes a decimal exponent at its exact decimal
+  value, where `nsimplify` could guess a nearby number (`sqrt(2)` for
+  1.4142135623730951).
+- The equation of a composition whose part calls other formulations
+  writes their renamed coefficients and constants as their owner does
+  (T₀), no longer with the owner's key as a superscript
+  (`T_{0,saturation,vapour,pressure}^{metpy171}` in six compositions,
+  such as `metpy171_relative_humidity_dew_point_pressure`).
+- A relation involving a derived formulation is no longer simplified,
+  whatever its length, as 0.5.0 stated: two compositions of 1 875
+  characters did not simplify in 280 s. Whether the object of a
+  proportionality is proportional to a power of an input with a
+  conventional scale is tested on the samples, no longer simplified
+  (more than 150 s for a composition). No verdict of the catalog
+  changes.
+
+### Security
+
+- CI and the release workflow use uv 0.13.5, which no longer trusts the
+  eMudhra/emSign root whose intermediates were compromised
+  ([GHSA-hq85-5cpj-mr62](https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62)).
+
 ## [0.5.0] - 2026-10-31
 
 ### Added
@@ -1198,7 +1483,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...develop
+[0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/miki4iaml/nomogram/compare/v0.2.0...v0.3.0

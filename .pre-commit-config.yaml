@@ -89,6 +89,13 @@ repos:
         entry: python scripts/check_anonymity.py --commit-msg
         language: python
         stages: [commit-msg]
+      # Hidden characters, files that stay local, and instruction files of
+      # coding agents outside the reviewed AGENTS.md (see the script
+      # header). No type filter: the paths of binaries are checked too.
+      - id: check-integrity
+        name: hidden characters and local-only files
+        entry: python scripts/check_integrity.py
+        language: python
       # Images carry no metadata at all (nomogram draws them); PDFs keep
       # theirs (the authors of a reference) and pass the anonymity
       # patterns only, compressed metadata included.

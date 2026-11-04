@@ -45,6 +45,36 @@ def test_compare_needs_one_matching_value_per_input() -> None:
 def test_compare_refuses_another_kind() -> None:
     with pytest.raises(ValueError, match="computes MassConcentrationOfWaterVapour"):
         compare([IDEAL_GAS], IAPWS, {"ThermodynamicTemperature": Q_(20, "degC")})
+    # Over ice is a sibling of over water, refused unless asked for.
+    ice = FORMULATIONS["iapws_r14_08_sublimation"]
+    with pytest.raises(ValueError, match="not SaturationVapourPressureOverWater"):
+        compare([ice], IAPWS, {"ThermodynamicTemperature": Q_(-20, "degC")})
+
+
+def test_compare_across_sibling_kinds_when_asked() -> None:
+    # Over ice against over water, both saturation vapour pressures: at
+    # -20 degC, the saturation over ice is 18 % lower.
+    ice = FORMULATIONS["iapws_r14_08_sublimation"]
+    temperature = {"ThermodynamicTemperature": Q_(-20, "degC")}
+    found = compare(
+        [ice], IAPWS, temperature, kind="SaturationVapourPressure", outside="ignore"
+    )
+    over_ice = float(ice.evaluate(T=Q_(253.15, "K")).to("Pa").magnitude)
+    over_water = float(
+        IAPWS.evaluate(T=Q_(253.15, "K"), outside="ignore").to("Pa").magnitude
+    )
+    deviation = float(found.relative_deviations[ice.key])
+    assert deviation == pytest.approx(over_ice / over_water - 1, rel=1e-12)
+    assert deviation == pytest.approx(-0.18, abs=0.01)
+    # The kind asked for must be one every formulation specializes.
+    with pytest.raises(
+        ValueError, match="does not specialize SaturationVapourPressureOverIce"
+    ):
+        compare([ice], IAPWS, temperature, kind="SaturationVapourPressureOverIce")
+    with pytest.raises(
+        ValueError, match="does not specialize SaturationVapourPressure"
+    ):
+        compare([IDEAL_GAS], IAPWS, temperature, kind="SaturationVapourPressure")
 
 
 def test_a_difference_never_feeds_a_temperature_point() -> None:
@@ -213,3 +243,24 @@ def test_a_specialized_kind_feeds_its_parent_never_the_reverse() -> None:
     vapour = FORMULATIONS["vapour_pressure_from_relative_humidity"]
     with pytest.raises(ValueError, match="computes VapourPressure"):
         compose(IDEAL_GAS, {"e_s": vapour})
+
+
+def test_a_temperature_feeds_one_in_the_other_unit_and_a_dew_point_a_temperature() -> (
+    None
+):
+    from nomogram.inversion import dew_point
+
+    # The ISO standard atmosphere gives kelvins; Tetens takes degrees Celsius.
+    profile = compose(
+        FORMULATIONS["tetens1930"], {"t": FORMULATIONS["iso2533_temperature"]}
+    )
+    at_sea_level = profile.evaluate(H=Q_(0.0, "km"))
+    direct = FORMULATIONS["tetens1930"].evaluate(t=Q_(15.0, "degC"))
+    assert at_sea_level.magnitude == pytest.approx(direct.magnitude)
+    # A dew point is the temperature at which the saturation vapour
+    # pressure is evaluated: through the inverse, the round trip is exact.
+    back = compose(SONNTAG, {"t": dew_point(SONNTAG)})
+    assert back.evaluate(e=Q_(12.0, "hPa")).to("hPa").magnitude == pytest.approx(12.0)
+    # A difference never feeds a point, nor a pressure a temperature.
+    with pytest.raises(ValueError, match="but t is CelsiusTemperature"):
+        compose(SONNTAG, {"t": FORMULATIONS["sonntag1990_magnus"]})

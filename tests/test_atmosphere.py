@@ -4,6 +4,7 @@
 """Tests for the atmosphere family: vertical coordinates and their kinds."""
 
 import math
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -546,3 +547,329 @@ def test_the_standard_acceleration_of_free_fall() -> None:
     assert g_n.value == 9.80665
     assert g_n.unit == "M-PER-SEC2"
     assert g_n.nature is ConstantNature.CONVENTIONAL
+
+
+def test_the_lapse_rate_and_the_vertical_gradient_are_defined_from_each_other() -> None:
+    lapse = CATALOG.formulations["lapse_rate_definition"]
+    gradient = CATALOG.formulations["vertical_temperature_gradient_definition"]
+    assert lapse.output.kind == gradient.inputs[0].kind == "LapseRate"
+    assert gradient.output.kind == lapse.inputs[0].kind == "VerticalTemperatureGradient"
+    cooling = Q_(-0.0065, "K/m")
+    assert lapse.evaluate(dTdz=cooling).magnitude == pytest.approx(0.0065)
+    back = gradient.evaluate(Gamma=lapse.evaluate(dTdz=cooling))
+    assert back.magnitude == pytest.approx(-0.0065)
+
+
+def test_the_dry_adiabatic_lapse_rate_comes_through_the_definition() -> None:
+    # Bechtold prints dT/dz = -g/c_pd (equation 38); his lapse rate is g/c_pd.
+    printed = CATALOG.formulations["bechtold2015_dry_adiabatic_gradient"]
+    composed = CATALOG.formulations["bechtold2015_dry_adiabatic_lapse_rate"]
+    assert printed.output.kind == "VerticalTemperatureGradient"
+    assert composed.output.kind == "LapseRate"
+    assert composed.derivation is not None
+    assert composed.evaluate().magnitude == pytest.approx(-printed.evaluate().magnitude)
+    assert composed.evaluate().magnitude == pytest.approx(0.0098, abs=1e-4)
+
+
+LAYER = """
+[catalog]
+name = "mine"
+format = 2
+requires = ["atmosphere"]
+
+[formulations."mine:layer"]
+label = "Pressure in a layer, from its lapse rate"
+composition = {{ outer = "ussa1976_pressure_layer_gradient", inner = {{ L = "{inner}" }} }}
+"""
+
+
+def test_a_lapse_rate_feeds_a_vertical_gradient_only_through_the_definition(
+    tmp_path: Path,
+) -> None:
+    from nomogram.catalog import CatalogError
+
+    path = tmp_path / "mine.toml"
+    path.write_text(
+        LAYER.format(inner="vertical_temperature_gradient_definition"), encoding="utf-8"
+    )
+    layer = catalog(extra=[path]).formulations["mine:layer"]
+    gradient = CATALOG.formulations["ussa1976_pressure_layer_gradient"]
+    common: dict[str, Any] = {
+        "P_b": Q_(101325.0, "Pa"),
+        "T_b": Q_(288.15, "K"),
+        "H": Q_(5000.0, "m"),
+        "H_b": Q_(0.0, "m"),
+    }
+    expected = gradient.evaluate(L=Q_(-0.0065, "K/m"), **common)
+    found = layer.evaluate(Gamma=Q_(0.0065, "K/m"), **common)
+    assert found.magnitude == pytest.approx(expected.magnitude)
+    # A lapse rate straight into the gradient: siblings never feed each other.
+    direct = tmp_path / "direct.toml"
+    direct.write_text(
+        LAYER.format(inner="bechtold2015_dry_adiabatic_lapse_rate"), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError, match="computes LapseRate, but L is"):
+        catalog(extra=[direct])
+
+
+@pytest.mark.parametrize(
+    ("key", "inputs", "printed"),
+    [
+        # ISO 2533, Table 3: the characteristics at mean sea level.
+        ("iso2533_air_density", {"p": Q_(101325.0, "Pa"), "T": Q_(288.15, "K")}, 1.225),
+        (
+            "iso2533_pressure_scale_height",
+            {"T": Q_(288.15, "K"), "g": Q_(9.80665, "m/s^2")},
+            8434.5,
+        ),
+        ("iso2533_speed_of_sound", {"T": Q_(288.15, "K")}, 340.294),
+        ("iso2533_dynamic_viscosity", {"T": Q_(288.15, "K")}, 17.894e-6),
+        (
+            "iso2533_kinematic_viscosity_of_air",
+            {"p": Q_(101325.0, "Pa"), "T": Q_(288.15, "K")},
+            14.607e-6,
+        ),
+        ("iso2533_thermal_conductivity", {"T": Q_(288.15, "K")}, 25.343e-3),
+    ],
+)
+def test_the_iso_standard_atmosphere_gives_its_sea_level_characteristics(
+    key: str, inputs: dict[str, Any], printed: float
+) -> None:
+    found = CATALOG.formulations[key].evaluate(**inputs)
+    assert found.magnitude == pytest.approx(printed, rel=5e-5)
+
+
+def test_the_acceleration_of_free_fall_decreases_with_altitude() -> None:
+    gravity = CATALOG.formulations["iso2533_acceleration_of_free_fall"]
+    assert gravity.evaluate(h=Q_(0.0, "m")).magnitude == pytest.approx(9.80665)
+    # g_n (r / (r + h))^2 with r = 6 356 766 m.
+    expected = 9.80665 * (6356766.0 / (6356766.0 + 11000.0)) ** 2
+    assert gravity.evaluate(h=Q_(11.0, "km")).magnitude == pytest.approx(expected)
+
+
+def test_the_iso_standard_cites_lambert_and_the_geopotential_altitude() -> None:
+    lambert = CATALOG.formulations["wmo_normal_gravity_smithsonian"]
+    assert "iso2533_1975" in {c.reference for c in lambert.citations}
+    definition = CATALOG.formulations["geopotential_height_definition"]
+    assert any(
+        c.reference == "iso2533_1975" and c.equation == "6"
+        for c in definition.citations
+    )
+    meaning = CATALOG.trade_terms["geopotential_altitude"].meanings[0]
+    assert meaning.kind == "GeopotentialHeight"
+    assert meaning.sources == ("iso2533_1975",)
+
+
+def test_a_scale_height_is_a_length_but_no_vertical_coordinate() -> None:
+    assert CATALOG.kinds["PressureScaleHeight"].specialization_of == "Length"
+    assert feeds("PressureScaleHeight", "Length")
+    assert not feeds("PressureScaleHeight", "GeopotentialHeight")
+    assert not feeds("PressureScaleHeight", "Altitude")
+
+
+@pytest.mark.parametrize(
+    ("height", "printed"),
+    # ISO 2533, Table 4; Addendum 2 extrapolates the troposphere to -5 km.
+    [(-5.0, 320.65), (-2.0, 301.15), (0.0, 288.15), (11.0, 216.65), (47.0, 270.65)]
+    + [(71.0, 214.65), (80.0, 196.65)],
+)
+def test_the_iso_temperature_follows_table_4(height: float, printed: float) -> None:
+    temperature = CATALOG.formulations["iso2533_temperature"]
+    found = temperature.evaluate(H=Q_(height, "km"), outside="raise")
+    assert found.magnitude == pytest.approx(printed)
+
+
+def test_the_iso_temperature_holds_where_one_of_its_sources_says() -> None:
+    temperature = CATALOG.formulations["iso2533_temperature"]
+    stated = {
+        c.reference: d.bounds["H"] for c in temperature.citations for d in c.domains
+    }
+    assert stated == {"iso2533_1975": (-2.0, 80.0), "iso2533_add2_1997": (-5.0, 2.0)}
+    assert math.isnan(temperature.evaluate(H=Q_(-6.0, "km")).magnitude)
+
+
+def test_the_pressure_of_addendum_1_inverts_its_pressure_altitude() -> None:
+    pressure = CATALOG.formulations["iso2533_pressure"]
+    altitude = CATALOG.formulations["iso2533_pressure_altitude"]
+    assert pressure.inputs[0].kind == altitude.output.kind == "PressureAltitude"
+    assert pressure.evaluate(H_p=Q_(0.0, "m")).magnitude == pytest.approx(
+        1013.25, abs=1e-3
+    )
+    heights = np.linspace(-1449.0, 46999.0, 2001)
+    back = (
+        altitude.evaluate(p=pressure.evaluate(H_p=Q_(heights, "m"))).to("m").magnitude
+    )
+    # Within the precision of the printed coefficients: a few millimetres.
+    assert np.nanmax(np.abs(back - heights)) < 0.01
+    assert not np.isnan(back).any()
+
+
+def test_the_iso_pressure_of_a_layer_differs_from_the_us_one_by_its_gas_constant() -> (
+    None
+):
+    iso = CATALOG.formulations["iso2533_pressure_layer_gradient"]
+    us = CATALOG.formulations["ussa1976_pressure_layer_gradient"]
+    base: dict[str, Any] = {
+        "T_b": Q_(288.15, "K"),
+        "H": Q_(11000.0, "m"),
+        "H_b": Q_(0.0, "m"),
+    }
+    found = iso.evaluate(p_b=Q_(101325.0, "Pa"), beta=Q_(-0.0065, "K/m"), **base)
+    reference = us.evaluate(P_b=Q_(101325.0, "Pa"), L=Q_(-0.0065, "K/m"), **base)
+    # R = 287.052 87 against R*/M_0 = 287.053 01 J/(kg K).
+    assert found.magnitude == pytest.approx(reference.magnitude, rel=2e-6)
+    assert found.magnitude != pytest.approx(reference.magnitude, rel=1e-7)
+    isothermal = CATALOG.formulations["iso2533_pressure_layer_isothermal"]
+    top = isothermal.evaluate(
+        p_b=found, T=Q_(216.65, "K"), H=Q_(20000.0, "m"), H_b=Q_(11000.0, "m")
+    )
+    assert top.to("hPa").magnitude == pytest.approx(54.7487, rel=1e-5)
+
+
+def test_dry_and_moist_air_densities_never_feed_each_other() -> None:
+    assert CATALOG.formulations["iso2533_air_density"].output.kind == "DensityOfDryAir"
+    assert feeds("DensityOfDryAir", "Density")
+    assert not feeds("DensityOfDryAir", "DensityOfMoistAir")
+    assert not feeds("DensityOfMoistAir", "DensityOfDryAir")
+
+
+# --- Simple formulas of the ECMWF IFS ----------------------------------------------
+
+G_N = 9.80665
+C_PD_IFS = 1004.709
+R_D_IFS = 287.0597
+
+
+def test_the_geopotential_of_the_ifs_takes_a_constant_gravity() -> None:
+    ifs = CATALOG.formulations["ecmwf_ifs_geopotential"]
+    phi = ifs.evaluate(z=Q_(10000.0, "m"))
+    assert phi.to("m**2/s**2").magnitude == pytest.approx(98066.5)
+    # Its geopotential height is the geometric altitude...
+    height = FORMULATIONS["geopotential_height_definition"].evaluate(Phi=phi)
+    assert height.to("m").magnitude == pytest.approx(10000.0)
+    # ...which ERA5, from the same model, puts 16 m lower.
+    era5 = FORMULATIONS["era5_geometric_altitude"].evaluate(Z=height)
+    assert era5.to("m").magnitude - 10000.0 == pytest.approx(15.72, abs=0.01)
+    radius = CATALOG.constants["a_ecmwf_ifs"]
+    (r_e,) = FORMULATIONS["era5_geometric_altitude"].coefficients
+    assert radius.value == pytest.approx(r_e.value * 1000)
+
+
+def test_the_square_of_the_brunt_vaisala_frequency() -> None:
+    n2 = CATALOG.formulations["ecmwf_ifs_square_of_brunt_vaisala_frequency"]
+    isothermal = n2.evaluate(T=Q_(250.0, "K"), dTdz=Q_(0.0, "K/m"))
+    assert isothermal.to("1/s**2").magnitude == pytest.approx(
+        G_N**2 / (C_PD_IFS * 250.0)
+    )
+    # Neutral on the dry adiabat of the same constants, unstable beyond.
+    adiabat = Q_(-G_N / C_PD_IFS, "K/m")
+    assert n2.evaluate(T=Q_(250.0, "K"), dTdz=adiabat).magnitude == pytest.approx(
+        0.0, abs=1e-15
+    )
+    assert n2.evaluate(T=Q_(250.0, "K"), dTdz=Q_(-0.012, "K/m")).magnitude < 0
+    assert n2.output.kind == "SquareOfBruntVaisalaFrequency"
+    assert feeds("SquareOfBruntVaisalaFrequency", "InverseSquareTime")
+    kind = CATALOG.kinds["SquareOfBruntVaisalaFrequency"]
+    assert kind.cf_standard_names == ("square_of_brunt_vaisala_frequency_in_air",)
+
+
+def test_the_critical_lapse_rate_of_the_stability_tropopause() -> None:
+    import sympy
+
+    against_lapse_rate = CATALOG.formulations[
+        "ecmwf_ifs_square_of_brunt_vaisala_frequency_lapse_rate"
+    ]
+    critical = CATALOG.formulations["ecmwf_ifs_tropopause_critical_lapse_rate"]
+    assert against_lapse_rate.derived
+    assert not critical.citations
+    assert critical.derivation is None
+    n0_squared = CATALOG.constants["N_0_squared_ecmwf_ifs"]
+    assert (n0_squared.value, n0_squared.unit) == (2.5e-4, "PER-SEC2")
+    # The derived formulation, solved for the lapse rate at N_0^2, gives
+    # the critical lapse rate written by nomogram.
+    symbols = {
+        s.name: s
+        for f in (against_lapse_rate, critical)
+        for s in f.sympy_expression.free_symbols
+    }
+    solved = sympy.solve(
+        sympy.Eq(against_lapse_rate.sympy_expression, symbols["N_0__2"]),
+        symbols["Gamma"],
+    )
+    assert solved == [critical.sympy_expression]
+    temperatures = np.array([200.0, 220.0, 240.0])
+    gamma = critical.evaluate(T=Q_(temperatures, "K")).to("K/m").magnitude
+    assert gamma * 1000 == pytest.approx([4.662, 4.152, 3.642], abs=1e-3)
+    n2 = against_lapse_rate.evaluate(T=Q_(temperatures, "K"), Gamma=Q_(gamma, "K/m"))
+    assert n2.to("1/s**2").magnitude == pytest.approx(2.5e-4)
+    # Criterion 6.79 on a hydrostatic profile of that lapse rate, in
+    # pressure: T = T_b (p/p_b)^(R_d Gamma/g); (p/T) dT/dp by differences.
+    for t, rate in zip(temperatures, gamma, strict=True):
+        p = np.linspace(19000.0, 21000.0, 2001)
+        profile = t * (p / 20000.0) ** (R_D_IFS * rate / G_N)
+        log_slope = np.gradient(np.log(profile), np.log(p))[1000]
+        criterion = log_slope + R_D_IFS * t / G_N**2 * 2.5e-4
+        assert criterion == pytest.approx(R_D_IFS / C_PD_IFS, rel=1e-6)
+
+
+def test_the_dry_static_energy_by_the_ifs_and_by_bechtold() -> None:
+    ifs = CATALOG.formulations["ecmwf_ifs_dry_static_energy"]
+    composed = CATALOG.formulations["ecmwf_ifs_dry_static_energy_altitude"]
+    bechtold = CATALOG.formulations["bechtold2015_dry_static_energy"]
+    t, z = Q_(280.0, "K"), Q_(1000.0, "m")
+    phi = CATALOG.formulations["ecmwf_ifs_geopotential"].evaluate(z=z)
+    s = composed.evaluate(T=t, z=z).to("J/kg").magnitude
+    assert s == pytest.approx(ifs.evaluate(T=t, Phi=phi).to("J/kg").magnitude)
+    assert s == pytest.approx(C_PD_IFS * 280.0 + G_N * 1000.0)
+    # Cited to equation 3.5, the composition is not derived by nomogram.
+    assert not composed.derived
+    # Bechtold's g = 9.81 m/s2 and c_pd = 1004.7: 4 J/kg more at 1 km.
+    s_b = bechtold.evaluate(T=t, z=z).to("J/kg").magnitude
+    assert s_b - s == pytest.approx(1004.7 * 280.0 + 9810.0 - s)
+    # Conserved along the dry adiabat of the same constants.
+    heights = np.linspace(0.0, 10000.0, 11)
+    temperatures = 290.0 - G_N / C_PD_IFS * heights
+    along = composed.evaluate(T=Q_(temperatures, "K"), z=Q_(heights, "m"))
+    assert np.ptp(along.to("J/kg").magnitude) == pytest.approx(0.0, abs=1e-8)
+    assert feeds("DryStaticEnergy", "SpecificEnergy")
+    assert not feeds("DryStaticEnergy", "Geopotential")
+
+
+def test_the_pressure_of_the_model_levels() -> None:
+    half = CATALOG.formulations["ecmwf_ifs_half_level_pressure"]
+    full = CATALOG.formulations["ecmwf_ifs_full_level_pressure"]
+    p_s = Q_(100000.0, "Pa")
+    # The top of the model, B = 0, and the surface, A = 0 and B = 1.
+    assert half.evaluate(A=Q_(0.0, "Pa"), B=Q_(0.0, ""), p_s=p_s).magnitude == 0.0
+    assert half.evaluate(A=Q_(0.0, "Pa"), B=Q_(1.0, ""), p_s=p_s).magnitude == 100000.0
+    above = half.evaluate(A=Q_(5000.0, "Pa"), B=Q_(0.5, ""), p_s=p_s)
+    below = half.evaluate(A=Q_(2000.0, "Pa"), B=Q_(0.7, ""), p_s=p_s)
+    assert above.magnitude == pytest.approx(55000.0)
+    assert full.evaluate(p_1=above, p_2=below).magnitude == pytest.approx(63500.0)
+
+
+def test_the_density_of_moist_air_in_the_ifs_physics() -> None:
+    q_from_e = CATALOG.formulations["ecmwf_ifs_specific_humidity_from_vapour_pressure"]
+    q = q_from_e.evaluate(e=Q_(1000.0, "Pa"), p=Q_(100000.0, "Pa"))
+    assert q.magnitude == pytest.approx(
+        0.621981 * 1000.0 / (100000.0 - 0.378019 * 1000.0)
+    )
+    virtual = CATALOG.formulations["ecmwf_ifs_virtual_temperature"]
+    t_v = virtual.evaluate(T=Q_(300.0, "K"), q=Q_(0.01, ""))
+    assert t_v.magnitude == pytest.approx(300.0 * (1 + (461.525 / R_D_IFS - 1) * 0.01))
+    # epsilon* = R_v/R_d - 1 against (1 - epsilon)/epsilon of Bechtold.
+    bechtold = FORMULATIONS["bechtold2015_virtual_temperature"]
+    t_v_b = bechtold.evaluate(T=Q_(300.0, "K"), q=Q_(0.01, ""))
+    assert t_v.magnitude == pytest.approx(t_v_b.magnitude, rel=2e-6)
+    density = CATALOG.formulations["ecmwf_ifs_density_specific_humidity"]
+    assert not density.derived
+    dry = density.evaluate(p=Q_(101325.0, "Pa"), T=Q_(288.15, "K"), q=Q_(0.0, ""))
+    assert dry.magnitude == pytest.approx(101325.0 / (R_D_IFS * 288.15))
+    # The gas constant of the IFS against that of the ISO standard
+    # atmosphere: 2.4e-5 apart on the density of dry air.
+    iso = FORMULATIONS["iso2533_air_density"].evaluate(
+        p=Q_(101325.0, "Pa"), T=Q_(288.15, "K")
+    )
+    assert dry.magnitude / iso.magnitude - 1 == pytest.approx(-2.4e-5, abs=1e-6)
+    moist = density.evaluate(p=Q_(101325.0, "Pa"), T=Q_(288.15, "K"), q=Q_(0.01, ""))
+    assert moist.magnitude < dry.magnitude

@@ -74,6 +74,9 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "ambaum2020_constant_latent_heat",
         "metpy171_saturation_vapour_pressure",
         "ecmwf_ifs_saturation_water",
+        "vaisala2013_water",
+        "hardy1998_water",
+        "murphy_koop2005_water",
     }
 
 
@@ -371,6 +374,21 @@ def test_a_local_kind_may_carry_cf_standard_names() -> None:
         load_catalog([document + 'cf_standard_names = ["sea_water_salinity"]\n'])
 
 
+def test_a_cf_name_of_a_medium_is_narrow_for_a_kind_neutral_as_to_it() -> None:
+    from nomogram.semantics import CF_NAMESPACE, MatchRelation
+
+    def cf_relation(kind: str) -> MatchRelation:
+        (link,) = [
+            m for m in CATALOG.kinds[kind].matches if m.target.startswith(CF_NAMESPACE)
+        ]
+        return link.relation
+
+    for neutral in ("PotentialTemperature", "ObukhovLength", "FrictionVelocity"):
+        assert cf_relation(neutral) is MatchRelation.NARROW
+    for named in ("DensityOfMoistAir", "SeaWaterSalinity", "LapseRate"):
+        assert cf_relation(named) is MatchRelation.EXACT
+
+
 def test_cf_links_carry_their_relation_and_verification_date() -> None:
     from nomogram.semantics import CF_NAMESPACE, MatchRelation, semantic_catalog
 
@@ -450,39 +468,43 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         for name, unit in f.coefficient_units.items()
         if unit.origin != "inferred"
     }
-    # Formulations reaching MetPy's saturation vapour pressure, by a call or
-    # through a part, keep the units its citation states.
-    reaching = (
-        "metpy171_psychrometric_vapour_pressure",
-        "metpy171_saturation_mixing_ratio",
-        "metpy171_relative_humidity_from_dew_point",
-        "metpy171_relative_humidity_from_specific_humidity",
-        "metpy171_relative_humidity_dew_point_log_pressure",
-        "metpy171_relative_humidity_dew_point_pressure",
-        "metpy171_relative_humidity_specific_humidity_log_pressure",
-        "metpy171_relative_humidity_isentropic",
-        "relative_humidity_log_specific_humidity_log_pressure",
-    )
-    assert {
-        k: v
-        for k, v in origins.items()
-        if k[1].endswith("__metpy171_saturation_vapour_pressure")
-    } == {
-        (key, f"{name}__metpy171_saturation_vapour_pressure"): "stated"
-        for key in reaching
-        for name in ("e_s0", "T_0")
-    }
-    assert {
-        k: v
-        for k, v in origins.items()
-        if not k[1].endswith("__metpy171_saturation_vapour_pressure")
-    } == {
+    # MetPy's reference point is two named constants (sat_pressure_0c, T0),
+    # with their units, shared by its phases and by what reaches them.
+    assert not any("metpy171" in k[1] for k in origins)
+    assert origins == {
         ("iapws_sr1_86", "T_c"): "stated",
+        ("iso2533_acceleration_of_free_fall", "r"): "stated",
         ("iapws_sr1_86", "p_c"): "stated",
         ("iapws_r14_08_sublimation", "T_t"): "stated",
         ("iapws_r14_08_sublimation", "p_t"): "stated",
         ("goff_gratch1946", "e_st"): "added",
         ("goff_gratch1946_ice", "e_i0"): "added",
+        ("vaisala2013_saturation_ice", "P_n"): "stated",
+        ("vaisala2013_saturation_ice", "T_n"): "stated",
+        **{
+            ("hardy1998_dew_point", name): "added"
+            for name in ("c0", "c1", "c2", "c3", "d0", "d1", "d2", "d3")
+        },
+        **{
+            ("hardy1998_frost_point", name): "added"
+            for name in ("c0", "c1", "c2", "d0", "d1", "d2", "d3")
+        },
+        ("ecmwf_ifs_mixed_phase_fraction", "T_ice"): "stated",
+        (
+            "ecmwf_ifs_saturation_mixed_phase",
+            "T_ice__ecmwf_ifs_mixed_phase_fraction",
+        ): "stated",
+        **{
+            (
+                "ecmwf_ifs_saturation_mixed_phase",
+                f"{name}__ecmwf_ifs_saturation_{phase}",
+            ): ("added" if name == "A" else "stated")
+            for name in ("e_0", "A", "B")
+            for phase in ("water", "ice")
+        },
+        ("ecmwf_ifs_dry_static_energy_2m", "z_2"): "stated",
+        ("ecmwf_ifs_specific_humidity_2m", "z_2"): "stated",
+        ("ecmwf_ifs_wind_speed_10m", "z_10"): "stated",
         ("itu_r_p453_reference_profile", "h_0"): "stated",
         ("itu_r_p453_surface_refractivity", "h_0"): "stated",
         ("ittc2011_vapour_pressure", "T_c"): "stated",
@@ -535,8 +557,6 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ecmwf_temperature_below_ground_exact", "Gamma"): "stated",
         ("ecmwf_geopotential_below_ground", "Gamma"): "stated",
         ("ecmwf_geopotential_below_ground_exact", "Gamma"): "stated",
-        ("metpy171_saturation_vapour_pressure", "e_s0"): "stated",
-        ("metpy171_saturation_vapour_pressure", "T_0"): "stated",
         ("metpy171_psychrometric_vapour_pressure", "A"): "stated",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "A"): "added",
         ("ashrae2017_mixing_ratio_from_wet_bulb", "B"): "added",

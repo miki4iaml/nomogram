@@ -129,14 +129,24 @@ catalog.search(kind="VapourPressure", source="buck*")
 
 Chaque formulation garde ses unités, son domaine de validité, son
 échelle de température et ses références. Le vocabulaire est mis en
-correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais) ; la
+correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais), et la
+page [Shared vocabularies](docs/shared-vocabularies.md) (en anglais)
+explique comment nomogram s'appuie sur QUDT, CF et Wikidata et y
+contribue ; la
 page [How nomogram earns trust](docs/approach.md) (en anglais) explique ce
 qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
 anglais) montre l'affichage des formules dans un notebook, en Markdown et
 sur un graphique. [Sea water](docs/sea-water.md) (en anglais) présente les
 échelles de salinité et la pression de vapeur de l'eau de mer, et ce que
-son abaissement de 2 % change à la surface de la mer. [Le logo](docs/logo.md)
-(en anglais) est un vrai nomogramme.
+son abaissement de 2 % change à la surface de la mer. [Humidity
+aloft](docs/humidity-aloft.md) (en anglais) confronte la formule du
+fabricant d'une radiosonde à celles de ses utilisateurs, le long d'un
+profil vertical, au travers du point de rosée, sur l'eau ou sur la
+glace, et face aux exigences de l'OMM. [Security and compliance](docs/security-and-compliance.md) (en
+anglais) rassemble, pour ceux qui autorisent son usage sur le réseau
+d'un laboratoire, la manière dont nomogram est développé, vérifié et
+publié, ce qui reste à faire, et une liste de contrôle. [Le
+logo](docs/logo.md) (en anglais) est un vrai nomogramme.
 
 ## Contribuer
 
@@ -156,7 +166,7 @@ canoniques de la table des noms standard CF. Le paquet embarque un
 sous-ensemble de chaque source :
 
 - QUDT — Quantities, Units, Dimensions and Types, par QUDT.org
-  (<https://qudt.org>), version 3.5.2, sous licence
+  (<https://qudt.org>), version 3.5.3, sous licence
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ;
 - la [table des noms standard CF](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
   version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) ;

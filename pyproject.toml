@@ -1,6 +1,6 @@
 [project]
 name = "nomogram"
-version = "0.5.0"
+version = "0.6.0"
 description = "Repository of scientific formulas: notations, units, validity domains"
 readme = "README.md"
 authors = [
@@ -39,7 +39,7 @@ classifiers = [
 dependencies = [
     "numpy>=2.0",
     "pint>=0.24.4",
-    "sympy>=1.13",
+    "sympy>=1.14",
 ]
 
 [project.urls]
@@ -54,7 +54,7 @@ viz = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.12.18,<0.13.0"]
+requires = ["uv_build>=0.12.18,<0.14.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
@@ -110,7 +110,16 @@ exclude = ["*.md"]
 
 [tool.ruff.lint]
 # On top of ruff's default selection, which Dependabot bumps surface in CI.
-extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20"]
+extend-select = ["ARG", "B", "C4", "PIE", "PT", "PTH", "RET", "T20", "TID251"]
+
+# A formula is read by nomogram.expression.parse_expression, against a
+# whitelist: never by SymPy's parsers, which rely on eval (AGENTS.md).
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"sympy.sympify".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.core.sympify".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.parse_expr".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.parsing".msg = "read formulas with nomogram.expression.parse_expression"
+"sympy.parsing.sympy_parser".msg = "read formulas with nomogram.expression.parse_expression"
 
 [tool.ruff.lint.per-file-ignores]
 # Fixtures requested for their side effects look like unused arguments.

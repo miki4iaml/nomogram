@@ -441,7 +441,8 @@ class ConventionalScale:
         y = sympy.Symbol("y", real=True)
         try:
             found = sympy.solve(sympy.Eq(y, expr), x)
-        except (NotImplementedError, ValueError, TypeError):
+        except (NotImplementedError, ValueError, TypeError, RecursionError):
+            # The conversion is then inverted numerically.
             return None
         return compile_numeric(found[0], ("y",)) if len(found) == 1 else None
 
@@ -1409,7 +1410,10 @@ class Formulation:
         values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
 
         def unit_of(expr: Any) -> Any:
-            return Q_(compile_numeric(expr, self.names)(*values)).units
+            # A probe may leave the real domain of the expression (the
+            # square root of 1 - 16 zeta): the value is NaN, the unit holds.
+            with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+                return Q_(compile_numeric(expr, self.names)(*values)).units
 
         for relation in _relations(self.sympy_expression):
             left, right = unit_of(relation.lhs), unit_of(relation.rhs)

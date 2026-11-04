@@ -374,6 +374,17 @@ class Rendering:
     @cached_property
     def _symbols(self) -> Mapping[str, str]:
         symbols = dict(self.notation.symbols) if self.notation else {}
+        # A coefficient or a constant of a formulation called, renamed for
+        # the computation (T_0__metpy171_saturation_vapour_pressure), is
+        # written as in its owner, as the legend does: SymPy would read the
+        # double underscore as a superscript. A composition prints the
+        # expressions of its parts expanded, renamed names included.
+        identifiers = [c.identifier for c in self.formulation.coefficients]
+        identifiers += [k.identifier for k in self.formulation.constants]
+        for identifier in identifiers:
+            _, name = _origin(self.formulation, identifier)
+            if name != identifier and identifier not in symbols:
+                symbols[identifier] = _identifier(name, {}, self.options)
         if self.options.values:
             for coefficient in self.formulation.coefficients:
                 number = _number(coefficient.value, self.options)

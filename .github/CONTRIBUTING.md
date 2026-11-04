@@ -2,8 +2,9 @@
 
 **English** | [Français](CONTRIBUTING.fr.md)
 
-Thank you for your interest. This guide covers setup, checks and the
-path of a contribution. Coding and architecture rules live in
+Thank you for your interest. This guide covers setup, checks, commands,
+the path of a contribution, releasing and the rationale of the settled
+decisions. Coding and architecture rules live in
 [AGENTS.md](../AGENTS.md), which applies to humans and coding agents
 alike.
 
@@ -29,6 +30,25 @@ Whatever the path, a formula enters the catalog with its source, units
 and validity domain; a detail is marked `verified` only once read in
 the source itself.
 
+## Rights of sources
+
+A formula is cited; the document that gives it keeps its own rights.
+These rules bind every contributor, whatever the tool used:
+
+- **Licensed standards** (ISO, AFNOR...) are never reproduced: the
+  catalog cites their equations and constants, never their tables or
+  excerpts.
+- **No source document is redistributed**, neither in the repository
+  nor in the package: a reference gives its title, its DOI or its link.
+- **Text and data mining**: before a document is processed by a coding
+  agent or another automated tool, check it for a clause forbidding
+  text and data mining or processing by artificial intelligence; a
+  document that carries one is not processed that way.
+- **Protections against robots and paywalls are never circumvented.**
+- **Copyright notices are respected**: a formula is cited, a quotation
+  stays short and within what the notice allows, the document is not
+  reproduced.
+
 ## Prerequisites
 
 - Python 3.12 or later.
@@ -53,7 +73,7 @@ tests cover. The second command installs the hooks at all three stages
 
 | Stage | Checks |
 |---|---|
-| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity, image metadata |
+| pre-commit | file hygiene (whitespace, end of file, LF line endings, BOM, YAML, TOML, merge conflicts, large files), private keys, no direct commit to `main` or `develop`, `ruff check --fix` and `ruff format`, codespell (spelling), zizmor (workflow security audit), gitleaks, nbstripout, anonymity, image metadata, hidden characters and local-only files |
 | commit-msg | anonymity of the message, Conventional Commits, ASCII-only subject |
 | pre-push | strict mypy, pytest |
 
@@ -150,6 +170,22 @@ skipped locally (`git commit --no-verify`); CI then still applies the
 generic patterns and the marker check, but never your personal ones,
 which stay on your machine by design.
 
+## Commands
+
+```
+uv sync --all-extras                       # environment
+uv run pytest                              # tests
+uv run coverage run -m pytest && uv run coverage report   # coverage
+uv run ruff check --fix && uv run ruff format
+uv run mypy                                # strict typing
+uv run --isolated --python 3.13 --all-extras pytest   # reproduce CI
+uv run --isolated --resolution lowest-direct --all-extras pytest   # lower bounds
+```
+
+`--isolated` matters for the last two commands: without it, `uv run`
+re-locks `uv.lock` with the requested resolution and replaces the
+project's `.venv`.
+
 ## Contribution workflow
 
 1. Create a branch from `develop` (the default branch), prefixed with
@@ -180,6 +216,80 @@ Then add the public key to GitHub as a *Signing key*
 (Settings → SSH and GPG keys). Your commits should show the
 "Verified" badge. A GPG key works too.
 
+## Releasing
+
+For the maintainer, in this order:
+
+1. For a minor version, a pull request beforehand re-extracts
+   `semantics.json` from the latest official releases of QUDT and CF
+   (`scripts/extract_semantics.py`), each recorded with its version;
+   patch versions keep the extract. A kind or a unit that a new QUDT
+   release defines replaces the local one in the same pull request,
+   with a CHANGELOG entry.
+2. Pull request against `develop` (squash): version bump in
+   `pyproject.toml` and `CITATION.cff`, `[Unreleased]` section of
+   `CHANGELOG.md` turned into `[x.y.z] - date`, titled
+   `chore: release x.y.z`. The same pull request brings
+   `docs/security-and-compliance.md` up to date: the date, the version
+   assessed, the dependency versions, the number of tests and the
+   coverage, the alerts handled, the checklist.
+3. Pull request `develop` → `main`, merged with a merge commit (the
+   only exception to squash: `main` must hold the exact history of
+   `develop`, otherwise both branches diverge at every release).
+4. Before tagging, check locally: `uv build` then
+   `uvx --from twine twine check --strict dist/*`.
+5. Signed tag `vx.y.z` on `main`, then publish a GitHub release from
+   it, its notes the `CHANGELOG.md` section of the version, with links
+   made absolute: `python scripts/absolute_links.py rewrite --repo
+   miki4iaml/nomogram --ref vx.y.z notes.md`. The release workflow
+   (`.github/workflows/release.yml`) checks that the tag matches the
+   project version, makes the links of the README absolute at the tag
+   (PyPI shows it outside the repository), builds once, checks that no
+   relative link is left, attests the build provenance and the CycloneDX
+   SBOM, and publishes exactly those files to PyPI through Trusted
+   Publishing (OIDC, no stored token), after approval of the protected
+   `pypi` environment.
+6. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+
+Rehearsal: run the release workflow manually (`workflow_dispatch`). It
+publishes a unique `x.y.z.devN` version to TestPyPI without creating a
+release. Never publish a GitHub release just to test: each published
+release also archives a permanent Zenodo DOI.
+
+## Settled decisions
+
+The decisions [AGENTS.md](../AGENTS.md) states in one line, with their
+rationale.
+
+- **CI matrix**: complete and blocking, Ubuntu and Windows × Python
+  3.12 and 3.13. Portability and `requires-python >=3.12` are promises
+  made to the package's users; a non-blocking cell ends up ignored and
+  the promise stops being checked. This choice follows from the
+  package profile — pure Python, light dependencies, diverse target
+  audiences — which makes integration cheap and portability a real
+  concern. Do not align this matrix with that of a heavier repository
+  for the sake of uniformity: the package profile decides.
+- **Contributor signatures**: a squash merge produces a commit signed
+  by GitHub, which hides the commits of the pull request; the
+  `signatures` CI job therefore requires each of them to be signed and
+  verified.
+- **`.vscode` partly versioned**: `settings.json`, `extensions.json`
+  and `tasks.json` are shared (ruff and mypy from the environment,
+  recommended and unwanted extensions, "Quality gates" task); the
+  rest of the folder stays local. The interpreter is not set: the
+  Python extension discovers `.venv` on its own. Do not reintroduce
+  `python.defaultInterpreterPath` pointing to a folder: the Python
+  extension resolves it for itself only, but passes it raw to the ruff
+  and mypy extensions, which fail to launch it. An executable path
+  would be OS-specific.
+- **mypy at pre-push**: deliberate overlap with CI, so that failures
+  happen locally rather than after the push. Keep an eye on push time.
+- **Coverage**: branch coverage measured with coverage.py (no
+  pytest-cov); an 80 % floor is enforced in every cell of the CI test
+  matrix, the common target (Codecov's usual recommendation; Google's
+  guideline rates 75 % commendable, 90 % exemplary). The pre-push hook
+  runs plain pytest to stay fast; CI is authoritative for coverage.
+
 ## Security
 
 Never report a vulnerability in a public issue: follow the
@@ -197,6 +307,18 @@ This project uses coding agents; every contribution is reviewed and
 signed by a human contributor. No tool attribution is added to commits
 or pull requests: the human signature commits the contributor,
 whatever the tool used.
+
+Instruction files of coding agents are reviewed as code. AGENTS.md is
+the only one tracked, at the root: the `check-integrity` hook refuses
+an AGENTS.md in a subfolder, the instruction files of other tools
+(`GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`...),
+files that stay local (`CLAUDE.md`, `.claude/`, `.mcp.json`) and hidden
+characters (zero-width, bidirectional, tags, variation selectors,
+control characters). A maintainer reads a pull request from someone else
+as a diff, on GitHub or with `gh pr diff`, and never checks it out in a
+working tree where a coding agent runs: the agent would load the
+instructions it brings. `.github/CODEOWNERS` lists the paths whose
+changes need the maintainer's review.
 
 ## License
 

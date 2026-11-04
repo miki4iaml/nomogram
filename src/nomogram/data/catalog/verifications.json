@@ -62,6 +62,16 @@
    "status": "reproduced",
    "value": 0.3843123031154638
   },
+  "50be32b34f497502e205026d04ff401684cafa9cb4c943e8d7a88c03046694d1": {
+   "at": {
+    "t": -5.2784692752134506
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale convert",
+   "relation": "vaisala2013_water_iapws",
+   "status": "reproduced",
+   "value": 0.08286046458894081
+  },
   "55ca63ea88f0deac0aa16d37a9cfeb13f37bde54f8a8ef946a060bf2a68c2809": {
    "at": {
     "t": -40.0
@@ -81,6 +91,16 @@
    "relation": "ae96_sa90_so90",
    "status": "held",
    "value": 0.31517868418324824
+  },
+  "5fa4cce266713a615775dd521978a4907e6ad5191c2691c6343d9a71fac20aeb": {
+   "at": {
+    "t": 0.0
+   },
+   "detail": null,
+   "method": "maximum relative deviation: grid of 9001 points per axis (1 input(s)), refined around the 5 best points down to 1.1e-10 of the domain; 29001 evaluations; scale convert",
+   "relation": "vaisala2013_ice_equation_5",
+   "status": "reproduced",
+   "value": 0.0524682468180826
   },
   "63c43cda09205e189b6e209a3ec2f12de4e959391dd5151618d184a826234038": {
    "at": {

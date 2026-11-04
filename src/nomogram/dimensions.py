@@ -20,7 +20,7 @@ brings a constraint:
 - the terms of a sum, and the sum, share one dimension;
 - a product multiplies units; a power with a numerical exponent raises
   the unit to it;
-- the argument of a function (exp, ln, log10, sin, cos), and the base
+- the argument of a function (exp, ln, log10, sin, cos, atan, tanh), and the base
   and exponent of a power with a symbolic exponent, are pure numbers;
 - an angle in the argument of sin or cos is in radians: in degrees, its
   value would be read as radians;
@@ -505,7 +505,13 @@ def _linear(
         if node.is_Pow:
             if not node.exp.is_Number:
                 return dict.fromkeys(bases, sympy.Integer(0))
-            power = sympy.nsimplify(node.exp)
+            # The exact decimal of a written exponent: nsimplify would guess
+            # (sqrt(2) for 1.4142135623730951).
+            power = (
+                node.exp
+                if node.exp.is_Rational
+                else sympy.Rational(repr(float(node.exp)))
+            )
             return {b: power * e for b, e in vector(node.base).items()}
         if node.is_Mul:
             total = dict.fromkeys(bases, sympy.Integer(0))

@@ -1017,7 +1017,7 @@ class _Builder:
         names = {
             self.constants[n].identifier: n for n in self.constants[key].components
         }
-        return expr.subs({s: value(names[s.name]) for s in expr.free_symbols})
+        return expr.xreplace({s: value(names[s.name]) for s in expr.free_symbols})
 
     def unrounded(self, key: str) -> Any:
         """The exact value of a constant: its definition, recursively, else as printed."""

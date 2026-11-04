@@ -1,0 +1,850 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Boundary layer: the surface layer of the ECMWF IFS (Part IV, section
+# 3.2), after Monin-Obukhov similarity: the Obukhov length, the gradient
+# and profile functions of stability, the bulk Richardson number, the
+# roughness lengths over sea and sea ice, the transfer coefficients and
+# the friction velocity.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "boundary-layer"
+label = "Surface layer of the atmospheric boundary layer"
+format = 2
+requires = ["atmosphere"]
+keywords = ["boundary layer", "surface layer", "Monin-Obukhov", "turbulence"]
+
+# --- References -------------------------------------------------------
+# The sources the IFS cites for its functions, entered as the IFS writes
+# them: not read, hence to-confirm.
+
+[references.paulson1970]
+authors = "Paulson, C. A."
+year = 1970
+title = "The mathematical representation of wind speed and temperature profiles in the unstable atmospheric surface layer"
+container = "Journal of Applied Meteorology, 9, 857-861"
+doi = "10.1175/1520-0450(1970)009<0857:TMROWS>2.0.CO;2"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the profile functions of unstable conditions, equation 3.22; not read. DOI checked with Crossref on 2026-11-04."
+
+[references.dyer1974]
+authors = "Dyer, A. J."
+year = 1974
+title = "A review of flux-profile relationships"
+container = "Boundary-Layer Meteorology, 7, 363-372"
+doi = "10.1007/BF00240838"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the gradient functions of unstable conditions, equation 3.21; not read. DOI checked with Crossref on 2026-11-04."
+
+[references.hogstrom1988]
+authors = "Högström, U."
+year = 1988
+title = "Non-dimensional wind and temperature profiles in the atmospheric surface layer: a re-evaluation"
+container = "Boundary-Layer Meteorology, 42, 55-78"
+doi = "10.1007/BF00119875"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the gradient functions, equations 3.21 and 3.23; not read. DOI checked with Crossref on 2026-11-04."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q60638164", relation = "exact", verified = 2026-11-04 },
+]
+
+[references.holtslag_debruin1988]
+authors = "Holtslag, A. A. M. and De Bruin, H. A. R."
+year = 1988
+title = "Applied modeling of the nighttime surface energy balance over land"
+container = "Journal of Applied Meteorology, 27, 689-704"
+doi = "10.1175/1520-0450(1988)027<0689:AMOTNS>2.0.CO;2"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the profile functions of stable conditions, equation 3.24, which the IFS modifies for a critical flux Richardson number; not read. The bibliography of the IFS prints the second author 'Bruin, H. A. R. D.'. DOI checked with Crossref on 2026-11-04."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q114957574", relation = "exact", verified = 2026-11-04 },
+]
+
+[references.beljaars1995]
+authors = "Beljaars, A. C. M."
+year = 1995
+title = "The parametrization of surface fluxes in large-scale models under free convection"
+container = "Quarterly Journal of the Royal Meteorological Society, 121, 255-270"
+doi = "10.1002/qj.49712152203"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.1 and 3.2.4) for the free-convection velocity and the roughness lengths over sea, equation 3.28; not read. The IFS dates it 1994; Crossref gives the issue of January 1995 (checked on 2026-11-04)."
+
+[references.brutsaert1982]
+authors = "Brutsaert, W."
+year = 1982
+title = "Evaporation into the Atmosphere"
+container = "D. Reidel, Dordrecht"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.4) for the constants of the smooth-surface roughness lengths over sea, equation 3.28; not read. The bibliography of the IFS prints the title 'Evaporation in the Atmosphere'."
+
+[references.andreas2010]
+authors = "Andreas, E. L., Horst, T. W., Grachev, A. A., Persson, P. O. G., Fairall, C. W., Guest, P. S. and Jordan, R. E."
+year = 2010
+title = "Parametrizing turbulent exchange over summer sea ice and the marginal ice zone"
+container = "Quarterly Journal of the Royal Meteorological Society, 136, 927-943"
+doi = "10.1002/qj.618"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.4) for the drag coefficient over partial sea ice, equation 3.35; not read. The bibliography of the IFS prints the title 'Turbulent exchange over summer sea ice and the marginal ice zone' and pages 927-947; Crossref gives the title and pages above (checked on 2026-11-04)."
+
+[references.bidlot2014]
+authors = "Bidlot, J.-R., Keeley, S. and Mogensen, K."
+year = 2014
+title = "Towards the inclusion of sea ice attenuation in an operational wave model"
+container = "Proceedings of the 22nd IAHR International Symposium on Ice (IAHR-ICE 2014)"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.4) for the adaptation of Andreas et al. (2010) to a roughness length, equation 3.35; not read."
+
+[references.ecmwf_ifs_cy50r1_part4]
+authors = "ECMWF"
+year = 2026
+title = "IFS Documentation CY50R1 - Part 4: Physical Processes"
+doi = "10.21957/49928f2338"
+url = "https://www.ecmwf.int/en/elibrary/81734-ifs-documentation-cy50r1-part-4-physical-processes"
+status = "verified"
+note = "Chapter 3, read on the page images: section 3.2, the surface layer, with the numbers of CY49R1 (equations 3.8 to 3.35); section 3.10, the diagnostics, equations 3.137 to 3.142 (temperature and humidity at 2 m), 3.144 to 3.147 (wind at 10 m and friction velocity) and 3.156 (visibility), 39 above those of CY49R1 (section 3.9). The same constants as CY49R1. DOI checked with DataCite on 2026-11-04, which gives 2026 as the year of publication."
+
+[references.ingleby2023]
+authors = "Ingleby, B., Arduini, G., Balsamo, G., Boussetta, S., Ochi, K., Pinnington, E. and de Rosnay, P."
+year = 2023
+title = "Improved two-metre temperature forecasts in the 2024 upgrade"
+container = "ECMWF Newsletter, 178, 24-29"
+doi = "10.21957/bi49s20qa8"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.9.2) for the interpolation to 2 m of CY49R1, equations 3.98 to 3.103; not read. DataCite gives 2024 (checked on 2026-11-04), the IFS 2023: the Newsletter of winter 2023/24."
+
+[references.koschmieder1924]
+authors = "Koschmieder, H."
+year = 1924
+title = "Theorie der horizontalen Sichtweite"
+container = "Beitrage zur Physik der freien Atmosphare, 12, 171-181"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.9.6) for the liminal contrast of 0.02 of its visibility, equation 3.117; not read."
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.ObukhovLength]
+label = "Obukhov Length"
+specialization_of = "Length"
+description = "Length scale of the surface layer of a fluid, air or sea water, comparing the production of turbulence by shear to that by buoyancy (Monin-Obukhov similarity): negative in unstable conditions, positive in stable ones."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q3110303", relation = "narrow", verified = 2026-11-04 },
+]
+cf_standard_names = [{ name = "atmosphere_obukhov_length", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.FrictionVelocity]
+label = "Friction Velocity"
+specialization_of = "Speed"
+description = "Velocity scale of the surface layer of a fluid, the square root of the surface stress over the density of the fluid."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1695787", relation = "exact", verified = 2026-11-04 },
+]
+cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.SurfaceLayerScaleOfDryStaticEnergy]
+label = "Surface-Layer Scale of Dry Static Energy"
+specialization_of = "SpecificEnergy"
+description = "Scale of the dry static energy in the surface layer, its surface flux over the density of air and the friction velocity (IFS, s_*): a scale, not a dry static energy."
+
+[kinds.SurfaceLayerScaleOfSpecificHumidity]
+label = "Surface-Layer Scale of Specific Humidity"
+specialization_of = "MassRatio"
+description = "Scale of the specific humidity in the surface layer, its surface flux over the density of air and the friction velocity (IFS, q_*): a scale, not a humidity."
+
+[kinds.RoughnessLengthForMomentum]
+label = "Roughness Length for Momentum"
+specialization_of = "Length"
+description = "Height at which the logarithmic profile of the mean velocity of a flow over a surface, the wind in air, extended downwards, vanishes."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q7370913", relation = "narrow", verified = 2026-11-04 },
+]
+cf_standard_names = [{ name = "surface_roughness_length_for_momentum_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.RoughnessLengthForHeat]
+label = "Roughness Length for Heat"
+specialization_of = "Length"
+description = "Height at which the logarithmic profile of temperature of a flow over a surface (of dry static energy in the IFS), extended downwards, reaches its surface value."
+cf_standard_names = [{ name = "surface_roughness_length_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.RoughnessLengthForHumidity]
+label = "Roughness Length for Humidity"
+specialization_of = "Length"
+description = "Height at which the profile of specific humidity of the surface layer of the air, extended downwards, reaches its surface value: the air's by nature, as is humidity."
+cf_standard_names = [{ name = "surface_roughness_length_for_humidity_in_air", relation = "exact", verified = 2026-11-04 }]
+
+[kinds.StabilityParameter]
+label = "Stability Parameter"
+specialization_of = "DimensionlessRatio"
+description = "Height over the Obukhov length, zeta = z/L: negative in unstable conditions, positive in stable ones."
+
+[kinds.GradientFunctionForMomentum]
+label = "Gradient Function for Momentum"
+specialization_of = "DimensionlessRatio"
+description = "Dimensionless vertical gradient of the mean velocity in the surface layer of a fluid, the wind in air, (kappa z / u_*) du/dz, a function of the stability parameter (Monin-Obukhov similarity)."
+
+[kinds.GradientFunctionForHeat]
+label = "Gradient Function for Heat"
+specialization_of = "DimensionlessRatio"
+description = "Dimensionless vertical gradient of temperature in the surface layer of a fluid, a function of the stability parameter; written (kappa z / s_*) ds/dz with the dry static energy in the IFS, which takes the same function for specific humidity."
+
+[kinds.ProfileFunctionForMomentum]
+label = "Profile Function for Momentum"
+specialization_of = "DimensionlessRatio"
+description = "Stability correction to the logarithmic profile of the mean velocity in the surface layer of a fluid, the wind in air, Psi_M, tied to the gradient function by Phi = 1 - zeta dPsi/dzeta."
+
+[kinds.ProfileFunctionForHeat]
+label = "Profile Function for Heat"
+specialization_of = "DimensionlessRatio"
+description = "Stability correction to the logarithmic profile of temperature in the surface layer of a fluid, Psi_H; of dry static energy, and of specific humidity, in the IFS."
+
+[kinds.BulkRichardsonNumber]
+label = "Bulk Richardson Number"
+specialization_of = "DimensionlessRatio"
+description = "Ratio of buoyancy to wind shear across a layer, from the differences of virtual potential temperature, or of dry static energy and specific humidity, between its bounds."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1004118", relation = "exact", verified = 2026-11-04 },
+]
+
+[kinds.SurfaceDragCoefficientForMomentum]
+label = "Surface Drag Coefficient for Momentum"
+specialization_of = "DimensionlessRatio"
+description = "Transfer coefficient relating the surface stress to the square of the speed of the flow at a height, the wind in air, tau = rho C_M |U|^2. Not the drag coefficient of a body in a flow (QUDT DragCoefficient)."
+cf_standard_names = [{ name = "surface_drag_coefficient_for_momentum_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.SurfaceDragCoefficientForHeat]
+label = "Surface Drag Coefficient for Heat"
+specialization_of = "DimensionlessRatio"
+description = "Transfer coefficient relating the surface flux of heat to the speed of the flow and the difference of temperature between a height and the surface; of dry static energy in the IFS, J_s = rho C_H |U| (s - s_surf)."
+cf_standard_names = [{ name = "surface_drag_coefficient_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.SeaIceAreaFraction]
+label = "Sea Ice Area Fraction"
+specialization_of = "DimensionlessRatio"
+description = "Fraction of an area of sea covered by sea ice, the sea ice concentration."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q7440064", relation = "exact", verified = 2026-11-04 },
+]
+cf_standard_names = [{ name = "sea_ice_area_fraction", relation = "exact", verified = 2026-11-04 }]
+
+[kinds.Visibility]
+label = "Visibility"
+specialization_of = "Length"
+description = "Greatest distance at which a black object can be seen against the horizon sky, from the extinction coefficient and a liminal contrast (Koschmieder): the contrast of 0.02 of the IFS, of 0.05 for the meteorological optical range of WMO."
+cf_standard_names = [{ name = "visibility_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+# --- Constants --------------------------------------------------------
+
+[constants.kappa_ecmwf_ifs]
+identifier = "kappa"
+value = 0.4
+unit = "UNITLESS"
+description = "Von Karman constant of the ECMWF IFS (CY49R1, Part IV, under equation 3.10)"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+note = "The constant of the logarithmic wind profile, not the ratio R/c_p that other sources call kappa."
+
+[constants.nu_ecmwf_ifs]
+identifier = "nu"
+value = 1.5e-5
+unit = "M2-PER-SEC"
+description = "Kinematic viscosity of air of the ECMWF IFS, for the smooth-surface roughness lengths over sea (CY49R1, Part IV, 3.2.4)"
+reference = "ecmwf_ifs_cy49r1"
+nature = "conventional"
+note = "A constant, where ISO 2533 gives the kinematic viscosity of air as a function of temperature and pressure (iso2533_kinematic_viscosity_of_air): at 1013.25 hPa, 1.24e-5 m2 s-1 at -10 degC, 1.33e-5 at 0 degC, 1.46e-5 at 15 degC and 1.60e-5 at 30 degC, from which the constant departs by +21, +13 and +2.7 %, then -6 % (computed by nomogram, ISO 2533 as the reference of the comparison)."
+
+# --- Obukhov length ---------------------------------------------------
+
+[formulations.ecmwf_ifs_obukhov_length]
+label = "Obukhov length from the surface-layer scales (IFS)"
+expression = "-u_s**3 / (kappa * g_n / T_n * (u_s * s_s / c_pd + (R_v / R_d - 1) * T_n * u_s * q_s))"
+fixed_units = false
+note = "Equation 3.10, with the virtual temperature flux Q_0v = u_* s_*/c_p + epsilon T_n u_* q_* written out, epsilon = R_vap/R_dry - 1. T_n is the temperature of the lowest model level, a reference near the surface."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "s_s", kind = "SurfaceLayerScaleOfDryStaticEnergy", unit = "J-PER-KiloGM", description = "Surface-layer scale of dry static energy" },
+  { identifier = "q_s", kind = "SurfaceLayerScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Surface-layer scale of specific humidity" },
+  { identifier = "T_n", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature near the surface (lowest model level)" },
+]
+constants = ["kappa_ecmwf_ifs", "g_n_cgpm1901", "c_pd_ecmwf_ifs", "R_v_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["Obukhov length", "Monin-Obukhov", "stability", "IFS"]
+
+[[formulations.ecmwf_ifs_obukhov_length.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.10"
+notation = { u_s = "u_*",s_s = "s_*", q_s = "q_*", kappa = '\kappa', g_n = "g", c_pd = "c_p" }
+assumptions = ["The turbulent fluxes are constant with height in the surface layer, equal to their surface values (section 3.2)."]
+
+# --- Gradient functions -----------------------------------------------
+
+[formulations.ecmwf_ifs_gradient_function_momentum_unstable]
+label = "Gradient function for momentum, unstable conditions (IFS, after Dyer and Hicks)"
+expression = "(1 - 16 * zeta) ** (-1 / 4)"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "IFS"]
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.21"
+notation = { Phi_M = '\Phi_{\mathrm{M}}', zeta = '\zeta' }
+assumptions = ["Unstable conditions, zeta = z/L < 0 (section 3.2.2 (i))."]
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "dyer1974"
+note = "As the IFS quotes it."
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "hogstrom1988"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_gradient_function_heat_unstable]
+label = "Gradient function for heat and moisture, unstable conditions (IFS, after Dyer and Hicks)"
+expression = "(1 - 16 * zeta) ** (-1 / 2)"
+fixed_units = false
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "IFS"]
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.21"
+notation = { Phi_H = '\Phi_{\mathrm{H}}', zeta = '\zeta' }
+assumptions = ["Unstable conditions, zeta = z/L < 0 (section 3.2.2 (i)).", "The same function for specific humidity, Phi_Q = Phi_H."]
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "dyer1974"
+note = "As the IFS quotes it."
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "hogstrom1988"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions (IFS, after Hogstrom)"
+expression = "1 + 5 * zeta"
+fixed_units = false
+note = "The IFS states that its current version does not use the gradient functions of stable conditions, but functions of the Richardson number (section 3.2.2 (ii))."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "IFS"]
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_stable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.23"
+notation = { Phi_M = '\Phi_{\mathrm{M}}', zeta = '\zeta' }
+assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii))."]
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_stable.citations]]
+reference = "hogstrom1988"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_gradient_function_heat_stable]
+label = "Gradient function for heat and moisture, stable conditions (IFS, after Ellison and Turner)"
+expression = "(1 + 4 * zeta) ** 2"
+fixed_units = false
+note = "Derived by the IFS from the Ellison and Turner relation for Phi_M/Phi_H. The IFS states that its current version does not use the gradient functions of stable conditions, but functions of the Richardson number (section 3.2.2 (ii))."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "IFS"]
+
+[[formulations.ecmwf_ifs_gradient_function_heat_stable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.23"
+notation = { Phi_H = '\Phi_{\mathrm{H}}', zeta = '\zeta' }
+assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii)).", "The same function for specific humidity, Phi_Q = Phi_H."]
+
+# --- Profile functions ------------------------------------------------
+# Paulson (1970) for unstable conditions, with x = (1 - 16 zeta)^(1/4)
+# written out (x^2 = (1 - 16 zeta)^(1/2)); Holtslag and De Bruin (1988),
+# modified, for stable conditions. Both vanish at zeta = 0: the branches
+# meet there, and nomogram closes the interval on the stable side. The
+# IFS bounds z/L to 5 in very stable conditions (section 3.2), a limiter
+# of the model, not of the functions.
+
+[formulations.ecmwf_ifs_profile_function_momentum_unstable]
+label = "Profile function for momentum, unstable conditions (IFS, after Paulson)"
+expression = "pi / 2 - 2 * atan((1 - 16 * zeta) ** (1 / 4)) + ln((1 + (1 - 16 * zeta) ** (1 / 4)) ** 2 * (1 + (1 - 16 * zeta) ** (1 / 2)) / 8)"
+fixed_units = false
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "unstable", "Paulson", "IFS"]
+
+[[formulations.ecmwf_ifs_profile_function_momentum_unstable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.22"
+notation = { Psi_M = '\Psi_{\mathrm{M}}', zeta = '\zeta' }
+assumptions = ["Unstable conditions, zeta = z/L < 0 (section 3.2.2 (i))."]
+
+[[formulations.ecmwf_ifs_profile_function_momentum_unstable.citations]]
+reference = "paulson1970"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_profile_function_heat_unstable]
+label = "Profile function for heat and moisture, unstable conditions (IFS, after Paulson)"
+expression = "2 * ln((1 + (1 - 16 * zeta) ** (1 / 2)) / 2)"
+fixed_units = false
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "unstable", "Paulson", "IFS"]
+
+[[formulations.ecmwf_ifs_profile_function_heat_unstable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.22"
+notation = { Psi_H = '\Psi_{\mathrm{H}}', zeta = '\zeta' }
+assumptions = ["Unstable conditions, zeta = z/L < 0 (section 3.2.2 (i)).", "The same function for specific humidity, Psi_Q = Psi_H."]
+
+[[formulations.ecmwf_ifs_profile_function_heat_unstable.citations]]
+reference = "paulson1970"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_profile_function_momentum_stable]
+label = "Profile function for momentum, stable conditions (IFS, after Holtslag and De Bruin)"
+expression = "-b * (zeta - c / d) * exp(-d * zeta) - a * zeta - b * c / d"
+fixed_units = false
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a = 1, b = { value = 0.6666666666666666, note = "2/3 in the source." }, c = 5, d = 0.35 }
+keywords = ["profile function", "Monin-Obukhov", "stable", "Holtslag", "IFS"]
+
+[[formulations.ecmwf_ifs_profile_function_momentum_stable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.24"
+notation = { Psi_M = '\Psi_{\mathrm{M}}', zeta = '\zeta' }
+assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii))."]
+
+[[formulations.ecmwf_ifs_profile_function_momentum_stable.citations]]
+reference = "holtslag_debruin1988"
+note = "As the IFS quotes it, modified for a critical flux Richardson number at large zeta."
+
+[formulations.ecmwf_ifs_profile_function_heat_stable]
+label = "Profile function for heat and moisture, stable conditions (IFS, after Holtslag and De Bruin)"
+expression = "-b * (zeta - c / d) * exp(-d * zeta) - (1 + 2 / 3 * a * zeta) ** 1.5 - b * c / d + 1"
+fixed_units = false
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a = 1, b = { value = 0.6666666666666666, note = "2/3 in the source." }, c = 5, d = 0.35 }
+keywords = ["profile function", "Monin-Obukhov", "stable", "Holtslag", "IFS"]
+
+[[formulations.ecmwf_ifs_profile_function_heat_stable.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.24"
+notation = { Psi_H = '\Psi_{\mathrm{H}}', zeta = '\zeta' }
+assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii)).", "The same function for specific humidity, Psi_Q = Psi_H."]
+
+[[formulations.ecmwf_ifs_profile_function_heat_stable.citations]]
+reference = "holtslag_debruin1988"
+note = "As the IFS quotes it, modified for a critical flux Richardson number at large zeta."
+
+[formulations.ecmwf_ifs_profile_function_momentum]
+label = "Profile function for momentum, unstable then stable conditions (IFS)"
+branches = [
+  { formulation = "ecmwf_ifs_profile_function_momentum_unstable", where = "zeta < 0" },
+  { formulation = "ecmwf_ifs_profile_function_momentum_stable", where = "zeta >= 0" },
+]
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+keywords = ["profile function", "Monin-Obukhov", "IFS"]
+
+[formulations.ecmwf_ifs_profile_function_heat]
+label = "Profile function for heat and moisture, unstable then stable conditions (IFS)"
+branches = [
+  { formulation = "ecmwf_ifs_profile_function_heat_unstable", where = "zeta < 0" },
+  { formulation = "ecmwf_ifs_profile_function_heat_stable", where = "zeta >= 0" },
+]
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+keywords = ["profile function", "Monin-Obukhov", "IFS"]
+
+# --- Bulk Richardson number -------------------------------------------
+# Explicit forms only: the IFS solves 3.25 for zeta by Newton iterations,
+# which no formulation writes.
+
+[formulations.ecmwf_ifs_bulk_richardson_number]
+label = "Bulk Richardson number of the surface layer from virtual potential temperatures (IFS)"
+expression = "g_n / theta_v * z_n * (theta_vn - theta_vsurf) / U_n**2"
+fixed_units = false
+output = { identifier = "Ri_b", kind = "BulkRichardsonNumber", unit = "UNITLESS", description = "Bulk Richardson number" }
+inputs = [
+  { identifier = "theta_v", kind = "VirtualPotentialTemperature", unit = "K", description = "Virtual potential temperature within the surface layer" },
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "theta_vn", kind = "VirtualPotentialTemperature", unit = "K", description = "Virtual potential temperature at the lowest model level" },
+  { identifier = "theta_vsurf", kind = "VirtualPotentialTemperature", unit = "K", description = "Virtual potential temperature at the surface" },
+  { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, with the free-convection velocity (equation 3.19)" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["Richardson number", "stability", "IFS"]
+
+[[formulations.ecmwf_ifs_bulk_richardson_number.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.26"
+notation = { Ri_b = 'Ri_{\mathrm{bulk}}', g_n = "g", theta_v = '\theta_v', theta_vn = '\theta_{vn}', theta_vsurf = '\theta_{v\mathrm{surf}}', U_n = "|U_n|" }
+
+[formulations.ecmwf_ifs_bulk_richardson_number_dry_static_energy]
+label = "Bulk Richardson number of the surface layer from dry static energy and specific humidity (IFS)"
+expression = "g_n * z_n / U_n**2 * (2 * (s_n - s_surf) / (s_n + s_surf - g_n * z_n) + (R_v / R_d - 1) * (q_n - q_surf))"
+fixed_units = false
+output = { identifier = "Ri_b", kind = "BulkRichardsonNumber", unit = "UNITLESS", description = "Bulk Richardson number" }
+inputs = [
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, with the free-convection velocity (equation 3.19)" },
+  { identifier = "s_n", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the lowest model level" },
+  { identifier = "s_surf", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the surface" },
+  { identifier = "q_n", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the lowest model level" },
+  { identifier = "q_surf", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the surface" },
+]
+constants = ["g_n_cgpm1901", "R_v_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["Richardson number", "stability", "dry static energy", "IFS"]
+
+[[formulations.ecmwf_ifs_bulk_richardson_number_dry_static_energy.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.27"
+notation = { Ri_b = 'Ri_{\mathrm{bulk}}', g_n = "g", U_n = "|U_n|", s_surf = 's_{\mathrm{surf}}', q_surf = 'q_{\mathrm{surf}}' }
+assumptions = ["Equation 3.26 expressed in terms of dry static energy (text above 3.27), with epsilon = R_vap/R_dry - 1."]
+
+# --- Roughness lengths ------------------------------------------------
+
+[formulations.ecmwf_ifs_roughness_length_momentum_sea]
+label = "Roughness length for momentum over sea, smooth surface and Charnock (IFS)"
+expression = "alpha_M * nu / u_s + alpha_Ch * u_s**2 / g_n"
+fixed_units = false
+note = "Equation 3.28. The Charnock coefficient 0.018 is that of the IFS when its wave model is deactivated; otherwise the wave model provides it."
+output = { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+]
+coefficients = { alpha_M = 0.11, alpha_Ch = 0.018 }
+constants = ["nu_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["roughness length", "Charnock", "sea surface", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_momentum_sea.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.28"
+notation = { z_0M = 'z_{0\mathrm{M}}', alpha_M = '\alpha_{\mathrm{M}}', alpha_Ch = '\alpha_{\mathrm{Ch}}', nu = '\nu', u_s = "u_*", g_n = "g" }
+assumptions = ["A smooth sea surface at low wind speed, the Charnock relation at high wind speed (section 3.2.4 (ii))."]
+
+[[formulations.ecmwf_ifs_roughness_length_momentum_sea.citations]]
+reference = "beljaars1995"
+note = "As the IFS quotes it; the constant alpha_M after Brutsaert (1982)."
+
+[formulations.ecmwf_ifs_roughness_length_heat_sea]
+label = "Roughness length for heat over sea, smooth surface (IFS until CY49R1)"
+expression = "alpha_H * nu / u_s"
+fixed_units = false
+note = "Equation 3.28, the smooth-surface form the IFS kept for heat at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, not entered)."
+output = { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+]
+coefficients = { alpha_H = 0.40 }
+constants = ["nu_ecmwf_ifs"]
+keywords = ["roughness length", "sea surface", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_heat_sea.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.28"
+notation = { z_0H = 'z_{0\mathrm{H}}', alpha_H = '\alpha_{\mathrm{H}}', nu = '\nu', u_s = "u_*" }
+
+[[formulations.ecmwf_ifs_roughness_length_heat_sea.citations]]
+reference = "brutsaert1982"
+note = "The constant alpha_H, as the IFS quotes it."
+
+[formulations.ecmwf_ifs_roughness_length_humidity_sea]
+label = "Roughness length for humidity over sea, smooth surface (IFS until CY49R1)"
+expression = "alpha_Q * nu / u_s"
+fixed_units = false
+note = "Equation 3.28, the smooth-surface form the IFS kept for moisture at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, not entered)."
+output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+]
+coefficients = { alpha_Q = 0.62 }
+constants = ["nu_ecmwf_ifs"]
+keywords = ["roughness length", "sea surface", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_humidity_sea.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.28"
+notation = { z_0Q = 'z_{0\mathrm{Q}}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\nu', u_s = "u_*" }
+
+[[formulations.ecmwf_ifs_roughness_length_humidity_sea.citations]]
+reference = "brutsaert1982"
+note = "The constant alpha_Q, as the IFS quotes it."
+
+[formulations.ecmwf_ifs_roughness_length_momentum_sea_ice]
+label = "Roughness length for momentum over sea ice, from the sea ice concentration (IFS)"
+expression = "piecewise((A * (1 - c_i) + B * exp(-17 * (c_i - 0.5) ** 2), c_i <= c_x), (z_min, c_i > c_x))"
+fixed_units = true
+note = "Equation 3.35 writes z_0M = max(10^-3, 0.93 10^-3 (1 - c_i) + 6.05 10^-3 exp[-17 (c_i - 0.5)^2]) in metres; the max is written by pieces. The roughness lengths for heat and moisture stay 10^-3 m."
+output = { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" }
+inputs = [
+  { identifier = "c_i", kind = "SeaIceAreaFraction", unit = "UNITLESS", description = "Sea ice concentration" },
+]
+coefficients = { A = 0.93e-3, B = 6.05e-3, z_min = 1e-3, c_x = { value = 0.839681073938337, note = "Where the two arguments of the max of equation 3.35 meet, computed by nomogram (sympy.nsolve, 15 digits): below, the second argument is the larger." } }
+domains = [{ bounds = { c_i = [0.0, 1.0] }, criterion = "A fraction of area." }]
+keywords = ["roughness length", "sea ice", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_momentum_sea_ice.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.35"
+notation = { z_0M = 'z_{0\mathrm{M}}', c_i = "c_i" }
+
+[[formulations.ecmwf_ifs_roughness_length_momentum_sea_ice.citations]]
+reference = "andreas2010"
+note = "The drag coefficient over partial sea ice, as the IFS quotes it."
+
+[[formulations.ecmwf_ifs_roughness_length_momentum_sea_ice.citations]]
+reference = "bidlot2014"
+note = "Its adaptation to a roughness length, as the IFS quotes it."
+
+# --- Transfer coefficients and friction velocity ----------------------
+# The IFS takes the profile functions at two heights each, z_n + z_0 and
+# z_0: the formulations call them, the stability parameters at both
+# heights being inputs, (z_n + z_0M)/L and z_0/L.
+
+[formulations.ecmwf_ifs_transfer_coefficient_momentum]
+label = "Transfer coefficient for momentum of the surface layer (IFS)"
+expression = "kappa**2 / (ln((z_n + z_0M) / z_0M) - Psi_M(zeta=zeta_n) + Psi_M(zeta=zeta_0M)) ** 2"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum" }
+fixed_units = false
+output = { identifier = "C_M", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Transfer coefficient for momentum" }
+inputs = [
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "zeta_n", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the lowest model level, (z_n + z_0M)/L" },
+  { identifier = "zeta_0M", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for momentum, z_0M/L" },
+]
+constants = ["kappa_ecmwf_ifs"]
+keywords = ["transfer coefficient", "drag coefficient", "Monin-Obukhov", "IFS"]
+
+[[formulations.ecmwf_ifs_transfer_coefficient_momentum.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.16"
+notation = { C_M = 'C_{\mathrm{M}}', kappa = '\kappa', z_0M = 'z_{0\mathrm{M}}', zeta_n = '\zeta_n', zeta_0M = '\zeta_{0\mathrm{M}}' }
+
+[formulations.ecmwf_ifs_transfer_coefficient_heat]
+label = "Transfer coefficient for heat of the surface layer (IFS)"
+expression = "kappa**2 / ((ln((z_n + z_0M) / z_0M) - Psi_M(zeta=zeta_n) + Psi_M(zeta=zeta_0M)) * (ln((z_n + z_0M) / z_0H) - Psi_H(zeta=zeta_n) + Psi_H(zeta=zeta_0H)))"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum", Psi_H = "ecmwf_ifs_profile_function_heat" }
+fixed_units = false
+output = { identifier = "C_H", kind = "SurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Transfer coefficient for heat" }
+inputs = [
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "zeta_n", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the lowest model level, (z_n + z_0M)/L" },
+  { identifier = "zeta_0M", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for momentum, z_0M/L" },
+  { identifier = "zeta_0H", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for heat, z_0H/L" },
+]
+constants = ["kappa_ecmwf_ifs"]
+keywords = ["transfer coefficient", "Monin-Obukhov", "IFS"]
+
+[[formulations.ecmwf_ifs_transfer_coefficient_heat.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.17"
+notation = { C_H = 'C_{\mathrm{H}}', kappa = '\kappa', z_0M = 'z_{0\mathrm{M}}', z_0H = 'z_{0\mathrm{H}}', zeta_n = '\zeta_n', zeta_0M = '\zeta_{0\mathrm{M}}', zeta_0H = '\zeta_{0\mathrm{H}}' }
+
+[formulations.ecmwf_ifs_friction_velocity]
+label = "Friction velocity from the transfer coefficient for momentum and the wind speed (IFS)"
+expression = "C_M ** (1 / 2) * U_n"
+fixed_units = false
+note = "Equation 3.29, u_* = C_M^(1/2) (u_n^2 + v_n^2 + w_*^2)^(1/2), written with the wind speed |U_n| of equation 3.19, which includes the free-convection velocity w_*."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "C_M", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Transfer coefficient for momentum" },
+  { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, with the free-convection velocity (equation 3.19)" },
+]
+keywords = ["friction velocity", "IFS"]
+
+[[formulations.ecmwf_ifs_friction_velocity.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.29"
+notation = { u_s = "u_*", C_M = 'C_{\mathrm{M}}', U_n = "|U_n|" }
+
+# --- Diagnostics at 2 m and 10 m --------------------------------------
+# Interpolations between the lowest model level and the surface with the
+# profile functions (CY49R1 3.9, CY50R1 3.10, numbers 39 apart). The
+# stability parameters are inputs at each height, as for the transfer
+# coefficients: (z + z_0)/L and z_0/L. The temperature at 2 m follows from
+# the dry static energy by equation 3.5; the dew point, from the specific
+# humidity and the surface pressure, with saturation over water.
+
+[formulations.ecmwf_ifs_dry_static_energy_2m]
+label = "Dry static energy at 2 m, interpolated with the profile functions (IFS)"
+expression = "s_surf + (s_n - s_surf) * ((ln((z_2 + z_0ma) / z_0H) - Psi_H(zeta=zeta_2) + Psi_H(zeta=zeta_0H)) / (ln((z_n + z_0ma) / z_0H) - Psi_H(zeta=zeta_n) + Psi_H(zeta=zeta_0H)) * (1 - 2 / pi * atan(gamma_2m * zeta_2)) + lambda_2m * 2 / pi * atan(gamma_2m * zeta_2))"
+calls = { Psi_H = "ecmwf_ifs_profile_function_heat" }
+fixed_units = false
+note = "Equation 3.98 with the interpolation factor of 3.100, f_2m of 3.101 (an arctangent of one argument, (z_2 + z_0ma)/L being zeta_2) and beta of 3.102, written out. From CY49R1, this continuous form replaces the limiter of earlier cycles, which set the values at 2 m to those of the lowest level when (z_2 + z_0ma)/L > 5. As printed, f_2m is negative in unstable conditions (L < 0). Per tile, with the surface values of each; the tiles are then averaged over land (3.104, not entered)."
+output = { identifier = "s_2", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at 2 m" }
+inputs = [
+  { identifier = "s_surf", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the surface" },
+  { identifier = "s_n", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the lowest model level" },
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0ma", kind = "RoughnessLengthForMomentum", unit = "M", description = "Aggregated roughness length for momentum" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat of the tile (z_0HWMO)" },
+  { identifier = "zeta_2", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at 2 m, (z_2 + z_0ma)/L" },
+  { identifier = "zeta_n", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the lowest model level, (z_n + z_0ma)/L" },
+  { identifier = "zeta_0H", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for heat, z_0HWMO/L" },
+]
+coefficients = { z_2 = 2, lambda_2m = 0.75, gamma_2m = 0.3 }
+keywords = ["2 m temperature", "interpolation", "dry static energy", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.98, 3.100 to 3.102"
+units = { z_2 = "M" }
+notation = { s_surf = 's_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0H = 'z_{0\mathrm{HWMO}}', zeta_2 = '\zeta_2', zeta_n = '\zeta_n', zeta_0H = '\zeta_{0\mathrm{H}}', lambda_2m = '\lambda_{2\mathrm{m}}', gamma_2m = '\gamma_{2\mathrm{m}}' }
+
+[[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.137, 3.139 to 3.141"
+units = { z_2 = "M" }
+
+[[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
+reference = "ingleby2023"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_specific_humidity_2m]
+label = "Specific humidity at 2 m, interpolated with the profile functions (IFS)"
+expression = "q_surf + (q_n - q_surf) * ((ln((z_2 + z_0ma) / z_0Q) - Psi_H(zeta=zeta_2) + Psi_H(zeta=zeta_0Q)) / (ln((z_n + z_0ma) / z_0Q) - Psi_H(zeta=zeta_n) + Psi_H(zeta=zeta_0Q)) * (1 - 2 / pi * atan(gamma_2m * zeta_2)) + lambda_2m * 2 / pi * atan(gamma_2m * zeta_2))"
+calls = { Psi_H = "ecmwf_ifs_profile_function_heat" }
+fixed_units = false
+note = "Equation 3.99 with the interpolation factor of 3.100, f_2m of 3.101 and beta of 3.103, written out, as ecmwf_ifs_dry_static_energy_2m. As printed, f_2m is negative in unstable conditions (L < 0). The dew point at 2 m follows from it and the surface pressure, with saturation over water, and is set to the temperature where it would exceed it."
+output = { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at 2 m" }
+inputs = [
+  { identifier = "q_surf", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the surface" },
+  { identifier = "q_n", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the lowest model level" },
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0ma", kind = "RoughnessLengthForMomentum", unit = "M", description = "Aggregated roughness length for momentum" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity of the tile (z_0QWMO)" },
+  { identifier = "zeta_2", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at 2 m, (z_2 + z_0ma)/L" },
+  { identifier = "zeta_n", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the lowest model level, (z_n + z_0ma)/L" },
+  { identifier = "zeta_0Q", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for humidity, z_0QWMO/L" },
+]
+coefficients = { z_2 = 2, lambda_2m = 0.75, gamma_2m = 0.3 }
+keywords = ["2 m humidity", "interpolation", "specific humidity", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.99, 3.100, 3.101, 3.103"
+units = { z_2 = "M" }
+notation = { q_surf = 'q_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0Q = 'z_{0\mathrm{QWMO}}', zeta_2 = '\zeta_2', zeta_n = '\zeta_n', zeta_0Q = '\zeta_{0\mathrm{Q}}', lambda_2m = '\lambda_{2\mathrm{m}}', gamma_2m = '\gamma_{2\mathrm{m}}' }
+
+[[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.138, 3.139, 3.140, 3.142"
+units = { z_2 = "M" }
+
+[[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
+reference = "ingleby2023"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_wind_speed_10m]
+label = "Wind speed at 10 m, from the blending height with the profile functions (IFS)"
+expression = "F_blend * (ln((z_10 + z_0) / z_0) - Psi_M(zeta=zeta_10) + Psi_M(zeta=zeta_0)) / (ln((z_blend + z_0) / z_0) - Psi_M(zeta=zeta_blend) + Psi_M(zeta=zeta_0))"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum" }
+fixed_units = false
+note = "Equation 3.106. The blending height and the roughness length follow the rule of 3.105, which chooses the inputs rather than computing them: over rough terrain, z_0M > 0.03 m, z_blend = 40 m with the wind interpolated there from the model levels, and z_0MWMO = 0.03 m, a grassland's, for the exposure of WMO stations in open terrain; otherwise the lowest model level and z_0M itself. The 10-metre equivalent-neutral wind (3.107) is not entered: not a speed of the air, it would need a kind of its own."
+output = { identifier = "F_10", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at 10 m" }
+inputs = [
+  { identifier = "F_blend", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the blending height" },
+  { identifier = "z_blend", kind = "Height", unit = "M", description = "Blending height" },
+  { identifier = "z_0", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum of the interpolation (z_0MWMO)" },
+  { identifier = "zeta_10", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at 10 m, (z_10 + z_0MWMO)/L" },
+  { identifier = "zeta_blend", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the blending height, (z_blend + z_0MWMO)/L" },
+  { identifier = "zeta_0", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length, z_0MWMO/L" },
+]
+coefficients = { z_10 = 10 }
+keywords = ["10 m wind", "interpolation", "exposure", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_wind_speed_10m.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.106"
+units = { z_10 = "M" }
+notation = { F_10 = "F_{10}", F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mathrm{blend}}', z_0 = 'z_{0\mathrm{MWMO}}', zeta_10 = '\zeta_{10}', zeta_blend = '\zeta_{\mathrm{blend}}', zeta_0 = '\zeta_0' }
+
+[[formulations.ecmwf_ifs_wind_speed_10m.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.145"
+units = { z_10 = "M" }
+
+[formulations.ecmwf_ifs_friction_velocity_blending_height]
+label = "Friction velocity from the wind speed at the blending height (IFS diagnostic)"
+expression = "F_blend * kappa / (ln((z_blend + z_0) / z_0) - Psi_M(zeta=zeta_blend) + Psi_M(zeta=zeta_0))"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum" }
+fixed_units = false
+note = "Equation 3.108, with the blending height and the roughness length of 3.105, as ecmwf_ifs_wind_speed_10m."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "F_blend", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the blending height" },
+  { identifier = "z_blend", kind = "Height", unit = "M", description = "Blending height" },
+  { identifier = "z_0", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum of the interpolation (z_0MWMO)" },
+  { identifier = "zeta_blend", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the blending height, (z_blend + z_0MWMO)/L" },
+  { identifier = "zeta_0", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length, z_0MWMO/L" },
+]
+constants = ["kappa_ecmwf_ifs"]
+keywords = ["friction velocity", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_friction_velocity_blending_height.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.108"
+notation = { u_s = "u_*", kappa = '\kappa', F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mathrm{blend}}', z_0 = 'z_{0\mathrm{MWMO}}', zeta_blend = '\zeta_{\mathrm{blend}}', zeta_0 = '\zeta_0' }
+
+[[formulations.ecmwf_ifs_friction_velocity_blending_height.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.147"
+
+# --- Visibility -------------------------------------------------------
+
+[formulations.ecmwf_ifs_visibility]
+label = "Visibility from the extinction coefficient, Koschmieder's law with a contrast of 0.02 (IFS)"
+expression = "-ln(epsilon) / beta_tot"
+fixed_units = false
+note = "Equation 3.117, at the lowest model level (10 m, the lowest 20 m of the atmosphere). The total extinction coefficient is a sum over clean air, aerosol, cloud and precipitation (3.118); both cycles print the clean air term with a minus sign, contrary to the text, which ties clean air to the maximum visibility of 100 km: a sign to read as a plus. The empirical coefficients of each term are not entered."
+output = { identifier = "V", kind = "Visibility", unit = "M", description = "Visibility" }
+inputs = [
+  { identifier = "beta_tot", kind = "AttenuationCoefficient", unit = "PER-M", description = "Total extinction coefficient for optical wavelengths" },
+]
+coefficients = { epsilon = { value = 0.02, note = "Liminal contrast, after Koschmieder (1924)." } }
+keywords = ["visibility", "Koschmieder", "extinction coefficient", "fog", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_visibility.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.117"
+notation = { epsilon = '\epsilon', beta_tot = '\beta_{\mathrm{tot}}' }
+
+[[formulations.ecmwf_ifs_visibility.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.156"
+
+[[formulations.ecmwf_ifs_visibility.citations]]
+reference = "koschmieder1924"
+note = "The liminal contrast, as the IFS quotes it."
+
+# --- Trade terms ------------------------------------------------------
+
+[trade_terms.drag_coefficient]
+term = "drag coefficient"
+language = "en"
+
+[[trade_terms.drag_coefficient.meanings]]
+community = "CF, numerical weather prediction (IFS)"
+kind = "SurfaceDragCoefficientForMomentum"
+definition = "The transfer coefficient relating the surface stress to the square of the wind speed at a height (CF surface_drag_coefficient_for_momentum_in_air; C_M of the IFS, equation 3.15)."
+sources = ["cf_standard_names_95", "ecmwf_ifs_cy49r1"]

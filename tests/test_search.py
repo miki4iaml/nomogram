@@ -56,11 +56,14 @@ def test_terms_are_wildcards_matched_against_words() -> None:
         "formulations.buck1996",
         "formulations.buck1996_ice",
         "formulations.ecmwf_ifs_saturation_water",
+        "formulations.ecmwf_ifs_saturation_mixed_phase",
     }
     assert refs(CATALOG.search("absolute", "humidity")) == {
         "kinds.AbsoluteHumidity",
         "trade_terms.absolute_humidity",
         "formulations.wmo_vapour_concentration_definition",
+        "formulations.vaisala2013_absolute_humidity",
+        "references.vaisala2013",
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
@@ -116,12 +119,18 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.bechtold2015_density",
         "formulations.metpy171_density_virtual_temperature",
         "formulations.metpy171_density",
+        "formulations.ecmwf_ifs_density",
+        "formulations.ecmwf_ifs_density_specific_humidity",
+        "formulations.vaisala2013_absolute_humidity",
+        "formulations.iso2533_air_density",
+        "formulations.iso2533_kinematic_viscosity",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern
     assert refs(CATALOG.search(variable=r"\rho_{\mathrm{v}}")) == {
         "formulations.mass_concentration_ideal_gas",
         "formulations.wmo_vapour_concentration_definition",
+        "formulations.vaisala2013_absolute_humidity",
     }
     assert (
         "formulations.itu_r_p453_vapour_pressure"
@@ -440,7 +449,7 @@ def test_selection_behaves_as_a_sequence() -> None:
     assert 3 not in found  # type: ignore[comparison-overlap]
     assert all("Buck" in f.label + (f.note or "") for f in found.formulations)
     assert repr(found).startswith(
-        "Selection(7 entries: formulations.bechtold2015_magnus_water"
+        "Selection(8 entries: formulations.bechtold2015_magnus_water"
     )
     assert repr(found[:2]).endswith("formulations.ecmwf_ifs_saturation_water)")
     assert found[0].ref == "formulations.bechtold2015_magnus_water"
