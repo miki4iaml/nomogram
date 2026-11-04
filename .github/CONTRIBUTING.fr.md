@@ -35,6 +35,27 @@ Quelle que soit la voie, une formule entre au catalogue avec sa source,
 ses unités et son domaine de validité ; un détail n'est marqué
 `verified` qu'une fois lu dans la source elle-même.
 
+## Droits des sources
+
+Une formule se cite ; le document qui la donne garde ses propres droits.
+Ces règles engagent tout contributeur, quel que soit l'outil employé :
+
+- **Les normes sous licence** (ISO, AFNOR…) ne sont jamais reproduites :
+  le catalogue cite leurs équations et leurs constantes, jamais leurs
+  tableaux ni leurs extraits.
+- **Aucun document source n'est redistribué**, ni dans le dépôt ni dans
+  le paquet : une référence donne son titre, son DOI ou son lien.
+- **Fouille de textes et de données** : avant qu'un document soit traité
+  par un agent de codage ou un autre outil automatique, vérifier qu'il ne
+  porte pas de clause interdisant la fouille de textes et de données ou
+  le traitement par une intelligence artificielle ; un document qui en
+  porte une n'est pas traité ainsi.
+- **Les protections contre les robots et les accès payants ne sont
+  jamais contournées.**
+- **Les mentions de droit d'auteur sont respectées** : une formule se
+  cite, une citation reste brève et dans ce que la mention permet, le
+  document n'est pas reproduit.
+
 ## Prérequis
 
 - Python 3.12 ou plus récent.
@@ -221,7 +242,10 @@ Pour le mainteneur, dans cet ordre :
    local dans la même PR, avec une entrée au CHANGELOG.
 2. PR vers `develop` (squash) : version dans `pyproject.toml` et
    `CITATION.cff`, section `[Unreleased]` du `CHANGELOG.md` devenue
-   `[x.y.z] - date`, titre `chore: release x.y.z`.
+   `[x.y.z] - date`, titre `chore: release x.y.z`. La même PR met à
+   jour `docs/security-and-compliance.md` : la date, la version évaluée,
+   les versions des dépendances, le nombre de tests et la couverture,
+   les alertes traitées, la liste de contrôle.
 3. PR `develop` → `main`, fusionnée par un commit de fusion (seule
    exception au squash : `main` doit garder l'historique exact de
    `develop`, sinon les deux branches divergent à chaque version).

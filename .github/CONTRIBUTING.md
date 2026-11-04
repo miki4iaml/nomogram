@@ -30,6 +30,25 @@ Whatever the path, a formula enters the catalog with its source, units
 and validity domain; a detail is marked `verified` only once read in
 the source itself.
 
+## Rights of sources
+
+A formula is cited; the document that gives it keeps its own rights.
+These rules bind every contributor, whatever the tool used:
+
+- **Licensed standards** (ISO, AFNOR...) are never reproduced: the
+  catalog cites their equations and constants, never their tables or
+  excerpts.
+- **No source document is redistributed**, neither in the repository
+  nor in the package: a reference gives its title, its DOI or its link.
+- **Text and data mining**: before a document is processed by a coding
+  agent or another automated tool, check it for a clause forbidding
+  text and data mining or processing by artificial intelligence; a
+  document that carries one is not processed that way.
+- **Protections against robots and paywalls are never circumvented.**
+- **Copyright notices are respected**: a formula is cited, a quotation
+  stays short and within what the notice allows, the document is not
+  reproduced.
+
 ## Prerequisites
 
 - Python 3.12 or later.
@@ -210,7 +229,10 @@ For the maintainer, in this order:
 2. Pull request against `develop` (squash): version bump in
    `pyproject.toml` and `CITATION.cff`, `[Unreleased]` section of
    `CHANGELOG.md` turned into `[x.y.z] - date`, titled
-   `chore: release x.y.z`.
+   `chore: release x.y.z`. The same pull request brings
+   `docs/security-and-compliance.md` up to date: the date, the version
+   assessed, the dependency versions, the number of tests and the
+   coverage, the alerts handled, the checklist.
 3. Pull request `develop` → `main`, merged with a merge commit (the
    only exception to squash: `main` must hold the exact history of
    `develop`, otherwise both branches diverge at every release).
