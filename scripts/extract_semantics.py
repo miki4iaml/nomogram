@@ -347,6 +347,15 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "latitude",
     # Static stability (ECMWF IFS).
     "square_of_brunt_vaisala_frequency_in_air",
+    # Surface layer (boundary-layer family, ECMWF IFS).
+    "atmosphere_obukhov_length",
+    "magnitude_of_surface_friction_velocity_in_air",
+    "surface_roughness_length_for_momentum_in_air",
+    "surface_roughness_length_for_heat_in_air",
+    "surface_roughness_length_for_humidity_in_air",
+    "surface_drag_coefficient_for_momentum_in_air",
+    "surface_drag_coefficient_for_heat_in_air",
+    "sea_ice_area_fraction",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.

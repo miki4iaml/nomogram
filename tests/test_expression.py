@@ -139,6 +139,8 @@ def test_exact_parsing_reads_decimals_as_rationals() -> None:
         ("True * x", "unsupported constant"),
         ("y + 1", "undeclared name: 'y'"),
         ("exp(x, 2)", "exactly one positional argument"),
+        ("atan(x, 2)", "exactly one positional argument"),
+        ("atan2(x, 2)", "only calls to"),
         ("sqrt(x=1)", "exactly one positional argument"),
         ("x // 2", "BinOp"),
         ("x +", "invalid syntax"),

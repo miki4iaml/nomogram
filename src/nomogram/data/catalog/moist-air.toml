@@ -131,9 +131,10 @@ label = "Density of Moist Air"
 specialization_of = "Density"
 description = "Mass of moist air, dry air and water vapour, per unit volume."
 cf_standard_names = [{ name = "air_density", relation = "exact", verified = 2026-10-26 }]
-# The Wikidata item is the density of the Earth's atmosphere.
+# The Wikidata item is the density of the Earth's atmosphere, moist or
+# dry: broader than this kind and than DensityOfDryAir.
 matches = [
-  { target = "http://www.wikidata.org/entity/Q1511415", relation = "close", verified = 2026-10-26 },
+  { target = "http://www.wikidata.org/entity/Q1511415", relation = "broad", verified = 2026-11-04 },
 ]
 
 # Siblings under Density: the density of a dry air, without water vapour,
@@ -145,6 +146,9 @@ matches = [
 label = "Density of Dry Air"
 specialization_of = "Density"
 description = "Mass per unit volume of air without water vapour, p / (R_d T) at the pressure of the dry air alone: the air of the ISO standard atmosphere, free from moisture and dust (ISO 2533, 2.1). Not the partial density of dry air within moist air, its mass per volume of moist air."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1511415", relation = "broad", verified = 2026-11-04 },
+]
 
 [kinds.MassRatioOfTotalWaterToDryGas]
 label = "Mass Ratio of Total Water to Dry Gas"

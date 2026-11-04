@@ -170,6 +170,9 @@ defines one, a sibling of the look-alikes
 | wet-bulb temperature | temperature of a parcel cooled to saturation by evaporation into it (thermodynamic) | thermodynamics, ASHRAE, CF | `WetBulbTemperature` (4.A.19) | K, °C | WMO-No. 8, Annex 4.A; QUDT; CF table 95 |
 | wet-bulb temperature | reading of the wet bulb of a psychrometer, not identical to the thermodynamic one | instruments (WMO-No. 8, 4.3.1.7) | `PsychrometerWetBulbTemperature` (local) | °C | WMO-No. 8 (2024), 4.3.1.7 and Annex 4.A |
 
+| drag coefficient | force on a body in a flow over the dynamic pressure and a reference area, F/(½ ρ v² A) | fluid dynamics, aerodynamics | `DragCoefficient` (QUDT) | 1 | QUDT 3.5.2 |
+| drag coefficient | transfer coefficient relating the surface stress to the square of the wind speed at a height, τ = ρ C_M U² | boundary-layer meteorology (CF, IFS) | `SurfaceDragCoefficientForMomentum`, a sibling under `DimensionlessRatio` | 1 | CF table 95; IFS CY49R1, Part IV, 3.15 and 3.16 |
+
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
 versus dimensionless), so mixing them is not a small numerical error.
 British Standard BS 1339-1:2002 deprecates the term in favour of
@@ -347,6 +350,17 @@ silently.
     magnitude of velocity") and `quantitykind:Velocity` (an exact match
     of `LinearVelocity`) carry CF's `wind_speed`, `eastward_wind` and
     `northward_wind`, narrower since the wind is the air's.
+20. QUDT has no kind for the quantities of the surface layer: the
+    Obukhov length, the friction velocity, the roughness lengths, the
+    stability parameter, the bulk Richardson number, a kinematic flux
+    (dimension Θ L T⁻¹, the virtual temperature flux of the Obukhov
+    length). CF 95 names the first three. nomogram declares them under
+    `Length`, `Speed` and `DimensionlessRatio`, and writes the Obukhov
+    length from the surface-layer scales `u_*`, `s_*`, `q_*` rather than from a
+    flux. `quantitykind:RichardsonConstant` is the constant of
+    thermionic emission (A m⁻² K⁻²), not a Richardson number; and
+    `quantitykind:DragCoefficient` is the drag of a body in a flow, not
+    the surface drag coefficient of CF (see the trade terms).
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

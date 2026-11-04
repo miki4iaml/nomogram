@@ -36,6 +36,10 @@
       "canonical_units": "m",
       "pint": "m"
     },
+    "atmosphere_obukhov_length": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
     "dew_point_temperature": {
       "canonical_units": "K",
       "pint": "K"
@@ -76,6 +80,10 @@
       "canonical_units": "degree_north",
       "pint": "degree"
     },
+    "magnitude_of_surface_friction_velocity_in_air": {
+      "canonical_units": "m s-1",
+      "pint": "m * s ** -1"
+    },
     "mass_concentration_of_water_vapor_in_air": {
       "canonical_units": "kg m-3",
       "pint": "kg * m ** -3"
@@ -89,6 +97,10 @@
       "pint": "m * s ** -1"
     },
     "relative_humidity": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "sea_ice_area_fraction": {
       "canonical_units": "1",
       "pint": "dimensionless"
     },
@@ -133,6 +145,26 @@
       "pint": "Pa"
     },
     "surface_altitude": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
+    "surface_drag_coefficient_for_heat_in_air": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "surface_drag_coefficient_for_momentum_in_air": {
+      "canonical_units": "1",
+      "pint": "dimensionless"
+    },
+    "surface_roughness_length_for_heat_in_air": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
+    "surface_roughness_length_for_humidity_in_air": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
+    "surface_roughness_length_for_momentum_in_air": {
       "canonical_units": "m",
       "pint": "m"
     },

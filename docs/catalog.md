@@ -15,7 +15,8 @@ can also be proposed through an issue (see the
 
 - **A formula is written once**, as an expression in restricted Python
   syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
-  functions `exp`, `ln`, `log10`, `sqrt`, `sin` and `cos`, the constant
+  functions `exp`, `ln`, `log10`, `sqrt`, `sin`, `cos` and `atan` (the
+  arctangent of one argument; `atan2` is not allowed), the constant
   `pi` (a reserved name, which no identifier may take), and a
   [piecewise definition](#piecewise-definitions). LaTeX, numeric
   functions and symbolic results all derive from it. An angle in the
@@ -79,7 +80,8 @@ keywords = ["humidity", "psychrometrics"]
 
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
-(`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`), and **aggregates** holding no entry, only
+(`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`,
+`boundary-layer`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
