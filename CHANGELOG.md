@@ -24,6 +24,14 @@ and this project adheres to
   number, the surface drag coefficients and the sea ice area fraction,
   with their CF standard names; the trade term "drag coefficient". The
   sources the IFS cites are recorded as to-confirm.
+- The diagnostics of the ECMWF IFS near the surface (CY49R1 3.9, CY50R1
+  3.10, cited in both): the dry static energy and the specific humidity
+  at 2 m, interpolated with the profile functions and the arctangent
+  weight of CY49R1; the wind speed at 10 m from a blending height, with
+  the rule choosing it in the note; the friction velocity of the
+  diagnostics; the visibility by Koschmieder's law, with a quantity kind
+  `Visibility` and the extinction coefficient as QUDT's
+  `AttenuationCoefficient`, in m-1.
 - Wikidata links of the surface layer: the Monin-Obukhov length (narrow,
   the atmosphere's), the friction velocity, the roughness length (narrow,
   the wind's), the bulk Richardson number and the sea ice concentration;

@@ -72,6 +72,9 @@ class KindSpec(NamedTuple):
     #: surface rather than a unit (altitude) takes multiplicative units;
     #: ``"any"`` takes both (a temperature point written in degC or in K).
     offset_units: bool | Literal["any"] | None = None
+    #: Date its links were read, for a kind added after the extraction date
+    #: of the others; the extraction date by default.
+    checked: str | None = None
 
 
 #: Quantity kinds kept, by QUDT local name.
@@ -254,6 +257,9 @@ KINDS: dict[str, KindSpec] = {
     # The IFS: the parent of the square of the Brunt-Vaisala frequency
     # (catalog), in s-2.
     "InverseSquareTime": KindSpec("ratio", delta=False),
+    # The IFS: the extinction coefficient of its visibility, in m-1;
+    # QUDT's LinearAttenuationCoefficient, narrower, declares no unit.
+    "AttenuationCoefficient": KindSpec("ratio", delta=False, checked="2026-11-04"),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -312,7 +318,14 @@ UNITS: dict[str, str] = {
     "M2-PER-SEC": "m^2/s",
     "W-PER-M-K": "W/(m*K)",
     "PER-SEC2": "1/s^2",
+    # The IFS: the extinction coefficient of the visibility.
+    "PER-M": "1/m",
+    "PER-KiloM": "1/km",
 }
+
+#: Date the links of a unit added after the extraction date of the
+#: others were read; the extraction date for the others.
+UNITS_CHECKED: dict[str, str] = {"PER-M": "2026-11-04", "PER-KiloM": "2026-11-04"}
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
 #: in the frozen subset so that the catalog can check them.
@@ -356,6 +369,7 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "surface_drag_coefficient_for_momentum_in_air",
     "surface_drag_coefficient_for_heat_in_air",
     "sea_ice_area_fraction",
+    "visibility_in_air",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
@@ -501,7 +515,10 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
             "ucum": _value(graph, subject, QUDT.ucumCode),
             "udunits": _value(graph, subject, QUDT.udunitsCode),
             "pint": pint_expression,
-            "matches": _matches(_value(graph, subject, QUDT.wikidataMatch), date),
+            "matches": _matches(
+                _value(graph, subject, QUDT.wikidataMatch),
+                UNITS_CHECKED.get(name, date),
+            ),
         }
     return units
 
@@ -548,12 +565,14 @@ def extract_kinds(
             "delta": spec.delta,
             "applicable_units": sorted(applicable | added),
             "added_units": sorted(added),
-            "matches": _matches(_value(graph, subject, QUDT.wikidataMatch), date)
+            "matches": _matches(
+                _value(graph, subject, QUDT.wikidataMatch), spec.checked or date
+            )
             + [
                 {
                     "target": f"{CF_NAMESPACE}{cf}/",
                     "relation": relation,
-                    "verified": date,
+                    "verified": spec.checked or date,
                 }
                 for cf, relation in spec.cf_standard_names
             ],

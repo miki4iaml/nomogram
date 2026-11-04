@@ -172,6 +172,10 @@
       "canonical_units": "K",
       "pint": "K"
     },
+    "visibility_in_air": {
+      "canonical_units": "m",
+      "pint": "m"
+    },
     "water_vapor_partial_pressure_in_air": {
       "canonical_units": "Pa",
       "pint": "Pa"
@@ -264,6 +268,26 @@
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q104946",
           "verified": "2026-11-01"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "AttenuationCoefficient": {
+      "added_units": [],
+      "applicable_units": [
+        "PER-KiloM",
+        "PER-M"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/AttenuationCoefficient",
+      "label": "Attenuation Coefficient",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q902086",
+          "verified": "2026-11-04"
         }
       ],
       "scale_type": "ratio",
@@ -1733,6 +1757,42 @@
       "pint": "1/K",
       "symbol": "K\u207b\u00b9",
       "ucum": "K-1",
+      "udunits": null
+    },
+    "PER-KiloM": {
+      "dimension_vector": "A0E0L-1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/PER-KiloM",
+      "label": "Reciprocal Kilometre",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q107244557",
+          "verified": "2026-11-04"
+        }
+      ],
+      "multiplier": 0.001,
+      "offset": 0.0,
+      "pint": "1/km",
+      "symbol": "/km",
+      "ucum": "km-1",
+      "udunits": null
+    },
+    "PER-M": {
+      "dimension_vector": "A0E0L-1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/unit/PER-M",
+      "label": "Reciprocal Metre",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q11547251",
+          "verified": "2026-11-04"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "1/m",
+      "symbol": "/m",
+      "ucum": "m-1",
       "udunits": null
     },
     "PER-MOL": {

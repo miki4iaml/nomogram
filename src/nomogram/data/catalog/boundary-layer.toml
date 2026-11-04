@@ -96,6 +96,32 @@ container = "Proceedings of the 22nd IAHR International Symposium on Ice (IAHR-I
 status = "to-confirm"
 note = "Cited by the IFS (CY49R1, Part IV, 3.2.4) for the adaptation of Andreas et al. (2010) to a roughness length, equation 3.35; not read."
 
+[references.ecmwf_ifs_cy50r1_part4]
+authors = "ECMWF"
+year = 2026
+title = "IFS Documentation CY50R1 - Part 4: Physical Processes"
+doi = "10.21957/49928f2338"
+url = "https://www.ecmwf.int/en/elibrary/81734-ifs-documentation-cy50r1-part-4-physical-processes"
+status = "verified"
+note = "Chapter 3, read on the page images: section 3.2, the surface layer, with the numbers of CY49R1 (equations 3.8 to 3.35); section 3.10, the diagnostics, equations 3.137 to 3.142 (temperature and humidity at 2 m), 3.144 to 3.147 (wind at 10 m and friction velocity) and 3.156 (visibility), 39 above those of CY49R1 (section 3.9). The same constants as CY49R1. DOI checked with DataCite on 2026-11-04, which gives 2026 as the year of publication."
+
+[references.ingleby2023]
+authors = "Ingleby, B., Arduini, G., Balsamo, G., Boussetta, S., Ochi, K., Pinnington, E. and de Rosnay, P."
+year = 2023
+title = "Improved two-metre temperature forecasts in the 2024 upgrade"
+container = "ECMWF Newsletter, 178, 24-29"
+doi = "10.21957/bi49s20qa8"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.9.2) for the interpolation to 2 m of CY49R1, equations 3.98 to 3.103; not read. DataCite gives 2024 (checked on 2026-11-04), the IFS 2023: the Newsletter of winter 2023/24."
+
+[references.koschmieder1924]
+authors = "Koschmieder, H."
+year = 1924
+title = "Theorie der horizontalen Sichtweite"
+container = "Beitrage zur Physik der freien Atmosphare, 12, 171-181"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 3.9.6) for the liminal contrast of 0.02 of its visibility, equation 3.117; not read."
+
 # --- Quantity kinds ---------------------------------------------------
 
 [kinds.ObukhovLength]
@@ -200,6 +226,12 @@ matches = [
   { target = "http://www.wikidata.org/entity/Q7440064", relation = "exact", verified = 2026-11-04 },
 ]
 cf_standard_names = [{ name = "sea_ice_area_fraction", relation = "exact", verified = 2026-11-04 }]
+
+[kinds.Visibility]
+label = "Visibility"
+specialization_of = "Length"
+description = "Greatest distance at which a black object can be seen against the horizon sky, from the extinction coefficient and a liminal contrast (Koschmieder): the contrast of 0.02 of the IFS, of 0.05 for the meteorological optical range of WMO."
+cf_standard_names = [{ name = "visibility_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 # --- Constants --------------------------------------------------------
 
@@ -644,6 +676,166 @@ keywords = ["friction velocity", "IFS"]
 reference = "ecmwf_ifs_cy49r1"
 equation = "3.29"
 notation = { u_s = "u_*", C_M = 'C_{\mathrm{M}}', U_n = "|U_n|" }
+
+# --- Diagnostics at 2 m and 10 m --------------------------------------
+# Interpolations between the lowest model level and the surface with the
+# profile functions (CY49R1 3.9, CY50R1 3.10, numbers 39 apart). The
+# stability parameters are inputs at each height, as for the transfer
+# coefficients: (z + z_0)/L and z_0/L. The temperature at 2 m follows from
+# the dry static energy by equation 3.5; the dew point, from the specific
+# humidity and the surface pressure, with saturation over water.
+
+[formulations.ecmwf_ifs_dry_static_energy_2m]
+label = "Dry static energy at 2 m, interpolated with the profile functions (IFS)"
+expression = "s_surf + (s_n - s_surf) * ((ln((z_2 + z_0ma) / z_0H) - Psi_H(zeta=zeta_2) + Psi_H(zeta=zeta_0H)) / (ln((z_n + z_0ma) / z_0H) - Psi_H(zeta=zeta_n) + Psi_H(zeta=zeta_0H)) * (1 - 2 / pi * atan(gamma_2m * zeta_2)) + lambda_2m * 2 / pi * atan(gamma_2m * zeta_2))"
+calls = { Psi_H = "ecmwf_ifs_profile_function_heat" }
+fixed_units = false
+note = "Equation 3.98 with the interpolation factor of 3.100, f_2m of 3.101 (an arctangent of one argument, (z_2 + z_0ma)/L being zeta_2) and beta of 3.102, written out. From CY49R1, this continuous form replaces the limiter of earlier cycles, which set the values at 2 m to those of the lowest level when (z_2 + z_0ma)/L > 5. As printed, f_2m is negative in unstable conditions (L < 0). Per tile, with the surface values of each; the tiles are then averaged over land (3.104, not entered)."
+output = { identifier = "s_2", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at 2 m" }
+inputs = [
+  { identifier = "s_surf", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the surface" },
+  { identifier = "s_n", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the lowest model level" },
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0ma", kind = "RoughnessLengthForMomentum", unit = "M", description = "Aggregated roughness length for momentum" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat of the tile (z_0HWMO)" },
+  { identifier = "zeta_2", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at 2 m, (z_2 + z_0ma)/L" },
+  { identifier = "zeta_n", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the lowest model level, (z_n + z_0ma)/L" },
+  { identifier = "zeta_0H", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for heat, z_0HWMO/L" },
+]
+coefficients = { z_2 = 2, lambda_2m = 0.75, gamma_2m = 0.3 }
+keywords = ["2 m temperature", "interpolation", "dry static energy", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.98, 3.100 to 3.102"
+units = { z_2 = "M" }
+notation = { s_surf = 's_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0H = 'z_{0\mathrm{HWMO}}', zeta_2 = '\zeta_2', zeta_n = '\zeta_n', zeta_0H = '\zeta_{0\mathrm{H}}', lambda_2m = '\lambda_{2\mathrm{m}}', gamma_2m = '\gamma_{2\mathrm{m}}' }
+
+[[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.137, 3.139 to 3.141"
+units = { z_2 = "M" }
+
+[[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
+reference = "ingleby2023"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_specific_humidity_2m]
+label = "Specific humidity at 2 m, interpolated with the profile functions (IFS)"
+expression = "q_surf + (q_n - q_surf) * ((ln((z_2 + z_0ma) / z_0Q) - Psi_H(zeta=zeta_2) + Psi_H(zeta=zeta_0Q)) / (ln((z_n + z_0ma) / z_0Q) - Psi_H(zeta=zeta_n) + Psi_H(zeta=zeta_0Q)) * (1 - 2 / pi * atan(gamma_2m * zeta_2)) + lambda_2m * 2 / pi * atan(gamma_2m * zeta_2))"
+calls = { Psi_H = "ecmwf_ifs_profile_function_heat" }
+fixed_units = false
+note = "Equation 3.99 with the interpolation factor of 3.100, f_2m of 3.101 and beta of 3.103, written out, as ecmwf_ifs_dry_static_energy_2m. As printed, f_2m is negative in unstable conditions (L < 0). The dew point at 2 m follows from it and the surface pressure, with saturation over water, and is set to the temperature where it would exceed it."
+output = { identifier = "q_2", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at 2 m" }
+inputs = [
+  { identifier = "q_surf", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the surface" },
+  { identifier = "q_n", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the lowest model level" },
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0ma", kind = "RoughnessLengthForMomentum", unit = "M", description = "Aggregated roughness length for momentum" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity of the tile (z_0QWMO)" },
+  { identifier = "zeta_2", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at 2 m, (z_2 + z_0ma)/L" },
+  { identifier = "zeta_n", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the lowest model level, (z_n + z_0ma)/L" },
+  { identifier = "zeta_0Q", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length for humidity, z_0QWMO/L" },
+]
+coefficients = { z_2 = 2, lambda_2m = 0.75, gamma_2m = 0.3 }
+keywords = ["2 m humidity", "interpolation", "specific humidity", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.99, 3.100, 3.101, 3.103"
+units = { z_2 = "M" }
+notation = { q_surf = 'q_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0Q = 'z_{0\mathrm{QWMO}}', zeta_2 = '\zeta_2', zeta_n = '\zeta_n', zeta_0Q = '\zeta_{0\mathrm{Q}}', lambda_2m = '\lambda_{2\mathrm{m}}', gamma_2m = '\gamma_{2\mathrm{m}}' }
+
+[[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.138, 3.139, 3.140, 3.142"
+units = { z_2 = "M" }
+
+[[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
+reference = "ingleby2023"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_wind_speed_10m]
+label = "Wind speed at 10 m, from the blending height with the profile functions (IFS)"
+expression = "F_blend * (ln((z_10 + z_0) / z_0) - Psi_M(zeta=zeta_10) + Psi_M(zeta=zeta_0)) / (ln((z_blend + z_0) / z_0) - Psi_M(zeta=zeta_blend) + Psi_M(zeta=zeta_0))"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum" }
+fixed_units = false
+note = "Equation 3.106. The blending height and the roughness length follow the rule of 3.105, which chooses the inputs rather than computing them: over rough terrain, z_0M > 0.03 m, z_blend = 40 m with the wind interpolated there from the model levels, and z_0MWMO = 0.03 m, a grassland's, for the exposure of WMO stations in open terrain; otherwise the lowest model level and z_0M itself. The 10-metre equivalent-neutral wind (3.107) is not entered: not a speed of the air, it would need a kind of its own."
+output = { identifier = "F_10", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at 10 m" }
+inputs = [
+  { identifier = "F_blend", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the blending height" },
+  { identifier = "z_blend", kind = "Height", unit = "M", description = "Blending height" },
+  { identifier = "z_0", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum of the interpolation (z_0MWMO)" },
+  { identifier = "zeta_10", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at 10 m, (z_10 + z_0MWMO)/L" },
+  { identifier = "zeta_blend", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the blending height, (z_blend + z_0MWMO)/L" },
+  { identifier = "zeta_0", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length, z_0MWMO/L" },
+]
+coefficients = { z_10 = 10 }
+keywords = ["10 m wind", "interpolation", "exposure", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_wind_speed_10m.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.106"
+units = { z_10 = "M" }
+notation = { F_10 = "F_{10}", F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mathrm{blend}}', z_0 = 'z_{0\mathrm{MWMO}}', zeta_10 = '\zeta_{10}', zeta_blend = '\zeta_{\mathrm{blend}}', zeta_0 = '\zeta_0' }
+
+[[formulations.ecmwf_ifs_wind_speed_10m.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.145"
+units = { z_10 = "M" }
+
+[formulations.ecmwf_ifs_friction_velocity_blending_height]
+label = "Friction velocity from the wind speed at the blending height (IFS diagnostic)"
+expression = "F_blend * kappa / (ln((z_blend + z_0) / z_0) - Psi_M(zeta=zeta_blend) + Psi_M(zeta=zeta_0))"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum" }
+fixed_units = false
+note = "Equation 3.108, with the blending height and the roughness length of 3.105, as ecmwf_ifs_wind_speed_10m."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "F_blend", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the blending height" },
+  { identifier = "z_blend", kind = "Height", unit = "M", description = "Blending height" },
+  { identifier = "z_0", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum of the interpolation (z_0MWMO)" },
+  { identifier = "zeta_blend", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the blending height, (z_blend + z_0MWMO)/L" },
+  { identifier = "zeta_0", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the roughness length, z_0MWMO/L" },
+]
+constants = ["kappa_ecmwf_ifs"]
+keywords = ["friction velocity", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_friction_velocity_blending_height.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.108"
+notation = { u_s = "u_*", kappa = '\kappa', F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mathrm{blend}}', z_0 = 'z_{0\mathrm{MWMO}}', zeta_blend = '\zeta_{\mathrm{blend}}', zeta_0 = '\zeta_0' }
+
+[[formulations.ecmwf_ifs_friction_velocity_blending_height.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.147"
+
+# --- Visibility -------------------------------------------------------
+
+[formulations.ecmwf_ifs_visibility]
+label = "Visibility from the extinction coefficient, Koschmieder's law with a contrast of 0.02 (IFS)"
+expression = "-ln(epsilon) / beta_tot"
+fixed_units = false
+note = "Equation 3.117, at the lowest model level (10 m, the lowest 20 m of the atmosphere). The total extinction coefficient is a sum over clean air, aerosol, cloud and precipitation (3.118); both cycles print the clean air term with a minus sign, contrary to the text, which ties clean air to the maximum visibility of 100 km: a sign to read as a plus. The empirical coefficients of each term are not entered."
+output = { identifier = "V", kind = "Visibility", unit = "M", description = "Visibility" }
+inputs = [
+  { identifier = "beta_tot", kind = "AttenuationCoefficient", unit = "PER-M", description = "Total extinction coefficient for optical wavelengths" },
+]
+coefficients = { epsilon = { value = 0.02, note = "Liminal contrast, after Koschmieder (1924)." } }
+keywords = ["visibility", "Koschmieder", "extinction coefficient", "fog", "diagnostic", "IFS"]
+
+[[formulations.ecmwf_ifs_visibility.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.117"
+notation = { epsilon = '\epsilon', beta_tot = '\beta_{\mathrm{tot}}' }
+
+[[formulations.ecmwf_ifs_visibility.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.156"
+
+[[formulations.ecmwf_ifs_visibility.citations]]
+reference = "koschmieder1924"
+note = "The liminal contrast, as the IFS quotes it."
 
 # --- Trade terms ------------------------------------------------------
 

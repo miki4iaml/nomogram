@@ -511,6 +511,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
             ("hardy1998_frost_point", name): "added"
             for name in ("c0", "c1", "c2", "d0", "d1", "d2", "d3")
         },
+        ("ecmwf_ifs_dry_static_energy_2m", "z_2"): "stated",
+        ("ecmwf_ifs_specific_humidity_2m", "z_2"): "stated",
+        ("ecmwf_ifs_wind_speed_10m", "z_10"): "stated",
         ("itu_r_p453_reference_profile", "h_0"): "stated",
         ("itu_r_p453_surface_refractivity", "h_0"): "stated",
         ("ittc2011_vapour_pressure", "T_c"): "stated",

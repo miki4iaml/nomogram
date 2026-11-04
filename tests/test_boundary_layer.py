@@ -5,6 +5,7 @@
 similarity, roughness lengths, transfer coefficients."""
 
 import math
+from typing import Any
 
 import numpy as np
 import pytest
@@ -207,3 +208,66 @@ def test_the_surface_layer_is_linked_to_wikidata() -> None:
         "Q60638164",
         MatchRelation.EXACT,
     )
+
+
+def test_the_dry_static_energy_at_2_m_at_neutral_and_very_stable() -> None:
+    f = F["ecmwf_ifs_dry_static_energy_2m"]
+    s_surf, s_n, z_n, z_0ma, z_0h = 288000.0, 288500.0, 10.0, 0.1, 0.01
+    lengths: dict[str, Any] = {
+        "s_surf": Q_(s_surf, "J/kg"),
+        "s_n": Q_(s_n, "J/kg"),
+        "z_n": Q_(z_n, "m"),
+        "z_0ma": Q_(z_0ma, "m"),
+        "z_0H": Q_(z_0h, "m"),
+    }
+    neutral = Q_(0.0, ONE)
+    s_2 = f.evaluate(**lengths, zeta_2=neutral, zeta_n=neutral, zeta_0H=neutral)
+    beta = math.log((2 + z_0ma) / z_0h) / math.log((z_n + z_0ma) / z_0h)
+    assert s_2.magnitude == pytest.approx(s_surf + (s_n - s_surf) * beta, rel=1e-12)
+    # Very stable: f_2m tends to 1, and the interpolation factor to 0.75.
+    far = f.evaluate(
+        **lengths, zeta_2=Q_(1e9, ONE), zeta_n=Q_(1e9, ONE), zeta_0H=Q_(1e7, ONE)
+    )
+    assert far.magnitude == pytest.approx(s_surf + 0.75 * (s_n - s_surf), rel=1e-6)
+
+
+def test_the_wind_at_10_m_is_the_wind_at_a_blending_height_of_10_m() -> None:
+    zeta_10 = Q_(-0.2, ONE)
+    f_10 = F["ecmwf_ifs_wind_speed_10m"].evaluate(
+        F_blend=Q_(6.0, "m/s"),
+        z_blend=Q_(10.0, "m"),
+        z_0=Q_(0.03, "m"),
+        zeta_10=zeta_10,
+        zeta_blend=zeta_10,
+        zeta_0=Q_(-0.0006, ONE),
+    )
+    assert f_10.to("m/s").magnitude == pytest.approx(6.0, rel=1e-12)
+
+
+def test_the_friction_velocity_of_the_diagnostics_agrees_with_the_drag() -> None:
+    # 3.108 against 3.29 with C_M of 3.16, at the same heights.
+    z_b, z_0, zeta_b, zeta_0 = 40.0, 0.03, (40.0 + 0.03) / -100.0, 0.03 / -100.0
+    u_s = F["ecmwf_ifs_friction_velocity_blending_height"].evaluate(
+        F_blend=Q_(8.0, "m/s"),
+        z_blend=Q_(z_b, "m"),
+        z_0=Q_(z_0, "m"),
+        zeta_blend=Q_(zeta_b, ONE),
+        zeta_0=Q_(zeta_0, ONE),
+    )
+    c_m = F["ecmwf_ifs_transfer_coefficient_momentum"].evaluate(
+        z_n=Q_(z_b, "m"),
+        z_0M=Q_(z_0, "m"),
+        zeta_n=Q_(zeta_b, ONE),
+        zeta_0M=Q_(zeta_0, ONE),
+    )
+    from_drag = F["ecmwf_ifs_friction_velocity"].evaluate(C_M=c_m, U_n=Q_(8.0, "m/s"))
+    assert u_s.to("m/s").magnitude == pytest.approx(
+        from_drag.to("m/s").magnitude, rel=1e-12
+    )
+
+
+def test_the_visibility_of_clean_air_is_100_km() -> None:
+    beta = -math.log(0.02) / 1e5
+    v = F["ecmwf_ifs_visibility"].evaluate(beta_tot=Q_(beta, "1/m"))
+    assert v.to("km").magnitude == pytest.approx(100.0, rel=1e-12)
+    assert CATALOG.kinds["Visibility"].cf_standard_names == ("visibility_in_air",)
