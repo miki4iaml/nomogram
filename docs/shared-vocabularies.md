@@ -219,7 +219,7 @@ A violation fails the CI; a warning is counted in the report.
 
 - nomogram does not read QUDT online: it works offline. A development
   script, `scripts/extract_semantics.py`, reads a frozen release of QUDT
-  (3.5.2) and of the CF table (95), and writes
+  (3.5.3) and of the CF table (95), and writes
   `src/nomogram/data/semantics.json`: the kinds, units and CF standard
   names the catalog needs, and nothing more.
 - Each minor version of nomogram re-extracts it from the latest official
@@ -274,7 +274,7 @@ Several tools help to browse it:
   and the date it was checked.
 - **Offline and consistent.** The same principle lets nomogram work
   offline: each of its versions embeds a frozen extract of an official,
-  dated and declared release of each ontology (QUDT 3.5.2 and the CF
+  dated and declared release of each ontology (QUDT 3.5.3 and the CF
   table 95 today), and stays consistent with it.
 
 ## Useful links

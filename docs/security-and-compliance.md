@@ -78,7 +78,7 @@ only. `pyproject.toml` declares lowest versions, not pinned ones: see
 section 7 for an installation with locked versions.
 
 **Bundled data** [public]: the formula catalog (TOML files) and a frozen
-extract of the QUDT 3.5.2 and CF 95 vocabularies
+extract of the QUDT 3.5.3 and CF 95 vocabularies
 (`src/nomogram/data/semantics.json`), whose origin and licences are
 described in [NOTICE.md](../src/nomogram/data/NOTICE.md).
 

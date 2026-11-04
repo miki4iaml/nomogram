@@ -8,7 +8,7 @@ the domain vocabularies it bridges (CF standard names, OM), and the
 knowledge graphs of mathematical models and formulas (MathModDB,
 Wikidata). Where nomogram departs from QUDT, the reason is given.
 
-Versions read: QUDT 3.5.2, CF standard name table 95, SI Brochure 9th
+Versions read: QUDT 3.5.3, CF standard name table 95, SI Brochure 9th
 edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14, MathModDB 2.0.0
 (OWL export of the MaRDI portal), Wikidata properties as of
 26 October 2026. The MathModDB / Wikidata column gives only
@@ -26,7 +26,7 @@ correspondences checked in those versions.
 | dimension | `qudt:QuantityKindDimensionVector` (`hasDimensionVector`) | quantity dimension (VIM 1.7) | `dimensionality` | `sympy.physics.units.Dimension` (not used) | — | MathModDB `ISQ dimension` (P1212, MathML); Wikidata P4020 *ISQ dimension* | Same notion; QUDT adds dimension `D` (dimensionless ratio) to tell ratios apart. |
 | unit registry | `qudt:SystemOfUnits` (partly) | system of units (VIM 1.13) | `pint.UnitRegistry` | — | — | — | nomogram owns one private registry, `nomogram.units.ureg`, created once and never modified. |
 | offset unit | unit with `qudt:conversionOffset` ≠ 0 (`unit:DEG_C`: multiplier 1, offset 273.15) | none: the SI says the degree Celsius equals the kelvin in magnitude; the *quantity* Celsius temperature is offset (SI Brochure 2.3.1) | non-multiplicative unit (`degC`, `degF`) | — | OM: a scale defined by an offset from another | — | QUDT and pint put the offset in the unit, the SI puts it in the quantity. nomogram follows pint for computation and the SI for meaning: `is_offset_unit` tells which units express points of an interval scale. |
-| conventional scale | `qudt:Scale` (class only: no instance in the QUDT 3.5.2 vocabularies used) | conventional reference scale (VIM 1.29), for example the International Temperature Scale (ITS-90), formerly IPTS-68, IPTS-48, ITS-27 | none | — | CF names salinity by scale (`sea_water_practical_salinity`, `sea_water_knudsen_salinity`...) | — | `nomogram.model.ConventionalScale`: a quantity-value scale defined by formal agreement, for given quantity kinds, with one reference scale per kind (ITS-90 for temperatures, Reference Salinity for salinity) and a conversion to it: a table, or an expression of the value, possibly through another scale (Knudsen salinity, then Cox salinity, then Reference Salinity); a scale may hold no conversion (Absolute Salinity, whose anomaly depends on the location). Not QUDT's `ScaleType` (ratio, interval), which is the level of measurement. The scale a formulation was fitted on is stated by the source, inferred from the publication date only (weak: ITS-90 itself took years to be applied) or inferred from numerical evidence. Inputs are taken on ITS-90 and converted before evaluation (table of t90 − t68 from the ITS-90 text); a formulation fitted to formulas on several scales gets none. Neither QUDT nor pint models it, though it shifts saturation vapour pressure by up to 0.09 % between 0 and 100 °C. |
+| conventional scale | `qudt:Scale` (class only: no instance in the QUDT 3.5.3 vocabularies used) | conventional reference scale (VIM 1.29), for example the International Temperature Scale (ITS-90), formerly IPTS-68, IPTS-48, ITS-27 | none | — | CF names salinity by scale (`sea_water_practical_salinity`, `sea_water_knudsen_salinity`...) | — | `nomogram.model.ConventionalScale`: a quantity-value scale defined by formal agreement, for given quantity kinds, with one reference scale per kind (ITS-90 for temperatures, Reference Salinity for salinity) and a conversion to it: a table, or an expression of the value, possibly through another scale (Knudsen salinity, then Cox salinity, then Reference Salinity); a scale may hold no conversion (Absolute Salinity, whose anomaly depends on the location). Not QUDT's `ScaleType` (ratio, interval), which is the level of measurement. The scale a formulation was fitted on is stated by the source, inferred from the publication date only (weak: ITS-90 itself took years to be applied) or inferred from numerical evidence. Inputs are taken on ITS-90 and converted before evaluation (table of t90 − t68 from the ITS-90 text); a formulation fitted to formulas on several scales gets none. Neither QUDT nor pint models it, though it shifts saturation vapour pressure by up to 0.09 % between 0 and 100 °C. |
 | scale type | `qudt:ScaleType`: `RatioScale`, `IntervalScale`, `OrdinalScale`, `NominalScale` | quantity-value scale (VIM 1.27); ordinal scale (VIM 1.28) | none | — | OM `Scale` | — | `nomogram.units.ScaleType` keeps only ratio and interval, the two the formulas need. The four types come from Stevens (1946). |
 | point / difference | `qudt:isDeltaQuantity`, a boolean of `qudt:Quantity` (the quantity in its context), not of the kind; the unit stays the same | — | `degC` versus `delta_degC` | — | OM `Point` versus `Measure` | — | A Celsius temperature is a point; the difference of two points is a difference, expressed in `delta_degC` or `K`. pint refuses to add two points. In a formula each input or output is a point or a difference by definition, so nomogram types it on the variable's kind (`TemperatureDifference`); a nomogram variable plays the role of a `qudt:Quantity`. |
 | identifier | none (`qudt:QuantityKind` IRIs identify kinds, not variables) | — | — | name of a `sympy.Symbol`, with `real=True`: a SymPy symbol is its name and its assumptions; the LaTeX printer reads `_`, `__` and a trailing number as subscripts and superscripts | — | MathModDB `in defining formula` (P983) with `symbol represents` (P984): a symbol of a formula tied to a quantity. Wikidata P7235 *in defining formula* with P9758 *symbol represents* | The semantic name of a variable in a formula (`t`, `RH`, `e_s`), stable across notations. |
@@ -170,7 +170,7 @@ defines one, a sibling of the look-alikes
 | wet-bulb temperature | temperature of a parcel cooled to saturation by evaporation into it (thermodynamic) | thermodynamics, ASHRAE, CF | `WetBulbTemperature` (4.A.19) | K, °C | WMO-No. 8, Annex 4.A; QUDT; CF table 95 |
 | wet-bulb temperature | reading of the wet bulb of a psychrometer, not identical to the thermodynamic one | instruments (WMO-No. 8, 4.3.1.7) | `PsychrometerWetBulbTemperature` (local) | °C | WMO-No. 8 (2024), 4.3.1.7 and Annex 4.A |
 
-| drag coefficient | force on a body in a flow over the dynamic pressure and a reference area, F/(½ ρ v² A) | fluid dynamics, aerodynamics | `DragCoefficient` (QUDT) | 1 | QUDT 3.5.2 |
+| drag coefficient | force on a body in a flow over the dynamic pressure and a reference area, F/(½ ρ v² A) | fluid dynamics, aerodynamics | `DragCoefficient` (QUDT) | 1 | QUDT 3.5.3 |
 | drag coefficient | transfer coefficient relating the surface stress to the square of the wind speed at a height, τ = ρ C_M U² | boundary-layer meteorology (CF, IFS) | `SurfaceDragCoefficientForMomentum`, a sibling under `DimensionlessRatio` | 1 | CF table 95; IFS CY49R1, Part IV, 3.15 and 3.16 |
 
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
@@ -248,8 +248,8 @@ glossary.
 
 ## QUDT findings
 
-Found while reading QUDT 3.5.2; documented here, not worked around
-silently.
+Found while reading QUDT 3.5.2, and checked again on 3.5.3; documented
+here, not worked around silently.
 
 1. `quantitykind:VaporPressure` is deprecated since QUDT 3.2.0 and
    replaced by `quantitykind:VapourPressure`. nomogram uses the latter.
@@ -325,8 +325,8 @@ silently.
     relative to the Dutch datum: the reference surface is part of the
     meaning of the quantity.
 16. QUDT has no kind for the salinity or the chlorinity of sea water;
-    `quantitykind:MassFraction` has no per mille or g/kg unit (QUDT 3.5.2
-    gives it FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM), although CF writes
+    `quantitykind:MassFraction` has no per mille or g/kg unit (QUDT 3.5.3
+    gives it FRACTION, PERCENT and UNITLESS), although CF writes
     salinities in 1e-3 and g kg-1 (nomogram adds them). `unit:PSU` has a
     conversion multiplier of 0, the value QUDT gives units without a
     multiplicative conversion (decibel, Beaufort...): Practical Salinity
@@ -336,7 +336,7 @@ silently.
     a unit, as CF (canonical unit 1) and TEOS-10 do, and the Knudsen and
     Cox salinities, mass ratios, in per mille.
 
-17. QUDT 3.5.2 has no kind for the geopotential or the geopotential
+17. QUDT 3.5.3 has no kind for the geopotential or the geopotential
     height, and no geopotential metre; nomogram declares `Geopotential`
     under `SpecificEnergy` and `GeopotentialHeight` under `Length` (not
     under `Altitude`, which it must not feed), in metres. QUDT declares
@@ -362,7 +362,7 @@ silently.
     `quantitykind:DragCoefficient` is the drag of a body in a flow, not
     the surface drag coefficient of CF (see the trade terms).
 21. `quantitykind:LinearAttenuationCoefficient` declares no unit in
-    QUDT 3.5.2: the reciprocal metre is its parent's,
+    QUDT 3.5.3: the reciprocal metre is its parent's,
     `AttenuationCoefficient`, which nomogram takes for the extinction
     coefficient of the visibility.
 
@@ -411,7 +411,7 @@ qualifier P9758 *symbol represents*).
 
 ## Sources
 
-- QUDT 3.5.2, <https://github.com/qudt/qudt-public-repo/releases> (CC BY 4.0).
+- QUDT 3.5.3, <https://github.com/qudt/qudt-public-repo/releases> (CC BY 4.0).
 - BIPM, *The International System of Units*, 9th edition, section 2.3.1,
   doi:10.59161/AUEZ1291.
 - JCGM 200:2012, *International vocabulary of metrology* (VIM3),

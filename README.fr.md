@@ -166,7 +166,7 @@ canoniques de la table des noms standard CF. Le paquet embarque un
 sous-ensemble de chaque source :
 
 - QUDT — Quantities, Units, Dimensions and Types, par QUDT.org
-  (<https://qudt.org>), version 3.5.2, sous licence
+  (<https://qudt.org>), version 3.5.3, sous licence
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ;
 - la [table des noms standard CF](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
   version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) ;
