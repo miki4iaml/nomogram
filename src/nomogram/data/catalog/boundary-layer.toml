@@ -95,14 +95,14 @@ note = "Cited by the IFS (CY49R1, Part IV, 3.2.4) for the adaptation of Andreas 
 [kinds.ObukhovLength]
 label = "Obukhov Length"
 specialization_of = "Length"
-description = "Length scale of the surface layer, comparing the production of turbulence by wind shear to that by buoyancy (Monin-Obukhov similarity): negative in unstable conditions, positive in stable ones."
-cf_standard_names = [{ name = "atmosphere_obukhov_length", relation = "exact", verified = 2026-11-04 }]
+description = "Length scale of the surface layer of a fluid, air or sea water, comparing the production of turbulence by shear to that by buoyancy (Monin-Obukhov similarity): negative in unstable conditions, positive in stable ones."
+cf_standard_names = [{ name = "atmosphere_obukhov_length", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.FrictionVelocity]
 label = "Friction Velocity"
 specialization_of = "Speed"
-description = "Velocity scale of the surface layer, the square root of the surface stress over the density of air."
-cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", relation = "exact", verified = 2026-11-04 }]
+description = "Velocity scale of the surface layer of a fluid, the square root of the surface stress over the density of the fluid."
+cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SurfaceLayerScaleOfDryStaticEnergy]
 label = "Surface-Layer Scale of Dry Static Energy"
@@ -117,19 +117,19 @@ description = "Scale of the specific humidity in the surface layer, its surface 
 [kinds.RoughnessLengthForMomentum]
 label = "Roughness Length for Momentum"
 specialization_of = "Length"
-description = "Height at which the logarithmic wind profile of the surface layer, extended downwards, vanishes."
-cf_standard_names = [{ name = "surface_roughness_length_for_momentum_in_air", relation = "exact", verified = 2026-11-04 }]
+description = "Height at which the logarithmic profile of the mean velocity of a flow over a surface, the wind in air, extended downwards, vanishes."
+cf_standard_names = [{ name = "surface_roughness_length_for_momentum_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.RoughnessLengthForHeat]
 label = "Roughness Length for Heat"
 specialization_of = "Length"
-description = "Height at which the profile of temperature, or of dry static energy, of the surface layer, extended downwards, reaches its surface value."
-cf_standard_names = [{ name = "surface_roughness_length_for_heat_in_air", relation = "exact", verified = 2026-11-04 }]
+description = "Height at which the logarithmic profile of temperature of a flow over a surface (of dry static energy in the IFS), extended downwards, reaches its surface value."
+cf_standard_names = [{ name = "surface_roughness_length_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.RoughnessLengthForHumidity]
 label = "Roughness Length for Humidity"
 specialization_of = "Length"
-description = "Height at which the profile of specific humidity of the surface layer, extended downwards, reaches its surface value."
+description = "Height at which the profile of specific humidity of the surface layer of the air, extended downwards, reaches its surface value: the air's by nature, as is humidity."
 cf_standard_names = [{ name = "surface_roughness_length_for_humidity_in_air", relation = "exact", verified = 2026-11-04 }]
 
 [kinds.StabilityParameter]
@@ -140,22 +140,22 @@ description = "Height over the Obukhov length, zeta = z/L: negative in unstable 
 [kinds.GradientFunctionForMomentum]
 label = "Gradient Function for Momentum"
 specialization_of = "DimensionlessRatio"
-description = "Dimensionless vertical gradient of the wind in the surface layer, (kappa z / u_*) du/dz, a function of the stability parameter (Monin-Obukhov similarity)."
+description = "Dimensionless vertical gradient of the mean velocity in the surface layer of a fluid, the wind in air, (kappa z / u_*) du/dz, a function of the stability parameter (Monin-Obukhov similarity)."
 
 [kinds.GradientFunctionForHeat]
 label = "Gradient Function for Heat"
 specialization_of = "DimensionlessRatio"
-description = "Dimensionless vertical gradient of the dry static energy in the surface layer, (kappa z / s_*) ds/dz, a function of the stability parameter; the IFS takes the same function for specific humidity."
+description = "Dimensionless vertical gradient of temperature in the surface layer of a fluid, a function of the stability parameter; written (kappa z / s_*) ds/dz with the dry static energy in the IFS, which takes the same function for specific humidity."
 
 [kinds.ProfileFunctionForMomentum]
 label = "Profile Function for Momentum"
 specialization_of = "DimensionlessRatio"
-description = "Stability correction to the logarithmic wind profile of the surface layer, Psi_M, tied to the gradient function by Phi = 1 - zeta dPsi/dzeta."
+description = "Stability correction to the logarithmic profile of the mean velocity in the surface layer of a fluid, the wind in air, Psi_M, tied to the gradient function by Phi = 1 - zeta dPsi/dzeta."
 
 [kinds.ProfileFunctionForHeat]
 label = "Profile Function for Heat"
 specialization_of = "DimensionlessRatio"
-description = "Stability correction to the logarithmic profile of dry static energy, and of specific humidity, in the surface layer, Psi_H."
+description = "Stability correction to the logarithmic profile of temperature in the surface layer of a fluid, Psi_H; of dry static energy, and of specific humidity, in the IFS."
 
 [kinds.BulkRichardsonNumber]
 label = "Bulk Richardson Number"
@@ -165,14 +165,14 @@ description = "Ratio of buoyancy to wind shear across a layer, from the differen
 [kinds.SurfaceDragCoefficientForMomentum]
 label = "Surface Drag Coefficient for Momentum"
 specialization_of = "DimensionlessRatio"
-description = "Transfer coefficient relating the surface stress to the square of the wind speed at a height, tau = rho C_M |U|^2. Not the drag coefficient of a body in a flow (QUDT DragCoefficient)."
-cf_standard_names = [{ name = "surface_drag_coefficient_for_momentum_in_air", relation = "exact", verified = 2026-11-04 }]
+description = "Transfer coefficient relating the surface stress to the square of the speed of the flow at a height, the wind in air, tau = rho C_M |U|^2. Not the drag coefficient of a body in a flow (QUDT DragCoefficient)."
+cf_standard_names = [{ name = "surface_drag_coefficient_for_momentum_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SurfaceDragCoefficientForHeat]
 label = "Surface Drag Coefficient for Heat"
 specialization_of = "DimensionlessRatio"
-description = "Transfer coefficient relating the surface flux of heat to the wind speed and the difference of dry static energy between a height and the surface, J_s = rho C_H |U| (s - s_surf)."
-cf_standard_names = [{ name = "surface_drag_coefficient_for_heat_in_air", relation = "exact", verified = 2026-11-04 }]
+description = "Transfer coefficient relating the surface flux of heat to the speed of the flow and the difference of temperature between a height and the surface; of dry static energy in the IFS, J_s = rho C_H |U| (s - s_surf)."
+cf_standard_names = [{ name = "surface_drag_coefficient_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SeaIceAreaFraction]
 label = "Sea Ice Area Fraction"

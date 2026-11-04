@@ -145,6 +145,13 @@ and this project adheres to
 
 ### Changed
 
+- Quantity kinds are neutral as to the medium, as QUDT's are, unless the
+  medium is part of the quantity; a CF name that names a medium is then a
+  narrow match: `air_potential_temperature` for `PotentialTemperature`
+  and `mole_fraction_of_water_vapor_in_air` for
+  `MoleFractionOfWaterVapour`, no longer exact ones, whose descriptions
+  name a fluid and a gas mixture rather than air. The rule is in the
+  catalog guide, and the kinds added in this version follow it.
 - The Wikidata item "density of air" (Q1511415), the density of the
   atmosphere moist or dry, is a broad match of `DensityOfMoistAir`, no
   longer a close one, and of `DensityOfDryAir`.
