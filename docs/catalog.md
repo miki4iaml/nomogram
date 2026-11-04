@@ -15,8 +15,9 @@ can also be proposed through an issue (see the
 
 - **A formula is written once**, as an expression in restricted Python
   syntax: numbers, declared identifiers, `+ - * / **`, parentheses, the
-  functions `exp`, `ln`, `log10`, `sqrt`, `sin`, `cos` and `atan` (the
-  arctangent of one argument; `atan2` is not allowed), the constant
+  functions `exp`, `ln`, `log10`, `sqrt`, `sin`, `cos`, `atan` (the
+  arctangent of one argument; `atan2` is not allowed) and `tanh`, the
+  constant
   `pi` (a reserved name, which no identifier may take), and a
   [piecewise definition](#piecewise-definitions). LaTeX, numeric
   functions and symbolic results all derive from it. An angle in the

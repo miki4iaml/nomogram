@@ -76,6 +76,7 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "ecmwf_ifs_saturation_water",
         "vaisala2013_water",
         "hardy1998_water",
+        "murphy_koop2005_water",
     }
 
 
@@ -511,6 +512,29 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
             ("hardy1998_frost_point", name): "added"
             for name in ("c0", "c1", "c2", "d0", "d1", "d2", "d3")
         },
+        ("ecmwf_ifs_mixed_phase_fraction", "T_ice"): "stated",
+        (
+            "ecmwf_ifs_saturation_mixed_phase",
+            "T_ice__ecmwf_ifs_mixed_phase_fraction",
+        ): "stated",
+        **{
+            (
+                "ecmwf_ifs_saturation_mixed_phase",
+                f"{name}__ecmwf_ifs_saturation_{phase}",
+            ): ("added" if name == "A" else "stated")
+            for name in ("e_0", "A", "B")
+            for phase in ("water", "ice")
+        },
+        **{
+            (key, name): "stated"
+            for key in (
+                "metpy171_saturation_vapour_pressure_ice",
+                "metpy171_saturation_vapour_pressure_auto",
+            )
+            for name in ("e_i0", "T_i0")
+        },
+        ("metpy171_saturation_vapour_pressure_auto", "e_s0"): "stated",
+        ("metpy171_saturation_vapour_pressure_auto", "T_0"): "stated",
         ("ecmwf_ifs_dry_static_energy_2m", "z_2"): "stated",
         ("ecmwf_ifs_specific_humidity_2m", "z_2"): "stated",
         ("ecmwf_ifs_wind_speed_10m", "z_10"): "stated",

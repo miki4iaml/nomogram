@@ -24,6 +24,17 @@ and this project adheres to
   number, the surface drag coefficients and the sea ice area fraction,
   with their CF standard names; the trade term "drag coefficient". The
   sources the IFS cites are recorded as to-confirm.
+- Water and ice in pairs, checked source by source: the formulation of
+  Murphy and Koop (2005) over liquid water, supercooled included, which
+  meets theirs over ice at the triple point; MetPy 1.7.1 over ice
+  (Ambaum's equation 17 with MetPy's constants) and its choice of phase
+  at the triple point (`phase='auto'`); the mixed phase of the ECMWF IFS,
+  over ice below 250.16 K, over water from 273.16 K and weighted by the
+  liquid fraction of the condensate in between, with a quantity kind
+  `MixedPhaseLiquidFraction` (under QUDT's `MassFraction`). The IFS
+  formulations over water and ice cite Buck (1981) and the AERKi formula
+  of Alduchov and Eskridge (1996), which the IFS names.
+- The hyperbolic tangent, `tanh`, in the expressions of the catalog.
 - The lifting condensation level of the ECMWF IFS (6.74): its temperature
   by the empirical formula of Davies-Jones (1983), and its pressure from
   the potential temperature of the departure level, whose reference

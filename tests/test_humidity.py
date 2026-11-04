@@ -371,6 +371,10 @@ def test_ice_formulations_against_iapws() -> None:
     # Down to -40 degC, all but four stay within 0.2 % of IAPWS.
     rough = {"murray1967_ice", "marti_mauersberger1993"}
     low = {"ecmwf_ifs_saturation_ice", "bechtold2015_magnus_ice"}
+    # MetPy's constants put Ambaum's form 0.22 % below at -40 degC, where
+    # Ambaum's own constants stay within 0.08 %.
+    rough |= {"metpy171_saturation_vapour_pressure_ice"}
+    assert -0.0025 < deviations["metpy171_saturation_vapour_pressure_ice"][1] < -0.002
     for key, values in deviations.items():
         if key not in rough | low:
             assert np.abs(values[1:]).max() < 0.002, key
