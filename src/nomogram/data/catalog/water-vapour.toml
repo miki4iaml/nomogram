@@ -47,9 +47,18 @@ matches = [
 authors = "Sonntag, D."
 year = 1990
 title = "Important new values of the physical constants of 1986, vapour pressure formulations based on the ITS-90, and psychrometer formulae"
-container = "Zeitschrift für Meteorologie"
+container = "Zeitschrift für Meteorologie 40, 340-344"
 status = "to-confirm"
-note = "Volume (40 or 70) and pages (340-344) to confirm against the original."
+note = "Original not read; volume and pages as Murphy and Koop (2005) give them. Sonntag (1994) restates its formulations over water and over ice as the recalculation on the ITS-90 of the reference formulae of Wexler (1976, 1977) and Sonntag (1982)."
+
+[references.sonntag1994]
+authors = "Sonntag, D."
+year = 1994
+title = "Advancements in the field of hygrometry"
+container = "Meteorologische Zeitschrift, N.F. 3, 51-66"
+doi = "10.1127/metz/3/1994/51"
+status = "verified"
+note = "Read: equations (7) over water, 173.15 to 373.15 K, and (8) over ice, 173.15 to 273.16 K, on the ITS-90, the recalculation of Wexler (1976, 1977) and Sonntag (1982) that 'gave D. Sonntag (1990)', 'now used in WMO No. 8' (6th edition); relative standard deviation over water < 0.5 % from -100 to -50 degC, < 0.3 % from -50 to 0 degC, < 0.005 % from 0 to 100 degC, over ice < 0.5 %. Equations (14) and (16) are the Magnus forms over water, -45 to 60 degC, and over ice, -65 to 0.01 degC, (15) and (17) their inverses; (10) and (11) give the dew point from equation (7)."
 
 [references.iapws_sr1_86]
 authors = "IAPWS"
@@ -222,8 +231,8 @@ year = 2005
 title = "Review of the vapour pressures of ice and supercooled water for atmospheric applications"
 container = "Quarterly Journal of the Royal Meteorological Society 131, 1539-1565"
 doi = "10.1256/qj.04.94"
-status = "to-confirm"
-note = "Cited by Vömel; journal details from memory, not checked."
+status = "verified"
+note = "Read: equations (7) over ice, T > 110 K, and (10) over liquid water, 123 < T < 332 K, in Pa. Appendix A lists other parametrizations with the ranges their authors state, among them Hyland and Wexler (1983), 173.16 to 273.16 K over ice and 273.15 to 473.15 K over liquid water, valid only above 0 degC (section 4); appendix B, typographical errors in the literature; appendix C, values for checking computer codes."
 
 [references.vaisala2013]
 authors = "Vaisala Oyj"
@@ -250,6 +259,22 @@ title = "Report of WMO's 2022 Upper-Air Instrument Intercomparison Campaign"
 container = "WMO, Instruments and Observing Methods Report No. 143, Geneva"
 status = "verified"
 note = "Read: Table 3.3 (p. 17), the vapour pressure equation each radiosonde of the campaign uses, as its manufacturer states it: Hyland and Wexler (1983) for CF-06-AH, DFM-17 and iMS-100; Goff and Gratch (1946) for GTH3; Wexler (1977) modified by Hardy (1998) for ITS-90 for iMet-54 and Vaisala's RS41; Sonntag (1990) for M20; Bolton (1980) for PS-B3; Buck (1981) for WxR-301D. It names the formulas and does not print them. Section 10.1.4 (pp. 138-139): relative humidity and dew point disagree between the BUFR and the manufacturers' files, negligibly near the surface, by more than 10 % in the upper troposphere, beyond typical measurement uncertainties, possibly through the inverse of the vapour pressure equation, BUFR coding the dew point. Appendix D: the vapour pressure formula (General.WVFormula) is a mandatory metadata of the campaign files. Table 9.2 (p. 119): the OSCAR uncertainty requirements, in %RH for the relative humidity."
+
+[references.wmo306_vol1_2_2025]
+authors = "World Meteorological Organization"
+year = 2025
+title = "Manual on Codes (WMO-No. 306), Volume I.2: International Codes"
+url = "https://library.wmo.int/records/item/35625-manual-on-codes-volume-i-2-international-codes"
+status = "verified"
+note = "2025 edition read: Regulation B/C25.7.2.7.1 (p. I.2-RegTradObs/BC25-10), for TEMP, TEMP SHIP and TEMP MOBIL data in BUFR or CREX (common sequence 3 09 052): dewpoint temperature data 'shall be derived using the function (or a near equivalent) for a relationship between saturation vapour pressure over water and air temperature (specified in the Technical Regulations (WMO-No. 49))', and not reported when the air temperature is outside the range stated by WMO for the application of the function; the same in B/C26 (TEMP DROP), after Regulation 35.3.1.1 of the alphanumeric TEMP code. Code table 0 02 017 lists the correction algorithms of humidity measurements (time lag, solar radiation), not the vapour pressure formulation; no element of the message naming it was found."
+
+[references.wmo49_vol1_2025]
+authors = "World Meteorological Organization"
+year = 2025
+title = "Technical Regulations (WMO-No. 49), Volume I: General Meteorological Standards and Recommended Practices"
+url = "https://library.wmo.int/records/item/35722-technical-regulations-volume-i-general-meteorological-standards-and-recommended-practices"
+status = "verified"
+note = "2025 edition, and 2019 edition updated in 2021, read: neither holds a saturation vapour pressure function, and Appendix A is the Basic Instruction Packages. Their general provisions (5): 'Members should use the definitions, formulas, values of constants and specifications indicated in the relevant Guides published by the Organization', which leads to WMO-No. 8 (wmo2024). Vömel attributes the Goff (1957) form (goff1957) to Appendix A of the 2011 edition, updated in 2012, not read."
 
 # --- Formulations -----------------------------------------------------
 
@@ -335,7 +360,7 @@ notation = { e_s = 'P_{\mathrm{ws}}', p_c = 'P_c', a1 = 'C_1', a2 = 'C_2', a3 = 
 label = "Sonntag (1990) formulation over water (SO90)"
 expression = "exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
 fixed_units = true
-note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Vömel gives the same coefficients under Sonntag (1994): the year differs between secondary sources. Range not read in the original. The formulation of the M20 radiosonde (UAII 2022, Table 3.3)."
+note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Vömel gives the same coefficients under Sonntag (1994), which prints them (equation 7) as the formulation of Sonntag (1990), restated; Murphy and Koop (2005, appendix A) print 16.635764 for a1, where Sonntag (1994) prints 16.635794, consistent with its value for Pa, 21.2409642. The formulation of the M20 radiosonde (UAII 2022, Table 3.3); WMO-No. 8 (2024, 12.4.1) names Sonntag (1994) for radiosondes at the lowest temperatures."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
@@ -353,6 +378,14 @@ scales = { T = "its90" }
 
 [[formulations.sonntag1990.citations]]
 reference = "voemel_vp"
+
+[[formulations.sonntag1990.citations]]
+reference = "sonntag1994"
+scales = { T = "its90" }
+
+[[formulations.sonntag1990.citations.domains]]
+bounds = { T = [173.15, 373.15] }
+criterion = "-100 to 100 degC, equation (7); relative standard deviation < 0.5 % below -50 degC, < 0.3 % from -50 to 0 degC, < 0.005 % above."
 
 [formulations.alduchov_eskridge1996]
 label = "Magnus form, Alduchov and Eskridge (1996) AEKR coefficients"
@@ -443,7 +476,7 @@ reference = "alduchov_eskridge1996"
 label = "Hyland and Wexler (1983) formulation over water"
 expression = "exp(C8 / T + C9 + C10 * T + C11 * T ** 2 + C12 * T ** 3 + C13 * ln(T))"
 fixed_units = true
-note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE. The formulation of the CF-06-AH, DFM-17 and iMS-100 radiosondes (UAII 2022, Table 3.3)."
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel and in Murphy and Koop (2005), who quote the range of the original, above 0 degC: below, the formulation is extrapolated. Temperature scale ITS-90, inferred from numbers: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE. The formulation of the CF-06-AH, DFM-17 and iMS-100 radiosondes (UAII 2022, Table 3.3), and one of those WMO-No. 8 (2024, 12.4.1) names for radiosondes at the lowest temperatures."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
@@ -453,6 +486,13 @@ keywords = ["saturation", "radiosonde"]
 
 [[formulations.hyland_wexler1983.citations]]
 reference = "hyland_wexler1983"
+
+[[formulations.hyland_wexler1983.citations]]
+reference = "murphy_koop2005"
+
+[[formulations.hyland_wexler1983.citations.domains]]
+bounds = { T = [273.15, 473.15] }
+criterion = "The range the original states over liquid water, as Murphy and Koop (2005, appendix A) quote it; valid only above 0 degC, they add (section 4)."
 
 [[formulations.hyland_wexler1983.citations]]
 reference = "ashrae2017"
@@ -674,7 +714,7 @@ criterion = "-100 to 0 degC, range of the equation over ice as stated by Vömel.
 label = "Hyland and Wexler (1983) formulation over ice"
 expression = "exp(C1 / T + C2 + C3 * T + C4 * T ** 2 + C5 * T ** 3 + C6 * T ** 4 + C7 * ln(T))"
 fixed_units = true
-note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 5, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: as over water, these coefficients agree with IAPWS R14-08 within 0.032 % from -80 to -1 degC without conversion, and drift to -0.18 % at -80 degC with the IPTS-68 conversion."
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 5, through PsychroLib; same coefficients in Vömel and in Murphy and Koop (2005), who quote the range of the original. Temperature scale ITS-90, inferred from numbers: as over water, these coefficients agree with IAPWS R14-08 within 0.032 % from -80 to -1 degC without conversion, and drift to -0.18 % at -80 degC with the IPTS-68 conversion."
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
@@ -683,6 +723,13 @@ coefficients = { C1 = -5.6745359e3, C2 = 6.3925247, C3 = -9.677843e-3, C4 = 6.22
 
 [[formulations.hyland_wexler1983_ice.citations]]
 reference = "hyland_wexler1983"
+
+[[formulations.hyland_wexler1983_ice.citations]]
+reference = "murphy_koop2005"
+
+[[formulations.hyland_wexler1983_ice.citations.domains]]
+bounds = { T = [173.16, 273.16] }
+criterion = "The range the original states over ice, 173.16 <= T < 273.16 K, as Murphy and Koop (2005, appendix A) quote it."
 
 [[formulations.hyland_wexler1983_ice.citations]]
 reference = "ashrae2017"
@@ -836,6 +883,10 @@ coefficients = { c0 = 9.550426, c1 = -5723.265, c2 = 3.53068, c3 = -0.00728332 }
 [[formulations.murphy_koop2005_ice.citations]]
 reference = "murphy_koop2005"
 
+[[formulations.murphy_koop2005_ice.citations.domains]]
+bounds = { T = [110.0, 273.16] }
+criterion = "T > 110 K, equation (7), fitted with a constraint at the triple point."
+
 [[formulations.murphy_koop2005_ice.citations]]
 reference = "voemel_vp"
 
@@ -843,7 +894,7 @@ reference = "voemel_vp"
 label = "Murphy and Koop (2005) formulation over liquid water, supercooled included"
 expression = "exp(c0 + c1 / T + c2 * ln(T) + c3 * T + tanh(c4 * (T - c5)) * (c6 + c7 / T + c8 * ln(T) + c9 * T))"
 fixed_units = true
-note = "As quoted by Vömel, who gives no validity range (the article, not read, would state one) and says it is based on recent data on the molar heat capacity of supercooled water. It meets murphy_koop2005_ice at the triple point, 611.657 Pa, as iapws_sr1_86 does; from 0 to 57 degC it stays within 0.02 % of iapws_sr1_86, which below 0 degC only extrapolates (-0.7 % at -40 degC, computed by nomogram, iapws_sr1_86 as the reference)."
+note = "Equation (10) of the article, as Vömel quotes it too: derived from recent data on the molar heat capacity of supercooled water, and extended above the triple point with Wagner and Pruss (1993). It meets murphy_koop2005_ice at the triple point, 611.657 Pa, as iapws_sr1_86 does; from 0 to 57 degC it stays within 0.02 % of iapws_sr1_86, which below 0 degC only extrapolates (-0.7 % at -40 degC, computed by nomogram, iapws_sr1_86 as the reference)."
 output = { identifier = "e_w", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over liquid water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
@@ -854,6 +905,10 @@ keywords = ["saturation", "supercooled water"]
 [[formulations.murphy_koop2005_water.citations]]
 reference = "murphy_koop2005"
 
+[[formulations.murphy_koop2005_water.citations.domains]]
+bounds = { T = [123.0, 332.0] }
+criterion = "123 < T < 332 K, equation (10)."
+
 [[formulations.murphy_koop2005_water.citations]]
 reference = "voemel_vp"
 
@@ -861,18 +916,26 @@ reference = "voemel_vp"
 label = "Sonntag formulation over ice"
 expression = "exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
 fixed_units = true
-note = "As quoted by Vömel, who dates it 1994 (as for the formulation over water)."
+note = "Sonntag (1994, equation 8), as Murphy and Koop (2005, appendix A) quote it too. Vömel prints 24.721994 for a1, where Sonntag prints 24.7219, consistent with its value for Pa, 29.32707; Vömel's value gives 0.0094 % more."
 output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "HectoPA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
 ]
-coefficients = { a0 = -6024.5282, a1 = 24.721994, a2 = 1.0613868e-2, a3 = -1.3198825e-5, a4 = -0.49382577 }
+coefficients = { a0 = -6024.5282, a1 = 24.7219, a2 = 1.0613868e-2, a3 = -1.3198825e-5, a4 = -0.49382577 }
 
 [[formulations.sonntag1990_ice.citations]]
 reference = "sonntag1990"
 
 [[formulations.sonntag1990_ice.citations]]
 reference = "voemel_vp"
+
+[[formulations.sonntag1990_ice.citations]]
+reference = "sonntag1994"
+scales = { T = "its90" }
+
+[[formulations.sonntag1990_ice.citations.domains]]
+bounds = { T = [173.15, 273.16] }
+criterion = "-100 to 0.01 degC, equation (8); relative standard deviation < 0.5 %."
 
 # Ambaum (2020): the Clausius-Clapeyron equation integrated with a latent
 # heat linear in temperature, over water and over ice.
@@ -958,7 +1021,7 @@ inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 7.591386, B = 240.7263, C = 6.116441 }
-keywords = ["saturation", "Magnus", "radiosonde"]
+keywords = ["saturation", "Magnus"]
 
 [[formulations.vaisala2013_water.citations]]
 reference = "vaisala2013"
@@ -980,7 +1043,7 @@ inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 9.778707, B = 273.1466, C = 6.114742 }
-keywords = ["saturation", "Magnus", "ice", "radiosonde"]
+keywords = ["saturation", "Magnus", "ice"]
 
 [[formulations.vaisala2013_ice.citations]]
 reference = "vaisala2013"
@@ -1021,7 +1084,7 @@ criterion = "The range stated by the source, -100 to 0.01 degC."
 label = "Hardy (1998) formulation over water, Wexler's refitted to ITS-90"
 expression = "exp(g0 / T ** 2 + g1 / T + g2 + g3 * T + g4 * T ** 2 + g5 * T ** 3 + g6 * T ** 4 + g7 * ln(T))"
 fixed_units = true
-note = "Wexler's equation 15 with ITS-90 coefficients: within 0.05 ppm of Wexler's formulation, its temperature brought to IPTS-68, from -100 to 100 degC, Wexler's range of 0 to 100 degC being extrapolated below 0 degC; 611.657 Pa at the triple point. The formulation of Vaisala's RS41 and of the iMet-54 radiosondes (UAII 2022, Table 3.3)."
+note = "Wexler's equation 15 with ITS-90 coefficients: within 0.05 ppm of Wexler's formulation, its temperature brought to IPTS-68, from -100 to 100 degC, Wexler's range of 0 to 100 degC being extrapolated below 0 degC; 611.657 Pa at the triple point. The formulation of Vaisala's RS41 and of the iMet-54 radiosondes (UAII 2022, Table 3.3); WMO-No. 8 (2024, 12.4.1) names Wexler (1976, 1977) for radiosondes at the lowest temperatures."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },

@@ -40,6 +40,16 @@ and this project adheres to
   formulations over water and ice cite Buck (1981) and the AERKi formula
   of Alduchov and Eskridge (1996), which the IFS names.
 - The hyperbolic tangent, `tanh`, in the expressions of the catalog.
+- The rules of WMO behind the dew point of a radiosonde: the Manual on
+  Codes (WMO-No. 306, Volume I.2, 2025), whose Regulation B/C25.7.2.7.1
+  derives it from the function of the Technical Regulations or a near
+  equivalent, and the Technical Regulations (WMO-No. 49, Volume I), which
+  refer formulas to the guides. The formulations WMO-No. 8 (12.4.1) names
+  for radiosondes say so in their notes, found by `search("12.4.1")`.
+  Sonntag (1994) and Murphy and Koop (2005), now read, give the ranges
+  the authors state: -100 to 100 °C over water for Sonntag, above 0 °C
+  over water for Hyland and Wexler (1983), and those of Murphy and Koop;
+  these formulations invert without a search interval.
 - The lifting condensation level of the ECMWF IFS (6.74): its temperature
   by the empirical formula of Davies-Jones (1983), and its pressure from
   the potential temperature of the departure level, whose reference
@@ -77,11 +87,18 @@ and this project adheres to
   the reference along a vertical coordinate, a height upwards, a pressure
   downwards on a logarithmic axis, with reference levels as vertical
   lines (`references`) and off-scale curves as in `plot_deviations`.
-- `docs/humidity-aloft.md`: the formula of a radiosonde's producer
-  against its users' along the reference atmosphere, the false round trip
-  through the dew point, which widens the gap aloft (-13.6 % with Tetens
-  at 11 km for a relative humidity of 20 %), and WMO's OSCAR requirements
-  in %RH; with its figure and script (`docs/examples/humidity_aloft.py`).
+- `docs/humidity-aloft.md`: why the lineage of data should cite the
+  formulations that made them; the formulas of WMO and its rule for the
+  dew point in BUFR messages; the formulations a user may take against
+  Sonntag (1994), which WMO names for radiosondes, along the
+  reference atmosphere, the false round trip through the dew point,
+  which widens the gap aloft (-10.1 % on the vapour pressure with Tetens
+  at 11 km for a relative humidity of 50 %, -1.3 %RH on the relative
+  humidity recomputed from it), the saturation over ice or in mixed phase
+  against that over water, which the relative humidity of a radiosonde,
+  of MetPy or of the IFS takes below 0 °C (-42.6 % at 11 km), and WMO's
+  OSCAR requirements in %RH; with its figure and script
+  (`docs/examples/humidity_aloft.py`).
 - The saturation vapour pressure formulations of radiosonde humidity
   producers: Vaisala's conversion formulas (2013), a simplified base-10
   form over water (-20 to 50 °C) and over ice (-70 to 0 °C), its equation
@@ -179,6 +196,9 @@ and this project adheres to
 
 ### Changed
 
+- The formulation over ice of Sonntag takes the constant of the original,
+  24.7219, where Vömel prints 24.721994 (0.0094 % more); the note keeps
+  both.
 - MetPy's saturation vapour pressure over water takes its reference point
   from two named constants, as MetPy does (`sat_pressure_0c`, 6.112 hPa,
   and `T0`, 273.16 K), shared with its form over ice.
