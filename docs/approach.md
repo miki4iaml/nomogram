@@ -159,7 +159,9 @@ point t_d = f⁻¹(e):
   gives back the classical dew point formula,
   t_d = B ln(e/C) / (A − ln(e/C)), with no hand-written formula;
 - **when there is none** (the IAPWS equation, Goff-Gratch...), the
-  inverse is solved numerically, and says so. This is not meant for
+  inverse is solved numerically, and says so. It searches the validity
+  domain a source states; when none does, nomogram does not choose the
+  interval, the caller gives it (`search=`). This is not meant for
   production: it makes the comparison between a production
   approximation and the exact inverse of the reference possible.
 

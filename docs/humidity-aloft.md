@@ -31,8 +31,11 @@ sets them against WMO's requirements.
 WMO gives its formulations in its guide (WMO-No. 8, 2024, Volume I). Its
 Technical Regulations refer to the guides for formulas (WMO-No. 49,
 Volume I, general provisions, 5), and so does, through them, the rule of
-the dew point in BUFR messages (below). Annex 4.B of the guide gives
-Magnus forms, convenient but not suitable below -45 °C over water. For
+the dew point in BUFR messages (below). The 2011 edition of the
+Technical Regulations, updated in 2012, still held a formula, Goff's
+(1957), that Members "shall use" (Part I, 2.2.1.1, and Appendix A); the
+editions of 2019 and 2025 hold none. Annex 4.B of the guide gives Magnus
+forms, convenient but not suitable below -45 °C over water. For
 radiosondes, at the lowest temperatures, the guide asks manufacturers to
 use Wexler (1976, 1977), Hyland and Wexler (1983) or Sonntag (1994), and
 not the Goff-Gratch equation recommended in earlier WMO publications

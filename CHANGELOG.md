@@ -49,7 +49,9 @@ and this project adheres to
   Sonntag (1994) and Murphy and Koop (2005), now read, give the ranges
   the authors state: -100 to 100 °C over water for Sonntag, above 0 °C
   over water for Hyland and Wexler (1983), and those of Murphy and Koop;
-  these formulations invert without a search interval.
+  these formulations invert without a search interval. The 2011 edition
+  of the Technical Regulations, updated in 2012, gives Goff (1957) its
+  range, -50 to 100 °C, and the rule that Members use it.
 - The lifting condensation level of the ECMWF IFS (6.74): its temperature
   by the empirical formula of Davies-Jones (1983), and its pressure from
   the potential temperature of the departure level, whose reference
