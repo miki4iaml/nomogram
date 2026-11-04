@@ -145,16 +145,22 @@ comparisons with other tools.
 
 ## Releasing
 
-1. Pull request against `develop` (squash): version bump in
+1. For a minor version, a pull request beforehand re-extracts
+   `semantics.json` from the latest official releases of QUDT and CF
+   (`scripts/extract_semantics.py`), each recorded with its version;
+   patch versions keep the extract. A kind or a unit that a new QUDT
+   release defines replaces the local one in the same pull request,
+   with a CHANGELOG entry.
+2. Pull request against `develop` (squash): version bump in
    `pyproject.toml` and `CITATION.cff`, `[Unreleased]` section of
    `CHANGELOG.md` turned into `[x.y.z] - date`, titled
    `chore: release x.y.z`.
-2. Pull request `develop` → `main`, merged with a merge commit (the
+3. Pull request `develop` → `main`, merged with a merge commit (the
    only exception to squash: `main` must hold the exact history of
    `develop`, otherwise both branches diverge at every release).
-3. Before tagging, check locally: `uv build` then
+4. Before tagging, check locally: `uv build` then
    `uvx --from twine twine check --strict dist/*`.
-4. Signed tag `vx.y.z` on `main`, then publish a GitHub release from
+5. Signed tag `vx.y.z` on `main`, then publish a GitHub release from
    it, its notes the `CHANGELOG.md` section of the version, with links
    made absolute: `python scripts/absolute_links.py rewrite --repo
    miki4iaml/nomogram --ref vx.y.z notes.md`. The release workflow
@@ -165,7 +171,7 @@ comparisons with other tools.
    SBOM, and publishes exactly those files to PyPI through Trusted
    Publishing (OIDC, no stored token), after approval of the protected
    `pypi` environment.
-5. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+6. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
 
 Rehearsal: run the release workflow manually (`workflow_dispatch`). It
 publishes a unique `x.y.z.devN` version to TestPyPI without creating a
