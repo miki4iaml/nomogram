@@ -264,6 +264,43 @@ def test_the_lifting_condensation_level_of_the_ifs() -> None:
     assert composed.to("hPa").magnitude == pytest.approx(expected, rel=1e-12)
 
 
+# Murphy and Koop (2005), appendix C: "values recommended for checking
+# computer codes", in Pa.
+MURPHY_KOOP_CHECK = [
+    (150.0, "6.106e-06", "1.562e-05"),
+    (180.0, "0.0053975", "0.011239"),
+    (210.0, "0.70202", "1.2335"),
+    (240.0, "27.272", "37.667"),
+    (273.15, "611.154", "611.213"),
+    (273.16, "611.657", "611.657"),
+]
+
+
+@pytest.mark.parametrize(("kelvins", "ice", "water"), MURPHY_KOOP_CHECK)
+def test_murphy_and_koop_give_their_check_values(
+    kelvins: float, ice: str, water: str
+) -> None:
+    def printed(key: str, value: str) -> float:
+        """The value of the formulation, rounded as the article prints it."""
+        pascals = F[key].evaluate(T=Q_(kelvins, "K")).to("Pa").magnitude
+        digits = len(value.split("e")[0].replace(".", "").lstrip("0"))
+        return float(f"{pascals:.{digits}g}")
+
+    assert printed("murphy_koop2005_ice", ice) == float(ice)
+    assert printed("murphy_koop2005_water", water) == float(water)
+
+
+def test_goff_1957_takes_the_range_of_the_technical_regulations() -> None:
+    (domain,) = (d for c in F["goff1957"].citations for d in c.domains)
+    assert (domain.bounds["T"], domain.reference) == (
+        (223.15, 373.15),
+        "wmo49_vol1_2012",
+    )
+    assert "references.wmo49_vol1_2012" in CATALOG.search("Technical Regulations").refs
+    below = F["goff1957"].evaluate(T=Q_(220.0, "K")).magnitude
+    assert math.isnan(below)
+
+
 def test_murphy_and_koop_over_water_meets_ice_and_iapws() -> None:
     # Both forms of Murphy and Koop (2005) meet at the triple point, as
     # IAPWS does; above freezing the form over water follows IAPWS.

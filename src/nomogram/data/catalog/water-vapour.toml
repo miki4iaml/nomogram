@@ -274,7 +274,15 @@ year = 2025
 title = "Technical Regulations (WMO-No. 49), Volume I: General Meteorological Standards and Recommended Practices"
 url = "https://library.wmo.int/records/item/35722-technical-regulations-volume-i-general-meteorological-standards-and-recommended-practices"
 status = "verified"
-note = "2025 edition, and 2019 edition updated in 2021, read: neither holds a saturation vapour pressure function, and Appendix A is the Basic Instruction Packages. Their general provisions (5): 'Members should use the definitions, formulas, values of constants and specifications indicated in the relevant Guides published by the Organization', which leads to WMO-No. 8 (wmo2024). Vömel attributes the Goff (1957) form (goff1957) to Appendix A of the 2011 edition, updated in 2012, not read."
+note = "2025 edition, and 2019 edition updated in 2021, read: neither holds a saturation vapour pressure function, and Appendix A is the Basic Instruction Packages. Their general provisions (5): 'Members should use the definitions, formulas, values of constants and specifications indicated in the relevant Guides published by the Organization', which leads to WMO-No. 8 (wmo2024). Appendix A of the 2011 edition, updated in 2012, held the Goff (1957) form (wmo49_vol1_2012)."
+
+[references.wmo49_vol1_2012]
+authors = "World Meteorological Organization"
+year = 2012
+title = "Technical Regulations (WMO-No. 49), Volume I: General Meteorological Standards and Recommended Practices, 2011 edition, updated in 2012"
+url = "https://library.wmo.int/records/item/35722-technical-regulations-volume-i-general-meteorological-standards-and-recommended-practices"
+status = "verified"
+note = "Read: Part I, 2.2.1.1, 'If the formula for a function or the value of a constant is given in Appendix A, Members shall use that formula or value, when required, for meteorological purposes'. Appendix A, 'under review', section 13: the saturation vapour pressure over water, 0 to 100 degC, in the form of Goff (1957), without naming him; based on data confirmed only from 0 to 100 degC, it 'can be used' over supercooled water from -50 to 0 degC 'with, as far as is known, insignificant error'; over ice, 0 to -100 degC."
 
 # --- Formulations -----------------------------------------------------
 
@@ -615,7 +623,7 @@ criterion = "-50 to 102 degC, range of the equation over liquid water according 
 label = "Goff (1957) equation over water, triple point form (WMO)"
 expression = "10 ** (b1 * (1 - T_1 / T) + b2 * log10(T / T_1) + b3 * (1 - 10 ** (b4 * (T / T_1 - 1))) + b5 * (10 ** (b6 * (1 - T_1 / T)) - 1) + b7)"
 fixed_units = true
-note = "Attribution differs between secondary sources: Vömel calls it Goff (1957), recommended by WMO; Alduchov and Eskridge (1996, equation 3) call it GG46 (Goff and Gratch 1946), recommended by WMO in 1966, and write ln where the numbers require log10."
+note = "Attribution differs between secondary sources: Vömel calls it Goff (1957), recommended by WMO; Alduchov and Eskridge (1996, equation 3) call it GG46 (Goff and Gratch 1946), recommended by WMO in 1966, and write ln where the numbers require log10. WMO-No. 49 (2012, Appendix A) gives it without naming Goff; Murphy and Koop (2005) give it as Goff (1957) and base the WMO form on it, with the decision of the International Meteorological Organization in 1947 to extrapolate the Goff-Gratch formula over supercooled water down to -50 degC."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
@@ -633,6 +641,16 @@ T_1 = { value = 273.16, note = "Triple point of water" }
 
 [[formulations.goff1957.citations]]
 reference = "goff1957"
+
+[[formulations.goff1957.citations]]
+reference = "wmo49_vol1_2012"
+
+[[formulations.goff1957.citations.domains]]
+bounds = { T = [223.15, 373.15] }
+criterion = "0 to 100 degC, and over supercooled water from -50 to 0 degC 'with, as far as is known, insignificant error' (Appendix A, section 13)."
+
+[[formulations.goff1957.citations]]
+reference = "murphy_koop2005"
 
 [[formulations.goff1957.citations]]
 reference = "voemel_vp"
