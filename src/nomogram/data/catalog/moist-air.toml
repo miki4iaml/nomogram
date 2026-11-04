@@ -197,7 +197,16 @@ title = "IFS Documentation CY49R1 - Part IV: Physical Processes"
 doi = "10.21957/c731ee1102"
 url = "https://www.ecmwf.int/en/elibrary/81626-ifs-documentation-cy49r1-part-iv-physical-processes"
 status = "verified"
-note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197. Chapter 3 (p. 46): the dry static energy, eq. 3.5. Section 5.3 (p. 86): the Brunt-Vaisala frequency in height coordinate, eq. 5.2. Section 6.12 (p. 108): the stability tropopause, eqs. 6.77-6.79, with N_0^2 = 2.5e-4 s-2. Section 12.2 (p. 245): a = 6371229 m, g = 9.80665 m s-2 and Phi = g z. Section 12.6 (p. 247): the basic state variables, eqs. 12.3-12.7. Section 12.9 (p. 250): s = c_pd T + Phi, eq. 12.36. The same equation numbers in CY50R1."
+note = "Chapter 12, p. 246: section 12.3, fundamental constants c, h, k and N (the values of the 1986 CODATA adjustment, not cited as such); 12.4, sigma = 2 pi^5 k^4/(15 c^2 h^3); 12.5, R = N k, Md, Mv, Rd = R/Md, Rv = R/Mv, the specific heats of dry air and water vapour (multiples of Rd and Rv), those of liquid water and ice (valid at T0 = 273.16 K) and the latent heats Lv0 and Ls0 at T0, and their linear dependency on temperature, eqs. 12.1 and 12.2. Section 7.5.2 (p. 136, under eq. 7.98): epsilon = Rdry/Rvap = 0.621981. Section 8.11.3 (pp. 201-202): salinity effect on the surface humidity, eq. 8.197. Chapter 3 (p. 46): the dry static energy, eq. 3.5. Section 5.3 (p. 86): the Brunt-Vaisala frequency in height coordinate, eq. 5.2. Section 6.12 (p. 108): the stability tropopause, eqs. 6.77-6.79, with N_0^2 = 2.5e-4 s-2. Section 12.2 (p. 245): a = 6371229 m, g = 9.80665 m s-2 and Phi = g z. Section 12.6 (p. 247): the basic state variables, eqs. 12.3-12.7. Section 12.9 (p. 250): s = c_pd T + Phi, eq. 12.36. Section 6.11 (p. 107): the temperature and the pressure of the lifting condensation level, eq. 6.74, after Davies-Jones (1983). The same equation numbers in CY50R1."
+
+[references.davies_jones1983]
+authors = "Davies-Jones, R."
+year = 1983
+title = "An accurate theoretical approximation for adiabatic condensation temperature"
+container = "Monthly Weather Review, 111, 1119-1121"
+doi = "10.1175/1520-0493(1983)111<1119:AATAFA>2.0.CO;2"
+status = "to-confirm"
+note = "Cited by the IFS (CY49R1, Part IV, 6.11) for the temperature of the lifting condensation level, equation 6.74; not read. DOI checked with Crossref on 2026-11-04."
 
 [references.bechtold2015]
 authors = "Bechtold, P."
@@ -2027,6 +2036,62 @@ keywords = ["density", "humidity", "IFS"]
 reference = "ecmwf_ifs_cy49r1"
 equation = "12.6"
 note = "With the virtual temperature without condensates, as the text under equation 12.7 says the physics computes the air density."
+
+# The lifting condensation level of the IFS diagnostics (6.11): its
+# temperature by the empirical formula of Davies-Jones (1983), then its
+# pressure from the potential temperature of the departure level.
+
+[formulations.ecmwf_ifs_lcl_temperature]
+label = "Temperature of the lifting condensation level from the temperature and the dew point (IFS, after Davies-Jones)"
+expression = "T_d - (a + b * (T_d - T_0) - c * (T - T_0)) * (T - T_d)"
+fixed_units = true
+note = "Equation 6.74, first line, at the departure model level of the parcel. The section does not define T_0; it is taken as the T_0 of the IFS, 273.16 K (section 12.5): 0.01 K more or less moves the result by less than 0.001 K."
+output = { identifier = "T_LCL", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the lifting condensation level" }
+inputs = [
+  { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point at the departure level" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature at the departure level" },
+]
+coefficients = { a = 0.212, b = 1.571e-3, c = 4.36e-4 }
+constants = ["T_0_ecmwf_ifs"]
+keywords = ["lifting condensation level", "LCL", "convection", "IFS"]
+
+[[formulations.ecmwf_ifs_lcl_temperature.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "6.74"
+notation = { T_LCL = 'T_{\mathrm{LCL}}', T_d = 'T_{\mathrm{d}}' }
+
+[[formulations.ecmwf_ifs_lcl_temperature.citations]]
+reference = "davies_jones1983"
+note = "As the IFS quotes it."
+
+[formulations.ecmwf_ifs_lcl_pressure]
+label = "Pressure of the lifting condensation level from its temperature and the potential temperature (IFS)"
+expression = "p_0 * (T_LCL / theta) ** (c_pd / R_d)"
+fixed_units = false
+note = "Equation 6.74, second line, theta being the potential temperature of the departure level. The section does not give p_0: it is an input, the reference pressure theta was computed with. With the same p_0, it cancels: p_LCL = p (T_LCL/T)^(c_p/R_d), p and T those of the departure level."
+output = { identifier = "p_LCL", kind = "Pressure", unit = "HectoPA", description = "Pressure of the lifting condensation level" }
+inputs = [
+  { identifier = "T_LCL", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the lifting condensation level" },
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the departure level" },
+  { identifier = "p_0", kind = "Pressure", unit = "HectoPA", description = "Reference pressure of the potential temperature" },
+]
+constants = ["c_pd_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["lifting condensation level", "LCL", "convection", "IFS"]
+
+[[formulations.ecmwf_ifs_lcl_pressure.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "6.74"
+notation = { p_LCL = 'p_{\mathrm{LCL}}', T_LCL = 'T_{\mathrm{LCL}}', theta = '\theta', c_pd = "c_p", R_d = 'R_{\mathrm{d}}' }
+
+[formulations.ecmwf_ifs_lcl_pressure_dew_point]
+label = "Pressure of the lifting condensation level from the temperature, the dew point and the potential temperature (IFS)"
+composition = { outer = "ecmwf_ifs_lcl_pressure", inner = { T_LCL = "ecmwf_ifs_lcl_temperature" } }
+keywords = ["lifting condensation level", "LCL", "convection", "IFS"]
+
+[[formulations.ecmwf_ifs_lcl_pressure_dew_point.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "6.74"
+note = "Both lines of the equation."
 
 # Stated by the notes: the two forms of equation 25.
 [relations.bechtold2015_virtual_temperature_two_forms]

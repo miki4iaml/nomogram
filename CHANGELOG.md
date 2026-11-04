@@ -24,6 +24,11 @@ and this project adheres to
   number, the surface drag coefficients and the sea ice area fraction,
   with their CF standard names; the trade term "drag coefficient". The
   sources the IFS cites are recorded as to-confirm.
+- The lifting condensation level of the ECMWF IFS (6.74): its temperature
+  by the empirical formula of Davies-Jones (1983), and its pressure from
+  the potential temperature of the departure level, whose reference
+  pressure, which the IFS does not give, is an input and cancels; their
+  composition from the temperature and the dew point.
 - The diagnostics of the ECMWF IFS near the surface (CY49R1 3.9, CY50R1
   3.10, cited in both): the dry static energy and the specific humidity
   at 2 m, interpolated with the profile functions and the arctangent
