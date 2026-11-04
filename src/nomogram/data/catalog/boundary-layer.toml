@@ -46,6 +46,9 @@ container = "Boundary-Layer Meteorology, 42, 55-78"
 doi = "10.1007/BF00119875"
 status = "to-confirm"
 note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the gradient functions, equations 3.21 and 3.23; not read. DOI checked with Crossref on 2026-11-04."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q60638164", relation = "exact", verified = 2026-11-04 },
+]
 
 [references.holtslag_debruin1988]
 authors = "Holtslag, A. A. M. and De Bruin, H. A. R."
@@ -55,6 +58,9 @@ container = "Journal of Applied Meteorology, 27, 689-704"
 doi = "10.1175/1520-0450(1988)027<0689:AMOTNS>2.0.CO;2"
 status = "to-confirm"
 note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the profile functions of stable conditions, equation 3.24, which the IFS modifies for a critical flux Richardson number; not read. The bibliography of the IFS prints the second author 'Bruin, H. A. R. D.'. DOI checked with Crossref on 2026-11-04."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q114957574", relation = "exact", verified = 2026-11-04 },
+]
 
 [references.beljaars1995]
 authors = "Beljaars, A. C. M."
@@ -96,12 +102,18 @@ note = "Cited by the IFS (CY49R1, Part IV, 3.2.4) for the adaptation of Andreas 
 label = "Obukhov Length"
 specialization_of = "Length"
 description = "Length scale of the surface layer of a fluid, air or sea water, comparing the production of turbulence by shear to that by buoyancy (Monin-Obukhov similarity): negative in unstable conditions, positive in stable ones."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q3110303", relation = "narrow", verified = 2026-11-04 },
+]
 cf_standard_names = [{ name = "atmosphere_obukhov_length", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.FrictionVelocity]
 label = "Friction Velocity"
 specialization_of = "Speed"
 description = "Velocity scale of the surface layer of a fluid, the square root of the surface stress over the density of the fluid."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1695787", relation = "exact", verified = 2026-11-04 },
+]
 cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SurfaceLayerScaleOfDryStaticEnergy]
@@ -118,6 +130,9 @@ description = "Scale of the specific humidity in the surface layer, its surface 
 label = "Roughness Length for Momentum"
 specialization_of = "Length"
 description = "Height at which the logarithmic profile of the mean velocity of a flow over a surface, the wind in air, extended downwards, vanishes."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q7370913", relation = "narrow", verified = 2026-11-04 },
+]
 cf_standard_names = [{ name = "surface_roughness_length_for_momentum_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.RoughnessLengthForHeat]
@@ -161,6 +176,9 @@ description = "Stability correction to the logarithmic profile of temperature in
 label = "Bulk Richardson Number"
 specialization_of = "DimensionlessRatio"
 description = "Ratio of buoyancy to wind shear across a layer, from the differences of virtual potential temperature, or of dry static energy and specific humidity, between its bounds."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q1004118", relation = "exact", verified = 2026-11-04 },
+]
 
 [kinds.SurfaceDragCoefficientForMomentum]
 label = "Surface Drag Coefficient for Momentum"
@@ -178,6 +196,9 @@ cf_standard_names = [{ name = "surface_drag_coefficient_for_heat_in_air", relati
 label = "Sea Ice Area Fraction"
 specialization_of = "DimensionlessRatio"
 description = "Fraction of an area of sea covered by sea ice, the sea ice concentration."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q7440064", relation = "exact", verified = 2026-11-04 },
+]
 cf_standard_names = [{ name = "sea_ice_area_fraction", relation = "exact", verified = 2026-11-04 }]
 
 # --- Constants --------------------------------------------------------

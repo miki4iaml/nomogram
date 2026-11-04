@@ -181,3 +181,29 @@ def test_the_surface_layer_is_found_by_search() -> None:
     term = CATALOG.search("drag coefficient").refs
     assert "trade_terms.drag_coefficient" in term
     assert CATALOG.families["boundary-layer"].requires == ("atmosphere",)
+
+
+def test_the_surface_layer_is_linked_to_wikidata() -> None:
+    from nomogram.semantics import MatchRelation
+
+    entity = "http://www.wikidata.org/entity/"
+
+    def wikidata(entry: object) -> tuple[str, MatchRelation]:
+        matches = entry.matches  # type: ignore[attr-defined]
+        (link,) = [m for m in matches if m.target.startswith(entity)]
+        return link.target.removeprefix(entity), link.relation
+
+    # The Monin-Obukhov length of Wikidata is the atmosphere's: narrower than
+    # the kind, which is any fluid's.
+    assert wikidata(CATALOG.kinds["ObukhovLength"]) == (
+        "Q3110303",
+        MatchRelation.NARROW,
+    )
+    assert wikidata(CATALOG.kinds["FrictionVelocity"]) == (
+        "Q1695787",
+        MatchRelation.EXACT,
+    )
+    assert wikidata(CATALOG.references["hogstrom1988"]) == (
+        "Q60638164",
+        MatchRelation.EXACT,
+    )
