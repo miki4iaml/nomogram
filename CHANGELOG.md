@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- Catalog family `boundary-layer`: the surface layer of the ECMWF IFS
+  (CY49R1 and CY50R1, Part IV, section 3.2), after Monin-Obukhov
+  similarity: the Obukhov length from the surface-layer scales, the
+  gradient functions (Dyer and Hicks, Hogstrom) and profile functions
+  (Paulson; Holtslag and De Bruin) of stability, joined by branches at
+  neutral, the explicit bulk Richardson numbers, the roughness lengths
+  over sea (smooth surface and Charnock) and over sea ice, the transfer
+  coefficients for momentum and heat, which call the profile functions at
+  two heights, and the friction velocity. Quantity kinds for the Obukhov
+  length, the friction velocity, the roughness lengths, the stability
+  parameter, the gradient and profile functions, the bulk Richardson
+  number, the surface drag coefficients and the sea ice area fraction,
+  with their CF standard names; the trade term "drag coefficient". The
+  sources the IFS cites are recorded as to-confirm.
+- The arctangent of one argument, `atan`, in the expressions of the
+  catalog, written `\arctan`; `atan2` is not allowed.
 - `docs/security-and-compliance.md`: an assessment file for those who
   approve the use of nomogram on a laboratory network, offline in
   particular: run-time behaviour, the checks of development and
@@ -129,6 +145,9 @@ and this project adheres to
 
 ### Changed
 
+- The Wikidata item "density of air" (Q1511415), the density of the
+  atmosphere moist or dry, is a broad match of `DensityOfMoistAir`, no
+  longer a close one, and of `DensityOfDryAir`.
 - `nomogram.comparison.compose` lets a temperature feed one in the other
   unit (kelvins and degrees Celsius, as `compare` does) and a dew or frost
   point feed the temperature of the formula evaluated at it, as calls in

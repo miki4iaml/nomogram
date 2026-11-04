@@ -20,7 +20,7 @@ brings a constraint:
 - the terms of a sum, and the sum, share one dimension;
 - a product multiplies units; a power with a numerical exponent raises
   the unit to it;
-- the argument of a function (exp, ln, log10, sin, cos), and the base
+- the argument of a function (exp, ln, log10, sin, cos, atan), and the base
   and exponent of a power with a symbolic exponent, are pure numbers;
 - an angle in the argument of sin or cos is in radians: in degrees, its
   value would be read as radians;

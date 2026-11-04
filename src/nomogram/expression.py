@@ -62,6 +62,9 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = MappingProxyType(
         # the catalog refuses an angle in degrees in their argument.
         "sin": sympy.sin,
         "cos": sympy.cos,
+        # The arctangent of one argument, in radians (the profile functions
+        # of Paulson, 1970); atan2, of two, is not allowed.
+        "atan": sympy.atan,
     }
 )
 
@@ -165,6 +168,10 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\log",
         r"\sin",
         r"\cos",
+        # The arctangent, as SymPy writes it with inv_trig_style="full" (in
+        # the lists of MathJax, base package, KaTeX and mathtext on
+        # 2026-11-04).
+        r"\arctan",
         r"\frac",
         r"\sqrt",
         r"\left",
@@ -747,6 +754,7 @@ def to_latex(
         {
             "symbol_names": names,
             "ln_notation": True,
+            "inv_trig_style": "full",
             "mul_symbol": mul_symbol,
             "decimal_separator": decimal_separator,
         }
