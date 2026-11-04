@@ -72,7 +72,7 @@ def main(output: str) -> None:
     decoded = compare(
         [back, *(along(k, label, dew_point) for k, label in decoders.items())],
         back,
-        {**grid, "RelativeHumidity": Q_(0.2, "")},
+        {**grid, "RelativeHumidity": Q_(0.5, "")},
     )
     # Over ice below the triple point, or in mixed phase: sibling kinds of the
     # saturation over water, compared only when asked.
@@ -106,7 +106,7 @@ def main(output: str) -> None:
 
     # Formatting only: the titles, the size and the signature.
     left.set_title("Saturation vapour pressure over water")
-    middle.set_title(r"False round trip $g \circ f^{-1}$, RH 20 %")
+    middle.set_title(r"False round trip $g \circ f^{-1}$, RH 50 %")
     right.set_title("Over ice or in mixed phase")
     for axes in (middle, right):
         axes.set_ylabel("")

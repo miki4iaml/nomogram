@@ -90,8 +90,8 @@ and this project adheres to
   dew point in BUFR messages; the formulations a user may take against
   Hyland and Wexler (1983), which WMO names for radiosondes, along the
   reference atmosphere, the false round trip through the dew point,
-  which widens the gap aloft (-13.9 % on the vapour pressure with Tetens
-  at 11 km for a relative humidity of 20 %, -1.3 %RH on the relative
+  which widens the gap aloft (-10.3 % on the vapour pressure with Tetens
+  at 11 km for a relative humidity of 50 %, -1.3 %RH on the relative
   humidity recomputed from it), the saturation over ice or in mixed phase
   against that over water, which the relative humidity of a radiosonde,
   of MetPy or of the IFS takes below 0 °C (-42.7 % at 11 km), and WMO's

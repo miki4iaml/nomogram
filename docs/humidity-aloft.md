@@ -101,7 +101,7 @@ formulation a user may take, against Hyland and Wexler (1983), which WMO
 names for radiosondes. In the middle, the false round trip: the producer
 codes a dew point with the inverse of its formulation, as BUFR messages
 require, and the user takes the vapour pressure back with another
-formulation, at a relative humidity of 20 %. On the right, the
+formulation, at a relative humidity of 50 %. On the right, the
 saturation over ice, or in mixed phase, against the same reference (see
 [Over water or over ice](#over-water-or-over-ice)).
 
@@ -157,7 +157,7 @@ back = along(wmo, "Hyland and Wexler (1983), strict round trip", dew_point)
 decoded = compare(
     [back, *(along(k, label, dew_point) for k, label in decoders.items())],
     back,
-    {**grid, "RelativeHumidity": Q_(0.2, "")},
+    {**grid, "RelativeHumidity": Q_(0.5, "")},
 )
 phases = {
     "iapws_r14_08_sublimation": "IAPWS R14-08, over ice",
@@ -225,33 +225,35 @@ a vapour pressure or a relative humidity, a user needs that formulation
 and its inverse (section 10.1.4); the round trip follows that chain.
 
 The round trip (middle panel) starts from what the radiosonde measures at
-11 km: a temperature T of -56.5 °C and a relative humidity of 20 %. The
-producer computes the vapour pressure with its formulation f, here
-Hyland and Wexler's, e = 0.20 f(T) = 0.601 Pa, and codes the dew point
-with its inverse, which nomogram solves numerically: Td = f⁻¹(e) =
--69.0 °C. The user takes back the vapour pressure with a formulation g,
-e′ = g(Td), and the relative humidity, g(Td)/g(T), as WMO's guide writes
-it from the dew point (WMO-No. 8, 4.B.11). With g = f, the round trip is
-strict, f ∘ f⁻¹, and gives back the start; with another g, it is false,
-g ∘ f⁻¹:
+11 km: a temperature T of -56.5 °C and a relative humidity of 50 %,
+within the range the intercomparison observed below the tropopause,
+from about 5 to 100 %RH (IOM No. 143, Figure 9.2). The producer computes
+the vapour pressure with its formulation f, here Hyland and Wexler's,
+e = 0.50 f(T) = 1.503 Pa, and codes the dew point with its inverse,
+which nomogram solves numerically: Td = f⁻¹(e) = -62.1 °C. The user
+takes back the vapour pressure with a formulation g, e′ = g(Td), and the
+relative humidity, g(Td)/g(T), as WMO's guide writes it from the dew
+point (WMO-No. 8, 4.B.11). With g = f, the round trip is strict,
+f ∘ f⁻¹, and gives back the start; with another g, it is false, g ∘ f⁻¹:
 
 | Formulation g of the user | Vapour pressure e′ = g(Td) | Deviation from e | Relative humidity g(Td)/g(T) | Deviation |
 |---|---|---|---|---|
-| Hyland and Wexler (1983), strict round trip f ∘ f⁻¹ | 0.601 Pa | 0.00 % | 20.00 % | 0.00 %RH |
-| Hardy (1998), RS41 | 0.600 Pa | -0.29 % | 19.98 % | -0.02 %RH |
-| MetPy 1.7.1 | 0.593 Pa | -1.42 % | 19.87 % | -0.13 %RH |
-| Bolton (1980), MetPy's dew point | 0.568 Pa | -5.61 % | 19.36 % | -0.64 %RH |
-| Tetens (1930) | 0.518 Pa | -13.88 % | 18.70 % | -1.30 %RH |
+| Hyland and Wexler (1983), strict round trip f ∘ f⁻¹ | 1.503 Pa | 0.00 % | 50.00 % | 0.00 %RH |
+| Hardy (1998), RS41 | 1.500 Pa | -0.22 % | 49.98 % | -0.02 %RH |
+| MetPy 1.7.1 | 1.488 Pa | -1.04 % | 49.88 % | -0.12 %RH |
+| Bolton (1980), MetPy's dew point | 1.448 Pa | -3.66 % | 49.40 % | -0.60 %RH |
+| Tetens (1930) | 1.349 Pa | -10.26 % | 48.72 % | -1.28 %RH |
 | Sonntag (1990), WMO's Magnus form | outside its range, below -45 °C | | | |
 
 A user who needs a vapour pressure, an absolute humidity or a mixing
-ratio takes e′: the round trip widens the gap of the saturation 1.6 to
-2.2 times, since it evaluates the two formulations at the dew point,
-colder than the air. A user who needs the relative humidity divides by
-g(T): the two gaps partly cancel, and -1.3 %RH remains with Tetens' form,
-about the same at a relative humidity of 60 % (-1.1 %RH). The relative
-humidity of 20 % lies within the range the intercomparison observed below
-the tropopause, from about 5 to 100 %RH (IOM No. 143, Figure 9.2).
+ratio takes e′: the round trip widens the gap of the saturation 1.2 to
+1.5 times, since it evaluates the two formulations at the dew point,
+colder than the air, and more in drier air: with Tetens' form, -13.9 % at
+a relative humidity of 20 %, -20.4 % at 5 %. A user who needs the
+relative humidity divides by g(T): the two gaps partly cancel, and
+-1.3 %RH remains with Tetens' form, between -1.1 and -1.4 %RH from 20 to
+60 %; the gap vanishes at saturation, where the dew point is the
+temperature.
 
 The false round trip can also sit with the producer, when it codes the
 dew point with an inverse that is not that of its own formulation,
