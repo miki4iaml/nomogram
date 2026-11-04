@@ -28,6 +28,8 @@ can also be proposed through an issue (see the
   when the detail was **read in the source itself**; anything else is
   `to-confirm`, with a note saying what remains to check. A formula
   quoted by a review is entered as quoted, and the review is cited too.
+  The document that gives a formula keeps its own rights: see
+  [Rights of sources](../.github/CONTRIBUTING.md#rights-of-sources).
 - **Disagreements are recorded, not smoothed over.** When secondary
   sources differ (a constant, a year, an attribution), say so in the
   note.

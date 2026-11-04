@@ -198,6 +198,13 @@ and this project adheres to
 
 ### Changed
 
+- `docs/security-and-compliance.md` as of 4 November 2026: the data
+  nomogram reads, plain TOML and JSON read by the standard library, and
+  the only file it writes; two-factor authentication; the alerts raised
+  and handled; randomized tests of the expression parser, now in the
+  tests (`tests/test_expression_fuzz.py`). The rules on the rights of
+  sources are written in CONTRIBUTING (checklist item 13, done), and
+  bringing this page up to date is a step of releasing.
 - The bundled QUDT subset is extracted from release 3.5.3 (20 October
   2026), the latest, rather than 3.5.2: the kinds, units and CF links
   nomogram bundles are unchanged, and no new QUDT kind replaces a local
