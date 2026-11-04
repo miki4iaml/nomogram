@@ -40,6 +40,14 @@ and this project adheres to
   formulations over water and ice cite Buck (1981) and the AERKi formula
   of Alduchov and Eskridge (1996), which the IFS names.
 - The hyperbolic tangent, `tanh`, in the expressions of the catalog.
+- The rules of WMO behind the dew point of a radiosonde: the Manual on
+  Codes (WMO-No. 306, Volume I.2, 2025), whose Regulation B/C25.7.2.7.1
+  derives it from the function of the Technical Regulations or a near
+  equivalent, and the Technical Regulations (WMO-No. 49, Volume I), which
+  refer formulas to the guides. The formulations WMO-No. 8 (12.4.1) names
+  for radiosondes say so in their notes, found by `search("12.4.1")`;
+  Hyland and Wexler (1983) takes the range of its title, 173.15 to
+  473.15 K.
 - The lifting condensation level of the ECMWF IFS (6.74): its temperature
   by the empirical formula of Davies-Jones (1983), and its pressure from
   the potential temperature of the departure level, whose reference
@@ -78,7 +86,8 @@ and this project adheres to
   downwards on a logarithmic axis, with reference levels as vertical
   lines (`references`) and off-scale curves as in `plot_deviations`.
 - `docs/humidity-aloft.md`: why the lineage of data should cite the
-  formulations that made them; the formulations a user may take against
+  formulations that made them; the formulas of WMO and its rule for the
+  dew point in BUFR messages; the formulations a user may take against
   Hyland and Wexler (1983), which WMO names for radiosondes, along the
   reference atmosphere, the false round trip through the dew point,
   which widens the gap aloft (-13.9 % on the vapour pressure with Tetens

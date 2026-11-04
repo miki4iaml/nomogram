@@ -251,6 +251,22 @@ container = "WMO, Instruments and Observing Methods Report No. 143, Geneva"
 status = "verified"
 note = "Read: Table 3.3 (p. 17), the vapour pressure equation each radiosonde of the campaign uses, as its manufacturer states it: Hyland and Wexler (1983) for CF-06-AH, DFM-17 and iMS-100; Goff and Gratch (1946) for GTH3; Wexler (1977) modified by Hardy (1998) for ITS-90 for iMet-54 and Vaisala's RS41; Sonntag (1990) for M20; Bolton (1980) for PS-B3; Buck (1981) for WxR-301D. It names the formulas and does not print them. Section 10.1.4 (pp. 138-139): relative humidity and dew point disagree between the BUFR and the manufacturers' files, negligibly near the surface, by more than 10 % in the upper troposphere, beyond typical measurement uncertainties, possibly through the inverse of the vapour pressure equation, BUFR coding the dew point. Appendix D: the vapour pressure formula (General.WVFormula) is a mandatory metadata of the campaign files. Table 9.2 (p. 119): the OSCAR uncertainty requirements, in %RH for the relative humidity."
 
+[references.wmo306_vol1_2_2025]
+authors = "World Meteorological Organization"
+year = 2025
+title = "Manual on Codes (WMO-No. 306), Volume I.2: International Codes"
+url = "https://library.wmo.int/records/item/35625-manual-on-codes-volume-i-2-international-codes"
+status = "verified"
+note = "2025 edition read: Regulation B/C25.7.2.7.1 (p. I.2-RegTradObs/BC25-10), for TEMP, TEMP SHIP and TEMP MOBIL data in BUFR or CREX (common sequence 3 09 052): dewpoint temperature data 'shall be derived using the function (or a near equivalent) for a relationship between saturation vapour pressure over water and air temperature (specified in the Technical Regulations (WMO-No. 49))', and not reported when the air temperature is outside the range stated by WMO for the application of the function; the same in B/C26 (TEMP DROP), after Regulation 35.3.1.1 of the alphanumeric TEMP code. Code table 0 02 017 lists the correction algorithms of humidity measurements (time lag, solar radiation), not the vapour pressure formulation; no element of the message naming it was found."
+
+[references.wmo49_vol1_2025]
+authors = "World Meteorological Organization"
+year = 2025
+title = "Technical Regulations (WMO-No. 49), Volume I: General Meteorological Standards and Recommended Practices"
+url = "https://library.wmo.int/records/item/35722-technical-regulations-volume-i-general-meteorological-standards-and-recommended-practices"
+status = "verified"
+note = "2025 edition, and 2019 edition updated in 2021, read: neither holds a saturation vapour pressure function, and Appendix A is the Basic Instruction Packages. Their general provisions (5): 'Members should use the definitions, formulas, values of constants and specifications indicated in the relevant Guides published by the Organization', which leads to WMO-No. 8 (wmo2024). Vömel attributes the Goff (1957) form (goff1957) to Appendix A of the 2011 edition, updated in 2012, not read."
+
 # --- Formulations -----------------------------------------------------
 
 [formulations.sonntag1990_magnus]
@@ -335,7 +351,7 @@ notation = { e_s = 'P_{\mathrm{ws}}', p_c = 'P_c', a1 = 'C_1', a2 = 'C_2', a3 = 
 label = "Sonntag (1990) formulation over water (SO90)"
 expression = "exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
 fixed_units = true
-note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Vömel gives the same coefficients under Sonntag (1994): the year differs between secondary sources. Range not read in the original. The formulation of the M20 radiosonde (UAII 2022, Table 3.3)."
+note = "As quoted by Alduchov and Eskridge (1996, equation 7); T on ITS-90. Vömel gives the same coefficients under Sonntag (1994): the year differs between secondary sources. Range not read in the original. The formulation of the M20 radiosonde (UAII 2022, Table 3.3); WMO-No. 8 (2024, 12.4.1) names Sonntag (1994) for radiosondes at the lowest temperatures."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },
@@ -443,7 +459,7 @@ reference = "alduchov_eskridge1996"
 label = "Hyland and Wexler (1983) formulation over water"
 expression = "exp(C8 / T + C9 + C10 * T + C11 * T ** 2 + C12 * T ** 3 + C13 * ln(T))"
 fixed_units = true
-note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE. The formulation of the CF-06-AH, DFM-17 and iMS-100 radiosondes (UAII 2022, Table 3.3)."
+note = "ASHRAE Handbook - Fundamentals (2017), chapter 1, equation 6, through PsychroLib; same coefficients in Vömel. Range not read in the original. Temperature scale ITS-90, inferred from numbers: published in 1983 (IPTS-68 era), but these coefficients agree with IAPWS (ITS-90) within 0.022 % from 0 to 100 degC without conversion and drift to 0.09 % with the IPTS-68 conversion, which suggests ASHRAE moved them to ITS-90; to confirm in ASHRAE. The formulation of the CF-06-AH, DFM-17 and iMS-100 radiosondes (UAII 2022, Table 3.3), and one of those WMO-No. 8 (2024, 12.4.1) names for radiosondes at the lowest temperatures."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
@@ -453,6 +469,10 @@ keywords = ["saturation", "radiosonde"]
 
 [[formulations.hyland_wexler1983.citations]]
 reference = "hyland_wexler1983"
+
+[[formulations.hyland_wexler1983.citations.domains]]
+bounds = { T = [173.15, 473.15] }
+criterion = "The range of the title, as WMO-No. 8 (2024) lists the paper among its references; the original not read."
 
 [[formulations.hyland_wexler1983.citations]]
 reference = "ashrae2017"
@@ -1021,7 +1041,7 @@ criterion = "The range stated by the source, -100 to 0.01 degC."
 label = "Hardy (1998) formulation over water, Wexler's refitted to ITS-90"
 expression = "exp(g0 / T ** 2 + g1 / T + g2 + g3 * T + g4 * T ** 2 + g5 * T ** 3 + g6 * T ** 4 + g7 * ln(T))"
 fixed_units = true
-note = "Wexler's equation 15 with ITS-90 coefficients: within 0.05 ppm of Wexler's formulation, its temperature brought to IPTS-68, from -100 to 100 degC, Wexler's range of 0 to 100 degC being extrapolated below 0 degC; 611.657 Pa at the triple point. The formulation of Vaisala's RS41 and of the iMet-54 radiosondes (UAII 2022, Table 3.3)."
+note = "Wexler's equation 15 with ITS-90 coefficients: within 0.05 ppm of Wexler's formulation, its temperature brought to IPTS-68, from -100 to 100 degC, Wexler's range of 0 to 100 degC being extrapolated below 0 degC; 611.657 Pa at the triple point. The formulation of Vaisala's RS41 and of the iMet-54 radiosondes (UAII 2022, Table 3.3); WMO-No. 8 (2024, 12.4.1) names Wexler (1976, 1977) for radiosondes at the lowest temperatures."
 output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over water" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature (ITS-90)" },

@@ -58,12 +58,11 @@ def main(output: str) -> None:
     )
     # The false round trip: the producer codes a dew point with the inverse of
     # its formulation, the user takes the vapour pressure back with another.
-    inverse = invert(  # the dew point, solved numerically in the interval searched
+    inverse = invert(  # the dew point, solved numerically over the stated range
         f[wmo],
         "T",
         output=Variable("T_d", "DewPointTemperature", "K", "Dew point temperature"),
         input=Variable("e", "VapourPressure", "PA", "Vapour pressure"),
-        search=(173.15, 373.15),
     )
     vapour = compose(f["vapour_pressure_from_relative_humidity"], {"e_s": reference})
     dew_point = compose(inverse, {"e": vapour})

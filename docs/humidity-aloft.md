@@ -26,6 +26,31 @@ computes, with nomogram, the gaps these formulations produce along a
 vertical profile, through the dew point, over water or over ice, and
 sets them against WMO's requirements.
 
+## The formulas of WMO
+
+WMO gives its formulations in its guide (WMO-No. 8, 2024, Volume I). Its
+Technical Regulations refer to the guides for formulas (WMO-No. 49,
+Volume I, general provisions, 5), and so does, through them, the rule of
+the dew point in BUFR messages (below). Annex 4.B of the guide gives
+Magnus forms, convenient but not suitable below -45 °C over water. For
+radiosondes, at the lowest temperatures, the guide asks manufacturers to
+use Wexler (1976, 1977), Hyland and Wexler (1983) or Sonntag (1994), and
+not the Goff-Gratch equation recommended in earlier WMO publications
+(12.4.1):
+
+| In WMO-No. 8 | Formulation | Range stated | In the catalog |
+|---|---|---|---|
+| Annex 4.B | Magnus form, coefficients of Sonntag (1990), over water | -45 to 60 °C | `sonntag1990_magnus` |
+| Annex 4.B | Magnus form over ice | -65 to 0 °C | `wmo2008_ice` |
+| 12.4.1, radiosondes | Wexler (1976, 1977) | 0 to 100 °C over water, in the title of 1976; Hardy (1998) refits it to ITS-90 from -100 to 100 °C | `hardy1998_water` |
+| 12.4.1, radiosondes | Hyland and Wexler (1983) | 173.15 to 473.15 K, in the title | `hyland_wexler1983` |
+| 12.4.1, radiosondes | Sonntag (1994) | not read | `sonntag1990`, the same coefficients after Vömel |
+| 12.4.1, set aside | Goff and Gratch (1946) | -50 to 102 °C (Gibbins 1990) | `goff_gratch1946` |
+
+Wexler's formulation over water is thus extrapolated below 0 °C, as Hardy
+notes; the ranges of Hyland and Wexler, and of Sonntag, are those of the
+titles or of secondary sources, the originals not read.
+
 ## The formula of each radiosonde
 
 The report names, in its Table 3.3, the vapour pressure equation of
@@ -118,12 +143,11 @@ reference = along(wmo, "Hyland and Wexler (1983)")
 saturation = compare(
     [reference, *(along(k, label) for k, label in users.items())], reference, grid
 )
-inverse = invert(  # the dew point, solved numerically in the interval searched
+inverse = invert(  # the dew point, solved numerically over the stated range
     f[wmo],
     "T",
     output=Variable("T_d", "DewPointTemperature", "K", "Dew point temperature"),
     input=Variable("e", "VapourPressure", "PA", "Vapour pressure"),
-    search=(173.15, 373.15),
 )
 vapour = compose(f["vapour_pressure_from_relative_humidity"], {"e_s": reference})
 dew_point = compose(inverse, {"e": vapour})
@@ -170,16 +194,12 @@ Each curve stops where its source stops answering: the Magnus form of
 WMO at -45 °C, Goff and Gratch at -50 °C; the saturation over ice of
 IAPWS starts at the triple point, near 2.3 km.
 
-The reference is Hyland and Wexler (1983) because WMO names it: at the
-lowest temperatures, its guide asks radiosonde manufacturers to use
-Wexler (1976, 1977), Hyland and Wexler (1983) or Sonntag (1994), and not
-Goff and Gratch (WMO-No. 8, 2024, 12.4.1); the Magnus form it gives
-elsewhere is not suitable below -45 °C (Annex 4.B). A user may assume
-that a producer follows WMO: the RS41 does, with Hardy (1998), Wexler's
+We choose Hyland and Wexler (1983) as the reference, one of the
+formulations WMO recommends for radiosondes (see
+[The formulas of WMO](#the-formulas-of-wmo)). A user may assume that a
+producer follows WMO: the RS41 does, with Hardy (1998), Wexler's
 formulation refitted to ITS-90 (IOM No. 143, Table 3.3), 0.18 % from the
-reference at 11 km. BUFR messages carry the dew point, not the relative
-humidity (section 10.1.4), and do not name a formulation: the producer
-codes the dew point with its own.
+reference at 11 km.
 
 At 11 km, where the temperature reaches -56.5 °C, the saturation vapour
 pressure of each formulation (left panel):
@@ -193,6 +213,16 @@ pressure of each formulation (left panel):
 | Tetens (1930) | 2.769 Pa | -7.90 % |
 | Buck (1996), ITU-R P.453 | 2.968 Pa | -1.27 % |
 | Murphy and Koop (2005) | 2.900 Pa | -3.52 % |
+
+BUFR messages carry the dew point, not the relative humidity: WMO
+imposes it (IOM No. 143, section 10.1.4). Its rule names the formulation
+only by reference: the dew point "shall be derived using the function
+(or a near equivalent)" of the Technical Regulations (WMO-No. 306,
+Volume I.2, 2025, B/C25.7.2.7.1), which refer to the guide. But the
+message does not say which formulation computed it: in practice, each
+manufacturer codes it with its own (IOM No. 143, Table 3.3). To take back
+a vapour pressure or a relative humidity, a user needs that formulation
+and its inverse (section 10.1.4); the round trip follows that chain.
 
 The round trip (middle panel) starts from what the radiosonde measures at
 11 km: a temperature T of -56.5 °C and a relative humidity of 20 %. The
@@ -285,6 +315,8 @@ The gap is a bias, not a noise: it does not average out.
 
 `search(keyword="radiosonde")` finds the formulations a radiosonde uses,
 `search(keyword="mixed phase")` those that join water and ice,
+`search("12.4.1")` those WMO names for radiosondes, `search("BUFR")`
+the rule of the Manual on Codes for the dew point,
 `search("RS41")` the intercomparison report, and
 `used_by("references.vaisala2013")` what Vaisala's formulas give,
 including its citation of Wagner and Pruss.
