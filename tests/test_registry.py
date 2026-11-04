@@ -35,7 +35,11 @@ def test_bundled_registry_matches_a_fresh_verification() -> None:
             fresh.method,
             fresh.detail,
         ), relation.key
-        assert recorded.value == pytest.approx(fresh.value, rel=1e-9), relation.key
+        # A proof has no value; pytest.approx refuses None from pytest 9.2.
+        if fresh.value is None:
+            assert recorded.value is None, relation.key
+        else:
+            assert recorded.value == pytest.approx(fresh.value, rel=1e-9), relation.key
         # The place of a maximum on a plateau inside the domain moves by
         # about 1e-7 of the domain from one processor to another, with the
         # rounding of numpy's vectorised functions; its value does not.
