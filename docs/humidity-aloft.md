@@ -51,17 +51,18 @@ Hardy (1998), whose formulation over water covers -100 to 100 °C.
 
 ## Two definitions of the relative humidity
 
-Vaisala relates the relative humidity to the saturation vapour pressure
-of pure water, below 0 °C to that of supercooled water. WMO relates it to
-the saturation of moist air, larger by the enhancement factor, about
-0.5 % near 1000 hPa, and so does ITU-R P.453 (`itu_r_p453_es_water`, Buck
-1996 times the enhancement factor). The catalog keeps the two apart, as
+WMO relates the relative humidity to the saturation of moist air, larger
+than that of pure water by the enhancement factor, about 0.5 % near
+1000 hPa, and so does ITU-R P.453 (`itu_r_p453_es_water`, Buck 1996 times
+the enhancement factor). Vaisala relates it to the saturation vapour
+pressure of pure water, below 0 °C to that of supercooled water. The
+catalog keeps the two apart, as
 `SaturationVapourPressureOverWater` and
 `SaturationVapourPressureOverWaterInMoistAir`: `compare` puts them in one
 table only when asked for a kind they share, `kind="VapourPressure"`. The
 difference does not show in the formulas; recomputing an
-absolute humidity with P.453 from a relative humidity of Vaisala
-overestimates it by 0.2 to 0.4 % between the ground and 5 km.
+absolute humidity with P.453 from a relative humidity of Vaisala gives
+it 0.2 to 0.4 % larger between the ground and 5 km.
 
 ## Along a vertical profile
 
