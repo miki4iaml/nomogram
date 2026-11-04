@@ -220,8 +220,11 @@ A violation fails the CI; a warning is counted in the report.
 - nomogram does not read QUDT online: it works offline. A development
   script, `scripts/extract_semantics.py`, reads a frozen release of QUDT
   (3.5.2) and of the CF table (95), and writes
-  `src/nomogram/data/semantics.json`: 42 kinds, 46 units and 38 CF
-  standard names, what the catalog needs and nothing more.
+  `src/nomogram/data/semantics.json`: the kinds, units and CF standard
+  names the catalog needs, and nothing more.
+- Each minor version of nomogram re-extracts it from the latest official
+  releases of QUDT and CF; a kind or a unit that QUDT comes to define,
+  often after a contribution of nomogram, then replaces the local one.
 - What nomogram adds to the sources (scale typing, added units, pint
   expressions) is declared in that script, never hidden in the data.
 - A kind of nomogram's own must specialize a QUDT kind: the loader
