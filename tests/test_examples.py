@@ -243,7 +243,6 @@ def test_humidity_aloft_example_writes_its_plot(tmp_path: Path) -> None:
 
 def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     import matplotlib.pyplot as plt
-    import numpy as np
 
     namespace: dict[str, Any] = {}
     for block in python_blocks(ALOFT_GUIDE):
@@ -251,11 +250,16 @@ def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     plt.close("all")
     at_11_km = 110  # 0 to 12 km by steps of 0.1 km
 
-    def percent(table: object) -> dict[str, float]:
-        deviations = table.relative_deviations  # type: ignore[attr-defined]
+    def at_11(mapping: Any) -> dict[str, Any]:
+        return {key.split("[")[0]: value[at_11_km] for key, value in mapping.items()}
+
+    def percent(table: Any) -> dict[str, float]:
+        deviations = at_11(table.relative_deviations)
+        return {key: round(100 * float(value), 2) for key, value in deviations.items()}
+
+    def pascals(table: Any) -> dict[str, float]:
         return {
-            key.split("[")[0]: round(100 * float(np.asarray(value)[at_11_km]), 2)
-            for key, value in deviations.items()
+            key: value.to("Pa").magnitude for key, value in at_11(table.values).items()
         }
 
     saturation = percent(namespace["saturation"])
@@ -269,20 +273,53 @@ def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     assert all(
         math.isnan(saturation[key]) for key in ("sonntag1990_magnus", "goff_gratch1946")
     )
+    saturated = {
+        key: round(value, 3) for key, value in pascals(namespace["saturation"]).items()
+    }
+    assert saturated["hardy1998_water"] == 3.001
+    assert saturated["metpy171_saturation_vapour_pressure"] == 2.982
+    assert saturated["bolton1980"] == 2.931
+    assert saturated["tetens1930"] == 2.769
+    assert saturated["buck1996"] == 2.968
+    assert saturated["hyland_wexler1983"] == 3.006
+    assert saturated["murphy_koop2005_water"] == 2.900
+
+    # The round trip: e = 0.20 f(T), Td = f^-1(e), then g(Td) and g(Td)/g(T).
+    start = 0.2 * pascals(namespace["saturation"])["hardy1998_water"]
+    back = pascals(namespace["decoded"])
+    assert abs(back["hardy1998_water"] / start - 1) < 1e-5  # the strict round trip
+    taken = {key: round(value, 3) for key, value in back.items()}
+    assert taken["hardy1998_water"] == 0.600
+    assert taken["metpy171_saturation_vapour_pressure"] == 0.593
+    assert taken["bolton1980"] == 0.568
+    assert taken["tetens1930"] == 0.518
+    assert math.isnan(taken["sonntag1990_magnus"])
     decoded = percent(namespace["decoded"])
     assert decoded["metpy171_saturation_vapour_pressure"] == -1.14
     assert decoded["bolton1980"] == -5.33
     assert decoded["tetens1930"] == -13.63
-    # In %RH, the gap of the round trip widens with the humidity.
-    tetens = namespace["along"]("tetens1930", "Tetens (1930)", namespace["dew_point"])
-    back = namespace["back"]
-    for humidity, points in ((0.2, -2.7), (0.6, -5.6)):
-        inputs = {
-            **namespace["grid"],
-            "RelativeHumidity": namespace["Q_"](humidity, ""),
+
+    def humidity_back(table: Any, humidity: float) -> dict[str, float]:
+        """g(Td)/g(T) in %, from the deviations of g(Td) and of g(T)."""
+        at_dew_point = at_11(table.relative_deviations)
+        at_air = at_11(namespace["saturation"].relative_deviations)
+        return {
+            key: round(100 * humidity * (1 + at_dew_point[key]) / (1 + at_air[key]), 2)
+            for key in at_dew_point
+            if key in at_air
         }
-        gaps = percent(namespace["compare"]([back, tetens], back, inputs))
-        assert round(humidity * gaps["tetens1930"], 1) == points
+
+    humidities = humidity_back(namespace["decoded"], 0.2)
+    assert humidities["hardy1998_water"] == 20.00
+    assert humidities["metpy171_saturation_vapour_pressure"] == 19.90
+    assert humidities["bolton1980"] == 19.38
+    assert humidities["tetens1930"] == 18.72
+    # About the same gap in %RH at a relative humidity of 60 %.
+    tetens = namespace["along"]("tetens1930", "Tetens (1930)", namespace["dew_point"])
+    reference = namespace["back"]
+    inputs = {**namespace["grid"], "RelativeHumidity": namespace["Q_"](0.6, "")}
+    moist = namespace["compare"]([reference, tetens], reference, inputs)
+    assert round(humidity_back(moist, 0.6)["tetens1930"] - 60, 1) == -1.1
     junctions = percent(namespace["junctions"])
     assert junctions["iapws_r14_08_sublimation"] == -42.58
     assert junctions["metpy171_saturation_vapour_pressure_auto"] == -43.02

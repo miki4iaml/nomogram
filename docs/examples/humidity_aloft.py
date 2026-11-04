@@ -60,7 +60,7 @@ def main(output: str) -> None:
     dew_point = compose(f["hardy1998_dew_point"], {"e": vapour})
     names = ("metpy171_saturation_vapour_pressure", "bolton1980", "tetens1930")
     decoders = {k: users[k] for k in (*names, "sonntag1990_magnus")}
-    back = along(producer, "Hardy (1998), RS41", dew_point)
+    back = along(producer, "Hardy (1998), strict round trip", dew_point)
     decoded = compare(
         [back, *(along(k, label, dew_point) for k, label in decoders.items())],
         back,
@@ -98,7 +98,7 @@ def main(output: str) -> None:
 
     # Formatting only: the titles, the size and the signature.
     left.set_title("Saturation vapour pressure over water")
-    middle.set_title("Vapour pressure back from the dew point, RH 20 %")
+    middle.set_title(r"False round trip $g \circ f^{-1}$, RH 20 %")
     right.set_title("Over ice or in mixed phase")
     for axes in (middle, right):
         axes.set_ylabel("")

@@ -119,7 +119,7 @@ vapour = compose(f["vapour_pressure_from_relative_humidity"], {"e_s": reference}
 dew_point = compose(f["hardy1998_dew_point"], {"e": vapour})
 names = ("metpy171_saturation_vapour_pressure", "bolton1980", "tetens1930")
 decoders = {k: users[k] for k in (*names, "sonntag1990_magnus")}
-back = along(producer, "Hardy (1998), RS41", dew_point)
+back = along(producer, "Hardy (1998), strict round trip", dew_point)
 decoded = compare(
     [back, *(along(k, label, dew_point) for k, label in decoders.items())],
     back,
@@ -158,31 +158,65 @@ nomo.plot.plot_deviation_profile(
 
 Each curve stops where its source stops answering: the Magnus form of
 WMO at -45 °C, Goff and Gratch at -50 °C; the saturation over ice of
-IAPWS starts at the triple point, near 2.3 km. At 11 km, where the temperature reaches -56.5 °C:
+IAPWS starts at the triple point, near 2.3 km.
 
-| Formulation | Saturation vapour pressure | Vapour pressure back from the dew point, RH 20 % |
+The reference is Hardy (1998) because it is the formulation of the
+producer, that of the RS41 (IOM No. 143, Table 3.3), not one of WMO: the
+Magnus form WMO gives is that of Sonntag (1990). BUFR messages carry the
+dew point, not the relative humidity (section 10.1.4), and do not name a
+formulation: the producer codes the dew point with its own. The values
+below hold for an RS41; for another radiosonde, the reference changes,
+Sonntag (1990) for the M20 or Bolton (1980) for the PS-B3.
+
+At 11 km, where the temperature reaches -56.5 °C, the saturation vapour
+pressure of each formulation (left panel):
+
+| Formulation | Saturation vapour pressure | Deviation from Hardy (1998) |
 |---|---|---|
-| MetPy 1.7.1 | -0.62 % | -1.14 % |
-| Bolton (1980), MetPy's dew point | -2.32 % | -5.33 % |
-| Tetens (1930) | -7.73 % | -13.63 % |
-| Buck (1996), ITU-R P.453 | -1.09 % | |
-| Hyland and Wexler (1983) | +0.18 % | |
-| Murphy and Koop (2005) | -3.34 % | |
+| Hardy (1998), RS41 | 3.001 Pa | reference |
+| MetPy 1.7.1 | 2.982 Pa | -0.62 % |
+| Bolton (1980), MetPy's dew point | 2.931 Pa | -2.32 % |
+| Tetens (1930) | 2.769 Pa | -7.73 % |
+| Buck (1996), ITU-R P.453 | 2.968 Pa | -1.09 % |
+| Hyland and Wexler (1983) | 3.006 Pa | +0.18 % |
+| Murphy and Koop (2005) | 2.900 Pa | -3.34 % |
 
-The round trip widens the gap 1.8 to 2.3 times: it evaluates the two
-formulations at the dew point, -68.9 °C there, colder than the air. The intercomparison saw
-the same in practice: between the BUFR messages and the files of the
-manufacturers, relative humidity and dew point disagree negligibly near
-the surface, and by more than 10 % in the upper troposphere, beyond
-typical measurement uncertainties, possibly through the inverse of the
-vapour pressure equation (IOM No. 143, section 10.1.4).
+The round trip (middle panel) starts from what the radiosonde measures at
+11 km: a temperature T of -56.5 °C and a relative humidity of 20 %. The
+producer computes the vapour pressure with its formulation f, Hardy's,
+e = 0.20 f(T) = 0.600 Pa, and codes the dew point with Hardy's inverse,
+Td = f⁻¹(e) = -68.9 °C. The user takes back the vapour pressure with a
+formulation g, e′ = g(Td), and the relative humidity, g(Td)/g(T), as
+WMO's guide writes it from the dew point (WMO-No. 8, 4.B.11). With g = f,
+the round trip is strict, f ∘ f⁻¹, and gives back the start, within
+2·10⁻⁶ with Hardy's inverse; with another g, it is false, g ∘ f⁻¹:
 
-The relative humidity of 20 % lies within the range the intercomparison
-observed below the tropopause, from about 5 to 100 %RH (IOM No. 143,
-Figure 9.2). As the humidity grows, the dew point comes closer to the
-temperature and the relative gap of the round trip narrows, but the gap
-in %RH widens: at 11 km, with Tetens' form, -2.7 %RH at 20 %, -5.6 %RH at
-60 %.
+| Formulation g of the user | Vapour pressure e′ = g(Td) | Deviation from e | Relative humidity g(Td)/g(T) | Deviation |
+|---|---|---|---|---|
+| Hardy (1998), strict round trip f ∘ f⁻¹ | 0.600 Pa | 0.00 % | 20.00 % | 0.00 %RH |
+| MetPy 1.7.1 | 0.593 Pa | -1.14 % | 19.90 % | -0.10 %RH |
+| Bolton (1980), MetPy's dew point | 0.568 Pa | -5.33 % | 19.38 % | -0.62 %RH |
+| Tetens (1930) | 0.518 Pa | -13.63 % | 18.72 % | -1.28 %RH |
+| Sonntag (1990), WMO | outside its range, below -45 °C | | | |
+
+A user who needs a vapour pressure, an absolute humidity or a mixing
+ratio takes e′: the round trip widens the gap of the saturation 1.8 to
+2.3 times, since it evaluates the two formulations at the dew point,
+colder than the air. A user who needs the relative humidity divides by
+g(T): the two gaps partly cancel, and -1.3 %RH remains with Tetens' form,
+about the same at a relative humidity of 60 % (-1.1 %RH). The relative
+humidity of 20 % lies within the range the intercomparison observed below
+the tropopause, from about 5 to 100 %RH (IOM No. 143, Figure 9.2).
+
+The false round trip can also sit with the producer, when it codes the
+dew point with an inverse that is not that of its own formulation,
+f ∘ h⁻¹. The intercomparison saw such a gap between the BUFR messages and
+the files of the same manufacturers: relative humidity and dew point
+disagree negligibly near the surface, and by more than 10 % in the upper
+troposphere, beyond typical measurement uncertainties, possibly through
+the inverse of the vapour pressure equation; the report asks the
+manufacturers concerned to review their calculations (IOM No. 143,
+section 10.1.4).
 
 ## Over water or over ice
 
