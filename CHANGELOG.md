@@ -174,6 +174,9 @@ and this project adheres to
 
 ### Changed
 
+- MetPy's saturation vapour pressure over water takes its reference point
+  from two named constants, as MetPy does (`sat_pressure_0c`, 6.112 hPa,
+  and `T0`, 273.16 K), shared with its form over ice.
 - Quantity kinds are neutral as to the medium, as QUDT's are, unless the
   medium is part of the quantity; a CF name that names a medium is then a
   narrow match: `air_potential_temperature` for `PotentialTemperature`
