@@ -3,7 +3,7 @@
 
 """Saturation vapour pressure formulations along a vertical profile, the
 false round trip through the dew point, and the junctions of water and ice,
-against the producer's formulation.
+against the formulation WMO names for radiosondes.
 
 The lines of ``main`` up to the third ``plot_deviation_profile`` are the
 ones shown in ``docs/humidity-aloft.md`` (a test checks it); the rest only
@@ -23,6 +23,8 @@ import numpy as np
 import nomogram as nomo
 from nomogram.catalog import catalog
 from nomogram.comparison import Composition, Evaluable, compare, compose
+from nomogram.inversion import invert
+from nomogram.model import Variable
 from nomogram.units import Q_
 
 mpl.use("Agg")  # render to a file, without a display
@@ -38,29 +40,36 @@ def main(output: str) -> None:
         point = formulation.inputs[0].identifier
         return compose(formulation, {point: temperature}, label=label)
 
-    producer = "hardy1998_water"  # Wexler refitted to ITS-90, that of the RS41
+    wmo = "hyland_wexler1983"  # named by WMO for radiosondes (WMO-No. 8, 12.4.1)
     users = {
+        "hardy1998_water": "Hardy (1998), RS41",
         "metpy171_saturation_vapour_pressure": "MetPy 1.7.1",
         "bolton1980": "Bolton (1980), MetPy's dew point",
         "tetens1930": "Tetens (1930)",
-        "sonntag1990_magnus": "Sonntag (1990), WMO",
-        "hyland_wexler1983": "Hyland and Wexler (1983)",
+        "sonntag1990_magnus": "Sonntag (1990), WMO's Magnus form",
         "goff_gratch1946": "Goff and Gratch (1946)",
         "buck1996": "Buck (1996), ITU-R P.453",
         "murphy_koop2005_water": "Murphy and Koop (2005)",
     }
     grid = {"GeopotentialHeight": Q_(np.linspace(0, 12, 121), "km")}
-    reference = along(producer, "Hardy (1998), RS41")
+    reference = along(wmo, "Hyland and Wexler (1983)")
     saturation = compare(
         [reference, *(along(k, label) for k, label in users.items())], reference, grid
     )
-    # The false round trip: the producer codes a dew point with its own
-    # inverse, the user takes the vapour pressure back with another formula.
+    # The false round trip: the producer codes a dew point with the inverse of
+    # its formulation, the user takes the vapour pressure back with another.
+    inverse = invert(  # the dew point, solved numerically in the interval searched
+        f[wmo],
+        "T",
+        output=Variable("T_d", "DewPointTemperature", "K", "Dew point temperature"),
+        input=Variable("e", "VapourPressure", "PA", "Vapour pressure"),
+        search=(173.15, 373.15),
+    )
     vapour = compose(f["vapour_pressure_from_relative_humidity"], {"e_s": reference})
-    dew_point = compose(f["hardy1998_dew_point"], {"e": vapour})
-    names = ("metpy171_saturation_vapour_pressure", "bolton1980", "tetens1930")
-    decoders = {k: users[k] for k in (*names, "sonntag1990_magnus")}
-    back = along(producer, "Hardy (1998), strict round trip", dew_point)
+    dew_point = compose(inverse, {"e": vapour})
+    names = ("hardy1998_water", "metpy171_saturation_vapour_pressure", "bolton1980")
+    decoders = {k: users[k] for k in (*names, "tetens1930", "sonntag1990_magnus")}
+    back = along(wmo, "Hyland and Wexler (1983), strict round trip", dew_point)
     decoded = compare(
         [back, *(along(k, label, dew_point) for k, label in decoders.items())],
         back,

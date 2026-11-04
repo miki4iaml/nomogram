@@ -78,15 +78,15 @@ and this project adheres to
   downwards on a logarithmic axis, with reference levels as vertical
   lines (`references`) and off-scale curves as in `plot_deviations`.
 - `docs/humidity-aloft.md`: why the lineage of data should cite the
-  formulations that made them; the formula of a radiosonde's producer
-  against its users' along the reference atmosphere, the false round trip
-  through the dew point, which widens the gap aloft (-13.6 % on the
-  vapour pressure with Tetens at 11 km for a relative humidity of 20 %,
-  -1.3 %RH on the relative humidity recomputed from it), the saturation
-  over ice or in
-  mixed phase against that over water, which the relative humidity of a
-  radiosonde, of MetPy or of the IFS takes below 0 °C (-42.6 % at 11 km),
-  and WMO's OSCAR requirements in %RH; with its figure and script
+  formulations that made them; the formulations a user may take against
+  Hyland and Wexler (1983), which WMO names for radiosondes, along the
+  reference atmosphere, the false round trip through the dew point,
+  which widens the gap aloft (-13.9 % on the vapour pressure with Tetens
+  at 11 km for a relative humidity of 20 %, -1.3 %RH on the relative
+  humidity recomputed from it), the saturation over ice or in mixed phase
+  against that over water, which the relative humidity of a radiosonde,
+  of MetPy or of the IFS takes below 0 °C (-42.7 % at 11 km), and WMO's
+  OSCAR requirements in %RH; with its figure and script
   (`docs/examples/humidity_aloft.py`).
 - The saturation vapour pressure formulations of radiosonde humidity
   producers: Vaisala's conversion formulas (2013), a simplified base-10

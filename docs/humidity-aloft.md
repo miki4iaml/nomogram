@@ -71,11 +71,12 @@ the ISO 2533 standard atmosphere up to 32 km, from the ground to 12 km:
 above 11 km, its temperature stays at -56.5 °C up to 20 km, and the gaps
 stop growing; where the tropopause is colder, they keep growing: it
 reached -60 °C during the intercomparison, and is near -85 °C in the
-tropics (IOM No. 143, sections 2.2 and 9.2). On the left, each formulation a user may take, against the
-producer's, Hardy (1998), that of the RS41. In the middle, the false
-round trip: the producer codes a dew point with its own inverse, as BUFR
-messages require, and the user takes the vapour pressure back with
-another formulation, at a relative humidity of 20 %. On the right, the
+tropics (IOM No. 143, sections 2.2 and 9.2). On the left, each
+formulation a user may take, against Hyland and Wexler (1983), which WMO
+names for radiosondes. In the middle, the false round trip: the producer
+codes a dew point with the inverse of its formulation, as BUFR messages
+require, and the user takes the vapour pressure back with another
+formulation, at a relative humidity of 20 %. On the right, the
 saturation over ice, or in mixed phase, against the same reference (see
 [Over water or over ice](#over-water-or-over-ice)).
 
@@ -85,6 +86,8 @@ import numpy as np
 import nomogram as nomo
 from nomogram.catalog import catalog
 from nomogram.comparison import Composition, Evaluable, compare, compose
+from nomogram.inversion import invert
+from nomogram.model import Variable
 from nomogram.units import Q_
 
 import matplotlib.pyplot as plt
@@ -99,27 +102,34 @@ def along(key: str, label: str, temperature: Evaluable = air) -> Composition:
     return compose(formulation, {point: temperature}, label=label)
 
 
-producer = "hardy1998_water"  # Wexler refitted to ITS-90, that of the RS41
+wmo = "hyland_wexler1983"  # named by WMO for radiosondes (WMO-No. 8, 12.4.1)
 users = {
+    "hardy1998_water": "Hardy (1998), RS41",
     "metpy171_saturation_vapour_pressure": "MetPy 1.7.1",
     "bolton1980": "Bolton (1980), MetPy's dew point",
     "tetens1930": "Tetens (1930)",
-    "sonntag1990_magnus": "Sonntag (1990), WMO",
-    "hyland_wexler1983": "Hyland and Wexler (1983)",
+    "sonntag1990_magnus": "Sonntag (1990), WMO's Magnus form",
     "goff_gratch1946": "Goff and Gratch (1946)",
     "buck1996": "Buck (1996), ITU-R P.453",
     "murphy_koop2005_water": "Murphy and Koop (2005)",
 }
 grid = {"GeopotentialHeight": Q_(np.linspace(0, 12, 121), "km")}
-reference = along(producer, "Hardy (1998), RS41")
+reference = along(wmo, "Hyland and Wexler (1983)")
 saturation = compare(
     [reference, *(along(k, label) for k, label in users.items())], reference, grid
 )
+inverse = invert(  # the dew point, solved numerically in the interval searched
+    f[wmo],
+    "T",
+    output=Variable("T_d", "DewPointTemperature", "K", "Dew point temperature"),
+    input=Variable("e", "VapourPressure", "PA", "Vapour pressure"),
+    search=(173.15, 373.15),
+)
 vapour = compose(f["vapour_pressure_from_relative_humidity"], {"e_s": reference})
-dew_point = compose(f["hardy1998_dew_point"], {"e": vapour})
-names = ("metpy171_saturation_vapour_pressure", "bolton1980", "tetens1930")
-decoders = {k: users[k] for k in (*names, "sonntag1990_magnus")}
-back = along(producer, "Hardy (1998), strict round trip", dew_point)
+dew_point = compose(inverse, {"e": vapour})
+names = ("hardy1998_water", "metpy171_saturation_vapour_pressure", "bolton1980")
+decoders = {k: users[k] for k in (*names, "tetens1930", "sonntag1990_magnus")}
+back = along(wmo, "Hyland and Wexler (1983), strict round trip", dew_point)
 decoded = compare(
     [back, *(along(k, label, dew_point) for k, label in decoders.items())],
     back,
@@ -154,54 +164,59 @@ nomo.plot.plot_deviation_profile(
 )
 ```
 
-![Deviation of saturation vapour pressure formulations from Hardy (1998) along the reference atmosphere, of the vapour pressure taken back from the dew point, and of the saturation over ice or in mixed phase](images/humidity-aloft.png)
+![Deviation of saturation vapour pressure formulations from Hyland and Wexler (1983) along the reference atmosphere, of the vapour pressure taken back from the dew point, and of the saturation over ice or in mixed phase](images/humidity-aloft.png)
 
 Each curve stops where its source stops answering: the Magnus form of
 WMO at -45 °C, Goff and Gratch at -50 °C; the saturation over ice of
 IAPWS starts at the triple point, near 2.3 km.
 
-The reference is Hardy (1998) because it is the formulation of the
-producer, that of the RS41 (IOM No. 143, Table 3.3), not one of WMO: the
-Magnus form WMO gives is that of Sonntag (1990). BUFR messages carry the
-dew point, not the relative humidity (section 10.1.4), and do not name a
-formulation: the producer codes the dew point with its own. The values
-below hold for an RS41; for another radiosonde, the reference changes,
-Sonntag (1990) for the M20 or Bolton (1980) for the PS-B3.
+The reference is Hyland and Wexler (1983) because WMO names it: at the
+lowest temperatures, its guide asks radiosonde manufacturers to use
+Wexler (1976, 1977), Hyland and Wexler (1983) or Sonntag (1994), and not
+Goff and Gratch (WMO-No. 8, 2024, 12.4.1); the Magnus form it gives
+elsewhere is not suitable below -45 °C (Annex 4.B). A user may assume
+that a producer follows WMO: the RS41 does, with Hardy (1998), Wexler's
+formulation refitted to ITS-90 (IOM No. 143, Table 3.3), 0.18 % from the
+reference at 11 km. BUFR messages carry the dew point, not the relative
+humidity (section 10.1.4), and do not name a formulation: the producer
+codes the dew point with its own.
 
 At 11 km, where the temperature reaches -56.5 °C, the saturation vapour
 pressure of each formulation (left panel):
 
-| Formulation | Saturation vapour pressure | Deviation from Hardy (1998) |
+| Formulation | Saturation vapour pressure | Deviation from Hyland and Wexler (1983) |
 |---|---|---|
-| Hardy (1998), RS41 | 3.001 Pa | reference |
-| MetPy 1.7.1 | 2.982 Pa | -0.62 % |
-| Bolton (1980), MetPy's dew point | 2.931 Pa | -2.32 % |
-| Tetens (1930) | 2.769 Pa | -7.73 % |
-| Buck (1996), ITU-R P.453 | 2.968 Pa | -1.09 % |
-| Hyland and Wexler (1983) | 3.006 Pa | +0.18 % |
-| Murphy and Koop (2005) | 2.900 Pa | -3.34 % |
+| Hyland and Wexler (1983), WMO | 3.006 Pa | reference |
+| Hardy (1998), RS41 | 3.001 Pa | -0.18 % |
+| MetPy 1.7.1 | 2.982 Pa | -0.80 % |
+| Bolton (1980), MetPy's dew point | 2.931 Pa | -2.50 % |
+| Tetens (1930) | 2.769 Pa | -7.90 % |
+| Buck (1996), ITU-R P.453 | 2.968 Pa | -1.27 % |
+| Murphy and Koop (2005) | 2.900 Pa | -3.52 % |
 
 The round trip (middle panel) starts from what the radiosonde measures at
 11 km: a temperature T of -56.5 °C and a relative humidity of 20 %. The
-producer computes the vapour pressure with its formulation f, Hardy's,
-e = 0.20 f(T) = 0.600 Pa, and codes the dew point with Hardy's inverse,
-Td = f⁻¹(e) = -68.9 °C. The user takes back the vapour pressure with a
-formulation g, e′ = g(Td), and the relative humidity, g(Td)/g(T), as
-WMO's guide writes it from the dew point (WMO-No. 8, 4.B.11). With g = f,
-the round trip is strict, f ∘ f⁻¹, and gives back the start, within
-2·10⁻⁶ with Hardy's inverse; with another g, it is false, g ∘ f⁻¹:
+producer computes the vapour pressure with its formulation f, here
+Hyland and Wexler's, e = 0.20 f(T) = 0.601 Pa, and codes the dew point
+with its inverse, which nomogram solves numerically: Td = f⁻¹(e) =
+-69.0 °C. The user takes back the vapour pressure with a formulation g,
+e′ = g(Td), and the relative humidity, g(Td)/g(T), as WMO's guide writes
+it from the dew point (WMO-No. 8, 4.B.11). With g = f, the round trip is
+strict, f ∘ f⁻¹, and gives back the start; with another g, it is false,
+g ∘ f⁻¹:
 
 | Formulation g of the user | Vapour pressure e′ = g(Td) | Deviation from e | Relative humidity g(Td)/g(T) | Deviation |
 |---|---|---|---|---|
-| Hardy (1998), strict round trip f ∘ f⁻¹ | 0.600 Pa | 0.00 % | 20.00 % | 0.00 %RH |
-| MetPy 1.7.1 | 0.593 Pa | -1.14 % | 19.90 % | -0.10 %RH |
-| Bolton (1980), MetPy's dew point | 0.568 Pa | -5.33 % | 19.38 % | -0.62 %RH |
-| Tetens (1930) | 0.518 Pa | -13.63 % | 18.72 % | -1.28 %RH |
-| Sonntag (1990), WMO | outside its range, below -45 °C | | | |
+| Hyland and Wexler (1983), strict round trip f ∘ f⁻¹ | 0.601 Pa | 0.00 % | 20.00 % | 0.00 %RH |
+| Hardy (1998), RS41 | 0.600 Pa | -0.29 % | 19.98 % | -0.02 %RH |
+| MetPy 1.7.1 | 0.593 Pa | -1.42 % | 19.87 % | -0.13 %RH |
+| Bolton (1980), MetPy's dew point | 0.568 Pa | -5.61 % | 19.36 % | -0.64 %RH |
+| Tetens (1930) | 0.518 Pa | -13.88 % | 18.70 % | -1.30 %RH |
+| Sonntag (1990), WMO's Magnus form | outside its range, below -45 °C | | | |
 
 A user who needs a vapour pressure, an absolute humidity or a mixing
-ratio takes e′: the round trip widens the gap of the saturation 1.8 to
-2.3 times, since it evaluates the two formulations at the dew point,
+ratio takes e′: the round trip widens the gap of the saturation 1.6 to
+2.2 times, since it evaluates the two formulations at the dew point,
 colder than the air. A user who needs the relative humidity divides by
 g(T): the two gaps partly cancel, and -1.3 %RH remains with Tetens' form,
 about the same at a relative humidity of 60 % (-1.1 %RH). The relative
@@ -229,7 +244,7 @@ take another saturation below 0 °C:
 
 | Relative humidity | Saturation below 0 °C | In the catalog |
 |---|---|---|
-| WMO, radiosondes, Vaisala | over supercooled water | `hardy1998_water` |
+| WMO, radiosondes, Vaisala | over supercooled water | `hyland_wexler1983`, `hardy1998_water` |
 | MetPy 1.7.1, with `phase='auto'` (over water by default) | over ice, from the triple point, 273.16 K | `metpy171_saturation_vapour_pressure_auto` |
 | IFS CY49R1, diagnostic relative humidity | over ice below 250.16 K (-23 °C); from there to 0 °C, weighted by a liquid fraction quadratic in temperature | `ecmwf_ifs_saturation_mixed_phase` |
 
@@ -239,7 +254,7 @@ kinds, `SaturationVapourPressureOverWater` and
 `compare` puts them in one table only when asked for that kind,
 `kind="SaturationVapourPressure"`, as on the right of the figure. MetPy
 changes phase at the triple point, the IFS gradually from 0 to -23 °C.
-At 11 km, the saturation over ice is 42.6 % below that over water: air
+At 11 km, the saturation over ice is 42.7 % below that over water: air
 saturated over ice has a relative humidity of 57 % over water. Between
 the relative humidity of a radiosonde and that of the IFS, the gap of
 convention is there more than five times the largest gap of formulation
@@ -261,8 +276,9 @@ A relative deviation becomes percentage points when multiplied by the
 relative humidity: at saturation, as on the left of the figure, 1 % is
 1 %RH. In the lower troposphere, the choice of formulation stays well
 under the goal of numerical weather prediction. Aloft, Bolton's form
-reaches that goal and Tetens' goes beyond the breakthrough. For climate, even the
-difference of definition, 0.2 to 0.4 %RH, takes most of the threshold.
+goes beyond that goal, and Tetens' beyond the breakthrough. For climate,
+even the difference of definition, 0.2 to 0.4 %RH, takes most of the
+threshold.
 The gap is a bias, not a noise: it does not average out.
 
 ## Search
