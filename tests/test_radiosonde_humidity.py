@@ -86,5 +86,7 @@ def test_the_radiosonde_formulations_are_found_by_search() -> None:
         "buck1981",
     }
     assert {f"formulations.{key}" for key in named} <= found
+    # Vaisala's conversion formulas are general, not those of a radiosonde.
+    assert not any(ref.startswith("formulations.vaisala2013") for ref in found)
     assert "references.wmo_iom143" in CATALOG.search("RS41").refs
     assert "formulations.iapws_sr1_86" in CATALOG.used_by("references.vaisala2013").refs

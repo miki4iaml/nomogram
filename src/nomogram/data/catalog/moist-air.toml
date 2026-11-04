@@ -1122,7 +1122,7 @@ inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
 ]
 coefficients = { A = 7.591386, B = 240.7263, C = 6.116441 }
-keywords = ["dew point", "radiosonde"]
+keywords = ["dew point"]
 
 [[formulations.vaisala2013_dew_point.citations]]
 reference = "vaisala2013"

@@ -8,6 +8,7 @@ import importlib.util
 import math
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -244,11 +245,11 @@ def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     import matplotlib.pyplot as plt
     import numpy as np
 
-    namespace: dict[str, object] = {}
+    namespace: dict[str, Any] = {}
     for block in python_blocks(ALOFT_GUIDE):
         exec(compile(block, str(ALOFT_GUIDE), "exec"), namespace)  # noqa: S102
     plt.close("all")
-    at_11_km = 110  # 0 to 14 km by steps of 0.1 km
+    at_11_km = 110  # 0 to 12 km by steps of 0.1 km
 
     def percent(table: object) -> dict[str, float]:
         deviations = table.relative_deviations  # type: ignore[attr-defined]
@@ -264,15 +265,24 @@ def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     assert saturation["buck1996"] == -1.09
     assert saturation["hyland_wexler1983"] == 0.18
     assert saturation["murphy_koop2005_water"] == -3.34
-    # Each curve stops where its source does: below -45, -50 and -20 degC.
+    # Each curve stops where its source does: below -45 and -50 degC.
     assert all(
-        math.isnan(saturation[key])
-        for key in ("sonntag1990_magnus", "goff_gratch1946", "vaisala2013_water")
+        math.isnan(saturation[key]) for key in ("sonntag1990_magnus", "goff_gratch1946")
     )
     decoded = percent(namespace["decoded"])
     assert decoded["metpy171_saturation_vapour_pressure"] == -1.14
     assert decoded["bolton1980"] == -5.33
     assert decoded["tetens1930"] == -13.63
+    # In %RH, the gap of the round trip widens with the humidity.
+    tetens = namespace["along"]("tetens1930", "Tetens (1930)", namespace["dew_point"])
+    back = namespace["back"]
+    for humidity, points in ((0.2, -2.7), (0.6, -5.6)):
+        inputs = {
+            **namespace["grid"],
+            "RelativeHumidity": namespace["Q_"](humidity, ""),
+        }
+        gaps = percent(namespace["compare"]([back, tetens], back, inputs))
+        assert round(humidity * gaps["tetens1930"], 1) == points
     junctions = percent(namespace["junctions"])
     assert junctions["iapws_r14_08_sublimation"] == -42.58
     assert junctions["metpy171_saturation_vapour_pressure_auto"] == -43.02

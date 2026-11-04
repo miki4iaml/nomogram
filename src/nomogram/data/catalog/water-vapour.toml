@@ -958,7 +958,7 @@ inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 7.591386, B = 240.7263, C = 6.116441 }
-keywords = ["saturation", "Magnus", "radiosonde"]
+keywords = ["saturation", "Magnus"]
 
 [[formulations.vaisala2013_water.citations]]
 reference = "vaisala2013"
@@ -980,7 +980,7 @@ inputs = [
   { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Celsius temperature", scale = "its90", scale_basis = "inferred-from-date" },
 ]
 coefficients = { A = 9.778707, B = 273.1466, C = 6.114742 }
-keywords = ["saturation", "Magnus", "ice", "radiosonde"]
+keywords = ["saturation", "Magnus", "ice"]
 
 [[formulations.vaisala2013_ice.citations]]
 reference = "vaisala2013"

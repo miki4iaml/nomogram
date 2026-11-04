@@ -67,14 +67,17 @@ it 0.2 to 0.4 % larger between the ground and 5 km.
 ## Along a vertical profile
 
 The figure follows the reference atmosphere of ITU-R P.835, identical to
-the ISO 2533 standard atmosphere up to 32 km, from the ground to 14 km.
-On the left, each formulation a user may take, against the producer's,
-Hardy (1998), that of the RS41. In the middle, the false round trip: the
-producer codes a dew point with its own inverse, as BUFR messages
-require, and the user takes the vapour pressure back with another
-formulation, at a relative humidity of 20 %. On the right, the
-saturation over ice, or in mixed phase, against the same reference
-(see [Over water or over ice](#over-water-or-over-ice)).
+the ISO 2533 standard atmosphere up to 32 km, from the ground to 12 km:
+above 11 km, its temperature stays at -56.5 °C up to 20 km, and the gaps
+stop growing; where the tropopause is colder, they keep growing: it
+reached -60 °C during the intercomparison, and is near -85 °C in the
+tropics (IOM No. 143, sections 2.2 and 9.2). On the left, each formulation a user may take, against the
+producer's, Hardy (1998), that of the RS41. In the middle, the false
+round trip: the producer codes a dew point with its own inverse, as BUFR
+messages require, and the user takes the vapour pressure back with
+another formulation, at a relative humidity of 20 %. On the right, the
+saturation over ice, or in mixed phase, against the same reference (see
+[Over water or over ice](#over-water-or-over-ice)).
 
 ```python
 import numpy as np
@@ -105,10 +108,9 @@ users = {
     "hyland_wexler1983": "Hyland and Wexler (1983)",
     "goff_gratch1946": "Goff and Gratch (1946)",
     "buck1996": "Buck (1996), ITU-R P.453",
-    "vaisala2013_water": "Vaisala (2013), equation 6",
     "murphy_koop2005_water": "Murphy and Koop (2005)",
 }
-grid = {"GeopotentialHeight": Q_(np.linspace(0, 14, 141), "km")}
+grid = {"GeopotentialHeight": Q_(np.linspace(0, 12, 121), "km")}
 reference = along(producer, "Hardy (1998), RS41")
 saturation = compare(
     [reference, *(along(k, label) for k, label in users.items())], reference, grid
@@ -154,10 +156,9 @@ nomo.plot.plot_deviation_profile(
 
 ![Deviation of saturation vapour pressure formulations from Hardy (1998) along the reference atmosphere, of the vapour pressure taken back from the dew point, and of the saturation over ice or in mixed phase](images/humidity-aloft.png)
 
-Each curve stops where its source stops answering: Vaisala's simplified
-form at -20 °C, near 5.4 km, the Magnus form of WMO at -45 °C, Goff and
-Gratch at -50 °C; the saturation over ice of IAPWS starts at the triple
-point, near 2.3 km. At 11 km, where the temperature reaches -56.5 °C:
+Each curve stops where its source stops answering: the Magnus form of
+WMO at -45 °C, Goff and Gratch at -50 °C; the saturation over ice of
+IAPWS starts at the triple point, near 2.3 km. At 11 km, where the temperature reaches -56.5 °C:
 
 | Formulation | Saturation vapour pressure | Vapour pressure back from the dew point, RH 20 % |
 |---|---|---|
@@ -176,6 +177,13 @@ the surface, and by more than 10 % in the upper troposphere, beyond
 typical measurement uncertainties, possibly through the inverse of the
 vapour pressure equation (IOM No. 143, section 10.1.4).
 
+The relative humidity of 20 % lies within the range the intercomparison
+observed below the tropopause, from about 5 to 100 %RH (IOM No. 143,
+Figure 9.2). As the humidity grows, the dew point comes closer to the
+temperature and the relative gap of the round trip narrows, but the gap
+in %RH widens: at 11 km, with Tetens' form, -2.7 %RH at 20 %, -5.6 %RH at
+60 %.
+
 ## Over water or over ice
 
 Below 0 °C, the same water vapour gives two relative humidities: over
@@ -187,7 +195,7 @@ take another saturation below 0 °C:
 
 | Relative humidity | Saturation below 0 °C | In the catalog |
 |---|---|---|
-| WMO, radiosondes, Vaisala | over supercooled water | `hardy1998_water`, `vaisala2013_water` |
+| WMO, radiosondes, Vaisala | over supercooled water | `hardy1998_water` |
 | MetPy 1.7.1, with `phase='auto'` (over water by default) | over ice, from the triple point, 273.16 K | `metpy171_saturation_vapour_pressure_auto` |
 | IFS CY49R1, diagnostic relative humidity | over ice below 250.16 K (-23 °C); from there to 0 °C, weighted by a liquid fraction quadratic in temperature | `ecmwf_ifs_saturation_mixed_phase` |
 

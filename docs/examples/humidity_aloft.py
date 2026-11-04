@@ -47,10 +47,9 @@ def main(output: str) -> None:
         "hyland_wexler1983": "Hyland and Wexler (1983)",
         "goff_gratch1946": "Goff and Gratch (1946)",
         "buck1996": "Buck (1996), ITU-R P.453",
-        "vaisala2013_water": "Vaisala (2013), equation 6",
         "murphy_koop2005_water": "Murphy and Koop (2005)",
     }
-    grid = {"GeopotentialHeight": Q_(np.linspace(0, 14, 141), "km")}
+    grid = {"GeopotentialHeight": Q_(np.linspace(0, 12, 121), "km")}
     reference = along(producer, "Hardy (1998), RS41")
     saturation = compare(
         [reference, *(along(k, label) for k, label in users.items())], reference, grid
