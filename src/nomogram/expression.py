@@ -65,6 +65,9 @@ FUNCTIONS: Mapping[str, Callable[[Any], Any]] = MappingProxyType(
         # The arctangent of one argument, in radians (the profile functions
         # of Paulson, 1970); atan2, of two, is not allowed.
         "atan": sympy.atan,
+        # The hyperbolic tangent, of a pure number (the vapour pressure of
+        # supercooled water of Murphy and Koop, 2005).
+        "tanh": sympy.tanh,
     }
 )
 
@@ -172,6 +175,9 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         # the lists of MathJax, base package, KaTeX and mathtext on
         # 2026-11-04).
         r"\arctan",
+        # The hyperbolic tangent (in the lists of MathJax, base package,
+        # KaTeX and mathtext on 2026-11-04).
+        r"\tanh",
         r"\frac",
         r"\sqrt",
         r"\left",

@@ -183,16 +183,16 @@ bounds = { p = [600.0, 800.0], q_1 = [0.004, 0.006], q_2 = [0.001, 0.002], p_1 =
 
 
 @pytest.mark.parametrize("kind", ["equivalent", "proportional"])
-def test_a_relation_on_a_long_derived_expression_is_decided_on_samples(
+def test_a_relation_on_a_composed_expression_is_decided_on_samples(
     kind: str, tmp_path: Path
 ) -> None:
-    # SymPy's simplification of a composition longer than a written
-    # expression would not end: the samples decide.
+    # SymPy's simplification of this composition, close to the length of
+    # the longest written expression, would not end: the samples decide.
     mine = tmp_path / f"mine_{kind}.toml"
     mine.write_text(LONG.replace("{kind}", kind), encoding="utf-8")
     loaded = catalog(extra=[mine])
     subject = loaded.formulations["metpy171_relative_humidity_isentropic"]
-    assert len(subject.expression) > MAX_SOURCE_LENGTH
+    assert subject.parts
     verdict = verify(loaded.relations["mine:r"], loaded)
     assert verdict.status == "refuted"
     assert "a derived expression" in verdict.method

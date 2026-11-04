@@ -173,7 +173,8 @@ def test_curves_beyond_ten_change_line_style(comparison: Comparison) -> None:
     ax = plot_deviations(comparison)
     styles = [line.get_linestyle() for line in ax.lines[:-1]]
     assert styles[:10] == ["-"] * 10
-    assert set(styles[10:]) == {"-."}
+    assert set(styles[10:20]) == {"-."}
+    assert set(styles[20:]) <= {":"}
 
 
 def test_abscissa_symbol_from_the_reference_formulation() -> None:
