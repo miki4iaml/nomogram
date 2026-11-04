@@ -186,9 +186,12 @@ def test_the_surface_layer_is_found_by_search() -> None:
 def test_the_surface_layer_is_linked_to_wikidata() -> None:
     from nomogram.semantics import MatchRelation
 
+    entity = "http://www.wikidata.org/entity/"
+
     def wikidata(entry: object) -> tuple[str, MatchRelation]:
-        (link,) = [m for m in entry.matches if "wikidata.org" in m.target]  # type: ignore[attr-defined]
-        return link.target.rsplit("/", 1)[-1], link.relation
+        matches = entry.matches  # type: ignore[attr-defined]
+        (link,) = [m for m in matches if m.target.startswith(entity)]
+        return link.target.removeprefix(entity), link.relation
 
     # The Monin-Obukhov length of Wikidata is the atmosphere's: narrower than
     # the kind, which is any fluid's.
