@@ -263,6 +263,7 @@ def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     assert saturation["tetens1930"] == -7.73
     assert saturation["buck1996"] == -1.09
     assert saturation["hyland_wexler1983"] == 0.18
+    assert saturation["murphy_koop2005_water"] == -3.34
     # Each curve stops where its source does: below -45, -50 and -20 degC.
     assert all(
         math.isnan(saturation[key])
@@ -272,3 +273,7 @@ def test_humidity_aloft_guide_gives_the_values_it_states() -> None:
     assert decoded["metpy171_saturation_vapour_pressure"] == -1.14
     assert decoded["bolton1980"] == -5.33
     assert decoded["tetens1930"] == -13.63
+    junctions = percent(namespace["junctions"])
+    assert junctions["iapws_r14_08_sublimation"] == -42.58
+    assert junctions["metpy171_saturation_vapour_pressure_auto"] == -43.02
+    assert junctions["ecmwf_ifs_saturation_mixed_phase"] == -42.65

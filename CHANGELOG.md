@@ -80,8 +80,11 @@ and this project adheres to
 - `docs/humidity-aloft.md`: the formula of a radiosonde's producer
   against its users' along the reference atmosphere, the false round trip
   through the dew point, which widens the gap aloft (-13.6 % with Tetens
-  at 11 km for a relative humidity of 20 %), and WMO's OSCAR requirements
-  in %RH; with its figure and script (`docs/examples/humidity_aloft.py`).
+  at 11 km for a relative humidity of 20 %), the saturation over ice or in
+  mixed phase against that over water, which the relative humidity of a
+  radiosonde, of MetPy or of the IFS takes below 0 °C (-42.6 % at 11 km),
+  and WMO's OSCAR requirements in %RH; with its figure and script
+  (`docs/examples/humidity_aloft.py`).
 - The saturation vapour pressure formulations of radiosonde humidity
   producers: Vaisala's conversion formulas (2013), a simplified base-10
   form over water (-20 to 50 °C) and over ice (-70 to 0 °C), its equation
