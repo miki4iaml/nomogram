@@ -20,7 +20,7 @@ references:
     authors:
       - name: "QUDT.org"
         website: "https://qudt.org"
-    version: "3.5.2"
+    version: "3.5.3"
     url: "https://qudt.org"
     repository-code: "https://github.com/qudt/qudt-public-repo"
     license: CC-BY-4.0

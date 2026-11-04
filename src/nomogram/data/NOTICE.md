@@ -7,7 +7,7 @@ sources below. Never edit it by hand.
 
 Quantity kinds and unit definitions are extracted from QUDT —
 Quantities, Units, Dimensions and Types, by QUDT.org
-(<https://qudt.org>), release 3.5.2, licensed under CC BY 4.0
+(<https://qudt.org>), release 3.5.3, licensed under CC BY 4.0
 (<https://creativecommons.org/licenses/by/4.0/>).
 
 Changes: a subset of quantity kinds and units was selected and

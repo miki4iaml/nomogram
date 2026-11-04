@@ -157,7 +157,7 @@ their canonical units, from the CF standard name table. The package
 bundles a subset of each source:
 
 - QUDT — Quantities, Units, Dimensions and Types, by QUDT.org
-  (<https://qudt.org>), release 3.5.2, licensed under
+  (<https://qudt.org>), release 3.5.3, licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
 - the [CF standard name table](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
   version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/);

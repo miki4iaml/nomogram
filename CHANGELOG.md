@@ -198,6 +198,11 @@ and this project adheres to
 
 ### Changed
 
+- The bundled QUDT subset is extracted from release 3.5.3 (20 October
+  2026), the latest, rather than 3.5.2: the kinds, units and CF links
+  nomogram bundles are unchanged, and no new QUDT kind replaces a local
+  one. The CF standard name table stays at version 95, still the
+  current one.
 - The formulation over ice of Sonntag takes the constant of the original,
   24.7219, where Vömel prints 24.721994 (0.0094 % more); the note keeps
   both.

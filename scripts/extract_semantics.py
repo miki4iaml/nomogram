@@ -12,8 +12,8 @@ neither rdflib nor any network access is needed then.
 Never edit ``semantics.json`` by hand: change the selection below and run
 the script again. Sources (download them into a local folder first):
 
-- QUDT 3.5.2 (CC BY 4.0),
-  ``https://raw.githubusercontent.com/qudt/qudt-public-repo/v3.5.2/src/main/rdf/``
+- QUDT 3.5.3 (CC BY 4.0),
+  ``https://raw.githubusercontent.com/qudt/qudt-public-repo/v3.5.3/src/main/rdf/``
   + ``vocab/quantitykinds/VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl`` and
   ``vocab/unit/VOCAB_QUDT-UNITS-ALL.ttl``;
 - CF standard name table 95 (CC0 1.0),
@@ -21,7 +21,7 @@ the script again. Sources (download them into a local folder first):
 
 Usage::
 
-    uv run python scripts/extract_semantics.py --qudt-version 3.5.2 \\
+    uv run python scripts/extract_semantics.py --qudt-version 3.5.3 \\
         --kinds VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl \\
         --units VOCAB_QUDT-UNITS-ALL.ttl \\
         --cf cf-standard-name-table.xml \\
@@ -115,7 +115,7 @@ KINDS: dict[str, KindSpec] = {
     "TemperatureDifference": KindSpec("ratio", delta=True),
     # ISO 80000 psi = x / x_sat, the mixing ratio over its saturation value:
     # the "relative humidity" r / r_sat of some textbooks (TEOS-10 3.40.2).
-    # QUDT 3.5.2 declares the unit 1; a ratio, it takes % too.
+    # QUDT 3.5.3 declares the unit 1; a ratio, it takes % too.
     "RelativeMassRatioOfVapour": KindSpec(
         "ratio",
         delta=False,
@@ -124,7 +124,7 @@ KINDS: dict[str, KindSpec] = {
     # p / p_sat over either phase, the parent of the relative humidity (with
     # respect to water, as QUDT defines it) under which the catalog declares
     # the relative humidity with respect to ice as its sibling: one must
-    # not feed an input of the other. QUDT 3.5.2 gives it no unit; a ratio,
+    # not feed an input of the other. QUDT 3.5.3 gives it no unit; a ratio,
     # it takes 1 and %.
     "RelativePartialPressure": KindSpec(
         "ratio",
@@ -195,7 +195,7 @@ KINDS: dict[str, KindSpec] = {
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
     # kind for either (nomogram defines them in the sea-water family). QUDT
-    # 3.5.2 gives MassFraction FRACTION, PERCENT, UNITLESS and IU-PER-MilliGM;
+    # 3.5.3 gives MassFraction FRACTION, PERCENT and UNITLESS;
     # CF writes salinities in 1e-3 (per mille) and g/kg, added here.
     "MassFraction": KindSpec(
         "ratio",
