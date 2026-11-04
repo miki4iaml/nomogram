@@ -361,6 +361,10 @@ silently.
     thermionic emission (A m⁻² K⁻²), not a Richardson number; and
     `quantitykind:DragCoefficient` is the drag of a body in a flow, not
     the surface drag coefficient of CF (see the trade terms).
+21. `quantitykind:LinearAttenuationCoefficient` declares no unit in
+    QUDT 3.5.2: the reciprocal metre is its parent's,
+    `AttenuationCoefficient`, which nomogram takes for the extinction
+    coefficient of the visibility.
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,
