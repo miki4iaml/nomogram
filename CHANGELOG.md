@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- The stable profile functions of the ECMWF IFS (equation 3.24) carry the
+  constants of Beljaars and Holtslag (1991), a = 1 and b = 2/3, where
+  Holtslag and De Bruin (1988), to whom the IFS attributes the form, have
+  0.7 and 0.75 (Andreas 2002, read): their labels, notes and citations say
+  so, and `search("Beljaars")` finds them. The smooth-surface roughness
+  lengths for heat and humidity over sea are labelled "before CY49R1".
+
 ## [0.6.0] - 2026-11-04
 
 ### Added

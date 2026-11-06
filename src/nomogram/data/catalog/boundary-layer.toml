@@ -50,6 +50,24 @@ matches = [
   { target = "http://www.wikidata.org/entity/Q60638164", relation = "exact", verified = 2026-11-04 },
 ]
 
+[references.beljaars_holtslag1991]
+authors = "Beljaars, A. C. M. and Holtslag, A. A. M."
+year = 1991
+title = "Flux parameterization over land surfaces for atmospheric models"
+container = "Journal of Applied Meteorology, 30, 327-341"
+doi = "10.1175/1520-0450(1991)030<0327:FPOLSF>2.0.CO;2"
+status = "to-confirm"
+note = "The constants a = 1, b = 2/3, c = 5, d = 0.35 of the stable functions of the IFS (CY49R1, Part IV, equation 3.24), as Andreas (2002, equation 3.5) gives them; not read. DOI checked with Crossref on 2026-11-06."
+
+[references.andreas2002]
+authors = "Andreas, E. L."
+year = 2002
+title = "Parameterizing scalar transfer over snow and ice: a review"
+container = "Journal of Hydrometeorology, 3, 417-432"
+doi = "10.1175/1525-7541(2002)003<0417:PSTOSA>2.0.CO;2"
+status = "verified"
+note = "Read: the gradient functions of stable conditions of Holtslag and De Bruin (1988), equation 3.4 (p. 421, a = 0.7, b = 0.75), and of Beljaars and Holtslag (1991), equations 3.5a-b (p. 422, a = 1, b = 2/3); over snow and ice, the review recommends those of Holtslag and De Bruin. DOI checked with Crossref on 2026-11-06."
+
 [references.holtslag_debruin1988]
 authors = "Holtslag, A. A. M. and De Bruin, H. A. R."
 year = 1988
@@ -57,7 +75,7 @@ title = "Applied modeling of the nighttime surface energy balance over land"
 container = "Journal of Applied Meteorology, 27, 689-704"
 doi = "10.1175/1520-0450(1988)027<0689:AMOTNS>2.0.CO;2"
 status = "to-confirm"
-note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the profile functions of stable conditions, equation 3.24, which the IFS modifies for a critical flux Richardson number; not read. The bibliography of the IFS prints the second author 'Bruin, H. A. R. D.'. DOI checked with Crossref on 2026-11-04."
+note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the profile functions of stable conditions, equation 3.24, which the IFS modifies for a critical flux Richardson number; not read. The bibliography of the IFS prints the second author 'Bruin, H. A. R. D.'. DOI checked with Crossref on 2026-11-04. Its constants are a = 0.7 and b = 0.75 (Andreas 2002, equation 3.4), not those of the IFS (beljaars_holtslag1991)."
 matches = [
   { target = "http://www.wikidata.org/entity/Q114957574", relation = "exact", verified = 2026-11-04 },
 ]
@@ -366,8 +384,9 @@ assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii)).", "The s
 
 # --- Profile functions ------------------------------------------------
 # Paulson (1970) for unstable conditions, with x = (1 - 16 zeta)^(1/4)
-# written out (x^2 = (1 - 16 zeta)^(1/2)); Holtslag and De Bruin (1988),
-# modified, for stable conditions. Both vanish at zeta = 0: the branches
+# written out (x^2 = (1 - 16 zeta)^(1/2)); for stable conditions, the form
+# of Holtslag and De Bruin (1988) with the constants of Beljaars and
+# Holtslag (1991). Both vanish at zeta = 0: the branches
 # meet there, and nomogram closes the interval on the stable side. The
 # IFS bounds z/L to 5 in very stable conditions (section 3.2), a limiter
 # of the model, not of the functions.
@@ -413,15 +432,16 @@ reference = "paulson1970"
 note = "As the IFS quotes it."
 
 [formulations.ecmwf_ifs_profile_function_momentum_stable]
-label = "Profile function for momentum, stable conditions (IFS, after Holtslag and De Bruin)"
+label = "Profile function for momentum, stable conditions (IFS, Holtslag and De Bruin as modified by Beljaars and Holtslag)"
 expression = "-b * (zeta - c / d) * exp(-d * zeta) - a * zeta - b * c / d"
 fixed_units = false
+note = "The IFS attributes the form to Holtslag and De Bruin (1988), with a modification for a critical flux Richardson number at large zeta; its constants a = 1, b = 2/3, c = 5, d = 0.35 are those of Beljaars and Holtslag (1991), where Holtslag and De Bruin have a = 0.7 and b = 0.75 (Andreas 2002, equations 3.4 and 3.5, pp. 421-422, which give the gradient functions whose integrals these are)."
 output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
 ]
 coefficients = { a = 1, b = { value = 0.6666666666666666, note = "2/3 in the source." }, c = 5, d = 0.35 }
-keywords = ["profile function", "Monin-Obukhov", "stable", "Holtslag", "IFS"]
+keywords = ["profile function", "Monin-Obukhov", "stable", "Holtslag", "Beljaars", "IFS"]
 
 [[formulations.ecmwf_ifs_profile_function_momentum_stable.citations]]
 reference = "ecmwf_ifs_cy49r1"
@@ -433,16 +453,21 @@ assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii))."]
 reference = "holtslag_debruin1988"
 note = "As the IFS quotes it, modified for a critical flux Richardson number at large zeta."
 
+[[formulations.ecmwf_ifs_profile_function_momentum_stable.citations]]
+reference = "beljaars_holtslag1991"
+note = "The constants of the IFS, as Andreas (2002, equation 3.5) gives them; not read."
+
 [formulations.ecmwf_ifs_profile_function_heat_stable]
-label = "Profile function for heat and moisture, stable conditions (IFS, after Holtslag and De Bruin)"
+label = "Profile function for heat and moisture, stable conditions (IFS, Holtslag and De Bruin as modified by Beljaars and Holtslag)"
 expression = "-b * (zeta - c / d) * exp(-d * zeta) - (1 + 2 / 3 * a * zeta) ** 1.5 - b * c / d + 1"
 fixed_units = false
+note = "The IFS attributes the form to Holtslag and De Bruin (1988), with a modification for a critical flux Richardson number at large zeta; its constants a = 1, b = 2/3, c = 5, d = 0.35 are those of Beljaars and Holtslag (1991), where Holtslag and De Bruin have a = 0.7 and b = 0.75 (Andreas 2002, equations 3.4 and 3.5, pp. 421-422, which give the gradient functions whose integrals these are)."
 output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
 ]
 coefficients = { a = 1, b = { value = 0.6666666666666666, note = "2/3 in the source." }, c = 5, d = 0.35 }
-keywords = ["profile function", "Monin-Obukhov", "stable", "Holtslag", "IFS"]
+keywords = ["profile function", "Monin-Obukhov", "stable", "Holtslag", "Beljaars", "IFS"]
 
 [[formulations.ecmwf_ifs_profile_function_heat_stable.citations]]
 reference = "ecmwf_ifs_cy49r1"
@@ -453,6 +478,10 @@ assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii)).", "The s
 [[formulations.ecmwf_ifs_profile_function_heat_stable.citations]]
 reference = "holtslag_debruin1988"
 note = "As the IFS quotes it, modified for a critical flux Richardson number at large zeta."
+
+[[formulations.ecmwf_ifs_profile_function_heat_stable.citations]]
+reference = "beljaars_holtslag1991"
+note = "The constants of the IFS, as Andreas (2002, equation 3.5) gives them; not read."
 
 [formulations.ecmwf_ifs_profile_function_momentum]
 label = "Profile function for momentum, unstable then stable conditions (IFS)"
@@ -544,7 +573,7 @@ reference = "beljaars1995"
 note = "As the IFS quotes it; the constant alpha_M after Brutsaert (1982)."
 
 [formulations.ecmwf_ifs_roughness_length_heat_sea]
-label = "Roughness length for heat over sea, smooth surface (IFS until CY49R1)"
+label = "Roughness length for heat over sea, smooth surface (IFS before CY49R1)"
 expression = "alpha_H * nu / u_s"
 fixed_units = false
 note = "Equation 3.28, the smooth-surface form the IFS kept for heat at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, not entered)."
@@ -566,7 +595,7 @@ reference = "brutsaert1982"
 note = "The constant alpha_H, as the IFS quotes it."
 
 [formulations.ecmwf_ifs_roughness_length_humidity_sea]
-label = "Roughness length for humidity over sea, smooth surface (IFS until CY49R1)"
+label = "Roughness length for humidity over sea, smooth surface (IFS before CY49R1)"
 expression = "alpha_Q * nu / u_s"
 fixed_units = false
 note = "Equation 3.28, the smooth-surface form the IFS kept for moisture at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, not entered)."
