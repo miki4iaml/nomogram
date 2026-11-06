@@ -271,3 +271,24 @@ def test_the_visibility_of_clean_air_is_100_km() -> None:
     v = F["ecmwf_ifs_visibility"].evaluate(beta_tot=Q_(beta, "1/m"))
     assert v.to("km").magnitude == pytest.approx(100.0, rel=1e-12)
     assert CATALOG.kinds["Visibility"].cf_standard_names == ("visibility_in_air",)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "ecmwf_ifs_profile_function_momentum_stable",
+        "ecmwf_ifs_profile_function_heat_stable",
+    ],
+)
+def test_the_stable_profile_functions_carry_the_constants_of_beljaars_and_holtslag(
+    key: str,
+) -> None:
+    # The IFS attributes the form to Holtslag and De Bruin (1988), modified;
+    # a = 1 and b = 2/3 are those of Beljaars and Holtslag (1991), where
+    # Holtslag and De Bruin have 0.7 and 0.75 (Andreas 2002, eq. 3.4, 3.5).
+    formulation = F[key]
+    coefficients = {c.identifier: c.value for c in formulation.coefficients}
+    assert (coefficients["a"], coefficients["b"]) == (1.0, pytest.approx(2 / 3))
+    assert "beljaars_holtslag1991" in formulation.references
+    assert f"formulations.{key}" in CATALOG.search("Beljaars").refs
+    assert CATALOG.references["andreas2002"].status.value == "verified"
