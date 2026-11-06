@@ -288,7 +288,8 @@ def test_the_stable_profile_functions_carry_the_constants_of_beljaars_and_holtsl
     # Holtslag and De Bruin have 0.7 and 0.75 (Andreas 2002, eq. 3.4, 3.5).
     formulation = F[key]
     coefficients = {c.identifier: c.value for c in formulation.coefficients}
-    assert (coefficients["a"], coefficients["b"]) == (1.0, pytest.approx(2 / 3))
+    assert coefficients["a"] == 1.0
+    assert coefficients["b"] == pytest.approx(2 / 3)
     assert "beljaars_holtslag1991" in formulation.references
     assert f"formulations.{key}" in CATALOG.search("Beljaars").refs
     assert CATALOG.references["andreas2002"].status.value == "verified"
