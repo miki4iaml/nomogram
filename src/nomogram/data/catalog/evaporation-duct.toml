@@ -484,7 +484,7 @@ notation = { u_s = "U_*", T_s = "T_*", q_s = "q_*", kappa = '\kappa' }
 label = "Monin-Obukhov length from the profile scales, specific humidity (Frederickson et al. 1994)"
 expression = "T * u_s ** 2 / (kappa * g * (T_s + c * T * q_s))"
 fixed_units = false
-note = "Equation 2, with k = 0.4 (p. 3) and g = 9.8 m/s2 (p. 4). With L, the scales u_*, T_* and q_* of equation 1 make 'a system of four equations and four unknowns', solved iteratively (p. 4)."
+note = "Equation 2, with k = 0.4 (p. 3) and g = 9.8 m/s2 (p. 4). With L, the scales u_*, T_* and q_* of equation 1 make 'a system of four equations and four unknowns', solved iteratively (p. 4). The report writes the temperature T; it takes its bulk formulas from Smith (1988), not read."
 output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length scale" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute air temperature" },
