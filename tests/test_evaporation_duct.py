@@ -5,6 +5,10 @@
 
 The 37 test cases of its Table 2 are computed again by chaining the
 formulations of the catalog, step by step, as section 3.0 orders them.
+Table 2 never reaches the stable height of step 4 (b) nor the limited one
+of step 4 (c): the test for T_a - T_s > -1 replaces every stable case by
+one at T_a = T_s - 1. The continuity of the pieces and the identity of
+4 (b) and 4 (c) check those only for consistency.
 """
 
 import math
