@@ -18,7 +18,7 @@ correspondences checked in those versions.
 
 | nomogram term | QUDT | SI / VIM | pint | SymPy | CF / OM | MathModDB / Wikidata | Notes |
 |---|---|---|---|---|---|---|---|
-| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none (`Basic.kind`, such as `NumberKind`, is another concept) | CF standard name (narrower); OM `Quantity` subclasses | MathModDB class *quantity kind*; `QUDT quantity kind ID` (P1654, a string). Wikidata P8393 *QUDT quantity kind ID* | `nomogram.semantics.QuantityKind`, with nomogram's scale type and point/difference typing. Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
+| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none (`Basic.kind`, such as `NumberKind`, is another concept) | CF standard name (narrower); OM `Quantity` subclasses | MathModDB class *quantity kind*; `QUDT quantity kind ID` (P1654, a string). Wikidata P8393 *QUDT quantity kind ID* | `nomogram.semantics.QuantityKind`, with nomogram's scale type, point/difference typing and the bounds its definition admits (`KindBounds`). Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
 | specialization | `qudt:specializationOf` | — | none | none | — | — (MathModDB's `specialized by` relates models and formulas, not kinds) | How nomogram defines kinds QUDT lacks, e.g. the saturation vapour pressure as a specialization of `VapourPressure`, and the one over water as a specialization of it. Such kinds have `origin = "nomogram"` and no IRI yet; their local names are stable, to become the end of persistent IRIs (w3id.org) once nomogram has documentation online. |
 | quantity | `qudt:Quantity` | quantity (VIM 1.1): a property of a phenomenon, body or substance | none | `sympy.physics.units.Quantity` (not used; a unit, a constant or a generic quantity) | OM `Quantity` | MathModDB class *quantity*; Wikidata *physical quantity* (Q107715) and its items | The property itself ("the temperature of this air"), not a number. Never a class name in nomogram, to avoid the clash with pint's `Quantity`. |
 | quantity value | `qudt:QuantityValue` (`numericValue` + `unit`) | quantity value (VIM 1.19) | `pint.Quantity` (`magnitude` + `units`) | `sympy.physics.units.Quantity` (not used) | OM `Measure` | MathModDB `numeric value` (rare); Wikidata P1181 *numeric value* | nomogram keeps pint's name `quantity` for parameters holding a pint object, and says "quantity value" in prose when the distinction matters. |
@@ -390,6 +390,14 @@ here, not worked around silently.
     QUDT writes `PPM-PER-K` and `PERCENT-PER-M`, without an IRI
     (`LOCAL_UNITS` of the extraction script), and the kind
     `VerticalRadioRefractivityGradient` under `InverseLength`.
+24. QUDT states no bound on the values of a kind: `qudt:lowerBound` and
+    `qudt:upperBound` belong to its schema of datatypes (ranges of
+    integers), and none of the vocabularies uses them (checked on 3.5.3
+    and on `main`, November 2026); a sign is only told, in text, by four
+    kinds of their own: `NonNegativeLength`, `PositiveLength`,
+    `PositiveDimensionlessRatio`, `PositivePlaneAngle`. nomogram declares
+    the bounds a definition admits (`KindBounds`), with their criterion,
+    in the extraction script for QUDT's kinds.
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

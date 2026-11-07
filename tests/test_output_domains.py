@@ -1,7 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Miki
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Validity domains that bound the output, and domains with an open end."""
+"""Validity domains that bound the output, and domains with an open end.
+
+The test formulations compute a pressure, a kind without bounds of its
+own, so that only the domains written here bound their values.
+"""
 
 import math
 
@@ -32,7 +36,7 @@ HEAD = """
 label = "{key}"
 expression = "{expression}"
 fixed_units = true
-output = {{ identifier = "{output}", kind = "VapourPressure", unit = "HectoPA", description = "out" }}
+output = {{ identifier = "{output}", kind = "Pressure", unit = "HectoPA", description = "out" }}
 inputs = [{{ identifier = "{input}", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }}]
 coefficients = {{ a = {a} }}
 """
@@ -167,7 +171,7 @@ def test_a_part_of_a_composition_gives_a_value_inside_its_domains() -> None:
 [formulations.c]
 label = "composed"
 composition = { outer = "f", inner = { t = "g" } }
-output = { identifier = "p", kind = "VapourPressure", unit = "HectoPA", description = "p" }
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "p" }
 """
     loaded = load(
         formulation(),
@@ -210,7 +214,7 @@ def test_the_domains_of_a_branch_bound_its_output_where_it_holds() -> None:
 [formulations.both]
 label = "both"
 branches = [{ formulation = "n", where = "t < 0" }, { formulation = "f", where = "t >= 0" }]
-output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }
+output = { identifier = "e", kind = "Pressure", unit = "HectoPA", description = "e" }
 """
     both = load(negative, formulation(), citation("f", "src", "e = [0, 10]"), branches)[
         "both"
@@ -225,7 +229,7 @@ def test_inversion_exchanges_the_domains_of_the_input_and_the_output() -> None:
         f,
         "t",
         output=Variable("T", "ThermodynamicTemperature", "K", "T"),
-        input=Variable("e", "VapourPressure", "HectoPA", "e"),
+        input=Variable("e", "Pressure", "HectoPA", "e"),
     )
     assert isinstance(inverse, Formulation)
     (domain,) = inverse.domains
@@ -246,7 +250,7 @@ def test_a_numerical_inverse_keeps_the_bound_on_the_output_of_its_source() -> No
         f,
         "t",
         output=Variable("t", "CelsiusTemperature", "DEG_C", "t"),
-        input=Variable("e", "VapourPressure", "HectoPA", "e"),
+        input=Variable("e", "Pressure", "HectoPA", "e"),
         method="numerical",
     )
     assert isinstance(inverse, NumericalInverse)
@@ -258,7 +262,7 @@ def test_a_numerical_inverse_keeps_the_bound_on_the_output_of_its_source() -> No
 def test_an_open_domain_is_not_a_search_interval() -> None:
     f = load(formulation(), citation("f", "src", "t = [0, inf]"))["f"]
     output = Variable("t", "CelsiusTemperature", "DEG_C", "t")
-    vapour = Variable("e", "VapourPressure", "HectoPA", "e")
+    vapour = Variable("e", "Pressure", "HectoPA", "e")
     with pytest.raises(ValueError, match="states no finite validity domain on t"):
         invert(f, "t", output=output, input=vapour, method="numerical")
     inverse = invert(

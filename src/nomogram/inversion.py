@@ -686,6 +686,11 @@ def invert(
         If the formulation cannot be inverted as asked.
     """
     _check(formulation, solve_for, output, input)
+    from nomogram.catalog import catalog
+
+    # The bounds of their kinds, as the catalog gives them to its variables.
+    output = replace(output, kind_bounds=catalog().bounds_of(output.kind))
+    input = replace(input, kind_bounds=catalog().bounds_of(input.kind))
     source_input = formulation.inputs[0]
     output = replace(
         output,

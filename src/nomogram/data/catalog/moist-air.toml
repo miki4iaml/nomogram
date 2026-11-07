@@ -46,6 +46,7 @@ description = "Specific humidity of air saturated with respect to a plane surfac
 [kinds.DryAirPressure]
 label = "Partial Pressure of Dry Air"
 specialization_of = "Pressure"
+bounds = { low = 0, high = inf, unit = "PA", criterion = "A partial pressure of a gas, never negative by its definition." }
 description = "Partial pressure of the dry air in moist air: the total pressure minus the vapour pressure."
 
 # Merged into QUDT on 2026-10-25 (qudt-public-repo pull request 1578),
@@ -61,11 +62,13 @@ matches = [
 [kinds.SpecificLatentHeatOfVaporization]
 label = "Specific Latent Heat of Vaporization"
 specialization_of = "SpecificLatentHeat"
+bounds = { low = 0, high = inf, unit = "J-PER-KiloGM", criterion = "Positive: vaporization absorbs heat, up to the critical point, where it vanishes." }
 description = "Latent heat of vaporization per unit mass, at a given temperature: the difference of the specific enthalpies of the vapour and of the liquid."
 
 [kinds.SpecificLatentHeatOfSublimation]
 label = "Specific Latent Heat of Sublimation"
 specialization_of = "SpecificLatentHeat"
+bounds = { low = 0, high = inf, unit = "J-PER-KiloGM", criterion = "Positive: sublimation absorbs heat." }
 description = "Latent heat of sublimation per unit mass, at a given temperature: the difference of the specific enthalpies of the vapour and of the solid."
 
 [kinds.SpecificLatentHeatOfFusion]

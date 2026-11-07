@@ -671,7 +671,8 @@ label = "gap"
 expression = "g(t=t_d) - e_w(t=t)"
 calls = { g = "g", e_w = "ew" }
 fixed_units = true
-output = { identifier = "d", kind = "VapourPressure", unit = "HectoPA", description = "d" }
+# A difference of vapour pressures, signed: no vapour pressure.
+output = { identifier = "d", kind = "Pressure", unit = "HectoPA", description = "d" }
 inputs = [{inputs}]
 
 [[formulations.gap.citations]]

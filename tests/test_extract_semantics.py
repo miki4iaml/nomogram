@@ -104,6 +104,30 @@ def test_links_read_after_the_extraction_date_keep_their_own(
     assert {m["verified"] for m in found["VapourPressure"]["matches"]} == {"2026-10-14"}
 
 
+def test_the_bounds_of_a_kind_are_written_with_an_open_end_as_null(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = KindSpec(
+        "ratio", delta=False, bounds=(0.0, None, "K", "Never below 0 K.")
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["ThermodynamicTemperature"]["bounds"] == {
+        "low": 0.0,
+        "high": None,
+        "unit": "K",
+        "criterion": "Never below 0 K.",
+    }
+    assert found["CelsiusTemperature"]["bounds"] is None
+    kinds["ThermodynamicTemperature"] = KindSpec(
+        "ratio", delta=False, bounds=(0.0, None, "DEG_C", "In the wrong unit.")
+    )
+    with pytest.raises(ValueError, match="DEG_C does not apply to it"):
+        run()
+
+
 def test_a_unit_qudt_lacks_is_declared_by_nomogram(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

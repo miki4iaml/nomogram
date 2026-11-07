@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ __all__ = [
     "CF_NAMESPACE",
     "CFStandardName",
     "ExternalMatch",
+    "KindBounds",
     "MatchRelation",
     "QuantityKind",
     "SemanticCatalog",
@@ -120,6 +122,32 @@ def _dimensions(vector: str) -> Mapping[str, int]:
 
 
 @dataclass(frozen=True)
+class KindBounds:
+    """The values a quantity kind admits by its definition, with the reason.
+
+    nomogram's addition: QUDT declares no bound on its kinds. A kind
+    inherits the bounds of the nearest kind it specializes that has some,
+    and may narrow them, never widen them; a kind of differences
+    (``delta``) has none.
+
+    Attributes
+    ----------
+    low, high : float
+        Closed interval in ``unit``; an open end is infinite.
+    unit : str
+        QUDT local name of the unit of the bounds, one that applies to the
+        kind.
+    criterion : str
+        Why the kind admits no other value: its definition.
+    """
+
+    low: float
+    high: float
+    unit: str
+    criterion: str
+
+
+@dataclass(frozen=True)
 class QuantityKind:
     """A quantity kind, from QUDT or defined by nomogram, with its scale typing.
 
@@ -155,6 +183,10 @@ class QuantityKind:
         Links to external vocabularies: a Wikidata item, CF standard
         names (in :data:`CF_NAMESPACE`), each with its SKOS relation and
         the date it was checked.
+    bounds : KindBounds or None
+        The values the kind admits by its definition, when it declares
+        them itself (nomogram's addition); see :class:`KindBounds` for the
+        bounds it inherits.
     """
 
     name: str
@@ -168,6 +200,7 @@ class QuantityKind:
     applicable_units: tuple[str, ...]
     added_units: tuple[str, ...]
     matches: tuple[ExternalMatch, ...]
+    bounds: KindBounds | None = None
 
     @property
     def cf_standard_names(self) -> tuple[str, ...]:
@@ -292,6 +325,15 @@ def _matches(items: list[dict[str, str]]) -> tuple[ExternalMatch, ...]:
     )
 
 
+def _bounds(data: dict[str, Any] | None) -> KindBounds | None:
+    """Bounds as the frozen subset writes them, an open end as null."""
+    if data is None:
+        return None
+    low = -math.inf if data["low"] is None else float(data["low"])
+    high = math.inf if data["high"] is None else float(data["high"])
+    return KindBounds(low, high, data["unit"], data["criterion"])
+
+
 def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
     return QuantityKind(
         name=name,
@@ -305,6 +347,7 @@ def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
         applicable_units=tuple(data["applicable_units"]),
         added_units=tuple(data["added_units"]),
         matches=_matches(data["matches"]),
+        bounds=_bounds(data.get("bounds")),
     )
 
 
