@@ -113,6 +113,69 @@ container = "Academic Press, New York"
 status = "to-confirm"
 note = "Credited by Businger (1985, equation 41) with phi_u = (1 - alpha Ri)^(-1/4); not read."
 
+[references.ecmwf_ifs_cy49r1_part7]
+authors = "ECMWF"
+year = 2024
+title = "IFS Documentation CY49R1 - Part VII: ECMWF Wave Model"
+doi = "10.21957/8315ddc858"
+url = "https://www.ecmwf.int/en/elibrary/81629-ifs-documentation-cy49r1-part-vii-ecmwf-wave-model"
+status = "verified"
+note = "CC BY 4.0. Section 3.2 read: the background roughness z_b of gravity-capillary waves, alpha^ u_*^2/g until CY49R1 (3.11), then computed from a simple model of the gravity-capillary spectrum. DOI checked with DataCite on 2026-11-07."
+
+[references.ecmwf_ifs_cy50r1_part7]
+authors = "ECMWF"
+year = 2026
+title = "IFS Documentation CY50R1 - Part 7: ECMWF Wave Model"
+doi = "10.21957/d8a284ca2a"
+url = "https://www.ecmwf.int/en/elibrary/81737-ifs-documentation-cy50r1-part-7-ecmwf-wave-model"
+status = "verified"
+note = "CC BY 4.0. Section 3.2 read (pp. 14-16): z_o = z_b / (1 - tau_w/tau_a)^(1/2) (3.9); z_b = alpha^ u_*^2/g until CY49R1 (3.11), alpha^ = 0.0095 before CY38R1 and 0.0060 from CY38R1 to CY46R1 (3.23, 3.24), a function of the wind at 10 m from CY47R1 (3.15, 3.25); the Charnock parameter alpha = alpha^ / (1 - tau_w/tau_a)^(1/2) (3.13), 'not constant'; for old wind sea its mean, 0.0165, agrees with the observations collected by Wu (1982). DOI checked with DataCite on 2026-11-07."
+
+[references.charnock1955]
+authors = "Charnock, H."
+year = 1955
+title = "Wind stress on a water surface"
+container = "Quarterly Journal of the Royal Meteorological Society, 81, 639-640"
+doi = "10.1002/qj.49708135027"
+status = "to-confirm"
+note = "The relation z_0 = alpha u_*^2/g, as the AMS Glossary of Meteorology, Businger (1985, equation 20) and Edson et al. (2013, equation 8) quote it; not read."
+
+[references.ams_glossary_charnock]
+authors = "American Meteorological Society"
+year = 2026
+title = "Charnock's relation"
+container = "Glossary of Meteorology"
+url = "https://glossary.ametsoc.org/wiki/charnock-s-relation/"
+status = "verified"
+note = "Read on 2026-11-07: z_0 = alpha_c u_*^2/g over the ocean, alpha_c about 0.015 the Charnock parameter."
+
+[references.edson2013]
+authors = "Edson, J. B., Jampana, V., Weller, R. A., Bigorre, S. P., Plueddemann, A. J., Fairall, C. W., Miller, S. D., Mahrt, L., Vickers, D. and Hersbach, H."
+year = 2013
+title = "On the exchange of momentum over the open ocean"
+container = "Journal of Physical Oceanography, 43, 1589-1610"
+doi = "10.1175/JPO-D-12-0173.1"
+status = "verified"
+note = "Read: the smooth-flow roughness length gamma nu/u_*, gamma = 0.11 'the roughness Reynolds number for smooth flow' from laboratory experiments (7, p. 1595); Charnock's relation (8); their sum (11, p. 1596); the Charnock coefficient of COARE 3.5, alpha = m U_10N + b, fitted between 7 and 18 m/s, levelling off above at about 0.028 (13, pp. 1597-1598), m being printed 0.017 where the corrigendum (2014) gives 0.0017. DOI checked with Crossref on 2026-11-07."
+
+[references.edson2014]
+authors = "Edson, J. B., Jampana, V., Weller, R. A., Bigorre, S. P., Plueddemann, A. J., Fairall, C. W., Miller, S. D., Mahrt, L., Vickers, D. and Hersbach, H."
+year = 2014
+title = "Corrigendum"
+container = "Journal of Physical Oceanography, 44, 2590"
+doi = "10.1175/JPO-D-14-0140.1"
+status = "verified"
+note = "Read: in the abstract and on p. 1598 of Edson et al. (2013), m = 0.0017, not 0.017. DOI checked with Crossref on 2026-11-07."
+
+[references.fairall2003]
+authors = "Fairall, C. W., Bradley, E. F., Hare, J. E., Grachev, A. A. and Edson, J. B."
+year = 2003
+title = "Bulk parameterization of air-sea fluxes: updates and verification for the COARE algorithm"
+container = "Journal of Climate, 16, 571-591"
+doi = "10.1175/1520-0442(2003)016<0571:BPOASF>2.0.CO;2"
+status = "verified"
+note = "Read: the roughness Reynolds number R_r = z_o u_*/nu (p. 573); the Charnock parameter of COARE 3.0, 0.011 up to U_10n = 10 m/s, rising linearly to 0.018 at 18 m/s, constant beyond (p. 577, figure 1), where p. 578 writes 'the 12-18 m/s range'; the moisture roughness length z_oq = min(1.1e-4, 5.5e-5 R_r^-0.6), the same for temperature (28, pp. 579-580). DOI checked with Crossref on 2026-11-07."
+
 [references.businger1966]
 authors = "Businger, J. A."
 year = 1966
@@ -368,6 +431,36 @@ matches = [
 label = "Gradient Richardson Number"
 specialization_of = "DimensionlessRatio"
 description = "Ratio of buoyancy to wind shear at a height, (g/theta) (dtheta/dz) / (du/dz)^2, from the vertical gradients themselves: z/L Phi_H / Phi_M^2 in the surface layer (Dyer and Hicks 1970). Not the bulk Richardson number, from differences across a layer."
+
+[kinds.CharnockCoefficient]
+label = "Charnock Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "The roughness length of the sea surface for rough flow, normalized by the friction velocity and the acceleration of gravity, alpha = g z_0 / u_*^2 (Charnock 1955); also named the Charnock parameter (trade term), the dimensionless form of an inverse Froude number (Edson et al. 2013)."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "g z_0 / u_*^2, from a roughness length: never negative." }
+
+[kinds.BackgroundRoughnessLength]
+label = "Background Roughness Length"
+specialization_of = "Length"
+description = "The part of the roughness length of the sea surface due to the short gravity-capillary waves, z_b, which the stress the longer waves support enhances into the roughness length for momentum, z_0 = z_b / (1 - tau_w/tau_a)^(1/2) (IFS wave model): not the roughness length itself."
+bounds = { low = 0, high = inf, unit = "M", criterion = "A part of a roughness length, never negative." }
+
+[kinds.BackgroundCharnockCoefficient]
+label = "Background Charnock Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "The coefficient of the Charnock relation for the background roughness of gravity-capillary waves, alpha^ = g z_b / u_*^2 (IFS wave model until CY49R1): not the Charnock coefficient of the roughness length, which the wave stress enhances."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "g z_b / u_*^2, from a part of a roughness length: never negative." }
+
+[kinds.RoughnessReynoldsNumber]
+label = "Roughness Reynolds Number"
+specialization_of = "DimensionlessRatio"
+description = "The roughness length times the friction velocity over the kinematic viscosity of the fluid, R_r = z_0 u_*/nu: smooth flow below about 0.13, rough flow above about 2.5 (Businger 1985). Businger (1985) also calls u_*^3/(nu g) a roughness Reynolds number."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "z_0 u_*/nu, of quantities never negative." }
+
+[kinds.EquivalentNeutralWindSpeed]
+label = "Equivalent Neutral Wind Speed"
+specialization_of = "Speed"
+description = "The wind speed the surface layer would have at a height, 10 m in most sources, for its friction velocity and roughness length in neutral conditions, u_*/kappa ln(z/z_0): not a speed of the air, which departs from it with stability."
+bounds = { low = 0, high = inf, unit = "M-PER-SEC", criterion = "A speed, never negative." }
 
 [kinds.SurfaceDragCoefficientForMomentum]
 label = "Surface Drag Coefficient for Momentum"
@@ -1512,11 +1605,16 @@ assumptions = ["A smooth sea surface at low wind speed, the Charnock relation at
 reference = "beljaars1995"
 note = "As the IFS quotes it; the constant alpha_M after Brutsaert (1982)."
 
+[[formulations.ecmwf_ifs_roughness_length_momentum_sea.citations]]
+reference = "beljaars1992"
+equation = "71"
+note = "p. 29, combining the smooth-surface limit with the conclusions of Smith (1988); nu not given."
+
 [formulations.ecmwf_ifs_roughness_length_heat_sea]
 label = "Roughness length for heat over sea, smooth surface (IFS before CY49R1)"
 expression = "alpha_H * nu / u_s"
 fixed_units = false
-note = "Equation 3.28, the smooth-surface form the IFS kept for heat at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, not entered)."
+note = "Equation 3.28, the smooth-surface form the IFS kept for heat at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, ecmwf_ifs_roughness_length_heat_sea_state), which 3.34 approximates (ecmwf_ifs_roughness_length_heat_sea_simplified)."
 output = { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" }
 inputs = [
   { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
@@ -1538,7 +1636,7 @@ note = "The constant alpha_H, as the IFS quotes it."
 label = "Roughness length for humidity over sea, smooth surface (IFS before CY49R1)"
 expression = "alpha_Q * nu / u_s"
 fixed_units = false
-note = "Equation 3.28, the smooth-surface form the IFS kept for moisture at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, not entered)."
+note = "Equation 3.28, the smooth-surface form the IFS kept for moisture at high wind speed until CY49R1; from CY49R1, a dependency on the sea state is added (equations 3.30 to 3.32, ecmwf_ifs_roughness_length_humidity_sea_state), which 3.34 approximates (ecmwf_ifs_roughness_length_humidity_sea_simplified)."
 output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
 inputs = [
   { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
@@ -1555,6 +1653,439 @@ notation = { z_0Q = 'z_{0\mathrm{Q}}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\n
 [[formulations.ecmwf_ifs_roughness_length_humidity_sea.citations]]
 reference = "brutsaert1982"
 note = "The constant alpha_Q, as the IFS quotes it."
+
+# --- Roughness of the sea surface: Charnock and the roughness Reynolds
+# number ----------------------------------------------------------------
+
+[formulations.charnock1955_roughness_length]
+label = "Roughness length for momentum over sea, Charnock's relation"
+expression = "alpha * u_s**2 / g"
+fixed_units = false
+note = "The rough-flow roughness length, the Charnock coefficient alpha given; Businger (1985) gives 0.013 < alpha < 0.018 from experiments and takes 0.015, the AMS Glossary about 0.015 (businger1985_roughness_length_charnock). Edson et al. (2013) and COARE make alpha a function of the wind (edson2013_charnock_coefficient, coare36_charnock_coefficient)."
+output = { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" }
+inputs = [
+  { identifier = "alpha", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+]
+keywords = ["roughness length", "Charnock", "sea surface"]
+
+[[formulations.charnock1955_roughness_length.citations]]
+reference = "ams_glossary_charnock"
+notation = { z_0M = 'z_0', alpha = '\alpha_c', u_s = 'u_*', g = 'g' }
+
+[[formulations.charnock1955_roughness_length.citations]]
+reference = "businger1985"
+equation = "20"
+note = "p. 11, a constant of proportionality, 0.013 < a < 0.018 from experiments."
+notation = { z_0M = 'z_0', alpha = 'a', u_s = 'u_*', g = 'g' }
+
+[[formulations.charnock1955_roughness_length.citations]]
+reference = "edson2013"
+equation = "8"
+note = "p. 1595, the rough-flow component."
+notation = { z_0M = 'z_0^\mathrm{rough}', alpha = '\alpha', u_s = 'u_*', g = 'g' }
+
+[[formulations.charnock1955_roughness_length.citations]]
+reference = "charnock1955"
+note = "As the AMS Glossary, Businger (1985) and Edson et al. (2013) quote it."
+
+[formulations.businger1985_roughness_length_charnock]
+label = "Roughness length for momentum over sea, Charnock's relation with a = 0.015 (Businger 1985)"
+expression = "a * u_s**2 / g"
+fixed_units = false
+note = "With nu = 1.5e-5 m2/s and g = 9.8 m/s2, the flow is rough for u_* > 0.29 m/s, where z_0 = 1.3e-4 m, and smooth below 0.11 m/s (p. 11)."
+output = { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+]
+coefficients = { a = 0.015 }
+keywords = ["roughness length", "Charnock", "sea surface", "Businger"]
+
+[[formulations.businger1985_roughness_length_charnock.citations]]
+reference = "businger1985"
+equation = "20"
+note = "p. 11, using a = 0.015."
+notation = { z_0M = 'z_0', a = 'a', u_s = 'u_*', g = 'g' }
+
+[[formulations.businger1985_roughness_length_charnock.citations.domains]]
+bounds = { u_s = [0.29, inf] }
+criterion = "Rough flow, Rr > 2.5 after Nikuradse's criterion, which Charnock's relation with a = 0.015 meets for u_* > 0.29 m/s (p. 11)."
+
+[[formulations.businger1985_roughness_length_charnock.citations]]
+reference = "ams_glossary_charnock"
+note = "alpha_c about 0.015."
+
+[formulations.edson2013_roughness_length_momentum]
+label = "Roughness length for momentum over sea, smooth and rough flow (Edson et al. 2013)"
+expression = "gamma * nu / u_s + alpha * u_s**2 / g"
+fixed_units = false
+note = "Equation 11, the sum of the smooth-flow form (7), gamma = 0.11 from laboratory experiments, and of Charnock's relation (8): the form of the IFS (ecmwf_ifs_roughness_length_momentum_sea), with alpha and nu given."
+output = { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" }
+inputs = [
+  { identifier = "alpha", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of the air" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+]
+coefficients = { gamma = 0.11 }
+keywords = ["roughness length", "Charnock", "sea surface", "COARE", "Edson"]
+
+[[formulations.edson2013_roughness_length_momentum.citations]]
+reference = "edson2013"
+equation = "11"
+note = "p. 1596."
+notation = { z_0M = 'z_0', gamma = '\gamma', nu = '\nu', u_s = 'u_*', alpha = '\alpha', g = 'g' }
+
+[[formulations.edson2013_roughness_length_momentum.citations]]
+reference = "coare36"
+note = "Line 483, zo = charn*usr**2/grav + 0.11*visa/usr."
+
+[formulations.edson2013_charnock_coefficient]
+label = "Charnock coefficient from the equivalent neutral wind at 10 m, COARE 3.5 (Edson et al. 2013)"
+expression = "m * U_10N + b"
+fixed_units = true
+note = "Equation 13, m printed 0.017 m^-1 s and corrected to 0.0017 by the corrigendum (Edson et al. 2014). Above 18 m/s the coefficient 'appears to level off' and 'can be modeled by a constant value given by alpha_max of about 0.028' (p. 1598), 'around 19 m/s' (p. 1603); the code of COARE 3.6 caps the line at 19 m/s instead (coare36_charnock_coefficient)."
+output = { identifier = "alpha", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { m = { value = 0.0017, note = "In s/m; printed 0.017, corrected by Edson et al. (2014)." }, b = -0.005 }
+keywords = ["Charnock", "sea surface", "COARE", "Edson"]
+
+[[formulations.edson2013_charnock_coefficient.citations]]
+reference = "edson2013"
+equation = "13"
+note = "p. 1598; U_10N relative to the surface current (figure 6)."
+notation = { alpha = '\alpha', m = 'm', U_10N = 'U_{10N}', b = 'b' }
+
+[[formulations.edson2013_charnock_coefficient.citations.domains]]
+bounds = { U_10N = [7, 18] }
+criterion = "Fitted on the bin averages between 7 and 18 m/s: the sea is taken as fully rough above 7 m/s, and the coefficient appears to level off above 18 m/s (pp. 1597-1598)."
+
+[[formulations.edson2013_charnock_coefficient.citations]]
+reference = "edson2014"
+note = "The corrected value of m."
+
+[formulations.coare36_charnock_coefficient]
+label = "Charnock coefficient from the equivalent neutral wind at 10 m (COARE 3.6)"
+expression = "piecewise((a_1 * U_10N + a_2, U_10N <= U_max), (a_1 * U_max + a_2, U_10N > U_max))"
+fixed_units = true
+note = "The line of Edson et al. (2013, equation 13, m corrected), capped at U_max = 19 m/s (alpha = 0.0273), a step of the algorithm, not a domain; below 2.94 m/s it gives a negative coefficient, beyond the bounds of the kind, which the smooth-flow term of the code's roughness length compensates."
+output = { identifier = "alpha", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { a_1 = 0.0017, a_2 = -0.005, U_max = 19 }
+keywords = ["Charnock", "sea surface", "COARE"]
+
+[[formulations.coare36_charnock_coefficient.citations]]
+reference = "coare36"
+note = "Lines 452 to 460 and 587 to 590, with u10N = usr/von/gf ln(10/zo) in the loop."
+notation = { alpha = '\mathrm{charnC}', U_10N = 'u_{10N}', a_1 = 'a_1', a_2 = 'a_2', U_max = 'u_\mathrm{max}' }
+
+[formulations.fairall2003_charnock_coefficient]
+label = "Charnock coefficient from the equivalent neutral wind at 10 m, COARE 3.0 (Fairall et al. 2003)"
+expression = "piecewise((alpha_1, U_10N <= U_1), (alpha_1 + (alpha_2 - alpha_1) * (U_10N - U_1) / (U_2 - U_1), U_1 < U_10N < U_2), (alpha_2, U_10N >= U_2))"
+fixed_units = true
+note = "0.011, the value of Smith (1988), up to 10 m/s, then linear to 0.018 at 18 m/s, constant beyond 'for lack of better information' (p. 577, figure 1); p. 578 writes 'the 12-18 m/s range as described above'."
+output = { identifier = "alpha", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { alpha_1 = 0.011, alpha_2 = 0.018, U_1 = 10, U_2 = 18 }
+keywords = ["Charnock", "sea surface", "COARE", "Fairall"]
+
+[[formulations.fairall2003_charnock_coefficient.citations]]
+reference = "fairall2003"
+note = "p. 577 and figure 1, in the text."
+notation = { alpha = '\alpha', U_10N = 'U_{10n}' }
+
+[formulations.roughness_reynolds_number]
+label = "Roughness Reynolds number, by its definition"
+nature = "definition"
+expression = "z_0M * u_s / nu"
+fixed_units = false
+output = { identifier = "R_r", kind = "RoughnessReynoldsNumber", unit = "UNITLESS", description = "Roughness Reynolds number" }
+inputs = [
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of the air" },
+]
+keywords = ["roughness Reynolds number", "roughness length", "sea surface"]
+
+[[formulations.roughness_reynolds_number.citations]]
+reference = "fairall2003"
+note = "p. 573."
+notation = { R_r = 'R_r', z_0M = 'z_o', u_s = 'u_*', nu = '\nu' }
+
+[[formulations.roughness_reynolds_number.citations]]
+reference = "businger1985"
+note = "p. 11: smooth flow for Rr < 0.13, rough flow for Rr > 2.5."
+notation = { R_r = 'Rr', z_0M = 'z_0', u_s = 'u_*', nu = '\nu' }
+
+[[formulations.roughness_reynolds_number.citations]]
+reference = "coare36"
+note = "Line 485, rr = zo*usr/visa."
+
+[formulations.fairall2003_roughness_length_humidity]
+label = "Roughness length for humidity over sea from the roughness Reynolds number, COARE 3.0 (Fairall et al. 2003)"
+expression = "piecewise((A, R_r <= R_x), (B * R_r ** (-p), R_r > R_x))"
+fixed_units = true
+note = "Equation 28, z_oq = min(1.1e-4, 5.5e-5 R_r^-0.6), in metres. R_x = (B/A)^(1/p) is where the two forms meet: the pieces write the minimum of the source."
+output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
+inputs = [
+  { identifier = "R_r", kind = "RoughnessReynoldsNumber", unit = "UNITLESS", description = "Roughness Reynolds number" },
+]
+coefficients = { A = 0.00011, B = 5.5e-05, p = 0.6, R_x = { value = 0.3149802624737183, note = "(B/A)^(1/p), computed by nomogram." } }
+keywords = ["roughness length", "sea surface", "COARE", "Fairall"]
+
+[[formulations.fairall2003_roughness_length_humidity.citations]]
+reference = "fairall2003"
+equation = "28"
+note = "p. 579, an empirical fit to the COARE-plus and HEXOS data."
+notation = { z_0Q = 'z_{oq}', R_r = 'R_r' }
+
+[formulations.fairall2003_roughness_length_heat]
+label = "Roughness length for temperature over sea from the roughness Reynolds number, COARE 3.0 (Fairall et al. 2003)"
+expression = "piecewise((A, R_r <= R_x), (B * R_r ** (-p), R_r > R_x))"
+fixed_units = true
+note = "Equation 28, the same relationship as for humidity (p. 580), in metres. R_x = (B/A)^(1/p) is where the two forms meet: the pieces write the minimum of the source."
+output = { identifier = "z_0T", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for temperature" }
+inputs = [
+  { identifier = "R_r", kind = "RoughnessReynoldsNumber", unit = "UNITLESS", description = "Roughness Reynolds number" },
+]
+coefficients = { A = 0.00011, B = 5.5e-05, p = 0.6, R_x = { value = 0.3149802624737183, note = "(B/A)^(1/p), computed by nomogram." } }
+keywords = ["roughness length", "sea surface", "COARE", "Fairall"]
+
+[[formulations.fairall2003_roughness_length_heat.citations]]
+reference = "fairall2003"
+equation = "28"
+note = "pp. 579-580, 'the same relationship' as for moisture."
+notation = { z_0T = 'z_{ot}', R_r = 'R_r' }
+
+[formulations.coare36_roughness_length_humidity]
+label = "Roughness length for humidity over sea from the roughness Reynolds number (COARE 3.6)"
+expression = "piecewise((A, R_r <= R_x), (B * R_r ** (-p), R_r > R_x))"
+fixed_units = true
+note = "As coded, min(1.6e-4, 5.8e-5 R_r^-0.72), in metres: it departs from equation 28 of Fairall et al. (2003, fairall2003_roughness_length_humidity) by +45 % on the plateaus, -20 % at R_r = 10, -39 % at R_r = 100; no printed source of these numbers was found. R_x = (B/A)^(1/p) is where the two forms meet: the pieces write the minimum of the source."
+output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
+inputs = [
+  { identifier = "R_r", kind = "RoughnessReynoldsNumber", unit = "UNITLESS", description = "Roughness Reynolds number" },
+]
+coefficients = { A = 0.00016, B = 5.8e-05, p = 0.72, R_x = { value = 0.2443024334538383, note = "(B/A)^(1/p), computed by nomogram." } }
+keywords = ["roughness length", "sea surface", "COARE"]
+
+[[formulations.coare36_roughness_length_humidity.citations]]
+reference = "coare36"
+note = "Line 489, zoq = min(0.00016, 5.8e-05/rr**0.72), 'close to COARE 3.0 value'."
+notation = { z_0Q = 'z_{oq}', R_r = 'r_r' }
+
+[formulations.coare36_roughness_length_heat]
+label = "Roughness length for temperature over sea from the roughness Reynolds number (COARE 3.6)"
+expression = "piecewise((A, R_r <= R_x), (B * R_r ** (-p), R_r > R_x))"
+fixed_units = true
+note = "As coded, the same as for humidity (coare36_roughness_length_humidity), in metres. R_x = (B/A)^(1/p) is where the two forms meet: the pieces write the minimum of the source."
+output = { identifier = "z_0T", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for temperature" }
+inputs = [
+  { identifier = "R_r", kind = "RoughnessReynoldsNumber", unit = "UNITLESS", description = "Roughness Reynolds number" },
+]
+coefficients = { A = 0.00016, B = 5.8e-05, p = 0.72, R_x = { value = 0.2443024334538383, note = "(B/A)^(1/p), computed by nomogram." } }
+keywords = ["roughness length", "sea surface", "COARE"]
+
+[[formulations.coare36_roughness_length_heat.citations]]
+reference = "coare36"
+note = "Line 501, zot = zoq."
+notation = { z_0T = 'z_{ot}', R_r = 'r_r' }
+
+[formulations.ecmwf_ifs_roughness_length_heat_sea_state]
+label = "Roughness length for heat over sea, with the sea state (IFS from CY49R1)"
+expression = "sqrt((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2))**2) ** ((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2))) / ((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2)) - (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2)))) * sqrt((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2))**2) ** ((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2))) / ((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2)) - (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_H * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_H * nu / u_s)**2))))"
+fixed_units = true
+note = "Equations 3.30 to 3.32, after Janssen (1997) and Janssen and Bidlot (2018), in SI units: z_m = beta_hq (alpha_Ch u_*^2/g - z_b), z_nu = alpha_H nu/u_*, z_+- = -(z_m + 0.5 z_nu) +- (z_m^2 + (0.5 z_nu)^2)^(1/2), and z_0H = f_zz(z_m, z_+, z_-) f_zz(z_m, z_-, z_+) with f_zz(z_m, a, b) = |a|^((z_m + a)/(a - b)), |a| written (a^2)^(1/2). With z_m = 0 it is the smooth-surface length z_nu (ecmwf_ifs_roughness_length_heat_sea); 3.34 approximates it (ecmwf_ifs_roughness_length_heat_sea_simplified). alpha_Ch and z_b come from the wave model; without it, alpha_Ch = 0.018."
+output = { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "alpha_Ch", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient, from the wave model" },
+  { identifier = "z_b", kind = "BackgroundRoughnessLength", unit = "M", description = "Background roughness of gravity-capillary waves, from the wave model" },
+]
+coefficients = { beta_hq = 0.25, alpha_H = 0.4 }
+constants = ["nu_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["roughness length", "sea surface", "sea state", "Charnock", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_heat_sea_state.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.30-3.32"
+notation = { z_0H = 'z_{0\mathrm{H}}', beta_hq = '\beta_{\mathrm{hq}}', alpha_Ch = '\alpha_{\mathrm{Ch}}', u_s = 'u_*', g_n = 'g', z_b = 'z_\mathrm{b}', alpha_H = '\alpha_{\mathrm{H}}', nu = '\nu' }
+assumptions = ["beta_hq = 0.25 is 'a tuning coefficient added to the original formulation of (Janssen, 1997)' (p. 51 of CY49R1)."]
+
+[[formulations.ecmwf_ifs_roughness_length_heat_sea_state.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.30-3.32"
+note = "pp. 52-53, unchanged from CY49R1."
+
+[formulations.ecmwf_ifs_roughness_length_humidity_sea_state]
+label = "Roughness length for humidity over sea, with the sea state (IFS from CY49R1)"
+expression = "sqrt((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2))**2) ** ((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2))) / ((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2)) - (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2)))) * sqrt((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2))**2) ** ((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2))) / ((-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) - sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2)) - (-(beta_hq * (alpha_Ch * u_s**2 / g_n - z_b) + 0.5 * alpha_Q * nu / u_s) + sqrt((beta_hq * (alpha_Ch * u_s**2 / g_n - z_b))**2 + (0.5 * alpha_Q * nu / u_s)**2))))"
+fixed_units = true
+note = "Equations 3.30 to 3.32, after Janssen (1997) and Janssen and Bidlot (2018), in SI units: z_m = beta_hq (alpha_Ch u_*^2/g - z_b), z_nu = alpha_Q nu/u_*, z_+- = -(z_m + 0.5 z_nu) +- (z_m^2 + (0.5 z_nu)^2)^(1/2), and z_0Q = f_zz(z_m, z_+, z_-) f_zz(z_m, z_-, z_+) with f_zz(z_m, a, b) = |a|^((z_m + a)/(a - b)), |a| written (a^2)^(1/2). With z_m = 0 it is the smooth-surface length z_nu (ecmwf_ifs_roughness_length_humidity_sea); 3.34 approximates it (ecmwf_ifs_roughness_length_humidity_sea_simplified). alpha_Ch and z_b come from the wave model; without it, alpha_Ch = 0.018."
+output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "alpha_Ch", kind = "CharnockCoefficient", unit = "UNITLESS", description = "Charnock coefficient, from the wave model" },
+  { identifier = "z_b", kind = "BackgroundRoughnessLength", unit = "M", description = "Background roughness of gravity-capillary waves, from the wave model" },
+]
+coefficients = { beta_hq = 0.25, alpha_Q = 0.62 }
+constants = ["nu_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["roughness length", "sea surface", "sea state", "Charnock", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_humidity_sea_state.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.30-3.32"
+notation = { z_0Q = 'z_{0\mathrm{Q}}', beta_hq = '\beta_{\mathrm{hq}}', alpha_Ch = '\alpha_{\mathrm{Ch}}', u_s = 'u_*', g_n = 'g', z_b = 'z_\mathrm{b}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\nu' }
+assumptions = ["beta_hq = 0.25 is 'a tuning coefficient added to the original formulation of (Janssen, 1997)' (p. 51 of CY49R1)."]
+
+[[formulations.ecmwf_ifs_roughness_length_humidity_sea_state.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.30-3.32"
+note = "pp. 52-53, unchanged from CY49R1."
+
+[formulations.ecmwf_wam_background_roughness_length]
+label = "Background roughness length of gravity-capillary waves, Charnock relation (IFS wave model until CY49R1)"
+expression = "alpha_hat * u_s**2 / g_n"
+fixed_units = false
+note = "Equation 3.11 of part VII (3.33 of part IV): alpha^ was 0.0095 before CY38R1, 0.0060 from CY38R1 to CY46R1 (part VII, 3.23 and 3.24), and a function of the wind at 10 m from CY47R1 (ecmwf_wam_background_charnock_coefficient); since CY49R1, z_b comes from a simple model of the gravity-capillary spectrum instead."
+output = { identifier = "z_b", kind = "BackgroundRoughnessLength", unit = "M", description = "Background roughness of gravity-capillary waves" }
+inputs = [
+  { identifier = "alpha_hat", kind = "BackgroundCharnockCoefficient", unit = "UNITLESS", description = "Background Charnock coefficient" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+]
+constants = ["g_n_cgpm1901"]
+keywords = ["roughness length", "sea surface", "sea state", "Charnock", "wave model", "IFS"]
+
+[[formulations.ecmwf_wam_background_roughness_length.citations]]
+reference = "ecmwf_ifs_cy50r1_part7"
+equation = "3.11"
+note = "p. 14."
+notation = { z_b = 'z_b', alpha_hat = '\hat{\alpha}', u_s = 'u_*', g_n = 'g' }
+
+[[formulations.ecmwf_wam_background_roughness_length.citations]]
+reference = "ecmwf_ifs_cy49r1_part7"
+equation = "3.11"
+
+[[formulations.ecmwf_wam_background_roughness_length.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.33"
+note = "p. 53, 'until CY49R1'."
+
+[formulations.ecmwf_wam_background_charnock_coefficient]
+label = "Background Charnock coefficient from the wind at 10 m (IFS wave model from CY47R1 until CY49R1)"
+expression = "alpha_min + 0.5 * (alpha_o - alpha_min) * (1 - tanh(U_10 - 33))"
+fixed_units = true
+note = "Equation 3.15 of part VII, with the values found 'by trial and error' since CY47R1 (3.25): alpha^ falls from alpha^_o under strong tropical winds, above 33 m/s, to reduce the Charnock parameter there; replaced with CY49R1 by a direct calculation of z_b."
+output = { identifier = "alpha_hat", kind = "BackgroundCharnockCoefficient", unit = "UNITLESS", description = "Background Charnock coefficient" }
+inputs = [
+  { identifier = "U_10", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at 10 m" },
+]
+coefficients = { alpha_o = 0.0060, alpha_min = 0.0001 }
+keywords = ["Charnock", "sea surface", "sea state", "wave model", "IFS"]
+
+[[formulations.ecmwf_wam_background_charnock_coefficient.citations]]
+reference = "ecmwf_ifs_cy50r1_part7"
+equation = "3.15"
+note = "p. 15; the values of equation 3.25, p. 16."
+notation = { alpha_hat = '\hat{\alpha}', alpha_min = '\hat{\alpha}_\mathrm{min}', alpha_o = '\hat{\alpha}_o', U_10 = 'U_{10}' }
+
+[[formulations.ecmwf_wam_background_charnock_coefficient.citations]]
+reference = "ecmwf_ifs_cy49r1_part7"
+equation = "3.15"
+
+[formulations.beljaars1992_roughness_length_heat]
+label = "Roughness length for heat over sea (Beljaars 1992)"
+expression = "z_c + alpha_H * nu / u_s"
+fixed_units = true
+note = "Equation 72, in metres: the smooth-surface limit and a constant, after the conclusions of Smith (1988); nu not given."
+output = { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of the air" },
+]
+coefficients = { z_c = 1.4e-5, alpha_H = 0.40 }
+keywords = ["roughness length", "sea surface", "Beljaars"]
+
+[[formulations.beljaars1992_roughness_length_heat.citations]]
+reference = "beljaars1992"
+equation = "72"
+note = "p. 29."
+notation = { z_0H = 'z_{0H}', nu = '\nu', u_s = 'u_*' }
+
+[formulations.beljaars1992_roughness_length_humidity]
+label = "Roughness length for humidity over sea (Beljaars 1992)"
+expression = "z_c + alpha_Q * nu / u_s"
+fixed_units = true
+note = "Equation 73, in metres: the smooth-surface limit and a constant, after the conclusions of Smith (1988); nu not given."
+output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of the air" },
+]
+coefficients = { z_c = 1.3e-4, alpha_Q = 0.62 }
+keywords = ["roughness length", "sea surface", "Beljaars"]
+
+[[formulations.beljaars1992_roughness_length_humidity.citations]]
+reference = "beljaars1992"
+equation = "73"
+note = "p. 29."
+notation = { z_0Q = 'z_{0Q}', nu = '\nu', u_s = 'u_*' }
+
+[formulations.ecmwf_ifs_roughness_length_heat_sea_simplified]
+label = "Roughness length for heat over sea, sea-state approximation (IFS from CY49R1)"
+expression = "sqrt(alpha_H * nu / u_s * z_0M)"
+fixed_units = false
+note = "Equation 3.34, the geometric mean of the smooth-surface length z_nu = alpha_H nu/u_* (3.30) and of the roughness length for momentum, the approximation of 3.31 by Janssen and Bidlot (2018) used for the simplified physics (tangent linear and adjoint)."
+output = { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { alpha_H = 0.40 }
+constants = ["nu_ecmwf_ifs"]
+keywords = ["roughness length", "sea surface", "sea state", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_heat_sea_simplified.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.34"
+notation = { z_0H = 'z_{0\mathrm{H}}', alpha_H = '\alpha_{\mathrm{H}}', nu = '\nu', u_s = 'u_*', z_0M = 'z_{0\mathrm{M}}' }
+
+[[formulations.ecmwf_ifs_roughness_length_heat_sea_simplified.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.34"
+note = "p. 53, unchanged from CY49R1."
+
+[formulations.ecmwf_ifs_roughness_length_humidity_sea_simplified]
+label = "Roughness length for humidity over sea, sea-state approximation (IFS from CY49R1)"
+expression = "sqrt(alpha_Q * nu / u_s * z_0M)"
+fixed_units = false
+note = "Equation 3.34, the geometric mean of the smooth-surface length z_nu = alpha_Q nu/u_* (3.30) and of the roughness length for momentum, the approximation of 3.31 by Janssen and Bidlot (2018) used for the simplified physics (tangent linear and adjoint)."
+output = { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { alpha_Q = 0.62 }
+constants = ["nu_ecmwf_ifs"]
+keywords = ["roughness length", "sea surface", "sea state", "IFS"]
+
+[[formulations.ecmwf_ifs_roughness_length_humidity_sea_simplified.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.34"
+notation = { z_0Q = 'z_{0\mathrm{Q}}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\nu', u_s = 'u_*', z_0M = 'z_{0\mathrm{M}}' }
+
+[[formulations.ecmwf_ifs_roughness_length_humidity_sea_simplified.citations]]
+reference = "ecmwf_ifs_cy50r1_part4"
+equation = "3.34"
+note = "p. 53, unchanged from CY49R1."
 
 [formulations.ecmwf_ifs_roughness_length_momentum_sea_ice]
 label = "Roughness length for momentum over sea ice, from the sea ice concentration (IFS)"
@@ -1807,6 +2338,16 @@ reference = "koschmieder1924"
 note = "The liminal contrast, as the IFS quotes it."
 
 # --- Trade terms ------------------------------------------------------
+
+[trade_terms.charnock_parameter]
+term = "Charnock parameter"
+language = "en"
+
+[[trade_terms.charnock_parameter.meanings]]
+community = "meteorology (AMS Glossary), air-sea fluxes (COARE)"
+kind = "CharnockCoefficient"
+definition = "alpha_c in z_0 = alpha_c u_*^2/g over the ocean, about 0.015 (AMS Glossary); alpha in the roughness length of COARE 3.0 (Fairall et al. 2003, p. 577), the Charnock coefficient of Edson et al. (2013)."
+sources = ["ams_glossary_charnock", "fairall2003"]
 
 [trade_terms.drag_coefficient]
 term = "drag coefficient"
