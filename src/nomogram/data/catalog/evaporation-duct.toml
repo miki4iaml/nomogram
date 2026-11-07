@@ -51,6 +51,7 @@ note = "Read in the copy of the NPS archive (Calhoun), approved for public relea
 [kinds.EvaporationDuctHeight]
 label = "Evaporation Duct Height"
 specialization_of = "Height"
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
 description = "Height above the sea surface at which the modified refractivity M reaches its minimum, dM/dz = 0, the gradient of potential refractivity reaching its critical value (Paulus 1989, NOSC TD 1596, section 1.0); for propagation, a measure of the strength of the duct rather than a height below which an antenna must be (section 2.4)."
 
 [kinds.PotentialRadioRefractivity]

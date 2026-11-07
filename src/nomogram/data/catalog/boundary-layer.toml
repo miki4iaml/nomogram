@@ -176,7 +176,8 @@ description = "Scale of the dry static energy in the surface layer, its surface 
 
 [kinds.SurfaceLayerScaleOfSpecificHumidity]
 label = "Surface-Layer Scale of Specific Humidity"
-specialization_of = "MassRatio"
+specialization_of = "DimensionlessRatio"
+units = ["GM-PER-KiloGM", "KiloGM-PER-KiloGM"]
 description = "Scale of the specific humidity in the surface layer, its surface flux over the density of air and the friction velocity (IFS, q_*): a scale, not a humidity, positive for an upward flux; of the opposite sign to the scales defined by the profile (SurfaceLayerProfileScaleOfSpecificHumidity)."
 
 [kinds.SurfaceLayerProfileScaleOfPotentialTemperature]
@@ -191,17 +192,20 @@ description = "Scaling parameter T_* of the profile of temperature in the surfac
 
 [kinds.SurfaceLayerProfileScaleOfMixingRatio]
 label = "Surface-Layer Profile Scale of Mixing Ratio"
-specialization_of = "MassRatio"
+specialization_of = "DimensionlessRatio"
+units = ["GM-PER-KiloGM", "KiloGM-PER-KiloGM"]
 description = "Scaling parameter q_* of the profile of the water vapour mixing ratio in the surface layer, dq/dz = q_* phi_q / (alpha_q kappa z) (Fairall et al. 1978, equation 8), in g/kg: a scale, not a mixing ratio, negative when the mixing ratio decreases with height, as over an evaporating sea."
 
 [kinds.SurfaceLayerProfileScaleOfSpecificHumidity]
 label = "Surface-Layer Profile Scale of Specific Humidity"
-specialization_of = "MassRatio"
+specialization_of = "DimensionlessRatio"
+units = ["GM-PER-KiloGM", "KiloGM-PER-KiloGM"]
 description = "Scaling parameter q_* of the profile of specific humidity in the surface layer, from the humidity difference between a height and the surface over ln(z/z_0q) - psi_q (Frederickson et al. 1994, equation 1): a scale, not a humidity, almost always negative over the sea (p. 4); of the opposite sign to the IFS's scale defined by the surface flux (SurfaceLayerScaleOfSpecificHumidity)."
 
 [kinds.RoughnessLengthForMomentum]
 label = "Roughness Length for Momentum"
 specialization_of = "Length"
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the surface, never negative by its definition." }
 description = "Height at which the logarithmic profile of the mean velocity of a flow over a surface, the wind in air, extended downwards, vanishes."
 matches = [
   { target = "http://www.wikidata.org/entity/Q7370913", relation = "narrow", verified = 2026-11-04 },
@@ -211,12 +215,14 @@ cf_standard_names = [{ name = "surface_roughness_length_for_momentum_in_air", re
 [kinds.RoughnessLengthForHeat]
 label = "Roughness Length for Heat"
 specialization_of = "Length"
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the surface, never negative by its definition." }
 description = "Height at which the logarithmic profile of temperature of a flow over a surface (of dry static energy in the IFS), extended downwards, reaches its surface value."
 cf_standard_names = [{ name = "surface_roughness_length_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.RoughnessLengthForHumidity]
 label = "Roughness Length for Humidity"
 specialization_of = "Length"
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the surface, never negative by its definition." }
 description = "Height at which the profile of specific humidity of the surface layer of the air, extended downwards, reaches its surface value: the air's by nature, as is humidity."
 cf_standard_names = [{ name = "surface_roughness_length_for_humidity_in_air", relation = "exact", verified = 2026-11-04 }]
 
@@ -256,18 +262,21 @@ matches = [
 [kinds.SurfaceDragCoefficientForMomentum]
 label = "Surface Drag Coefficient for Momentum"
 specialization_of = "DimensionlessRatio"
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative: the surface stress opposes the flow." }
 description = "Transfer coefficient relating the surface stress to the square of the speed of the flow at a height, the wind in air, tau = rho C_M |U|^2. Not the drag coefficient of a body in a flow (QUDT DragCoefficient)."
 cf_standard_names = [{ name = "surface_drag_coefficient_for_momentum_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SurfaceDragCoefficientForHeat]
 label = "Surface Drag Coefficient for Heat"
 specialization_of = "DimensionlessRatio"
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative: heat flows down the difference of temperature." }
 description = "Transfer coefficient relating the surface flux of heat to the speed of the flow and the difference of temperature between a height and the surface; of dry static energy in the IFS, J_s = rho C_H |U| (s - s_surf)."
 cf_standard_names = [{ name = "surface_drag_coefficient_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
 
 [kinds.SeaIceAreaFraction]
 label = "Sea Ice Area Fraction"
 specialization_of = "DimensionlessRatio"
+bounds = { low = 0, high = 1, unit = "UNITLESS", criterion = "A part of an area over the whole area, from 0 to 1 by its definition." }
 description = "Fraction of an area of sea covered by sea ice, the sea ice concentration."
 matches = [
   { target = "http://www.wikidata.org/entity/Q7440064", relation = "exact", verified = 2026-11-04 },
@@ -277,6 +286,7 @@ cf_standard_names = [{ name = "sea_ice_area_fraction", relation = "exact", verif
 [kinds.Visibility]
 label = "Visibility"
 specialization_of = "Length"
+bounds = { low = 0, high = inf, unit = "M", criterion = "A distance, never negative by its definition." }
 description = "Greatest distance at which a black object can be seen against the horizon sky, from the extinction coefficient and a liminal contrast (Koschmieder): the contrast of 0.02 of the IFS, of 0.05 for the meteorological optical range of WMO."
 cf_standard_names = [{ name = "visibility_in_air", relation = "narrow", verified = 2026-11-04 }]
 

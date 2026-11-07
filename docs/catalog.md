@@ -123,7 +123,7 @@ All sections are optional; a key may be defined in one file only.
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
-| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension) |
+| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension), `units` (units of the parent's dimension it takes besides the parent's), `bounds` (`{ low, high, unit, criterion }`, the values its definition admits) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
@@ -630,7 +630,47 @@ ratio-scale parent; it is then never a difference). Its CF standard
 names, when CF has an equivalent, come from the frozen CF subset, where
 the extraction script keeps them (`LOCAL_KIND_CF_NAMES`); a search by a
 CF name finds the kind and the formulations that compute it, and
-`input=` those that take it as input.
+`input=` those that take it as input. A kind of the catalog takes the
+units of its parent, and those its `units` add, of the same dimension:
+the scales of specific humidity of the surface layer, signed, sit under
+`DimensionlessRatio` and take g/kg and kg/kg, which a mass ratio, never
+negative, would refuse them.
+
+**The values a kind admits by its definition** bound every variable of
+that kind, by default: no temperature below 0 K, no negative vapour
+pressure, no mass fraction above 1. QUDT states none; nomogram declares
+them, each with its criterion, in the extraction script for the kinds of
+QUDT and in `bounds` for its own:
+
+```toml
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
+```
+
+- A kind takes the bounds of the nearest kind it specializes that has
+  some (`Catalog.bounds_of`), and may narrow them, never widen them (a
+  specific humidity, from 0 to 1, under a mass ratio, never negative);
+  a kind of differences takes none: a temperature difference
+  specializes the temperature in QUDT.
+- They are converted to the unit of each variable (0 K is −273.15 °C,
+  1 is 1000 g/kg, ±90° is ±π/2 rad), and apply to inputs and output
+  whatever `basis`, as an evaluation outside its domains does: NaN by
+  default, computed with `outside="warn"` or `"ignore"`. They apply to
+  the values each part of a composition or branch receives and gives,
+  even where a domain stated for the composition replaces the domains
+  of its parts. A value on a conventional scale other than the reference
+  one is carried to the reference scale before it is compared (a
+  Practical Salinity of 35 is no mass fraction, its Reference Salinity
+  is); beyond the conversion, it is compared as it is, which bounds
+  holding on every scale (0 K) do rightly. A numerical inverse applies
+  the bounds of its own variables, as a closed form does.
+- A signed quantity has none (a component of the wind, a gradient, an
+  Obukhov length, a scale of the surface layer), nor a general kind
+  whose values may be negative in some medium: the pressure (a liquid
+  under tension), the latent heat of fusion (helium 3 below 0.3 K), the
+  height and the altitude (below their reference), a plane angle (which
+  counts turns), where only the geodetic latitude, from −90 to 90
+  degrees, is bounded. 100 % is no bound of a relative humidity:
+  supersaturation exists; a model without it bounds its own formulations.
 
 CF standard names are links to an external vocabulary, like Wikidata
 items: each carries its SKOS relation and the date it was checked, and

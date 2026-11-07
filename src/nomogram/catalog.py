@@ -101,6 +101,7 @@ from nomogram.relations import (
 from nomogram.semantics import (
     CF_NAMESPACE,
     ExternalMatch,
+    KindBounds,
     MatchRelation,
     QuantityKind,
     semantic_catalog,
@@ -245,6 +246,15 @@ class Catalog:
     def formulations_of(self, kind: str) -> tuple[Formulation, ...]:
         """The alternative formulations computing a quantity kind."""
         return tuple(f for f in self.formulations.values() if f.output.kind == kind)
+
+    def bounds_of(self, kind: str) -> KindBounds | None:
+        """The values a quantity kind admits by its definition.
+
+        Its own bounds, or those of the nearest kind it specializes that
+        has some; ``None`` for a kind of differences, or one without
+        bounds (a signed quantity).
+        """
+        return _kind_bounds(self.kinds, kind)
 
     @cached_property
     def _search_index(self) -> Any:
@@ -471,6 +481,24 @@ def _bound(where: str, value: Any) -> float:
         msg = f"{where}: expected a finite number or inf, not {value!r}"
         raise CatalogError(msg)
     return float(value)
+
+
+def _kind_bounds(kinds: Mapping[str, QuantityKind], name: str) -> KindBounds | None:
+    """The bounds of a kind: its own, or the nearest it inherits.
+
+    None for a kind of differences (``delta``): the temperature difference
+    specializes the temperature in QUDT, and takes none of its bounds.
+    """
+    kind = kinds.get(name)
+    while kind is not None:
+        # Nor for a kind under one of differences, whatever its own typing.
+        if kind.delta:
+            return None
+        if kind.bounds is not None:
+            return kind.bounds
+        parent = kind.specialization_of
+        kind = kinds.get(parent) if parent is not None else None
+    return None
 
 
 def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
@@ -800,7 +828,14 @@ class _Builder:
             where,
             table,
             ("label", "specialization_of"),
-            ("description", "matches", "scale_type", "cf_standard_names"),
+            (
+                "description",
+                "matches",
+                "scale_type",
+                "cf_standard_names",
+                "units",
+                "bounds",
+            ),
         )
         if name in self.kinds:
             msg = f"{where}: already a QUDT kind"
@@ -809,12 +844,45 @@ class _Builder:
         if parent is None:
             msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
             raise CatalogError(msg)
+        # Units the parent does not take: a scale of the surface layer
+        # (q_*), signed, under DimensionlessRatio, written in g/kg.
+        added = []
+        if f["units"] is not None and not isinstance(f["units"], list):
+            msg = f"{where}.units: expected a list of unit names"
+            raise CatalogError(msg)
+        for i, unit_name in enumerate(f["units"] or ()):
+            unit = self.unit(f"{where}.units[{i}]", unit_name)
+            if self.semantics.units[unit].dimension_vector != parent.dimension_vector:
+                msg = (
+                    f"{where}.units[{i}]: {unit} is not of the dimension of "
+                    f"{parent.name}"
+                )
+                raise CatalogError(msg)
+            if unit not in parent.applicable_units and unit not in added:
+                added.append(unit)
         # A kind may be on an interval scale under a ratio-scale parent:
         # the modified refractivity M has a conventional origin.
         scale_type = parent.scale_type
         if f["scale_type"] is not None:
             scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
         cf = self.cf_links(f"{where}.cf_standard_names", f["cf_standard_names"], parent)
+        applicable = (*parent.applicable_units, *added)
+        bounds = None
+        if f["bounds"] is not None:
+            w = f"{where}.bounds"
+            b = _fields(w, f["bounds"], ("low", "high", "unit", "criterion"))
+            unit = self.unit(f"{w}.unit", b["unit"])
+            if unit not in applicable:
+                msg = f"{w}.unit: {unit} does not apply to {name}"
+                raise CatalogError(msg)
+            low, high = _bound(f"{w}.low", b["low"]), _bound(f"{w}.high", b["high"])
+            if not low < high or (math.isinf(low) and math.isinf(high)):
+                msg = f"{w}: expected low < high, one of them finite"
+                raise CatalogError(msg)
+            if not isinstance(b["criterion"], str) or not b["criterion"]:
+                msg = f"{w}.criterion: expected the reason, as text"
+                raise CatalogError(msg)
+            bounds = KindBounds(low, high, unit, b["criterion"])
         self.kinds[name] = QuantityKind(
             name=name,
             origin="nomogram",
@@ -824,10 +892,34 @@ class _Builder:
             specialization_of=parent.name,
             scale_type=scale_type,
             delta=parent.delta and scale_type is ScaleType.RATIO,
-            applicable_units=parent.applicable_units,
-            added_units=(),
+            applicable_units=applicable,
+            added_units=tuple(added),
             matches=_matches(where, f["matches"]) + cf,
+            bounds=bounds,
         )
+
+    def check_kind_bounds(self) -> None:
+        """A kind narrows the bounds it inherits, never widens them."""
+        units = self.semantics.units
+        for name, kind in self.kinds.items():
+            if kind.bounds is None or kind.specialization_of is None:
+                continue
+            inherited = _kind_bounds(self.kinds, kind.specialization_of)
+            if inherited is None:
+                continue
+            source, target = units[inherited.unit].pint, units[kind.bounds.unit].pint
+            low, high = (
+                end if math.isinf(end) else float(Q_(end, source).to(target).magnitude)
+                for end in (inherited.low, inherited.high)
+            )
+            margin = 1e-9 * max(abs(e) for e in (low, high, 1.0) if math.isfinite(e))
+            if kind.bounds.low < low - margin or kind.bounds.high > high + margin:
+                msg = (
+                    f"kinds.{name}.bounds: [{kind.bounds.low:g}, {kind.bounds.high:g}] "
+                    f"{kind.bounds.unit} widens those it inherits, [{low:g}, "
+                    f"{high:g}]"
+                )
+                raise CatalogError(msg)
 
     def cf_links(
         self, where: str, items: Any, kind: QuantityKind | None = None
@@ -1391,8 +1483,15 @@ class _Builder:
                 f["description"],
                 found,
                 basis,
+                kind_bounds=_kind_bounds(self.kinds, kind.name),
             )
-        return Variable(f["identifier"], kind.name, unit, f["description"])
+        return Variable(
+            f["identifier"],
+            kind.name,
+            unit,
+            f["description"],
+            kind_bounds=_kind_bounds(self.kinds, kind.name),
+        )
 
     def coefficients(self, where: str, table: Any) -> tuple[Coefficient, ...]:
         result = []
@@ -2921,6 +3020,7 @@ class _Builder:
 
     def build(self) -> Catalog:
         self.build_kinds()
+        self.check_kind_bounds()
         self.build_references()
         self.build_constants()
         self.build_scales()

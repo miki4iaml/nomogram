@@ -110,7 +110,8 @@ constants), already found as variables, coefficients and constants.
 Nor does a validity domain, whether it bounds an input or the output: it
 is read on the formulation (`domains`), criterion included, and the
 formulation is found by its variables, the output a domain bounds among
-them.
+them. Likewise the bounds of a kind are read on the kind
+(`Catalog.bounds_of`), which a search finds by its names.
 An entry is given by its reference `section.key`, as an entry a search
 found, or, for a formulation, as the formulation itself
 (`c.uses(c.formulations_of("RelativeHumidity")[0])`).

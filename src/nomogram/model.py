@@ -34,7 +34,7 @@ import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import cached_property
+from functools import cached_property, lru_cache
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, get_args
 
@@ -49,7 +49,7 @@ from nomogram.expression import (
     compile_numeric,
     parse_expression,
 )
-from nomogram.semantics import ExternalMatch, _cf_names, semantic_catalog
+from nomogram.semantics import ExternalMatch, KindBounds, _cf_names, semantic_catalog
 from nomogram.units import Q_, convert
 
 if TYPE_CHECKING:
@@ -819,6 +819,12 @@ class Variable:
         unknown or not applicable.
     scale_basis : ScaleBasis or None
         How that scale is known.
+    kind_bounds : KindBounds or None
+        The bounds its quantity kind admits by definition, declared or
+        inherited (see :class:`~nomogram.semantics.KindBounds`), set when
+        the catalog is loaded; they apply to its values whatever the
+        domains selected, a value on a conventional scale other than the
+        reference one being carried to the reference scale first.
     """
 
     identifier: str
@@ -827,6 +833,61 @@ class Variable:
     description: str
     scale: ConventionalScale | None = None
     scale_basis: ScaleBasis | None = None
+    kind_bounds: KindBounds | None = None
+
+    def bounds_in_unit(self) -> tuple[float, float] | None:
+        """The bounds of its kind in its unit, or ``None`` when none apply.
+
+        None for a variable without bounds, or on a conventional scale
+        other than the reference one: a Practical Salinity of 35 is no
+        mass fraction, and the scale has its own bounds.
+        """
+        if self.kind_bounds is None:
+            return None
+        if self.scale is not None and not self.scale.is_reference:
+            return None
+        bounds = self.kind_bounds
+        return _converted_bounds(bounds.low, bounds.high, bounds.unit, self.unit)
+
+
+def _beyond(value: Any, low: float, high: float) -> Any:
+    """Where values lie beyond a closed interval, its finite ends rounded.
+
+    The tolerance :data:`BOUND_TOLERANCE` lets a value converted between
+    units through at a bound; NaN is never beyond.
+    """
+    finite = [abs(b) for b in (low, high) if math.isfinite(b)]
+    margin = BOUND_TOLERANCE * max([*finite, 1.0])
+    value = np.asarray(value, dtype=float)
+    return (value < low - margin) | (value > high + margin)
+
+
+def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
+    """Where values, in ``unit`` (the variable's by default), lie beyond its kind's bounds."""
+    value = np.asarray(values, dtype=float)
+    bounds = variable.kind_bounds
+    if bounds is None:
+        return np.zeros(value.shape, dtype=bool)
+    low, high = _converted_bounds(
+        bounds.low, bounds.high, bounds.unit, unit or variable.unit
+    )
+    return _beyond(value, low, high)
+
+
+@lru_cache(maxsize=256)
+def _converted_bounds(
+    low: float, high: float, unit: str, target: str
+) -> tuple[float, float]:
+    """Bounds converted between units, offsets included (0 K is -273.15 degC)."""
+    units = semantic_catalog().units
+    source, to = units[unit].pint, units[target].pint
+    ends = []
+    for end in (low, high):
+        if math.isinf(end):
+            ends.append(end)
+        else:
+            ends.append(float(Q_(end, source).to(to).magnitude))
+    return ends[0], ends[1]
 
 
 @dataclass(frozen=True)
@@ -1500,6 +1561,10 @@ class Formulation:
         that bound it, and a value is outside if either is. A citation that
         only bounds the output thus never widens the inputs another states.
 
+        The bounds the kind of each variable admits by definition
+        (:attr:`Variable.kind_bounds`: no negative vapour pressure, no
+        temperature below 0 K) apply whatever ``basis``.
+
         Bounds are closed and tolerate a relative rounding of
         :data:`BOUND_TOLERANCE` of their finite ends, so that a value
         converted between units (0.01 degC is 273.15999999... K) is not
@@ -1515,6 +1580,15 @@ class Formulation:
         where its condition holds, under the same rule.
         """
         _check_options("nan", basis, "convert")
+        return self._outside(values, basis)
+
+    def _outside(self, values: Mapping[str, Any], basis: Basis | None) -> Any:
+        """:meth:`outside_mask`; with ``basis=None``, the bounds of kinds only.
+
+        The bounds of the kinds of the parts and branches always apply,
+        even where a domain stated for the composition replaces their
+        domains.
+        """
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
         output = self.output.identifier
@@ -1532,10 +1606,7 @@ class Formulation:
                 for identifier, low, high in bounds_of(domain, of_output):
                     if identifier not in arrays:
                         continue  # the output, not given
-                    value = arrays[identifier]
-                    finite = [abs(b) for b in (low, high) if math.isfinite(b)]
-                    margin = BOUND_TOLERANCE * max(*finite, 1.0)
-                    result = result | (value < low - margin) | (value > high + margin)
+                    result = result | _beyond(arrays[identifier], low, high)
             return result
 
         def outside_union(of_output: bool) -> Any:
@@ -1552,7 +1623,7 @@ class Formulation:
                 inside |= ~outside_all(domains, of_output)
             return ~inside
 
-        outside = np.zeros(shape, dtype=bool)
+        outside = self._beyond_kinds(arrays, shape)
         if basis in ("physical", "all"):
             outside |= outside_all(self.physical_domains, of_output=False)
             outside |= outside_all(self.physical_domains, of_output=True)
@@ -1563,20 +1634,57 @@ class Formulation:
             part_basis: Basis | None = basis
             # A domain stated for a composition on its inputs replaces those
             # of its parts; the domains of called formulations always apply
-            # to each call.
+            # to each call. The bounds of the kinds of the parts always do.
             stated = any(
                 bounds_of(d, of_output=False) for c in self.citations for d in c.domains
             )
-            if basis != "physical" and stated and not self.calls:
+            if basis not in (None, "physical") and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None
-            if part_basis is not None and self.parts:
+            if self.parts:
                 outside = outside | self._parts_outside(arrays, part_basis)
-            if part_basis is not None and self.branches:
+            if self.branches:
                 outside = outside | self._branches_outside(arrays, part_basis, shape)
         return outside
 
+    def _beyond_kinds(self, values: Mapping[str, Any], shape: tuple[int, ...]) -> Any:
+        """Where a value of a variable lies beyond the bounds of its kind.
+
+        A value on a conventional scale other than the reference one is
+        carried to the reference scale first (a Knudsen salinity in per
+        mille, a temperature on IPTS-68, a Practical Salinity, which is a
+        number); where it cannot be, beyond the conversion, it is compared
+        as it is, which bounds that hold on every scale (0 K) do rightly.
+        """
+        units = semantic_catalog().units
+        result = np.zeros(shape, dtype=bool)
+        for variable in (*self.inputs, self.output):
+            bounds = variable.kind_bounds
+            if bounds is None or variable.identifier not in values:
+                continue
+            value = np.asarray(values[variable.identifier], dtype=float)
+            raw = _converted_bounds(bounds.low, bounds.high, bounds.unit, variable.unit)
+            scale = variable.scale
+            if scale is None or scale.is_reference or not scale.convertible:
+                result = result | _beyond(value, *raw)
+                continue
+            table = variable.unit if scale.unit is None else str(scale.unit)
+            on_scale = convert(Q_(value, units[variable.unit].pint), units[table].pint)
+            with np.errstate(invalid="ignore"):
+                carried = np.asarray(
+                    scale.to_reference(np.asarray(on_scale.magnitude, dtype=float)),
+                    dtype=float,
+                )
+            reference = _converted_bounds(bounds.low, bounds.high, bounds.unit, table)
+            unconverted = np.isnan(carried) & ~np.isnan(value)
+            result = (
+                result
+                | _beyond(carried, *reference)
+                | (unconverted & _beyond(value, *raw))
+            )
+        return result
+
     def _branches_outside(
-        self, values: Mapping[str, Any], basis: Basis, shape: tuple[int, ...]
+        self, values: Mapping[str, Any], basis: Basis | None, shape: tuple[int, ...]
     ) -> Any:
         """Where the branch whose condition holds is outside its domains."""
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
@@ -1592,11 +1700,11 @@ class Formulation:
                 v.identifier: values[v.identifier] for v in branch.formulation.inputs
             }
             own[branch.formulation.output.identifier] = branch.formulation._raw(own)
-            mask = branch.formulation.outside_mask(own, basis)
+            mask = branch.formulation._outside(own, basis)
             outside |= np.broadcast_to(np.asarray(active, dtype=bool), shape) & mask
         return outside
 
-    def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:
+    def _parts_outside(self, values: Mapping[str, Any], basis: Basis | None) -> Any:
         """Where a part receives, or gives, a value outside its domains."""
         computed: dict[str, Any] = {}
         outside: Any = False
@@ -1615,7 +1723,7 @@ class Formulation:
                 }
                 result = computed[part.computes] = formulation._raw(arguments)
             given = {**arguments, formulation.output.identifier: result}
-            outside = outside | formulation.outside_mask(given, basis)
+            outside = outside | formulation._outside(given, basis)
         return outside
 
     def _raw(self, values: Mapping[str, Any]) -> Any:
@@ -1718,11 +1826,18 @@ class Formulation:
         result = self._raw(values)
         # The output's domains apply on the formulation's scale, before the
         # result goes back to the reference scale.
-        mask = self.outside_mask({**values, self.output.identifier: result}, basis)
+        given = {**values, self.output.identifier: result}
+        mask = self.outside_mask(given, basis)
         if mask.any() and outside != "ignore":
             message = (
                 f"{self.key}: {int(mask.sum())} value(s) outside its {basis} domain"
             )
+            of_kinds = np.broadcast_to(self._outside(given, None), mask.shape)
+            if of_kinds.any():
+                message += (
+                    f", {int(of_kinds.sum())} beyond the bounds of the kinds of "
+                    "its variables or of its parts"
+                )
             if outside == "raise":
                 raise OutOfDomainError(message)
             if outside == "warn":

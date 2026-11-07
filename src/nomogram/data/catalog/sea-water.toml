@@ -35,6 +35,7 @@ description = "Pressure of water vapour in equilibrium with a plane surface of s
 [kinds.RelativeVapourPressureOfSeaWater]
 label = "Relative Vapour Pressure of Sea Water"
 specialization_of = "DimensionlessRatio"
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A ratio of vapour pressures, never negative by its definition." }
 description = "Vapour pressure of sea water divided by that of pure water at the same temperature. Close to, but not the same quantity as, the activity of water in sea water (the relative fugacity of sea air, TEOS-10 Manual eq. 3.40.11) and the relative humidity of air in equilibrium with sea water."
 
 [kinds.SaturationSpecificHumidityOverSeaWater]

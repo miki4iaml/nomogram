@@ -196,6 +196,7 @@
         "GM-PER-M3",
         "KiloGM-PER-M3"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L-3I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/AbsoluteHumidity",
@@ -209,6 +210,12 @@
       "applicable_units": [
         "M-PER-SEC2"
       ],
+      "bounds": {
+        "criterion": "The magnitude of the acceleration of free fall, never negative.",
+        "high": null,
+        "low": 0.0,
+        "unit": "M-PER-SEC2"
+      },
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T-2D0",
       "iri": "http://qudt.org/vocab/quantitykind/AccelerationOfGravity",
@@ -230,6 +237,7 @@
         "KiloM",
         "M"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Altitude",
@@ -259,6 +267,12 @@
       "applicable_units": [
         "MOL"
       ],
+      "bounds": {
+        "criterion": "A amount of substance, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "MOL"
+      },
       "delta": false,
       "dimension_vector": "A1E0L0I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/AmountOfSubstance",
@@ -279,6 +293,12 @@
         "PER-KiloM",
         "PER-M"
       ],
+      "bounds": {
+        "criterion": "An attenuation, never negative in a passive medium.",
+        "high": null,
+        "low": 0.0,
+        "unit": "PER-M"
+      },
       "delta": false,
       "dimension_vector": "A0E0L-1I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/AttenuationCoefficient",
@@ -299,6 +319,7 @@
         "DEG_C",
         "DEG_F"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/CelsiusTemperature",
@@ -324,6 +345,12 @@
         "GM-PER-M3",
         "KiloGM-PER-M3"
       ],
+      "bounds": {
+        "criterion": "A mass per volume, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "KiloGM-PER-M3"
+      },
       "delta": false,
       "dimension_vector": "A0E0L-3I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Density",
@@ -345,6 +372,7 @@
         "DEG_F",
         "K"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/DewPointTemperature",
@@ -367,6 +395,7 @@
         "PPM",
         "UNITLESS"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/DimensionlessRatio",
@@ -380,6 +409,12 @@
       "applicable_units": [
         "PA-SEC"
       ],
+      "bounds": {
+        "criterion": "Never negative: viscous dissipation produces entropy (second law).",
+        "high": null,
+        "low": 0.0,
+        "unit": "PA-SEC"
+      },
       "delta": false,
       "dimension_vector": "A0E0L-1I0M1H0T-1D0",
       "iri": "http://qudt.org/vocab/quantitykind/DynamicViscosity",
@@ -401,6 +436,7 @@
         "KiloM",
         "M"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Height",
@@ -427,6 +463,7 @@
         "PER-M",
         "PPM-PER-M"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L-1I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/InverseLength",
@@ -446,6 +483,7 @@
       "applicable_units": [
         "PER-SEC2"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T-2D0",
       "iri": "http://qudt.org/vocab/quantitykind/InverseSquareTime",
@@ -459,6 +497,7 @@
       "applicable_units": [
         "PER-K"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H-1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/InverseTemperature",
@@ -478,6 +517,12 @@
       "applicable_units": [
         "M2-PER-SEC"
       ],
+      "bounds": {
+        "criterion": "Never negative: viscous dissipation produces entropy (second law).",
+        "high": null,
+        "low": 0.0,
+        "unit": "M2-PER-SEC"
+      },
       "delta": false,
       "dimension_vector": "A0E0L2I0M0H0T-1D0",
       "iri": "http://qudt.org/vocab/quantitykind/KinematicViscosity",
@@ -499,6 +544,7 @@
         "KiloM",
         "M"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Length",
@@ -519,6 +565,12 @@
         "GM",
         "KiloGM"
       ],
+      "bounds": {
+        "criterion": "A mass, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "KiloGM"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Mass",
@@ -539,6 +591,12 @@
         "GM-PER-M3",
         "KiloGM-PER-M3"
       ],
+      "bounds": {
+        "criterion": "A mass per volume, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "KiloGM-PER-M3"
+      },
       "delta": false,
       "dimension_vector": "A0E0L-3I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/MassConcentrationOfWaterVapour",
@@ -571,6 +629,12 @@
         "PERMILLE",
         "UNITLESS"
       ],
+      "bounds": {
+        "criterion": "A part of a mass over the whole mass, from 0 to 1 by its definition.",
+        "high": 1.0,
+        "low": 0.0,
+        "unit": "UNITLESS"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/MassFraction",
@@ -591,6 +655,12 @@
         "GM-PER-KiloGM",
         "KiloGM-PER-KiloGM"
       ],
+      "bounds": {
+        "criterion": "A ratio of two masses, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "KiloGM-PER-KiloGM"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/MassRatio",
@@ -615,6 +685,12 @@
         "KiloGM-PER-KiloGM",
         "UNITLESS"
       ],
+      "bounds": {
+        "criterion": "A mass of water vapour over that of dry air, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "KiloGM-PER-KiloGM"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/MassRatioOfWaterVapourToDryGas",
@@ -639,6 +715,12 @@
       "applicable_units": [
         "MOL-PER-KiloGM"
       ],
+      "bounds": {
+        "criterion": "A amount of substance per mass, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "MOL-PER-KiloGM"
+      },
       "delta": false,
       "dimension_vector": "A1E0L0I0M-1H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/MolalityOfSolute",
@@ -655,6 +737,12 @@
         "PPM",
         "UNITLESS"
       ],
+      "bounds": {
+        "criterion": "A part of an amount of substance over the whole, from 0 to 1 by its definition.",
+        "high": 1.0,
+        "low": 0.0,
+        "unit": "UNITLESS"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/MoleFraction",
@@ -674,6 +762,7 @@
       "applicable_units": [
         "UNITLESS"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/OsmoticCoefficient",
@@ -694,6 +783,7 @@
         "DEG",
         "RAD"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/PlaneAngle",
@@ -711,6 +801,7 @@
         "MilliM_HG",
         "PA"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L-1I0M1H0T-2D0",
       "iri": "http://qudt.org/vocab/quantitykind/Pressure",
@@ -735,6 +826,7 @@
       "applicable_units": [
         "UNITLESS"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/RefractiveIndex",
@@ -757,6 +849,7 @@
         "PERCENT",
         "UNITLESS"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/RelativeHumidity",
@@ -784,6 +877,12 @@
         "PERCENT",
         "UNITLESS"
       ],
+      "bounds": {
+        "criterion": "A ratio of mass ratios, never negative by its definition; not bounded above, supersaturation existing.",
+        "high": null,
+        "low": 0.0,
+        "unit": "UNITLESS"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/RelativeMassRatioOfVapour",
@@ -806,6 +905,12 @@
         "PERCENT",
         "UNITLESS"
       ],
+      "bounds": {
+        "criterion": "A ratio of partial pressures, never negative by its definition; not bounded above, supersaturation existing.",
+        "high": null,
+        "low": 0.0,
+        "unit": "UNITLESS"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/RelativePartialPressure",
@@ -823,6 +928,7 @@
         "KiloJ-PER-KiloGM",
         "M2-PER-SEC2"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L2I0M0H0T-2D0",
       "iri": "http://qudt.org/vocab/quantitykind/SpecificEnergy",
@@ -843,6 +949,12 @@
         "J-PER-KiloGM-K",
         "KiloJ-PER-KiloGM-K"
       ],
+      "bounds": {
+        "criterion": "Positive for matter in stable thermodynamic equilibrium.",
+        "high": null,
+        "low": 0.0,
+        "unit": "J-PER-KiloGM-K"
+      },
       "delta": false,
       "dimension_vector": "A0E0L2I0M0H-1T-2D0",
       "iri": "http://qudt.org/vocab/quantitykind/SpecificHeatCapacityAtConstantPressure",
@@ -866,6 +978,12 @@
         "KiloGM-PER-KiloGM",
         "UNITLESS"
       ],
+      "bounds": {
+        "criterion": "The mass of water vapour over that of the moist air, from 0 to 1 by its definition.",
+        "high": 1.0,
+        "low": 0.0,
+        "unit": "KiloGM-PER-KiloGM"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/SpecificHumidity",
@@ -888,6 +1006,12 @@
         "KN",
         "M-PER-SEC"
       ],
+      "bounds": {
+        "criterion": "The magnitude of a velocity, never negative.",
+        "high": null,
+        "low": 0.0,
+        "unit": "M-PER-SEC"
+      },
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T-1D0",
       "iri": "http://qudt.org/vocab/quantitykind/Speed",
@@ -912,6 +1036,7 @@
       "applicable_units": [
         "M-PER-SEC"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T-1D0",
       "iri": "http://qudt.org/vocab/quantitykind/SpeedOfSound",
@@ -938,6 +1063,12 @@
         "DEG_F",
         "K"
       ],
+      "bounds": {
+        "criterion": "A temperature, never below absolute zero, 0 K, the zero of thermodynamic temperature, from which the Celsius temperature is t = T - 273.15 K (SI Brochure, 9th edition, 2.3.1); the negative absolute temperatures of some spin systems lie outside nomogram. A temperature difference has no such bound.",
+        "high": null,
+        "low": 0.0,
+        "unit": "K"
+      },
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Temperature",
@@ -957,6 +1088,7 @@
       "applicable_units": [
         "K"
       ],
+      "bounds": null,
       "delta": true,
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/TemperatureDifference",
@@ -970,6 +1102,7 @@
       "applicable_units": [
         "K-PER-M"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L-1I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/TemperatureGradient",
@@ -983,6 +1116,12 @@
       "applicable_units": [
         "W-PER-M-K"
       ],
+      "bounds": {
+        "criterion": "Never negative: heat flows from hot to cold (second law).",
+        "high": null,
+        "low": 0.0,
+        "unit": "W-PER-M-K"
+      },
       "delta": false,
       "dimension_vector": "A0E0L1I0M1H-1T-3D0",
       "iri": "http://qudt.org/vocab/quantitykind/ThermalConductivity",
@@ -1002,6 +1141,7 @@
       "applicable_units": [
         "K"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/ThermodynamicTemperature",
@@ -1030,6 +1170,12 @@
         "MilliM_HG",
         "PA"
       ],
+      "bounds": {
+        "criterion": "A partial pressure of a gas, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "PA"
+      },
       "delta": false,
       "dimension_vector": "A0E0L-1I0M1H0T-2D0",
       "iri": "http://qudt.org/vocab/quantitykind/VapourPressure",
@@ -1050,6 +1196,7 @@
         "KN",
         "M-PER-SEC"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H0T-1D0",
       "iri": "http://qudt.org/vocab/quantitykind/Velocity",
@@ -1080,6 +1227,12 @@
         "L",
         "M3"
       ],
+      "bounds": {
+        "criterion": "A volume, never negative by its definition.",
+        "high": null,
+        "low": 0.0,
+        "unit": "M3"
+      },
       "delta": false,
       "dimension_vector": "A0E0L3I0M0H0T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/Volume",
@@ -1101,6 +1254,7 @@
         "DEG_F",
         "K"
       ],
+      "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L0I0M0H1T0D0",
       "iri": "http://qudt.org/vocab/quantitykind/WetBulbTemperature",

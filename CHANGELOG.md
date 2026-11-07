@@ -48,8 +48,25 @@ and this project adheres to
   duct height of Paulus-Jeske is bounded from 0 to 40 m, as Table 1 of
   NOSC TD 1596 states; the limit of its algorithm stays a step of it.
 
+- The values a quantity kind admits by its definition, with their
+  criterion (`KindBounds`, `QuantityKind.bounds`, `Catalog.bounds_of`):
+  no temperature below 0 K, no negative vapour pressure, density, mass
+  ratio or speed, mass and mole fractions from 0 to 1, a geodetic
+  latitude from -90 to 90 degrees... Declared in the extraction script
+  for QUDT's kinds, which state none, and in `bounds` for the catalog's
+  own; inherited, narrowed never widened, never by a kind of
+  differences, and converted to the unit of each variable
+  (`Variable.kind_bounds`, `Variable.bounds_in_unit`). A kind of the
+  catalog may take units besides those of its parent (`units`).
+
 ### Changed
 
+- **A value beyond the bounds of its kind is NaN by default**, whatever
+  the domains selected, as a value outside a domain is (`outside="warn"`
+  or `"ignore"` computes it); the warning says so.
+- The three scales of specific humidity of the surface layer, signed,
+  now specialize `DimensionlessRatio`, with g/kg and kg/kg, not
+  `MassRatio`, whose values are never negative.
 - `UnitDefinition.iri` is `None` for a unit QUDT does not have, which
   nomogram declares until QUDT does.
 - `ValidityDomain.bounds` may bound the output, and
