@@ -262,7 +262,7 @@ The maintainer keeps a log of the alerts and of how each was handled
   stored token), after **human approval** of the protected `pypi`
   environment, restricted to `v*` tags.
 - PyPI shows the provenance attestation of each published file
-  (PEP 740); for the wheel and the source archive of version 0.5.0, it
+  (PEP 740); for the wheel and the source archive of version 0.6.0, it
   names the repository `miki4iaml/nomogram`, the workflow `release.yml`
   and the environment `pypi`.
 - Each published version is archived on Zenodo, with its own DOI.
