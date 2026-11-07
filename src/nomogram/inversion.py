@@ -162,7 +162,11 @@ def _forward(formulation: Formulation, expr: Any = None) -> Any:
 
 
 def _bounds(formulation: Formulation, solve_for: str) -> tuple[float, float] | None:
-    """Intersection of the stated domains on the input, if any."""
+    """Intersection of the stated domains on the input, if any and finite.
+
+    An open end (a domain from 0 to inf) cannot be searched: the caller
+    gives the interval then.
+    """
     stated = [
         d.bounds[solve_for]
         for d in formulation.domains
@@ -170,7 +174,10 @@ def _bounds(formulation: Formulation, solve_for: str) -> tuple[float, float] | N
     ]
     if not stated:
         return None
-    return max(low for low, _ in stated), min(high for _, high in stated)
+    low, high = max(low for low, _ in stated), min(high for _, high in stated)
+    if not (np.isfinite(low) and np.isfinite(high)):
+        return None
+    return low, high
 
 
 def _offset(source_unit: str, target_unit: str) -> float:
@@ -381,6 +388,13 @@ def _symbolic(
         return None
     source, coefficients = found
     forward = _forward(formulation)
+    shift = _offset(formulation.inputs[0].unit, output.unit)
+
+    def carried(domains: tuple[ValidityDomain, ...]) -> tuple[ValidityDomain, ...]:
+        return _carried_domains(
+            domains, formulation, input.identifier, output.identifier, forward, shift
+        )
+
     return Formulation(
         key=key,
         label=label,
@@ -390,23 +404,11 @@ def _symbolic(
         constants=formulation.constants,
         expression=source,
         fixed_units=formulation.fixed_units,
-        physical_domains=_carried_domains(
-            formulation.physical_domains,
-            formulation.key,
-            solve_for,
-            input.identifier,
-            forward,
-        ),
+        physical_domains=carried(formulation.physical_domains),
         citations=tuple(
             replace(
                 citation,
-                domains=_carried_domains(
-                    citation.domains,
-                    formulation.key,
-                    solve_for,
-                    input.identifier,
-                    forward,
-                ),
+                domains=carried(citation.domains),
                 # The output carries the scale of the solved variable.
                 scales=MappingProxyType({}),
             )
@@ -420,25 +422,45 @@ def _symbolic(
 
 def _carried_domains(
     domains: tuple[ValidityDomain, ...],
-    source: str,
-    solve_for: str,
-    identifier: str,
+    source: Formulation,
+    input_identifier: str,
+    output_identifier: str,
     forward: Any,
+    shift: float,
 ) -> tuple[ValidityDomain, ...]:
-    """The domains on the input, carried through the function onto its output."""
+    """The domains of the source, carried onto its inverse.
+
+    The interval of the solved input becomes that of the inverse's output
+    (shifted from K to degC or back when its unit changes); its image
+    through the function, when both its ends are finite, and a bound on the
+    source's output become an interval of the inverse's input.
+    """
+    solve_for = source.inputs[0].identifier
     carried = []
     for domain in domains:
-        if solve_for not in domain.bounds:
+        bounds: dict[str, tuple[float, float]] = {}
+        if solve_for in domain.bounds:
+            low, high = domain.bounds[solve_for]
+            bounds[output_identifier] = (low + shift, high + shift)
+            if np.isfinite(low) and np.isfinite(high):
+                ends = sorted(float(v) for v in forward(np.array([low, high])))
+                bounds[input_identifier] = (ends[0], ends[1])
+        if source.output.identifier in domain.bounds:
+            low, high = domain.bounds[source.output.identifier]
+            if input_identifier in bounds:
+                image = bounds[input_identifier]
+                low, high = max(low, image[0]), min(high, image[1])
+            bounds[input_identifier] = (low, high)
+        if not bounds:
             continue
-        low, high = domain.bounds[solve_for]
-        ends = sorted(float(v) for v in forward(np.array([low, high])))
         criterion = (
-            f"Carried by inversion from {source}: {domain.criterion or 'no criterion'}"
+            f"Carried by inversion from {source.key}: "
+            f"{domain.criterion or 'no criterion'}"
         )
         carried.append(
             ValidityDomain(
                 domain.basis,
-                {identifier: (ends[0], ends[1])},
+                MappingProxyType(bounds),
                 criterion,
                 domain.reference,
             )
@@ -580,7 +602,8 @@ class NumericalInverse:
             (target < ends.min()) | (target > ends.max()) | ~np.isfinite(target)
         )
         solved = np.where(unreachable, np.nan, solved)
-        mask = self.source.outside_mask({source_input.identifier: solved}, basis)
+        given = {source_input.identifier: solved, self.source.output.identifier: target}
+        mask = self.source.outside_mask(given, basis)
         if mask.any() and outside != "ignore":
             message = f"{self.key}: {int(mask.sum())} value(s) outside the {basis} domain of {self.source.key}"
             if outside == "raise":
@@ -702,7 +725,7 @@ def invert(
             raise InversionError(msg)
     if interval is None:
         msg = (
-            f"{formulation.key} states no validity domain on {solve_for}: "
+            f"{formulation.key} states no finite validity domain on {solve_for}: "
             "give a search interval for numerical inversion"
         )
         raise InversionError(msg)

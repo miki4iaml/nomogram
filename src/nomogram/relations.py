@@ -1214,8 +1214,11 @@ def _valid_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
     a side nothing bounds.
     """
     extent = dict(_stated_extent(formulation))
+    inputs = {v.identifier for v in formulation.inputs}
     for domain in formulation.physical_domains:
         for name, (low, high) in domain.bounds.items():
+            if name not in inputs:
+                continue  # a bound on the output
             old_low, old_high = extent.get(name, (-math.inf, math.inf))
             extent[name] = (max(old_low, low), min(old_high, high))
     return extent
@@ -1294,18 +1297,21 @@ def _stated_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
 
     Domains of one citation apply together, citations combine by union: the
     extent is the smallest interval holding that union, infinite on a side
-    a citation leaves open.
+    a citation leaves open. Bounds on the output are left aside, and a
+    citation that bounds only the output does not take part.
     """
+    inputs = {v.identifier for v in formulation.inputs}
     boxes = []
     for citation in formulation.citations:
-        if not citation.domains:
-            continue
         box: dict[str, tuple[float, float]] = {}
         for domain in citation.domains:
             for name, (low, high) in domain.bounds.items():
+                if name not in inputs:
+                    continue
                 old_low, old_high = box.get(name, (-math.inf, math.inf))
                 box[name] = (max(old_low, low), min(old_high, high))
-        boxes.append(box)
+        if box:
+            boxes.append(box)
     names = {name for box in boxes for name in box}
     whole = (-math.inf, math.inf)
     return {

@@ -461,6 +461,18 @@ def _rational(text: str) -> Any:
     return sympy.Rational(fraction.numerator, fraction.denominator)
 
 
+def _bound(where: str, value: Any) -> float:
+    """An end of a validity domain: a finite number, or inf for an open end."""
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or math.isnan(value)
+    ):
+        msg = f"{where}: expected a finite number or inf, not {value!r}"
+        raise CatalogError(msg)
+    return float(value)
+
+
 def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
     """Two finite numbers, as a TOML array of two."""
     if not isinstance(value, list) or len(value) != 2:
@@ -1427,20 +1439,40 @@ class _Builder:
 
     @staticmethod
     def bounds(
-        where: str, table: Any, inputs: tuple[Variable, ...]
+        where: str,
+        table: Any,
+        inputs: tuple[Variable, ...],
+        output: Variable | None = None,
     ) -> Mapping[str, tuple[float, float]]:
+        """Closed intervals of the inputs, and of the output when given.
+
+        A validity domain (``output`` given) may leave one end open with
+        ``inf`` (``[0, inf]``), never both; the bounds of a relation, which
+        it samples, are finite.
+        """
         names = {v.identifier for v in inputs}
+        if output is not None:
+            names.add(output.identifier)
         bounds = {}
         if not isinstance(table, dict):
             msg = f"{where}: expected a table of input identifier to [low, high]"
             raise CatalogError(msg)
         for identifier, interval in table.items():
             if identifier not in names:
-                msg = f"{where}: {identifier!r} is not an input"
+                what = "an input" if output is None else "an input nor the output"
+                msg = f"{where}: {identifier!r} is not {what}"
                 raise CatalogError(msg)
-            low, high = _pair(
-                f"{where}.{identifier}", interval, "[low, high], two finite numbers"
-            )
+            w = f"{where}.{identifier}"
+            if output is None:
+                low, high = _pair(w, interval, "[low, high], two finite numbers")
+            else:
+                if not isinstance(interval, list) or len(interval) != 2:
+                    msg = f"{w}: expected [low, high], not {interval!r}"
+                    raise CatalogError(msg)
+                low, high = (_bound(f"{w}[{i}]", v) for i, v in enumerate(interval))
+                if math.isinf(low) and math.isinf(high):
+                    msg = f"{w}: a domain bounds at least one end; leave it out"
+                    raise CatalogError(msg)
             if not low < high:
                 msg = f"{where}.{identifier}: empty interval"
                 raise CatalogError(msg)
@@ -1453,8 +1485,13 @@ class _Builder:
         items: Any,
         inputs: tuple[Variable, ...],
         reference: str | None,
+        output: Variable | None = None,
     ) -> tuple[ValidityDomain, ...]:
-        """Physical domains (``reference`` None), or those a citation states."""
+        """Physical domains (``reference`` None), or those a citation states.
+
+        A domain may bound the output too; such a bound states its
+        criterion, what makes the source or physics exclude the rest.
+        """
         result = []
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
@@ -1462,12 +1499,20 @@ class _Builder:
                 ("criterion", "reference") if reference is None else ("criterion",)
             )
             f = _fields(w, item, ("bounds",), optional)
+            bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
+            if (
+                output is not None
+                and output.identifier in bounds
+                and not f["criterion"]
+            ):
+                msg = f"{w}: a bound on the output {output.identifier} states its criterion"
+                raise CatalogError(msg)
             result.append(
                 ValidityDomain(
                     basis=DomainBasis.PHYSICAL
                     if reference is None
                     else DomainBasis.STATED,
-                    bounds=self.bounds(f"{w}.bounds", f["bounds"], inputs),
+                    bounds=bounds,
                     criterion=f["criterion"],
                     reference=(
                         reference
@@ -1537,7 +1582,11 @@ class _Builder:
                         f"{w}.notation", f["notation"], formulation, reference, names
                     ),
                     domains=self.domains(
-                        f"{w}.domains", f["domains"], inputs, reference
+                        f"{w}.domains",
+                        f["domains"],
+                        inputs,
+                        reference,
+                        outputs[0] if outputs else None,
                     ),
                     units=MappingProxyType(units),
                     scales=MappingProxyType(scales),
@@ -1675,7 +1724,7 @@ class _Builder:
             expression=f["expression"],
             fixed_units=bool(f["fixed_units"]),
             physical_domains=self.domains(
-                f"{where}.domains", f["domains"], inputs, None
+                f"{where}.domains", f["domains"], inputs, None, output
             ),
             citations=citations,
             note=f["note"],
@@ -1984,19 +2033,31 @@ class _Builder:
                 scale_basis=outer.output.scale_basis,
             )
 
-        # Physical domains travel with the inputs they bound.
-        domains = [d for d in outer.physical_domains if not set(d.bounds) & set(inner)]
+        # Physical domains travel with the inputs they bound. A bound on the
+        # outer formulation's output bounds the composed output; one on an
+        # inner formulation's output bounds an intermediate value, checked on
+        # that part (Formulation.outside_mask), not on the composed one.
+        domains = []
+        for d in outer.physical_domains:
+            if set(d.bounds) & set(inner):
+                continue
+            renamed = {
+                (output.identifier if k == outer.output.identifier else k): b
+                for k, b in d.bounds.items()
+            }
+            domains.append(dataclasses.replace(d, bounds=MappingProxyType(renamed)))
         for identifier, part in inner.items():
             rename = renames[identifier]
-            domains += [
-                dataclasses.replace(
-                    d,
-                    bounds=MappingProxyType(
-                        {rename.get(k, k): b for k, b in d.bounds.items()}
-                    ),
-                )
-                for d in part.physical_domains
-            ]
+            for d in part.physical_domains:
+                on_inputs = {
+                    rename.get(k, k): b
+                    for k, b in d.bounds.items()
+                    if k != part.output.identifier
+                }
+                if on_inputs:
+                    domains.append(
+                        dataclasses.replace(d, bounds=MappingProxyType(on_inputs))
+                    )
 
         fixed = any(p.fixed_units for p in (outer, *inner.values()))
         names = {output.identifier} | set(inputs) | set(owner) | set(constants)
@@ -2236,7 +2297,7 @@ class _Builder:
             expression=_developed(f["expression"], calls, renames, fixed),
             fixed_units=fixed,
             physical_domains=self.domains(
-                f"{where}.domains", f["domains"], tuple(typed), None
+                f"{where}.domains", f["domains"], tuple(typed), None, output
             ),
             citations=citations,
             note=f["note"],
@@ -3521,7 +3582,11 @@ def _reaches_domain(formulation: Formulation) -> bool:
     """
     pieces = [p.formulation for p in formulation.parts]
     pieces += [b.formulation for b in formulation.branches]
-    return bool(formulation.domains) or any(_reaches_domain(p) for p in pieces)
+    # A domain counts when it bounds an input: a bound on the output alone
+    # says where results stop, not where the formulation may be used.
+    inputs = {v.identifier for v in formulation.inputs}
+    own = any(set(d.bounds) & inputs for d in formulation.domains)
+    return own or any(_reaches_domain(p) for p in pieces)
 
 
 def stats(loaded: Catalog | None = None) -> str:

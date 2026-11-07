@@ -154,16 +154,19 @@ each saturation vapour pressure formulation e_s = f(T) gives the dew
 point t_d = f⁻¹(e):
 
 - **when SymPy finds a closed form**, it becomes a formulation of its
-  own, with an expression, its LaTeX, the validity domain carried
-  through the function, and a record of its origin. The Magnus form
+  own, with an expression, its LaTeX, the validity domains carried over,
+  and a record of its origin: the interval of the temperature becomes
+  that of the dew point, the inverse's output, and its image through
+  the function that of the vapour pressure, its input. The Magnus form
   gives back the classical dew point formula,
   t_d = B ln(e/C) / (A − ln(e/C)), with no hand-written formula;
 - **when there is none** (the IAPWS equation, Goff-Gratch...), the
   inverse is solved numerically, and says so. It searches the validity
-  domain a source states; when none does, nomogram does not choose the
-  interval, the caller gives it (`search=`). This is not meant for
-  production: it makes the comparison between a production
-  approximation and the exact inverse of the reference possible.
+  domain a source states; when none does, or the domain is open on one
+  side, nomogram does not choose the interval, the caller gives it
+  (`search=`). This is not meant for production: it makes the
+  comparison between a production approximation and the exact inverse
+  of the reference possible.
 
 Inverting a formulation over ice gives the frost point the same way.
 

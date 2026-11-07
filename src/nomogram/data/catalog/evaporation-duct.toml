@@ -237,7 +237,7 @@ notation = { Psi_H = '\psi', zeta = "z_1/L'" }
 label = "Evaporation duct height, neutral and stable conditions (Paulus-Jeske, NOSC TD 1596)"
 expression = "piecewise((delta_0, Delta_N_p >= 0), (Delta_N_p / (b_1 * (ln(z_1 / z_0) + a * z_1 / L) - Delta_N_p * a / L), Delta_N_p < 0))"
 fixed_units = true
-note = "Step 4 (a) and (b), for 0 <= Ri_b <= 1, with B = ln(z_1/z_0) + a z_1/L' written out; from the log-linear stability function phi = 1 + a z/L', a = 5.2 (A-2), integrated (A-8 to A-13). Where (b) gives delta < 0 or delta/L' > 1, the model takes delta/L' = 1 (paulus1989_evaporation_duct_height_limited). The model limits the height to 40 m (step 6), and, when T_a - T_s > -1 degC, also computes it for T_a = T_s and T_a = T_s - 1 degC, the relative humidity unchanged, and keeps the second if the first is larger (p. 7): steps of the algorithm, which no formulation writes."
+note = "Step 4 (a) and (b), for 0 <= Ri_b <= 1, with B = ln(z_1/z_0) + a z_1/L' written out; from the log-linear stability function phi = 1 + a z/L', a = 5.2 (A-2), integrated (A-8 to A-13). Where (b) gives delta < 0 or delta/L' > 1, the model takes delta/L' = 1 (paulus1989_evaporation_duct_height_limited). The model limits the height to 40 m (step 6), and, when T_a - T_s > -1 degC, also computes it for T_a = T_s and T_a = T_s - 1 degC, the relative humidity unchanged, and keeps the second if the first is larger (p. 7): steps of the algorithm, which no formulation writes. A height above 40 m is outside the domain of its Table 1, where the model, comparing the heights of p. 7 first, gives 40 m."
 output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
 inputs = [
   { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
@@ -253,6 +253,10 @@ note = "Step 4 (a) and (b), p. 5-6; B from A-13. The source gives b_1 = -0.125 m
 notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", delta_0 = "0" }
 units = { z_0 = "M", z_1 = "M" }
 assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+[[formulations.paulus1989_evaporation_duct_height_stable.citations.domains]]
+bounds = { delta = [0, 40] }
+criterion = "Limits of the output of the model (Table 1): an evaporation duct height from 0 to 40 m; the model gives none above, limiting it to 40 m (step 6)."
 
 [formulations.paulus1989_evaporation_duct_height_limited]
 label = "Evaporation duct height at delta/L' = 1 (Paulus-Jeske, NOSC TD 1596)"
@@ -272,11 +276,15 @@ note = "Step 4 (c), p. 6. The source gives b_1 = -0.125 m-1, the critical gradie
 notation = { delta = '\delta', Delta_N_p = '\Delta N_p' }
 units = { z_0 = "M", z_1 = "M" }
 
+[[formulations.paulus1989_evaporation_duct_height_limited.citations.domains]]
+bounds = { delta = [0, 40] }
+criterion = "Limits of the output of the model (Table 1): an evaporation duct height from 0 to 40 m; the model gives none above, limiting it to 40 m (step 6)."
+
 [formulations.paulus1989_evaporation_duct_height_unstable]
 label = "Evaporation duct height, unstable conditions (Paulus-Jeske, NOSC TD 1596)"
 expression = "((b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 4 - 4 * beta / L * (b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 3) ** (-1 / 4)"
 fixed_units = true
-note = "Step 5, for Ri_b < 0, with B = ln(z_1/z_0) - psi written out, psi the universal function at z_1/L' (paulus1989_profile_function); from the KEYPS relation with alpha = 4.5 (A-3). Its FORTRAN listing sets the height to 0 when the bracket is not positive and, as in stable conditions, when Delta N_p >= 0 (appendix D, p. D-5 and D-7), which the text says for stable conditions only. The model limits the height to 40 m (step 6)."
+note = "Step 5, for Ri_b < 0, with B = ln(z_1/z_0) - psi written out, psi the universal function at z_1/L' (paulus1989_profile_function); from the KEYPS relation with alpha = 4.5 (A-3). Its FORTRAN listing sets the height to 0 when the bracket is not positive and, as in stable conditions, when Delta N_p >= 0 (appendix D, p. D-5 and D-7), which the text says for stable conditions only. The model limits the height to 40 m (step 6): above, a height is outside the domain of its Table 1."
 output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
 inputs = [
   { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
@@ -293,6 +301,10 @@ note = "Step 5, p. 6; B from A-16. The source gives b_1 = -0.125 m-1, the critic
 notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", Psi_H = '\psi', beta = '\beta' }
 units = { z_0 = "M", z_1 = "M" }
 assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+[[formulations.paulus1989_evaporation_duct_height_unstable.citations.domains]]
+bounds = { delta = [0, 40] }
+criterion = "Limits of the output of the model (Table 1): an evaporation duct height from 0 to 40 m; the model gives none above, limiting it to 40 m (step 6)."
 
 # --- Fairall et al. (1978) and Frederickson et al. (1994) ---------------
 # The explicit formulas of the Monin-Obukhov model of the evaporation duct
