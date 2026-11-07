@@ -57,10 +57,11 @@ def test_the_branches_of_fairall_meet_at_neutral(quantity: str) -> None:
 
 
 def test_the_unstable_piece_of_frederickson_is_that_of_the_ifs() -> None:
+    # The expressions compared, beyond the domain Dyer and Hicks state.
     zeta = Q_(np.linspace(-5.0, -0.01, 9), ONE)
     np.testing.assert_allclose(
         value("frederickson1994_gradient_function_scalar", zeta=zeta),
-        value("ecmwf_ifs_gradient_function_heat_unstable", zeta=zeta),
+        value("ecmwf_ifs_gradient_function_heat_unstable", zeta=zeta, outside="ignore"),
         rtol=1e-12,
     )
 
@@ -161,6 +162,7 @@ def test_the_nps_formulas_are_found_by_search() -> None:
         "formulations.fairall1978_gradient_function_momentum_unstable",
         "formulations.fairall1978_gradient_function_momentum_stable",
         "formulations.businger1971_keyps",
+        "formulations.businger1971_gradient_function_heat_unstable",
     }
     assert "formulations.frederickson1994_gradient_function_scalar" in set(
         CATALOG.used_by("references.frederickson1994_nps").refs

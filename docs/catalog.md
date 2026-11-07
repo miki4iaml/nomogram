@@ -231,7 +231,8 @@ criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind
   Loading refuses an unknown that the difference of the members does not
   keep, and an unknown alone on one side, absent from the other: that is
   an explicit expression, written as such. A member may be 0, as the VIM
-  writes the model (`h == 0`).
+  writes the model (`h == 0`) and Long (1984) the GUST relations
+  (`long1984_gust_heat`).
 - **Units**: the members of a quantity equation have the same dimension,
   checked at load, a member 0 having every dimension, and the right one
   is converted to the unit of the left one; those of a numerical value

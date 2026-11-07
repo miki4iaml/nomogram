@@ -328,12 +328,12 @@ def test_keyps_is_written_as_printed_and_found_as_an_implicit_equation() -> None
     tex = KEYPS.latex()
     assert tex.endswith("= 1")
     assert r"\gamma_{1}" in tex
-    assert [f.key for f in CATALOG.search(implicit=True).formulations] == [
-        "businger1971_keyps"
-    ]
+    implicit = {f.key for f in F.values() if f.implicit}
+    assert "businger1971_keyps" in implicit
+    assert {f.key for f in CATALOG.search(implicit=True).formulations} == implicit
     explicit = CATALOG.search(implicit=False).formulations
     assert KEYPS not in explicit
-    assert len(explicit) == len(F) - 1
+    assert len(explicit) == len(F) - len(implicit)
     assert KEYPS in CATALOG.formulations_of("GradientFunctionForMomentum")
 
 
@@ -700,9 +700,10 @@ def test_the_output_names_no_option_and_the_indicator_counts_keyps() -> None:
     )
     with pytest.raises(CatalogError, match="search names an option of evaluate"):
         load_catalog([SOURCE + named])
+    count = sum(f.implicit for f in F.values())
     line = (
         "  implicit equations with their unknown bounded by a physical domain"
-        " or its kind: 1 of 1"
+        f" or its kind: {count} of {count}"
     )
     assert line in stats(CATALOG).splitlines()
 
