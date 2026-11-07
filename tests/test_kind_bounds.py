@@ -10,8 +10,9 @@ import pytest
 
 from nomogram.catalog import CatalogError, catalog, load_catalog
 from nomogram.comparison import feeds
-from nomogram.inversion import dew_point
+from nomogram.inversion import dew_point, invert
 from nomogram.model import Formulation, ValidityWarning, Variable
+from nomogram.semantics import KindBounds
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -199,3 +200,126 @@ coefficients = { a = 100.0 }
     assert f.output.bounds_in_unit() == pytest.approx((0.0, 100.0))
     y = f.evaluate(x=Q_(np.array([0.5, 1.5]), "dimensionless")).magnitude
     assert np.isnan(y).tolist() == [False, True]
+
+
+COMPOSED = """
+[formulations.g]
+label = "g"
+expression = "b * x"
+fixed_units = true
+citations = [{ reference = "src" }]
+output = { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }
+inputs = [{ identifier = "x", kind = "Pressure", unit = "HectoPA", description = "x" }]
+coefficients = { b = 2.0 }
+
+[formulations.f]
+label = "f"
+expression = "a * e"
+fixed_units = true
+citations = [{ reference = "src" }]
+output = { identifier = "y", kind = "Pressure", unit = "HectoPA", description = "y" }
+inputs = [{ identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "e" }]
+coefficients = { a = 3.0 }
+
+[formulations.c]
+label = "c"
+composition = { outer = "f", inner = { e = "g" } }
+
+[[formulations.c.citations]]
+reference = "src"
+
+[[formulations.c.citations.domains]]
+bounds = { x = [-100, 100] }
+criterion = "Where the source of the composition vouches for it."
+"""
+
+
+@pytest.mark.parametrize("basis", ["stated", "physical", "all"])
+def test_an_intermediate_value_keeps_the_bounds_of_its_kind(basis: str) -> None:
+    # The domain stated for the composition replaces those of its parts,
+    # not the bounds of their kinds: a negative vapour pressure stays NaN.
+    c = load_catalog([SOURCE + COMPOSED]).formulations["c"]
+    y = c.evaluate(x=Q_(np.array([-1.0, 1.0]), "hPa"), basis=basis).magnitude  # type: ignore[arg-type]
+    assert np.isnan(y).tolist() == [True, False]
+    with pytest.warns(ValidityWarning, match="beyond the bounds of the kinds"):
+        c.evaluate(x=Q_(-1.0, "hPa"), outside="warn")
+
+
+INVERTED = """
+[formulations.h]
+label = "h"
+expression = "c * u"
+fixed_units = true
+output = { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "p" }
+inputs = [{ identifier = "u", kind = "DimensionlessRatio", unit = "UNITLESS", description = "u" }]
+coefficients = { c = 10.0 }
+
+[[formulations.h.citations]]
+reference = "src"
+
+[[formulations.h.citations.domains]]
+bounds = { u = [-1, 1] }
+criterion = "Where the source vouches for it."
+"""
+
+
+@pytest.mark.parametrize("method", ["symbolic", "numerical"])
+def test_an_inverse_applies_the_bounds_of_its_own_kinds(method: str) -> None:
+    # Narrower than the source's: a relative humidity, never negative.
+    h = load_catalog([SOURCE + INVERTED]).formulations["h"]
+    inverse = invert(
+        h,
+        "u",
+        output=Variable("RH", "RelativeHumidity", "UNITLESS", "RH"),
+        input=Variable("p", "VapourPressure", "HectoPA", "p"),
+        method=method,  # type: ignore[arg-type]
+    )
+    result = inverse.evaluate(p=Q_(np.array([-5.0, 5.0]), "hPa")).magnitude
+    assert np.isnan(result[0])
+    assert result[1] == pytest.approx(0.5)
+
+
+def test_an_inverse_keeps_the_bounds_its_caller_gives() -> None:
+    h = load_catalog([SOURCE + INVERTED]).formulations["h"]
+    narrow = KindBounds(0.0, 0.4, "UNITLESS", "Given by the caller.")
+    output = Variable("RH", "RelativeHumidity", "UNITLESS", "RH", kind_bounds=narrow)
+    inverse = invert(
+        h, "u", output=output, input=Variable("p", "VapourPressure", "HectoPA", "p")
+    )
+    assert inverse.output.kind_bounds == narrow
+    assert np.isnan(inverse.evaluate(p=Q_(5.0, "hPa")).magnitude)
+
+
+def test_a_value_on_another_scale_is_bounded_on_the_reference_one() -> None:
+    # Knudsen salinity, in per mille: carried to the reference scale first.
+    sverdrup = F["sverdrup1942_vapour_pressure_ratio"]
+    s = Q_(np.array([-5.0, 35.0, 1200.0]), "g/kg")
+    assert np.isnan(sverdrup.evaluate(S=s).magnitude).tolist() == [True, False, True]
+    # IPTS-68 beyond its conversion: compared as it is, 0 K holding on every scale.
+    bolton = F["bolton1980"]
+    t = Q_(np.array([-300.0, 20.0]), "degC")
+    result = bolton.evaluate(t=t, scale="ignore").magnitude
+    assert np.isnan(result).tolist() == [True, False]
+
+
+def test_every_variable_of_the_catalog_carries_the_bounds_of_its_kind() -> None:
+    for f in F.values():
+        for v in (*f.inputs, f.output):
+            assert v.kind_bounds == CATALOG.bounds_of(v.kind), (f.key, v.identifier)
+
+
+def test_no_bound_under_a_kind_of_differences() -> None:
+    document = KIND.format(
+        parent="TemperatureDifference", extra='scale_type = "interval"'
+    )
+    loaded = load_catalog([SOURCE + document])
+    assert loaded.kinds["Part"].delta is False
+    assert loaded.bounds_of("Part") is None
+
+
+@pytest.mark.parametrize(
+    ("low", "high"), [(-math.inf, math.inf), (1.0, 0.0), (0.0, math.nan)]
+)
+def test_invalid_bounds_of_a_kind_are_refused(low: float, high: float) -> None:
+    with pytest.raises(ValueError, match="expected low < high, one of them finite"):
+        KindBounds(low, high, "K", "c")

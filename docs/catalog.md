@@ -654,9 +654,15 @@ bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea 
 - They are converted to the unit of each variable (0 K is −273.15 °C,
   1 is 1000 g/kg, ±90° is ±π/2 rad), and apply to inputs and output
   whatever `basis`, as an evaluation outside its domains does: NaN by
-  default, computed with `outside="warn"` or `"ignore"`. A value on a
-  conventional scale other than the reference one keeps the bounds of
-  its scale: a Practical Salinity of 35 is no mass fraction.
+  default, computed with `outside="warn"` or `"ignore"`. They apply to
+  the values each part of a composition or branch receives and gives,
+  even where a domain stated for the composition replaces the domains
+  of its parts. A value on a conventional scale other than the reference
+  one is carried to the reference scale before it is compared (a
+  Practical Salinity of 35 is no mass fraction, its Reference Salinity
+  is); beyond the conversion, it is compared as it is, which bounds
+  holding on every scale (0 K) do rightly. A numerical inverse applies
+  the bounds of its own variables, as a closed form does.
 - A signed quantity has none (a component of the wind, a gradient, an
   Obukhov length, a scale of the surface layer), nor a general kind
   whose values may be negative in some medium: the pressure (a liquid

@@ -490,9 +490,10 @@ def _kind_bounds(kinds: Mapping[str, QuantityKind], name: str) -> KindBounds | N
     specializes the temperature in QUDT, and takes none of its bounds.
     """
     kind = kinds.get(name)
-    if kind is None or kind.delta:
-        return None
     while kind is not None:
+        # Nor for a kind under one of differences, whatever its own typing.
+        if kind.delta:
+            return None
         if kind.bounds is not None:
             return kind.bounds
         parent = kind.specialization_of

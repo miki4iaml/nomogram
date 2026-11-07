@@ -146,6 +146,15 @@ class KindBounds:
     unit: str
     criterion: str
 
+    def __post_init__(self) -> None:
+        both_open = math.isinf(self.low) and math.isinf(self.high)
+        if not self.low < self.high or both_open:
+            msg = (
+                "bounds of a kind: expected low < high, one of them finite, "
+                f"not [{self.low}, {self.high}]"
+            )
+            raise ValueError(msg)
+
 
 @dataclass(frozen=True)
 class QuantityKind:

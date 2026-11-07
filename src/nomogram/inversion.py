@@ -58,6 +58,7 @@ from nomogram.model import (
     ValidityDomain,
     ValidityWarning,
     Variable,
+    _beyond_kind,
     _check_given,
     _check_options,
     _flag_beyond,
@@ -604,6 +605,13 @@ class NumericalInverse:
         solved = np.where(unreachable, np.nan, solved)
         given = {source_input.identifier: solved, self.source.output.identifier: target}
         mask = self.source.outside_mask(given, basis)
+        # The bounds of the kinds of its own variables, which may be
+        # narrower than those of the source's: as a closed form would apply.
+        mask = (
+            mask
+            | _beyond_kind(self.input, target)
+            | _beyond_kind(self.output, solved, source_input.unit)
+        )
         if mask.any() and outside != "ignore":
             message = f"{self.key}: {int(mask.sum())} value(s) outside the {basis} domain of {self.source.key}"
             if outside == "raise":
@@ -688,9 +696,14 @@ def invert(
     _check(formulation, solve_for, output, input)
     from nomogram.catalog import catalog
 
-    # The bounds of their kinds, as the catalog gives them to its variables.
-    output = replace(output, kind_bounds=catalog().bounds_of(output.kind))
-    input = replace(input, kind_bounds=catalog().bounds_of(input.kind))
+    # The bounds of their kinds, as the catalog gives them to its variables,
+    # unless the caller gives some.
+    output = replace(
+        output, kind_bounds=output.kind_bounds or catalog().bounds_of(output.kind)
+    )
+    input = replace(
+        input, kind_bounds=input.kind_bounds or catalog().bounds_of(input.kind)
+    )
     source_input = formulation.inputs[0]
     output = replace(
         output,
