@@ -87,8 +87,30 @@ and this project adheres to
   equation 12) and the form of Carl et al. (1973) as Long quotes it.
   `search(keyword="GUST")`, `search(source="dyer_hicks1970")`.
 
+- Stability functions of the surface layer from more sources, side by
+  side with those of the IFS: the SHEBA functions of Grachev et al.
+  (2007); those of Cheng and Brutsaert (2005), with the ranges they were
+  fitted on; the gradient functions of Holtslag and De Bruin (1988) and
+  of Beljaars and Holtslag (1991) as Andreas (2002) gives them; the
+  log-linear forms of Webb (1970, as Beljaars 1992 quotes it) and of
+  Businger (1985); the profile functions of COARE 3.6 as its code writes
+  them, checked against that code (`cross_checks.coare36_psi`). Relations
+  between z/L and the Richardson numbers: Ri = z/L / (1 + 4.7 z/L) and
+  the gradient function from Ri of Businger (1985), z/L from Ri of Kramm
+  et al. (2013), and the bulk Richardson number of the lowest model
+  level from z/L of Beljaars (1992). Beljaars (1992), Businger (1985) and
+  Kramm et al. (2013) are cited for the forms already in the catalog.
+  `search(keyword="SHEBA")`, `search(keyword="COARE")`,
+  `search(source="beljaars1992")`.
+
 ### Changed
 
+- The log-linear gradient function 1 + 5 z/L of the IFS for stable
+  conditions, bounded by the range Beljaars (1992) states, 0 to 0.5, is
+  NaN beyond by default. The family `boundary-layer` now requires
+  `sea-water`, for the COARE 3.6 code it cites.
+- The prefilter of duplicates takes a value that is not real at its
+  probe points as NaN, instead of its real part, without a warning.
 - The unstable gradient functions of the IFS, now bounded by the domain
   Dyer and Hicks (1970) state, are NaN by default for z/L below -1 or
   above -0.01; `outside="ignore"` computes them there.

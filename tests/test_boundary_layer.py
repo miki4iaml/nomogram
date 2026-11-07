@@ -181,7 +181,7 @@ def test_the_surface_layer_is_found_by_search() -> None:
     assert "formulations.ecmwf_ifs_profile_function_momentum_unstable" in paulson
     term = CATALOG.search("drag coefficient").refs
     assert "trade_terms.drag_coefficient" in term
-    assert CATALOG.families["boundary-layer"].requires == ("atmosphere",)
+    assert CATALOG.families["boundary-layer"].requires == ("atmosphere", "sea-water")
 
 
 def test_the_surface_layer_is_linked_to_wikidata() -> None:

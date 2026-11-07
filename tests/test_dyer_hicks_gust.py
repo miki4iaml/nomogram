@@ -186,7 +186,7 @@ def test_the_new_entries_are_found_and_typed() -> None:
     for kind in ("GradientRichardsonNumber", "ScaledStabilityParameter"):
         assert CATALOG.kinds[kind].specialization_of == "DimensionlessRatio"
     richardson = {f.key for f in CATALOG.formulations_of("GradientRichardsonNumber")}
-    assert richardson == {
+    assert richardson >= {
         "dyer_hicks1970_gradient_richardson_number",
         "dyer_hicks1970_richardson_number_unstable",
     }

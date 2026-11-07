@@ -402,6 +402,12 @@ equation = "10"
 note = "p. 184, with a slope between 4.5 and 5.0 allowed by the scatter of the data, fitted with k = 0.35."
 notation = { Phi_M = '\phi_m', zeta = '\zeta' }
 
+[[formulations.fairall1978_gradient_function_momentum_stable.citations]]
+reference = "businger1985"
+equation = "42"
+note = "p. 20, phi_u = phi_theta = 1 + beta zeta, beta about 4.7."
+notation = { Phi_M = '\phi_u', zeta = '\zeta' }
+
 [formulations.fairall1978_gradient_function_momentum]
 label = "Gradient function for momentum, unstable then stable conditions (Fairall et al. 1978)"
 branches = [

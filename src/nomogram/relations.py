@@ -276,9 +276,11 @@ def _shape(formulation: Formulation) -> Any:
                 for rank, name in enumerate(order):
                     arguments[position[name]] = 250.0 + 10.0 * (rank + 1) + 3.0 * index
             try:
-                value = float(function(*arguments, *fixed))
+                raw = complex(function(*arguments, *fixed))
             except (ArithmeticError, TypeError, ValueError):
-                value = float("nan")
+                raw = complex("nan")
+            # Not real at the probe values (a root of a negative number): NaN.
+            value = raw.real if raw.imag == 0 else float("nan")
             values.append(abs(value) if formulation.implicit else value)
     return np.sort(np.array(values))
 
