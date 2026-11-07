@@ -73,8 +73,25 @@ and this project adheres to
   φm ≥ 0; `search(implicit=True)` finds it, and the indicators count the
   implicit equations whose unknown objective bounds select.
 
+- Dyer and Hicks (1970) cited, read on the page images, for the two
+  unstable gradient functions of the IFS, with the domain they state, z/L
+  from -1 to -0.01 where the forms approximate their Table 1 to within a
+  few per cent; their equation 3, the gradient Richardson number
+  z/L Phi_H / Phi_M^2, as an identity, and its composition with the two
+  forms, z/L exactly. New kind `GradientRichardsonNumber`.
+- The GUST relations of Long (1984, NMC Office Note 302) as implicit
+  equations in eta = -gamma z/L: the KEYPS quartic and the cubic of
+  Helfand, each with its positive root, as the source states; their
+  Table 1 is computed again. New kind `ScaledStabilityParameter`. Also
+  the normalized gradient function for heat of Businger et al. (1971,
+  equation 12) and the form of Carl et al. (1973) as Long quotes it.
+  `search(keyword="GUST")`, `search(source="dyer_hicks1970")`.
+
 ### Changed
 
+- The unstable gradient functions of the IFS, now bounded by the domain
+  Dyer and Hicks (1970) state, are NaN by default for z/L below -1 or
+  above -0.01; `outside="ignore"` computes them there.
 - `basis`, `outside`, `scale` and `search`, options of `evaluate`, are
   refused as identifiers of variables.
 

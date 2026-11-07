@@ -18,7 +18,8 @@ keywords = ["boundary layer", "surface layer", "Monin-Obukhov", "turbulence"]
 
 # --- References -------------------------------------------------------
 # The sources the IFS cites for its functions, entered as the IFS writes
-# them: not read, hence to-confirm.
+# them: not read, hence to-confirm; those read on their pages are
+# verified (Businger et al. 1971, Dyer and Hicks 1970, Long 1984).
 
 [references.paulson1970]
 authors = "Paulson, C. A."
@@ -46,6 +47,40 @@ container = "Journal of the Atmospheric Sciences, 28, 181-189"
 doi = "10.1175/1520-0469(1971)028<0181:FPRITA>2.0.CO;2"
 status = "verified"
 note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU/dz and temperature gradient phi_h = (z/theta_*) dtheta/dz, theta_* = -w'theta'/(k u_*) (equations 2 and 3); the KEYPS formula phi_m^4 - 9 zeta phi_m^3 = 1 (7), phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
+
+[references.businger1966]
+authors = "Businger, J. A."
+year = 1966
+title = "Transfer of momentum and heat in the planetary boundary layer"
+container = "Proceedings of the Symposium on Arctic Heat Budget and Atmospheric Circulation, The RAND Corporation, 305-332"
+status = "to-confirm"
+note = "Credited by Dyer and Hicks (1970, p. 718) with the forms (1 - 16 z/L)^(-1/4) and (1 - 16 z/L)^(-1/2); not read."
+
+[references.dyer_hicks1970]
+authors = "Dyer, A. J. and Hicks, B. B."
+year = 1970
+title = "Flux-gradient relationships in the constant flux layer"
+container = "Quarterly Journal of the Royal Meteorological Society, 96, 715-721"
+doi = "10.1002/qj.49709641012"
+status = "verified"
+note = "Read on the page images: Phi_M from the wind profiles of Hay (1967) and Gurley (1970), with k = 0.41 (equation 1, p. 716); the Obukhov length with the latent heat flux, -rho c_p theta u_*^3 / (g k (H + 0.070 E)) (2); Phi_H = Phi_W (p. 715); Phi_H = Phi_M = 1 at |z/L| = 0.001 in their analysis of shape (p. 717); Ri = z/L Phi_H / Phi_M^2 from the definitions (3, p. 718); Table 1 of Phi_M, Phi_H = Phi_W, Phi_H / Phi_M^2 and their integrals for z/L from -0.01 to -1.0 (p. 718); the forms (1 - 16 z/L)^(-1/4) and (1 - 16 z/L)^(-1/2), which they credit to Businger (1966), approximate it to within a few per cent (summary, p. 715; section 6, p. 718). DOI checked with Crossref on 2026-11-07."
+
+[references.carl1973]
+authors = "Carl, D. M., Tarbell, T. C. and Panofsky, H. A."
+year = 1973
+title = "Profiles of wind and temperature from towers over homogeneous terrain"
+container = "Journal of the Atmospheric Sciences, 30, 788-794"
+doi = "10.1175/1520-0469(1973)030<0788:POWATF>2.0.CO;2"
+status = "to-confirm"
+note = "Cited by Long (1984, equation 1.6) for phi_m = (1 - 16 z/L)^(-1/3); not read. DOI checked with Crossref on 2026-11-07."
+
+[references.long1984]
+authors = "Long, P. E., Jr."
+year = 1984
+title = "GUST: a general unified similarity theory for the calculation of turbulent fluxes in numerical weather prediction models for unstable conditions"
+container = "NOAA, National Weather Service, National Meteorological Center, Office Note 302"
+status = "verified"
+note = "An unreviewed manuscript for the staff of the NMC, as its cover says. Read on the page images: phi_h = (k z / (b theta_*)) dtheta/dz with b the neutral Prandtl number (1.1b); the forms of Businger et al. (1971, 1.2) and of Dyer and Hicks (1970, 1.3); that of Carl et al. (1973, 1.6); the KEYPS quartic phi_m^4 - gamma_m z/L phi_m^3 - 1 = 0 (1.7a) and the cubic phi_h^2 - gamma_h z/L phi_h^3 - 1 = 0 that Helfand proposed (1984, a personal communication; 1.7b), written with eta = -gamma z/L (2.2), each with one positive root for eta >= 0 by Descartes' rule of signs (p. 7-8); Table 1 of their roots for eta from 0.001 to 5000 (p. 10). The values of gamma_m and gamma_h are not printed. Its list of references gives Dyer and Hicks (1970) as 91, 151-157 and Dyer (1974) as 7, 165-184; the articles are in 96, 715-721 and 7, 363-372."
 
 [references.hogstrom1988]
 authors = "Högström, U."
@@ -231,6 +266,11 @@ label = "Stability Parameter"
 specialization_of = "DimensionlessRatio"
 description = "Height over the Obukhov length, zeta = z/L: negative in unstable conditions, positive in stable ones."
 
+[kinds.ScaledStabilityParameter]
+label = "Scaled Stability Parameter"
+specialization_of = "DimensionlessRatio"
+description = "Minus the stability parameter times the constant of a flux-profile relation, eta = -gamma z/L, positive in unstable conditions: the variable of the KEYPS and Helfand relations as Long (1984) writes them. Not the stability parameter, whose values cannot feed it."
+
 [kinds.GradientFunctionForMomentum]
 label = "Gradient Function for Momentum"
 specialization_of = "DimensionlessRatio"
@@ -258,6 +298,11 @@ description = "Ratio of buoyancy to wind shear across a layer, from the differen
 matches = [
   { target = "http://www.wikidata.org/entity/Q1004118", relation = "exact", verified = 2026-11-04 },
 ]
+
+[kinds.GradientRichardsonNumber]
+label = "Gradient Richardson Number"
+specialization_of = "DimensionlessRatio"
+description = "Ratio of buoyancy to wind shear at a height, (g/theta) (dtheta/dz) / (du/dz)^2, from the vertical gradients themselves: z/L Phi_H / Phi_M^2 in the surface layer (Dyer and Hicks 1970). Not the bulk Richardson number, from differences across a layer."
 
 [kinds.SurfaceDragCoefficientForMomentum]
 label = "Surface Drag Coefficient for Momentum"
@@ -336,7 +381,7 @@ assumptions = ["The turbulent fluxes are constant with height in the surface lay
 # --- Gradient functions -----------------------------------------------
 
 [formulations.ecmwf_ifs_gradient_function_momentum_unstable]
-label = "Gradient function for momentum, unstable conditions (IFS, after Dyer and Hicks)"
+label = "Gradient function for momentum, unstable conditions (Dyer and Hicks 1970, IFS)"
 expression = "(1 - 16 * zeta) ** (-1 / 4)"
 fixed_units = false
 output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
@@ -359,8 +404,27 @@ note = "As the IFS quotes it."
 reference = "hogstrom1988"
 note = "As the IFS quotes it."
 
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "dyer_hicks1970"
+note = "Summary (p. 715) and section 6 (p. 718), with k = 0.41: the form Businger (1966) suggested, a convenient expression of their results."
+notation = { Phi_M = '\Phi_M', zeta = 'z/L' }
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations.domains]]
+bounds = { zeta = [-1.0, -0.01] }
+criterion = "Approximates the values of their Table 1, measured at Hay and Gurley for z/L from -0.01 to -1.0, to within a few per cent (summary, p. 715; section 6, p. 718)."
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "long1984"
+equation = "1.3a"
+note = "p. 4, as Dyer and Hicks (1970), with k = 0.41."
+notation = { Phi_M = '\varphi_m', zeta = 'z/L' }
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "businger1966"
+note = "As Dyer and Hicks (1970, p. 718) credit it."
+
 [formulations.ecmwf_ifs_gradient_function_heat_unstable]
-label = "Gradient function for heat and moisture, unstable conditions (IFS, after Dyer and Hicks)"
+label = "Gradient function for heat and moisture, unstable conditions (Dyer and Hicks 1970, IFS)"
 expression = "(1 - 16 * zeta) ** (-1 / 2)"
 fixed_units = false
 output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
@@ -382,6 +446,25 @@ note = "As the IFS quotes it."
 [[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
 reference = "hogstrom1988"
 note = "As the IFS quotes it."
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "dyer_hicks1970"
+note = "Summary (p. 715) and section 6 (p. 718), with k = 0.41; the same form for water vapour, Phi_W = Phi_H: the form Businger (1966) suggested, a convenient expression of their results."
+notation = { Phi_H = '\Phi_H', zeta = 'z/L' }
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations.domains]]
+bounds = { zeta = [-1.0, -0.01] }
+criterion = "Approximates the values of their Table 1, measured at Hay and Gurley for z/L from -0.01 to -1.0, to within a few per cent (summary, p. 715; section 6, p. 718)."
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "long1984"
+equation = "1.3b"
+note = "p. 4, as Dyer and Hicks (1970), with k = 0.41."
+notation = { Phi_H = '\varphi_h', zeta = 'z/L' }
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "businger1966"
+note = "As Dyer and Hicks (1970, p. 718) credit it."
 
 [formulations.ecmwf_ifs_gradient_function_momentum_stable]
 label = "Gradient function for momentum, stable conditions (IFS, after Hogstrom)"
@@ -443,6 +526,131 @@ equation = "7"
 note = "p. 184."
 notation = { Phi_M = '\phi_m', zeta = '\zeta', gamma_1 = '\gamma_1' }
 assumptions = ["Unstable conditions: the formula is 'intended for unstable conditions' (p. 184)."]
+
+[formulations.businger1971_gradient_function_heat_unstable]
+label = "Gradient function for heat, unstable conditions, normalized (Businger et al. 1971)"
+expression = "(1 - 9 * zeta) ** (-1 / 2)"
+fixed_units = false
+note = "Equation 12 gives phi_h / phi_h(0), the gradient function for heat normalized to 1 in neutral conditions, phi_h(0) being about 0.74 with k = 0.35 (p. 185); in very unstable conditions it follows zeta^(-1/2), not the zeta^(-1/3) of free convection (p. 185)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "Businger"]
+
+[[formulations.businger1971_gradient_function_heat_unstable.citations]]
+reference = "businger1971"
+equation = "12"
+note = "p. 185, the Businger-Dyer form with gamma_4 = 9."
+notation = { Phi_H = '\phi_h/\phi_h(0)', zeta = '\zeta' }
+assumptions = ["Unstable conditions (p. 185)."]
+
+[[formulations.businger1971_gradient_function_heat_unstable.citations]]
+reference = "long1984"
+equation = "1.2b"
+note = "p. 4, as Businger et al. (1971), with k = 0.35; phi_h carries the neutral Prandtl number in its definition (1.1b)."
+notation = { Phi_H = '\varphi_h', zeta = 'z/L' }
+
+[formulations.carl1973_gradient_function_momentum_unstable]
+label = "Gradient function for momentum, unstable conditions, with the exponent of free convection (Carl et al. 1973)"
+expression = "(1 - 16 * zeta) ** (-1 / 3)"
+fixed_units = false
+note = "It reduces to the free-convection limit (-z/L)^(-1/3) as -z/L grows (Long 1984, p. 9)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "free convection", "Carl"]
+
+[[formulations.carl1973_gradient_function_momentum_unstable.citations]]
+reference = "long1984"
+equation = "1.6"
+note = "p. 9: a composite of tower data suggests it, according to Carl et al. (1973)."
+notation = { Phi_M = '\varphi_m', zeta = 'z/L' }
+assumptions = ["Unstable conditions, -z/L >= 0 (p. 9)."]
+
+[[formulations.carl1973_gradient_function_momentum_unstable.citations]]
+reference = "carl1973"
+note = "As Long (1984) quotes it."
+
+[formulations.long1984_gust_momentum]
+label = "Gradient function for momentum, KEYPS quartic in the scaled stability parameter (Long 1984)"
+expression = "Phi_M**4 + eta * Phi_M**3 - 1 == 0"
+fixed_units = false
+note = "Equation 1.7a, phi_m^4 - gamma_m z/L phi_m^3 - 1 = 0, written with eta = -gamma_m z/L; gamma_m is not given a value. With gamma_m = 9 it is the KEYPS formula of Businger et al. (1971, businger1971_keyps). For weak instability phi_m tends to (1 + eta)^(-1/4) (2.4a), for strong instability to eta^(-1/3) (p. 9)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "eta", kind = "ScaledStabilityParameter", unit = "UNITLESS", description = "Scaled stability parameter -gamma_m z/L" },
+]
+keywords = ["gradient function", "KEYPS", "GUST", "Monin-Obukhov", "unstable", "implicit equation"]
+
+[[formulations.long1984_gust_momentum.domains]]
+bounds = { Phi_M = [0, inf] }
+criterion = "The positive root, the physical one: one, and no more than one, for each eta >= 0, by Descartes' rule of signs (Long 1984, p. 7-8)."
+reference = "long1984"
+
+[[formulations.long1984_gust_momentum.citations]]
+reference = "long1984"
+equation = "2.2a"
+note = "p. 7, from 1.7a (p. 6)."
+notation = { Phi_M = '\varphi_m', eta = '\eta_m' }
+assumptions = ["Unstable conditions, eta >= 0 (p. 7)."]
+
+[formulations.long1984_gust_heat]
+label = "Gradient function for heat, cubic of Helfand in the scaled stability parameter (Long 1984)"
+expression = "Phi_H**2 + eta * Phi_H**3 - 1 == 0"
+fixed_units = false
+note = "Equation 1.7b, phi_h^2 - gamma_h z/L phi_h^3 - 1 = 0, which Helfand proposed (1984, a personal communication), written with eta = -gamma_h z/L; gamma_h is not given a value. phi_h is the gradient of temperature over the neutral Prandtl number (1.1b), 1 in neutral conditions. For weak instability phi_h tends to (1 + eta)^(-1/2) (2.4b), for strong instability to eta^(-1/3) (p. 9)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "eta", kind = "ScaledStabilityParameter", unit = "UNITLESS", description = "Scaled stability parameter -gamma_h z/L" },
+]
+keywords = ["gradient function", "Helfand", "GUST", "Monin-Obukhov", "unstable", "implicit equation"]
+
+[[formulations.long1984_gust_heat.domains]]
+bounds = { Phi_H = [0, inf] }
+criterion = "The positive root, the physical one: one, and no more than one, for each eta >= 0, by Descartes' rule of signs (Long 1984, p. 7-8)."
+reference = "long1984"
+
+[[formulations.long1984_gust_heat.citations]]
+reference = "long1984"
+equation = "2.2b"
+note = "p. 7, from 1.7b (p. 6)."
+notation = { Phi_H = '\varphi_h', eta = '\eta_h' }
+assumptions = ["Unstable conditions, eta >= 0 (p. 7)."]
+
+# --- Richardson number --------------------------------------------------
+
+[formulations.dyer_hicks1970_gradient_richardson_number]
+label = "Gradient Richardson number from the gradient functions (Dyer and Hicks 1970)"
+nature = "identity"
+expression = "zeta * Phi_H / Phi_M**2"
+fixed_units = false
+conditions = "The gradient functions and the Obukhov length as the source defines them (equations 1 and 2): equation 3 follows 'from the definitions of the various quantities' (p. 718)."
+output = { identifier = "Ri", kind = "GradientRichardsonNumber", unit = "UNITLESS", description = "Gradient Richardson number" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+  { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" },
+  { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" },
+]
+keywords = ["Richardson number", "gradient function", "Monin-Obukhov"]
+
+[[formulations.dyer_hicks1970_gradient_richardson_number.citations]]
+reference = "dyer_hicks1970"
+equation = "3"
+note = "p. 718."
+notation = { Ri = '\mathrm{Ri}', zeta = 'z/L', Phi_M = '\Phi_M', Phi_H = '\Phi_H' }
+
+[formulations.dyer_hicks1970_richardson_number_unstable]
+label = "Gradient Richardson number in unstable conditions, equal to z/L (Dyer and Hicks 1970)"
+composition = { outer = "dyer_hicks1970_gradient_richardson_number", inner = { Phi_M = "ecmwf_ifs_gradient_function_momentum_unstable", Phi_H = "ecmwf_ifs_gradient_function_heat_unstable" } }
+note = "Equation 3 with the two forms gives Ri = z/L exactly; the values of their Table 1 depart from it by about 6 per cent at most, at z/L = -0.05 (p. 718)."
+output = { identifier = "Ri", kind = "GradientRichardsonNumber", unit = "UNITLESS", description = "Gradient Richardson number" }
+keywords = ["Richardson number", "Monin-Obukhov", "unstable"]
+
+[[formulations.dyer_hicks1970_richardson_number_unstable.citations]]
+reference = "dyer_hicks1970"
+note = "Summary (p. 715): the implied equality between Ri and z/L, which approximates the data to within a few per cent."
 
 # --- Profile functions ------------------------------------------------
 # Paulson (1970) for unstable conditions, with x = (1 - 16 zeta)^(1/4)

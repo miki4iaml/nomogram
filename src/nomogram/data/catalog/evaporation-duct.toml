@@ -374,6 +374,12 @@ equation = "8"
 note = "p. 184, the Businger-Dyer form with gamma_2 = 15, fitted with k = 0.35."
 notation = { Phi_M = '\phi_m', zeta = '\zeta' }
 
+[[formulations.fairall1978_gradient_function_momentum_unstable.citations]]
+reference = "long1984"
+equation = "1.2a"
+note = "p. 4, as Businger et al. (1971), with k = 0.35."
+notation = { Phi_M = '\varphi_m', zeta = 'z/L' }
+
 [formulations.fairall1978_gradient_function_momentum_stable]
 label = "Gradient function for momentum, stable conditions (Fairall et al. 1978, after Businger et al.)"
 expression = "1 + 4.7 * zeta"
