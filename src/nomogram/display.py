@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import math
 import re
 from collections.abc import Iterable, Iterator, Mapping
 from contextvars import ContextVar
@@ -762,9 +763,15 @@ class FormulaTable:
         for domain in formulation.domains:
             for identifier, (low, high) in domain.bounds.items():
                 label = _identifier(identifier, symbols, options)
-                bounds = (
-                    f"{_plain_number(low, options)} to {_plain_number(high, options)}"
-                )
+                if not math.isfinite(high):
+                    bounds = f"{_plain_number(low, options)} or more"
+                elif not math.isfinite(low):
+                    bounds = f"{_plain_number(high, options)} or less"
+                else:
+                    bounds = (
+                        f"{_plain_number(low, options)} to "
+                        f"{_plain_number(high, options)}"
+                    )
                 variable = variables.get(identifier)
                 text = _with_unit(bounds, variable.unit if variable else None)
                 parts.append(f"${label}$: {text} ({domain.basis.value})")

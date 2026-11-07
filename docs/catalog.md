@@ -148,8 +148,12 @@ All sections are optional; a key may be defined in one file only.
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
 - **`domains`**: physical domains only: `bounds` (closed intervals per
-  input identifier, in the input's unit), and optionally `criterion` and
-  `reference`. A domain stated by a source belongs to its citation.
+  input identifier, in the input's unit, and of the output by its
+  identifier, in its unit), and optionally `criterion` and `reference`.
+  One end may be open, written `inf` (`{ z = [0, inf] }` for z ≥ 0);
+  never both, a domain bounds at least one end. Bounds are closed: a
+  strict inequality is not written. A bound on the output states its
+  `criterion`. A domain stated by a source belongs to its citation.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales
@@ -257,16 +261,20 @@ bounds = { t = [-40.0, 50.0] }
   fixes the units of the coefficients around it.
 - **Validity domains**: a composed formulation is never more permissive
   than the chain of its parts. At evaluation, the domains of each part
-  apply to the values it receives, intermediate values included: a bound
-  on the vapour pressure an inner part computes is a bound on that
-  part's inputs, whatever its shape. One exception: a domain stated by a
-  source of the composed formulation itself (ITU-R P.453 for its
-  equation 9) replaces the domains the sources of the parts state, since
-  that source speaks of the composed formula. Physical domains of the
-  parts always apply. `python -m nomogram.catalog check` points out
-  where such a stated domain goes beyond those stated for the parts:
-  the disagreement is shown, never smoothed. Physical domains on inputs
-  carried unchanged are also listed in `physical_domains`.
+  apply to the values it receives and to the value it gives,
+  intermediate values included: a bound on the vapour pressure an inner
+  part computes is a bound on that part's inputs, whatever its shape.
+  One exception: a domain stated by a source of the composed formulation
+  itself on its inputs (ITU-R P.453 for its equation 9) replaces the
+  domains the sources of the parts state, since that source speaks of
+  the composed formula; a bound it states on the output alone replaces
+  nothing. Physical domains of the parts always apply.
+  `python -m nomogram.catalog check` points out where such a stated
+  domain goes beyond those stated for the parts: the disagreement is
+  shown, never smoothed. Physical domains on inputs carried unchanged
+  are also listed in `physical_domains`, as is a physical bound on the
+  outer formulation's output, under the composed output's identifier; a
+  bound on an inner output, an intermediate value, is not.
 - **`output`** (optional) narrows the output to a specialization of the
   outer formulation's kind, in the same unit.
 - A composition may use another one; a cycle is refused. Parts come from
@@ -471,9 +479,10 @@ output = { identifier = "p_ws", kind = "VapourPressure", unit = "PA", descriptio
   Coefficients and constants are gathered; one formulation may serve two
   branches, but two formulations may not give a coefficient the same name.
 - **Validity domains**: those of each branch apply where its condition
-  holds. A domain stated by a source of the formulation replaces those
-  the sources of the branches state, as for a composition; physical
-  domains of the branches always apply.
+  holds, to its inputs and to its output. A domain stated by a source of
+  the formulation on its inputs replaces those the sources of the
+  branches state, as for a composition; physical domains of the branches
+  always apply.
 - The formulation's `derivation` records the method `"branches"` and the
   formulation used under each condition; the legend of a single formula
   lists them. `uses` and `used_by` link the formulation and its branches.
@@ -505,7 +514,20 @@ A source cited for a domain or a unit must be one of the citations: the
 link is never implicit. **By default, domains of different citations
 combine by union** (a value is inside if one source says so); the
 domains of one citation apply together, and physical domains always
-apply.
+apply. Bounds on the output combine apart from those on the inputs: the
+union runs on the inputs over the citations that bound them, and on the
+output over those that bound it, and a value is outside if either
+places it there. A source that only bounds the output thus never widens
+the inputs another bounds.
+
+**A bound on the output says where the source vouches for its results,
+never what to do beyond.** Paulus (1989, NOSC TD 1596) bounds the
+evaporation duct height from 0 to 40 m (Table 1): a height of 52 m is
+outside, NaN by default, computed with `outside="warn"` or `"ignore"`,
+and the step of its algorithm that limits the height to 40 m stays a
+step, which no domain performs. A formulation inverted carries the
+domain of the input it solves for onto its output (see
+[the approach](approach.md)).
 
 ### Conventional scales
 

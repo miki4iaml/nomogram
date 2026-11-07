@@ -9,15 +9,21 @@ Table 2 never reaches the stable height of step 4 (b) nor the limited one
 of step 4 (c): the test for T_a - T_s > -1 replaces every stable case by
 one at T_a = T_s - 1. The continuity of the pieces and the identity of
 4 (b) and 4 (c) check those only for consistency.
+
+The steps are chained as the algorithm chains them, validity domains
+aside: it compares heights above 40 m (p. 7) before limiting them to 40 m
+(step 6), while its Table 1 states no height above.
 """
 
 import math
+from typing import Any
 
 import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
 from nomogram.comparison import feeds
+from nomogram.model import ValidityWarning
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -45,9 +51,10 @@ TABLE_2 = [
 Z_1 = 6.0  # m, the reference height (step 6)
 
 
-def value(key: str, **inputs: object) -> float:
+def value(key: str, *, outside: str = "ignore", **inputs: object) -> float:
     with np.errstate(divide="ignore", invalid="ignore"):
-        return float(F[key].evaluate(**inputs).magnitude)  # type: ignore[arg-type]
+        result = F[key].evaluate(outside=outside, **inputs)  # type: ignore[arg-type]
+        return float(result.magnitude)
 
 
 def saturation(t_k: float) -> float:
@@ -60,8 +67,13 @@ def potential_refractivity(t_k: float, e: float) -> float:
     return value("paulus1989_potential_refractivity", T=Q_(t_k, "K"), e=Q_(e, "hPa"))
 
 
-def duct_height(u: float, t_ak: float, t_sk: float, e: float, e_0: float) -> float:
-    """Steps 2 to 5, temperatures in kelvin, vapour pressures in hPa."""
+def duct_height(
+    u: float, t_ak: float, t_sk: float, e: float, e_0: float, outside: str = "ignore"
+) -> float:
+    """Steps 2 to 5, temperatures in kelvin, vapour pressures in hPa.
+
+    ``outside`` applies to the height only.
+    """
     ri_b = value(
         "paulus1989_bulk_richardson_number",
         T_a=Q_(t_ak, "K"),
@@ -75,21 +87,23 @@ def duct_height(u: float, t_ak: float, t_sk: float, e: float, e_0: float) -> flo
         N_S=Q_(potential_refractivity(t_sk, e_0), "ppm"),
     )
     length = value("paulus1989_obukhov_length", Ri_b=Q_(ri_b, ONE))
-    common = {"Delta_N_p": Q_(delta_n, "ppm"), "L": Q_(length, "m")}
+    common: dict[str, Any] = {"Delta_N_p": Q_(delta_n, "ppm"), "L": Q_(length, "m")}
     if ri_b < 0:  # step 5
         psi = value("paulus1989_profile_function", zeta=Q_(Z_1 / length, ONE))
-        delta = value(
-            "paulus1989_evaporation_duct_height_unstable",
-            Psi_H=Q_(psi, ONE),
-            **common,
-        )
-        return 0.0 if math.isnan(delta) or delta_n >= 0 else delta
+        unstable: dict[str, Any] = {"Psi_H": Q_(psi, ONE), **common}
+        key = "paulus1989_evaporation_duct_height_unstable"
+        delta = value(key, **unstable)
+        if math.isnan(delta) or delta_n >= 0:  # no duct, as the listing does
+            return 0.0
+        return value(key, outside=outside, **unstable)
     delta = value("paulus1989_evaporation_duct_height_stable", **common)  # step 4
     if delta < 0 or delta / length > 1:
-        delta = value(
-            "paulus1989_evaporation_duct_height_limited", Delta_N_p=common["Delta_N_p"]
+        return value(
+            "paulus1989_evaporation_duct_height_limited",
+            outside=outside,
+            Delta_N_p=common["Delta_N_p"],
         )
-    return delta
+    return value("paulus1989_evaporation_duct_height_stable", outside=outside, **common)
 
 
 def paulus_jeske(t_a: float, t_s: float, rh: float, u: float) -> float:
@@ -116,6 +130,19 @@ def test_the_37_test_cases_of_table_2(
 
 def test_table_2_has_37_cases() -> None:
     assert len(TABLE_2) == 37
+
+
+def test_a_height_above_40_m_is_outside_the_domain_of_table_1() -> None:
+    # (15, 15, 10 %, 20 kt): at T_a = T_s, the algorithm meets a height
+    # above 40 m, which it compares (p. 7) before its cap (step 6).
+    t_sk = 15 + 273.2
+    e_0 = saturation(t_sk)
+    assert duct_height(20, t_sk, t_sk, 0.10 * e_0, e_0) > 40
+    assert math.isnan(duct_height(20, t_sk, t_sk, 0.10 * e_0, e_0, outside="nan"))
+    with pytest.warns(ValidityWarning, match="outside its stated domain"):
+        duct_height(20, t_sk, t_sk, 0.10 * e_0, e_0, outside="warn")
+    domain = F["paulus1989_evaporation_duct_height_stable"].citations[0].domains[0]
+    assert dict(domain.bounds) == {"delta": (0.0, 40.0)}
 
 
 def test_the_pieces_of_the_fits_meet() -> None:

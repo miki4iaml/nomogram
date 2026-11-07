@@ -29,6 +29,7 @@ the result is NaN there. See ``docs/rosetta.md`` for the vocabulary.
 from __future__ import annotations
 
 import datetime
+import math
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -960,7 +961,9 @@ class ValidityDomain:
     basis : DomainBasis
         Physical, or stated by the author or the cited publication.
     bounds : mapping of str to (float, float)
-        Closed interval per input identifier, in the input's unit.
+        Closed interval per input identifier, in the input's unit, and of
+        the output when the domain bounds it, in the output's unit; one end
+        may be infinite (``(0, inf)``).
     criterion : str or None
         What the domain guarantees, for example a maximum deviation from
         a reference formulation.
@@ -1466,12 +1469,14 @@ class Formulation:
         return infer_units(self)
 
     def outside_mask(self, values: Mapping[str, Any], basis: Basis = "stated") -> Any:
-        """Where input values fall outside the selected validity domains.
+        """Where values fall outside the selected validity domains.
 
         Parameters
         ----------
         values : mapping of str to array_like
-            Input values, by identifier, in the inputs' units.
+            Input values, by identifier, in the inputs' units; and the
+            output's, by its identifier and in its unit, for the domains that
+            bound it (left aside when it is not given).
         basis : {"stated", "physical", "all"}
             Which domains apply.
 
@@ -1489,50 +1494,79 @@ class Formulation:
         -----
         Physical domains all apply. Domains stated by sources combine by
         union between citations (inside if one source says so), and apply
-        together within a citation.
+        together within a citation. Bounds on the output are taken apart
+        from those on the inputs: the union runs on the inputs over the
+        citations that bound them, and on the output over the citations
+        that bound it, and a value is outside if either is. A citation that
+        only bounds the output thus never widens the inputs another states.
 
         Bounds are closed and tolerate a relative rounding of
-        :data:`BOUND_TOLERANCE`, so that a value converted between units
-        (0.01 degC is 273.15999999... K) is not rejected at a bound.
+        :data:`BOUND_TOLERANCE` of their finite ends, so that a value
+        converted between units (0.01 degC is 273.15999999... K) is not
+        rejected at a bound; an infinite end bounds nothing.
 
         A composed formulation is never more permissive than the chain of
         its parts: the domains of each part apply to the values it
-        receives, intermediate values included, unless a source of the
-        composed formulation states its own domain, which then replaces
-        the domains the sources of the parts state. Physical domains of
-        the parts always apply. In a formulation defined by branches, the
-        domains of each branch apply where its condition holds, under the
-        same rule.
+        receives and to the value it gives, intermediate values included,
+        unless a source of the composed formulation states its own domain
+        on its inputs, which then replaces the domains the sources of the
+        parts state. Physical domains of the parts always apply. In a
+        formulation defined by branches, the domains of each branch apply
+        where its condition holds, under the same rule.
         """
         _check_options("nan", basis, "convert")
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
+        output = self.output.identifier
 
-        def outside_all(domains: tuple[ValidityDomain, ...]) -> Any:
+        def bounds_of(domain: ValidityDomain, of_output: bool) -> Any:
+            return [
+                (identifier, low, high)
+                for identifier, (low, high) in domain.bounds.items()
+                if (identifier == output) == of_output
+            ]
+
+        def outside_all(domains: tuple[ValidityDomain, ...], of_output: bool) -> Any:
             result = np.zeros(shape, dtype=bool)
             for domain in domains:
-                for identifier, (low, high) in domain.bounds.items():
+                for identifier, low, high in bounds_of(domain, of_output):
+                    if identifier not in arrays:
+                        continue  # the output, not given
                     value = arrays[identifier]
-                    margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+                    finite = [abs(b) for b in (low, high) if math.isfinite(b)]
+                    margin = BOUND_TOLERANCE * max(*finite, 1.0)
                     result = result | (value < low - margin) | (value > high + margin)
             return result
 
+        def outside_union(of_output: bool) -> Any:
+            # Union between citations: inside if one source says so.
+            stating = [
+                c.domains
+                for c in self.citations
+                if any(bounds_of(d, of_output) for d in c.domains)
+            ]
+            if not stating:
+                return np.zeros(shape, dtype=bool)
+            inside = np.zeros(shape, dtype=bool)
+            for domains in stating:
+                inside |= ~outside_all(domains, of_output)
+            return ~inside
+
         outside = np.zeros(shape, dtype=bool)
         if basis in ("physical", "all"):
-            outside |= outside_all(self.physical_domains)
+            outside |= outside_all(self.physical_domains, of_output=False)
+            outside |= outside_all(self.physical_domains, of_output=True)
         if basis in ("stated", "all"):
-            # Union between citations: inside if one source says so.
-            stating = [c.domains for c in self.citations if c.domains]
-            if stating:
-                inside = np.zeros(shape, dtype=bool)
-                for domains in stating:
-                    inside |= ~outside_all(domains)
-                outside |= ~inside
+            outside |= outside_union(of_output=False)
+            outside |= outside_union(of_output=True)
         if self.parts or self.branches:
             part_basis: Basis | None = basis
-            # A domain stated for a composition replaces those of its parts;
-            # the domains of called formulations always apply to each call.
-            stated = any(c.domains for c in self.citations)
+            # A domain stated for a composition on its inputs replaces those
+            # of its parts; the domains of called formulations always apply
+            # to each call.
+            stated = any(
+                bounds_of(d, of_output=False) for c in self.citations for d in c.domains
+            )
             if basis != "physical" and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None
             if part_basis is not None and self.parts:
@@ -1557,12 +1591,13 @@ class Formulation:
             own = {
                 v.identifier: values[v.identifier] for v in branch.formulation.inputs
             }
+            own[branch.formulation.output.identifier] = branch.formulation._raw(own)
             mask = branch.formulation.outside_mask(own, basis)
             outside |= np.broadcast_to(np.asarray(active, dtype=bool), shape) & mask
         return outside
 
     def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:
-        """Where a part receives a value outside its domains."""
+        """Where a part receives, or gives, a value outside its domains."""
         computed: dict[str, Any] = {}
         outside: Any = False
         for part in self.parts:
@@ -1572,13 +1607,15 @@ class Formulation:
                     v.identifier: computed.get(v.identifier, values.get(v.identifier))
                     for v in formulation.inputs
                 }
+                result = formulation._raw(arguments)
             else:
                 arguments = {
                     v.identifier: values[part.rename.get(v.identifier, v.identifier)]
                     for v in formulation.inputs
                 }
-                computed[part.computes] = formulation._raw(arguments)
-            outside = outside | formulation.outside_mask(arguments, basis)
+                result = computed[part.computes] = formulation._raw(arguments)
+            given = {**arguments, formulation.output.identifier: result}
+            outside = outside | formulation.outside_mask(given, basis)
         return outside
 
     def _raw(self, values: Mapping[str, Any]) -> Any:
@@ -1679,7 +1716,9 @@ class Formulation:
                 )
             _flag_beyond(self.key, beyond, outside)
         result = self._raw(values)
-        mask = self.outside_mask(values, basis)
+        # The output's domains apply on the formulation's scale, before the
+        # result goes back to the reference scale.
+        mask = self.outside_mask({**values, self.output.identifier: result}, basis)
         if mask.any() and outside != "ignore":
             message = (
                 f"{self.key}: {int(mask.sum())} value(s) outside its {basis} domain"

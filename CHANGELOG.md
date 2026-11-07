@@ -40,10 +40,24 @@ and this project adheres to
   described as 1 in neutral conditions, which the `phi_h` of Businger
   et al. (1971) is not.
 
+- Validity domains may bound the output of a formulation, where its
+  source or physics does, with their criterion: a result outside is NaN
+  by default, as an input outside is, and the bounds of each part of a
+  composition or of a formulation by branches apply to the value it
+  gives. One end of a domain may be open (`[0, inf]`). The evaporation
+  duct height of Paulus-Jeske is bounded from 0 to 40 m, as Table 1 of
+  NOSC TD 1596 states; the limit of its algorithm stays a step of it.
+
 ### Changed
 
 - `UnitDefinition.iri` is `None` for a unit QUDT does not have, which
   nomogram declares until QUDT does.
+- `ValidityDomain.bounds` may bound the output, and
+  `Formulation.outside_mask` takes the output's values among its
+  `values`. A formulation inverted in closed form now carries the domain
+  of the input it solves for onto its output, beside its image onto the
+  new input; a domain open on one side is no search interval for a
+  numerical inversion.
 
 ### Fixed
 
