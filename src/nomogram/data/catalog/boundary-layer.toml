@@ -5,7 +5,10 @@
 # 3.2), after Monin-Obukhov similarity: the Obukhov length, the gradient
 # and profile functions of stability, the bulk Richardson number, the
 # roughness lengths over sea and sea ice, the transfer coefficients and
-# the friction velocity.
+# the friction velocity; beside them, the stability functions of other
+# sources (Businger et al. 1971, Dyer and Hicks 1970, SHEBA, Cheng and
+# Brutsaert, Holtslag and De Bruin, Beljaars and Holtslag, COARE 3.6),
+# and the relations between z/L and the Richardson numbers.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -13,7 +16,7 @@
 name = "boundary-layer"
 label = "Surface layer of the atmospheric boundary layer"
 format = 2
-requires = ["atmosphere"]
+requires = ["atmosphere", "sea-water"]
 keywords = ["boundary layer", "surface layer", "Monin-Obukhov", "turbulence"]
 
 # --- References -------------------------------------------------------
@@ -47,6 +50,68 @@ container = "Journal of the Atmospheric Sciences, 28, 181-189"
 doi = "10.1175/1520-0469(1971)028<0181:FPRITA>2.0.CO;2"
 status = "verified"
 note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU/dz and temperature gradient phi_h = (z/theta_*) dtheta/dz, theta_* = -w'theta'/(k u_*) (equations 2 and 3); the KEYPS formula phi_m^4 - 9 zeta phi_m^3 = 1 (7), phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
+
+[references.beljaars1992]
+authors = "Beljaars, A."
+year = 1992
+title = "The parametrization of the planetary boundary layer"
+container = "ECMWF Meteorological Training Course Lecture Series (May 1992; reprinted 2002)"
+url = "https://www.ecmwf.int/sites/default/files/elibrary/2002/16959-parametrization-planetary-boundary-layer.pdf"
+status = "verified"
+note = "Read: the gradient functions of Dyer and Hicks (equations 34 and 35); phi_M = phi_H,Q = 1 + 5 z/L, 'as originally proposed by Webb (1970)', 'fairly consistent with most data for 0 < z/L < 0.5 (cf. Hogstrom, 1988)' (38); the forms of Holtslag and De Bruin with the constants of Beljaars and Holtslag, printed b = 0.667 (39 to 49); the profile functions of Paulson (45 and 46; 45 prints - atan(x), without the factor 2); the bulk Richardson number at the lowest model level (98) and its relation to z_1/L through the profile functions (99, p. 39). The Symbol font is not embedded in the PDF: its Greek letters are read from the structure of the equations."
+
+[references.businger1985]
+authors = "Businger, J. A."
+year = 1985
+title = "The marine boundary layer, from air-sea interface to inversion"
+container = "NCAR Technical Note NCAR/TN-252+STR, National Center for Atmospheric Research, Boulder"
+url = "https://opensky.ucar.edu/system/files/2024-08/technotes_362.pdf"
+status = "verified"
+note = "Read on the page images of the scan: Ri approximately z/L in unstable conditions, from the Kansas data of 1968 (37, p. 18); Ri = (z/L)/(1 + beta z/L), beta about 4.7, in stable conditions (38, p. 20); the forms Businger and Dyer suggested (Businger 1966), alpha about 16 (39, 40); phi_u = (1 - alpha Ri)^(-1/4), after Fleagle and Businger (1980) (41); phi_u = phi_theta = 1 + beta z/L in stable conditions (42); the profiles of Paulson (1970), with psi_1 = psi_2 = -beta z/L in stable conditions (43, 44, p. 22); the constants come from the Kansas site, of roughness length about 1.5 cm (p. 22)."
+
+[references.grachev2007]
+authors = "Grachev, A. A., Andreas, E. L, Fairall, C. W., Guest, P. S. and Persson, P. O. G."
+year = 2007
+title = "SHEBA flux-profile relationships in the stable atmospheric boundary layer"
+container = "Boundary-Layer Meteorology, 124, 315-333"
+doi = "10.1007/s10546-007-9177-6"
+status = "verified"
+note = "Read: the SHEBA gradient functions (9a, 9b, p. 329) and their integrals (12, 13, p. 330), 'valid for RiB < RiB cr = 0.2' (p. 330), RiB being the bulk Richardson number of equation 8, which is no input of the functions; an average zeta of order 10 goes with RiB of about 0.2 (pp. 322-323). DOI checked with Crossref on 2026-11-07."
+
+[references.cheng_brutsaert2005]
+authors = "Cheng, Y. and Brutsaert, W."
+year = 2005
+title = "Flux-profile relationships for wind speed and temperature in the stable atmospheric boundary layer"
+container = "Boundary-Layer Meteorology, 114, 519-538"
+doi = "10.1007/s10546-004-1425-4"
+status = "verified"
+note = "Read: Psi_m = -a ln(zeta + (1 + zeta^b)^(1/b)) with a = 6.1 and b = 2.5 fitted on the wind speed data up to zeta = 5 (21, p. 533), phi_m its derivative (22, p. 535); Psi_h and phi_h of the same forms with c = 5.3 and d = 1.1 fitted on the phi_h - 1 data up to zeta = 2 (23, 24, p. 536), where the text writes 'b = 1.1' twice for d, as the caption of figure 8 and the equations do not. Crossref spells the first author 'Chenge'. DOI checked with Crossref on 2026-11-07."
+
+[references.kramm2013]
+authors = "Kramm, G., Amaya, D. J., Foken, T. and Molders, N."
+year = 2013
+title = "Hans A. Panofsky's integral similarity function, at fifty"
+container = "Atmospheric and Climate Sciences, 3, 581-594"
+doi = "10.4236/acs.2013.34061"
+status = "verified"
+note = "Read (CC BY 4.0): the forms of Dyer and Hicks with gamma_2 = 16 (3.1) and of Carl et al. with gamma_3 = 15 for -10 < zeta < 0 (3.2); Paulson's integral functions (3.14, 3.15, p. 586) and that of KEYPS as a function of Phi_m (3.13); zeta from Ri for the stable forms of Webb, Ri < 0.2 (4.5), and of Businger et al. (1971), Ri < 0.2127 (4.12, p. 590). DOI checked with Crossref on 2026-11-07."
+
+[references.webb1970]
+authors = "Webb, E. K."
+year = 1970
+title = "Profile relationships: the log-linear range, and extension to strong stability"
+container = "Quarterly Journal of the Royal Meteorological Society, 96, 67-90"
+doi = "10.1002/qj.49709640708"
+status = "to-confirm"
+note = "Credited by Beljaars (1992, equation 38) with 1 + 5 z/L in stable conditions; not read. DOI checked with Crossref on 2026-11-07."
+
+[references.fleagle_businger1980]
+authors = "Fleagle, R. G. and Businger, J. A."
+year = 1980
+title = "An introduction to atmospheric physics (second edition)"
+container = "Academic Press, New York"
+status = "to-confirm"
+note = "Credited by Businger (1985, equation 41) with phi_u = (1 - alpha Ri)^(-1/4); not read."
 
 [references.businger1966]
 authors = "Businger, J. A."
@@ -423,6 +488,22 @@ notation = { Phi_M = '\varphi_m', zeta = 'z/L' }
 reference = "businger1966"
 note = "As Dyer and Hicks (1970, p. 718) credit it."
 
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "beljaars1992"
+equation = "34"
+note = "The profiles of Dyer and Hicks, as the source names them."
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "businger1985"
+equation = "39"
+note = "p. 20, alpha about 16, as Businger and Dyer suggested (Businger 1966)."
+notation = { Phi_M = '\phi_u', zeta = '\zeta' }
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_unstable.citations]]
+reference = "kramm2013"
+equation = "3.1"
+note = "gamma_2 = 16, after Dyer and Hicks."
+
 [formulations.ecmwf_ifs_gradient_function_heat_unstable]
 label = "Gradient function for heat and moisture, unstable conditions (Dyer and Hicks 1970, IFS)"
 expression = "(1 - 16 * zeta) ** (-1 / 2)"
@@ -466,6 +547,17 @@ notation = { Phi_H = '\varphi_h', zeta = 'z/L' }
 reference = "businger1966"
 note = "As Dyer and Hicks (1970, p. 718) credit it."
 
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "beljaars1992"
+equation = "35"
+note = "The profiles of Dyer and Hicks, as the source names them; the same function for humidity."
+
+[[formulations.ecmwf_ifs_gradient_function_heat_unstable.citations]]
+reference = "businger1985"
+equation = "40"
+note = "p. 20, alpha about 16, as Businger and Dyer suggested (Businger 1966)."
+notation = { Phi_H = '\phi_\theta', zeta = '\zeta' }
+
 [formulations.ecmwf_ifs_gradient_function_momentum_stable]
 label = "Gradient function for momentum, stable conditions (IFS, after Hogstrom)"
 expression = "1 + 5 * zeta"
@@ -486,6 +578,19 @@ assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii))."]
 [[formulations.ecmwf_ifs_gradient_function_momentum_stable.citations]]
 reference = "hogstrom1988"
 note = "As the IFS quotes it."
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_stable.citations]]
+reference = "beljaars1992"
+equation = "38"
+note = "As Webb (1970) proposed it; the same function for heat and humidity (webb1970_gradient_function_heat_stable)."
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_stable.citations.domains]]
+bounds = { zeta = [0, 0.5] }
+criterion = "'Fairly consistent with most data for 0 < z/L < 0.5 (cf. Hogstrom, 1988)' (equation 38)."
+
+[[formulations.ecmwf_ifs_gradient_function_momentum_stable.citations]]
+reference = "webb1970"
+note = "As Beljaars (1992) quotes it."
 
 [formulations.ecmwf_ifs_gradient_function_heat_stable]
 label = "Gradient function for heat and moisture, stable conditions (IFS, after Ellison and Turner)"
@@ -555,7 +660,7 @@ notation = { Phi_H = '\varphi_h', zeta = 'z/L' }
 label = "Gradient function for momentum, unstable conditions, with the exponent of free convection (Carl et al. 1973)"
 expression = "(1 - 16 * zeta) ** (-1 / 3)"
 fixed_units = false
-note = "It reduces to the free-convection limit (-z/L)^(-1/3) as -z/L grows (Long 1984, p. 9)."
+note = "It reduces to the free-convection limit (-z/L)^(-1/3) as -z/L grows (Long 1984, p. 9). Kramm et al. (2013, equation 3.2) give gamma_3 = 15, for -10 < zeta < 0."
 output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
@@ -652,6 +757,538 @@ keywords = ["Richardson number", "Monin-Obukhov", "unstable"]
 reference = "dyer_hicks1970"
 note = "Summary (p. 715): the implied equality between Ri and z/L, which approximates the data to within a few per cent."
 
+[[formulations.dyer_hicks1970_richardson_number_unstable.citations]]
+reference = "businger1985"
+equation = "37"
+note = "p. 18: 'the surprising result that for the unstable range Ri = zeta', from the Kansas data of 1968 (approximately equal in the source)."
+notation = { Ri = '\mathrm{Ri}', zeta = '\zeta' }
+
+# --- Stable conditions: SHEBA, Cheng and Brutsaert, Holtslag and De Bruin,
+# Beljaars and Holtslag, Webb, Businger (1985) ---------------------------
+
+[formulations.grachev2007_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions, SHEBA (Grachev et al. 2007)"
+expression = "1 + a_m * zeta * (1 + zeta) ** (1 / 3) / (1 + b_m * zeta)"
+fixed_units = false
+note = "Equation 9a, also printed 1 + 6.5 zeta (1 + zeta)^(1/3) / (1.3 + zeta). It tends to 6.5 zeta^(1/3) as zeta grows (p. 329)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a_m = 5, b_m = { value = 0.7692307692307693, note = "a_m / 6.5 in the source." } }
+keywords = ["gradient function", "Monin-Obukhov", "stable", "SHEBA", "Arctic"]
+
+[[formulations.grachev2007_gradient_function_momentum_stable.citations]]
+reference = "grachev2007"
+equation = "9a"
+note = "p. 329."
+notation = { Phi_M = '\varphi_m', zeta = '\zeta', a_m = 'a_m', b_m = 'b_m' }
+assumptions = ["Valid for RiB < RiB cr, about 0.2 (p. 330), the bulk Richardson number of equation 8, which is no input of the function: no bound on zeta follows."]
+
+[formulations.grachev2007_gradient_function_heat_stable]
+label = "Gradient function for heat, stable conditions, SHEBA (Grachev et al. 2007)"
+expression = "1 + (a_h * zeta + b_h * zeta**2) / (1 + c_h * zeta + zeta**2)"
+fixed_units = false
+note = "Equation 9b, also printed 1 + (5 zeta + 5 zeta^2) / (1 + 3 zeta + zeta^2). It tends to 1 + b_h = 6 as zeta grows (p. 329)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a_h = 5, b_h = 5, c_h = 3 }
+keywords = ["gradient function", "Monin-Obukhov", "stable", "SHEBA", "Arctic"]
+
+[[formulations.grachev2007_gradient_function_heat_stable.citations]]
+reference = "grachev2007"
+equation = "9b"
+note = "p. 329."
+notation = { Phi_H = '\varphi_h', zeta = '\zeta', a_h = 'a_h', b_h = 'b_h', c_h = 'c_h' }
+assumptions = ["Valid for RiB < RiB cr, about 0.2 (p. 330), the bulk Richardson number of equation 8, which is no input of the function: no bound on zeta follows."]
+
+[formulations.grachev2007_profile_function_momentum_stable]
+label = "Profile function for momentum, stable conditions, SHEBA (Grachev et al. 2007)"
+expression = "-3 * a_m / b_m * ((1 + zeta) ** (1 / 3) - 1) + a_m * ((1 - b_m) / b_m) ** (1 / 3) / (2 * b_m) * (2 * ln(((1 + zeta) ** (1 / 3) + ((1 - b_m) / b_m) ** (1 / 3)) / (1 + ((1 - b_m) / b_m) ** (1 / 3))) - ln((((1 + zeta) ** (1 / 3)) ** 2 - (1 + zeta) ** (1 / 3) * ((1 - b_m) / b_m) ** (1 / 3) + (((1 - b_m) / b_m) ** (1 / 3)) ** 2) / (1 - ((1 - b_m) / b_m) ** (1 / 3) + (((1 - b_m) / b_m) ** (1 / 3)) ** 2)) + 2 * sqrt(3) * (atan((2 * (1 + zeta) ** (1 / 3) - ((1 - b_m) / b_m) ** (1 / 3)) / (sqrt(3) * ((1 - b_m) / b_m) ** (1 / 3))) - atan((2 - ((1 - b_m) / b_m) ** (1 / 3)) / (sqrt(3) * ((1 - b_m) / b_m) ** (1 / 3)))))"
+fixed_units = false
+note = "Equation 12, the integral of equation 9a, with x = (1 + zeta)^(1/3) and B_m = ((1 - b_m)/b_m)^(1/3) written out."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a_m = 5, b_m = { value = 0.7692307692307693, note = "a_m / 6.5 in the source." } }
+keywords = ["profile function", "Monin-Obukhov", "stable", "SHEBA", "Arctic"]
+
+[[formulations.grachev2007_profile_function_momentum_stable.citations]]
+reference = "grachev2007"
+equation = "12"
+note = "p. 330."
+notation = { Psi_M = '\Psi_m', zeta = '\zeta', a_m = 'a_m', b_m = 'b_m' }
+assumptions = ["Valid for RiB < RiB cr, about 0.2 (p. 330), the bulk Richardson number of equation 8, which is no input of the function: no bound on zeta follows."]
+
+[formulations.grachev2007_profile_function_heat_stable]
+label = "Profile function for heat, stable conditions, SHEBA (Grachev et al. 2007)"
+expression = "-b_h / 2 * ln(1 + c_h * zeta + zeta**2) + (-a_h / sqrt(c_h**2 - 4) + b_h * c_h / (2 * sqrt(c_h**2 - 4))) * (ln((2 * zeta + c_h - sqrt(c_h**2 - 4)) / (2 * zeta + c_h + sqrt(c_h**2 - 4))) - ln((c_h - sqrt(c_h**2 - 4)) / (c_h + sqrt(c_h**2 - 4))))"
+fixed_units = false
+note = "Equation 13, the integral of equation 9b, with B_h = (c_h^2 - 4)^(1/2) = 5^(1/2) written out."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a_h = 5, b_h = 5, c_h = 3 }
+keywords = ["profile function", "Monin-Obukhov", "stable", "SHEBA", "Arctic"]
+
+[[formulations.grachev2007_profile_function_heat_stable.citations]]
+reference = "grachev2007"
+equation = "13"
+note = "p. 330."
+notation = { Psi_H = '\Psi_h', zeta = '\zeta', a_h = 'a_h', b_h = 'b_h', c_h = 'c_h' }
+assumptions = ["Valid for RiB < RiB cr, about 0.2 (p. 330), the bulk Richardson number of equation 8, which is no input of the function: no bound on zeta follows."]
+
+[formulations.cheng_brutsaert2005_profile_function_momentum_stable]
+label = "Profile function for momentum, stable conditions (Cheng and Brutsaert 2005)"
+expression = "-a * ln(zeta + (1 + zeta**b) ** (1 / b))"
+fixed_units = false
+note = "Equation 21, linear for small zeta and logarithmic for large zeta, about -4.23 - 6.1 ln(zeta) (p. 534); zeta = (z - d_0)/L, with the displacement height d_0."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a = 6.1, b = 2.5 }
+keywords = ["profile function", "Monin-Obukhov", "stable", "Cheng", "Brutsaert"]
+
+[[formulations.cheng_brutsaert2005_profile_function_momentum_stable.citations]]
+reference = "cheng_brutsaert2005"
+equation = "21"
+note = "p. 533."
+notation = { Psi_M = '\Psi_\mathrm{m}', zeta = '\zeta' }
+
+[[formulations.cheng_brutsaert2005_profile_function_momentum_stable.citations.domains]]
+bounds = { zeta = [0, 5] }
+criterion = "a and b fitted by non-linear least squares on the combined wind speed dataset up to zeta = 5 (p. 533)."
+
+[formulations.cheng_brutsaert2005_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions (Cheng and Brutsaert 2005)"
+expression = "1 + a * (zeta + zeta**b * (1 + zeta**b) ** ((1 - b) / b)) / (zeta + (1 + zeta**b) ** (1 / b))"
+fixed_units = false
+note = "Equation 22, the derivative of equation 21: 1 + a zeta for small zeta, tending to 1 + a, 'approximately 7', as zeta grows (p. 535)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a = 6.1, b = 2.5 }
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Cheng", "Brutsaert"]
+
+[[formulations.cheng_brutsaert2005_gradient_function_momentum_stable.citations]]
+reference = "cheng_brutsaert2005"
+equation = "22"
+note = "p. 535."
+notation = { Phi_M = '\phi_\mathrm{m}', zeta = '\zeta' }
+
+[[formulations.cheng_brutsaert2005_gradient_function_momentum_stable.citations.domains]]
+bounds = { zeta = [0, 5] }
+criterion = "The derivative of equation 21, whose a and b were fitted on the combined wind speed dataset up to zeta = 5 (p. 533)."
+
+[formulations.cheng_brutsaert2005_profile_function_heat_stable]
+label = "Profile function for heat, stable conditions (Cheng and Brutsaert 2005)"
+expression = "-c * ln(zeta + (1 + zeta**d) ** (1 / d))"
+fixed_units = false
+note = "Equation 23, of the form of equation 21; its parameters are those fitted on equation 24, Psi_h itself not being fitted (p. 536). The function is that of the virtual potential temperature (equation 2)."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { c = 5.3, d = 1.1 }
+keywords = ["profile function", "Monin-Obukhov", "stable", "Cheng", "Brutsaert"]
+
+[[formulations.cheng_brutsaert2005_profile_function_heat_stable.citations]]
+reference = "cheng_brutsaert2005"
+equation = "23"
+note = "p. 536; the text writes 'b = 1.1' for d twice on this page, as the caption of figure 8 and the equations do not."
+notation = { Psi_H = '\Psi_\mathrm{h}', zeta = '\zeta' }
+
+[[formulations.cheng_brutsaert2005_profile_function_heat_stable.citations.domains]]
+bounds = { zeta = [0, 2] }
+criterion = "c and d fitted on the phi_h - 1 data up to zeta = 2, the points beyond being excluded (p. 536)."
+
+[formulations.cheng_brutsaert2005_gradient_function_heat_stable]
+label = "Gradient function for heat, stable conditions (Cheng and Brutsaert 2005)"
+expression = "1 + c * (zeta + zeta**d * (1 + zeta**d) ** ((1 - d) / d)) / (zeta + (1 + zeta**d) ** (1 / d))"
+fixed_units = false
+note = "Equation 24, of the form of equation 22, for the virtual potential temperature (equation 2)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { c = 5.3, d = 1.1 }
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Cheng", "Brutsaert"]
+
+[[formulations.cheng_brutsaert2005_gradient_function_heat_stable.citations]]
+reference = "cheng_brutsaert2005"
+equation = "24"
+note = "p. 536; the text writes 'b = 1.1' for d twice on this page, as the caption of figure 8 and the equations do not."
+notation = { Phi_H = '\phi_\mathrm{h}', zeta = '\zeta' }
+
+[[formulations.cheng_brutsaert2005_gradient_function_heat_stable.citations.domains]]
+bounds = { zeta = [0, 2] }
+criterion = "c and d fitted on the phi_h - 1 data up to zeta = 2, the points beyond being excluded (p. 536)."
+
+[formulations.holtslag_debruin1988_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions (Holtslag and De Bruin 1988)"
+expression = "1 + 0.7 * zeta + 0.75 * zeta * (6 - 0.35 * zeta) * exp(-0.35 * zeta)"
+fixed_units = false
+note = "The same function for heat (holtslag_debruin1988_gradient_function_heat_stable). Its integral, with the same constants, is the profile function of COARE 3.6 (coare36_profile_function_momentum_stable)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Holtslag"]
+
+[[formulations.holtslag_debruin1988_gradient_function_momentum_stable.citations]]
+reference = "andreas2002"
+equation = "3.4"
+note = "p. 421, phi_m = phi_h; the function the review recommends over snow and ice."
+notation = { Phi_M = '\phi_m', zeta = '\zeta' }
+
+[[formulations.holtslag_debruin1988_gradient_function_momentum_stable.citations]]
+reference = "holtslag_debruin1988"
+note = "As Andreas (2002) quotes it."
+
+[formulations.holtslag_debruin1988_gradient_function_heat_stable]
+label = "Gradient function for heat, stable conditions (Holtslag and De Bruin 1988)"
+expression = "1 + 0.7 * zeta + 0.75 * zeta * (6 - 0.35 * zeta) * exp(-0.35 * zeta)"
+fixed_units = false
+note = "The same function as for momentum (holtslag_debruin1988_gradient_function_momentum_stable)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Holtslag"]
+
+[[formulations.holtslag_debruin1988_gradient_function_heat_stable.citations]]
+reference = "andreas2002"
+equation = "3.4"
+note = "p. 421, phi_m = phi_h."
+notation = { Phi_H = '\phi_h', zeta = '\zeta' }
+
+[[formulations.holtslag_debruin1988_gradient_function_heat_stable.citations]]
+reference = "holtslag_debruin1988"
+note = "As Andreas (2002) quotes it."
+
+[formulations.beljaars_holtslag1991_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions (Beljaars and Holtslag 1991)"
+expression = "1 + zeta + 2 / 3 * zeta * (6 - 0.35 * zeta) * exp(-0.35 * zeta)"
+fixed_units = false
+note = "The derivative of the profile function of the IFS (ecmwf_ifs_profile_function_momentum_stable), whose constants are these; no critical Richardson number exists with these functions (Andreas 2002, p. 422)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Beljaars", "Holtslag"]
+
+[[formulations.beljaars_holtslag1991_gradient_function_momentum_stable.citations]]
+reference = "andreas2002"
+equation = "3.5a"
+note = "p. 422."
+notation = { Phi_M = '\phi_m', zeta = '\zeta' }
+
+[[formulations.beljaars_holtslag1991_gradient_function_momentum_stable.citations]]
+reference = "beljaars_holtslag1991"
+note = "As Andreas (2002) quotes it."
+
+[formulations.beljaars_holtslag1991_gradient_function_heat_stable]
+label = "Gradient function for heat, stable conditions (Beljaars and Holtslag 1991)"
+expression = "1 + zeta * (1 + 2 / 3 * zeta) ** (1 / 2) + 2 / 3 * zeta * (6 - 0.35 * zeta) * exp(-0.35 * zeta)"
+fixed_units = false
+note = "The derivative of the profile function of the IFS (ecmwf_ifs_profile_function_heat_stable). Kramm et al. (2013, equation 4.17) print the exponent 3/2 where Andreas (2002, equation 3.5b) prints 1/2, which the derivative confirms."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Beljaars", "Holtslag"]
+
+[[formulations.beljaars_holtslag1991_gradient_function_heat_stable.citations]]
+reference = "andreas2002"
+equation = "3.5b"
+note = "p. 422."
+notation = { Phi_H = '\phi_h', zeta = '\zeta' }
+
+[[formulations.beljaars_holtslag1991_gradient_function_heat_stable.citations]]
+reference = "beljaars_holtslag1991"
+note = "As Andreas (2002) quotes it."
+
+[formulations.webb1970_gradient_function_heat_stable]
+label = "Gradient function for heat and humidity, stable conditions, log-linear (Webb 1970)"
+expression = "1 + 5 * zeta"
+fixed_units = false
+note = "The same function as for momentum (ecmwf_ifs_gradient_function_momentum_stable)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "log-linear", "Webb"]
+
+[[formulations.webb1970_gradient_function_heat_stable.citations]]
+reference = "beljaars1992"
+equation = "38"
+note = "phi_M = phi_H,Q, as Webb (1970) proposed it."
+notation = { Phi_H = '\phi_\mathrm{H}', zeta = 'z/L' }
+
+[[formulations.webb1970_gradient_function_heat_stable.citations.domains]]
+bounds = { zeta = [0, 0.5] }
+criterion = "'Fairly consistent with most data for 0 < z/L < 0.5 (cf. Hogstrom, 1988)' (equation 38)."
+
+[[formulations.webb1970_gradient_function_heat_stable.citations]]
+reference = "webb1970"
+note = "As Beljaars (1992) quotes it."
+
+[formulations.businger1985_gradient_function_heat_stable]
+label = "Gradient function for heat, stable conditions, log-linear (Businger 1985)"
+expression = "1 + 4.7 * zeta"
+fixed_units = false
+note = "phi_u = phi_theta = 1 + beta zeta with beta about 4.7, from equal eddy diffusivities and equation 38 (p. 20); the momentum function is fairall1978_gradient_function_momentum_stable. Businger et al. (1971) give 0.74 + 4.7 zeta for the gradient they define, 0.74 in neutral conditions."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "log-linear", "Businger"]
+
+[[formulations.businger1985_gradient_function_heat_stable.citations]]
+reference = "businger1985"
+equation = "42"
+note = "p. 20."
+notation = { Phi_H = '\phi_\theta', zeta = '\zeta' }
+assumptions = ["Stable conditions (p. 20)."]
+
+[formulations.businger1985_profile_function_momentum_stable]
+label = "Profile function for momentum, stable conditions, log-linear (Businger 1985)"
+expression = "-4.7 * zeta"
+fixed_units = false
+note = "The integral of 1 + beta zeta, beta about 4.7 (p. 20)."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "stable", "log-linear", "Businger"]
+
+[[formulations.businger1985_profile_function_momentum_stable.citations]]
+reference = "businger1985"
+note = "p. 22, psi_1."
+notation = { Psi_M = '\psi_1', zeta = '\zeta' }
+assumptions = ["Stable conditions (p. 22)."]
+
+[formulations.businger1985_profile_function_heat_stable]
+label = "Profile function for heat, stable conditions, log-linear (Businger 1985)"
+expression = "-4.7 * zeta"
+fixed_units = false
+note = "The integral of 1 + beta zeta, beta about 4.7 (p. 20)."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "stable", "log-linear", "Businger"]
+
+[[formulations.businger1985_profile_function_heat_stable.citations]]
+reference = "businger1985"
+note = "p. 22, psi_2."
+notation = { Psi_H = '\psi_2', zeta = '\zeta' }
+assumptions = ["Stable conditions (p. 22)."]
+
+# --- COARE 3.6 -------------------------------------------------------------
+# As coded (psiu_26, psit_26 of coare36vn_zrf_et.py, commit bd1cac8),
+# numbers included; Fairall et al. (2003, p. 576) describe the blend of
+# Kansas and convective forms with a_u = 10.15 and a_s = 34.15 (Grachev et
+# al. 2000), and announce the stable functions of Beljaars and Holtslag.
+
+[formulations.coare36_profile_function_momentum_unstable]
+label = "Profile function for momentum, unstable conditions (COARE 3.6)"
+expression = "(1 - zeta**2 / (1 + zeta**2)) * (2 * ln((1 + (1 - 15 * zeta) ** 0.25) / 2) + ln((1 + ((1 - 15 * zeta) ** 0.25)**2) / 2) - 2 * atan((1 - 15 * zeta) ** 0.25) + pi / 2) + zeta**2 / (1 + zeta**2) * (1.5 * ln((1 + (1 - 10.15 * zeta) ** 0.3333 + ((1 - 10.15 * zeta) ** 0.3333)**2) / 3) - sqrt(3) * atan((1 + 2 * (1 - 10.15 * zeta) ** 0.3333) / sqrt(3)) + pi / sqrt(3))"
+fixed_units = false
+note = "A blend, weighted by zeta^2/(1 + zeta^2), of the Kansas form of Paulson with 15 and of a convective form, (1 - 10.15 zeta)^(1/3) written 0.3333 as coded, which is that of Carl et al. (1973) with gamma_3 = 10.15 (Kramm et al. 2013, equation 3.16)."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "unstable", "COARE", "free convection"]
+
+[[formulations.coare36_profile_function_momentum_unstable.citations]]
+reference = "coare36"
+note = "psiu_26, zeta < 0 (lines 769 to 776)."
+notation = { Psi_M = '\psi_u', zeta = '\zeta' }
+assumptions = ["Unstable conditions, zeta < 0."]
+
+[formulations.coare36_profile_function_momentum_stable]
+label = "Profile function for momentum, stable conditions (COARE 3.6)"
+expression = "-(a * zeta + b * (zeta - c / d) * exp(-d * zeta) + b * c / d)"
+fixed_units = false
+note = "The form of Beljaars and Holtslag with the constants a = 0.7 and b = 3/4 of Holtslag and De Bruin (1988) (holtslag_debruin1988_gradient_function_momentum_stable, of which it is the integral), where Fairall et al. (2003, p. 576) announce those of Beljaars and Holtslag; the code bounds the argument of exp to 50, a numerical step left out here."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { a = 0.7, b = { value = 0.75, note = "3/4 in the code." }, c = 5, d = 0.35 }
+keywords = ["profile function", "Monin-Obukhov", "stable", "COARE", "Holtslag"]
+
+[[formulations.coare36_profile_function_momentum_stable.citations]]
+reference = "coare36"
+note = "psiu_26, zeta >= 0 (lines 764 to 768)."
+notation = { Psi_M = '\psi_u', zeta = '\zeta' }
+assumptions = ["Stable conditions, zeta >= 0."]
+
+[formulations.coare36_profile_function_heat_unstable]
+label = "Profile function for heat and humidity, unstable conditions (COARE 3.6)"
+expression = "(1 - zeta**2 / (1 + zeta**2)) * 2 * ln((1 + (1 - 15 * zeta) ** 0.5) / 2) + zeta**2 / (1 + zeta**2) * (1.5 * ln((1 + (1 - 34.15 * zeta) ** 0.3333 + ((1 - 34.15 * zeta) ** 0.3333)**2) / 3) - sqrt(3) * atan((1 + 2 * (1 - 34.15 * zeta) ** 0.3333) / sqrt(3)) + pi / sqrt(3))"
+fixed_units = false
+note = "A blend, weighted by zeta^2/(1 + zeta^2), of the Kansas form of Paulson with 15 (where Businger et al. 1971 print 9, Dyer and Hicks 16) and of a convective form, (1 - 34.15 zeta)^(1/3) written 0.3333 as coded. COARE takes the same function for humidity."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "unstable", "COARE", "free convection"]
+
+[[formulations.coare36_profile_function_heat_unstable.citations]]
+reference = "coare36"
+note = "psit_26, zeta < 0 (lines 751 to 757)."
+notation = { Psi_H = '\psi_t', zeta = '\zeta' }
+assumptions = ["Unstable conditions, zeta < 0."]
+
+[formulations.coare36_profile_function_heat_stable]
+label = "Profile function for heat and humidity, stable conditions (COARE 3.6)"
+expression = "-((1 + 0.6667 * zeta) ** 1.5 + 0.6667 * (zeta - 14.28) * exp(-0.35 * zeta) + 8.525)"
+fixed_units = false
+note = "The form of Beljaars and Holtslag with rounded constants (ecmwf_ifs_profile_function_heat_stable): it gives -0.0045 at zeta = 0, a step from the unstable branch, and departs from the IFS's by 0.0045 at most; the code bounds the argument of exp to 50, a numerical step left out here."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "Monin-Obukhov", "stable", "COARE", "Beljaars"]
+
+[[formulations.coare36_profile_function_heat_stable.citations]]
+reference = "coare36"
+note = "psit_26, zeta >= 0 (lines 749 and 750)."
+notation = { Psi_H = '\psi_t', zeta = '\zeta' }
+assumptions = ["Stable conditions, zeta >= 0."]
+
+[formulations.coare36_profile_function_momentum]
+label = "Profile function for momentum, unstable then stable conditions (COARE 3.6)"
+branches = [
+  { formulation = "coare36_profile_function_momentum_unstable", where = "zeta < 0" },
+  { formulation = "coare36_profile_function_momentum_stable", where = "zeta >= 0" },
+]
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+keywords = ["profile function", "Monin-Obukhov", "COARE"]
+
+[formulations.coare36_profile_function_heat]
+label = "Profile function for heat and humidity, unstable then stable conditions (COARE 3.6)"
+branches = [
+  { formulation = "coare36_profile_function_heat_unstable", where = "zeta < 0" },
+  { formulation = "coare36_profile_function_heat_stable", where = "zeta >= 0" },
+]
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
+keywords = ["profile function", "Monin-Obukhov", "COARE"]
+
+# --- Richardson numbers ----------------------------------------------------
+
+[formulations.businger1985_gradient_richardson_number_stable]
+label = "Gradient Richardson number in stable conditions (Businger 1985)"
+expression = "zeta / (1 + 4.7 * zeta)"
+fixed_units = false
+note = "Equation 38, beta about 4.7: the gradient Richardson number of the log-linear forms 1 + beta zeta (equation 42), by the identity of Dyer and Hicks (dyer_hicks1970_gradient_richardson_number)."
+output = { identifier = "Ri", kind = "GradientRichardsonNumber", unit = "UNITLESS", description = "Gradient Richardson number" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["Richardson number", "Monin-Obukhov", "stable", "Businger"]
+
+[[formulations.businger1985_gradient_richardson_number_stable.citations]]
+reference = "businger1985"
+equation = "38"
+note = "p. 20: 'the stable range may be approximated by' it."
+notation = { Ri = '\mathrm{Ri}', zeta = '\zeta' }
+assumptions = ["Stable conditions (p. 20)."]
+
+[formulations.fleagle_businger1980_gradient_function_momentum_unstable]
+label = "Gradient function for momentum from the gradient Richardson number, unstable conditions (Fleagle and Businger 1980)"
+expression = "(1 - 16 * Ri) ** (-1 / 4)"
+fixed_units = false
+note = "Equation 41, alpha about 16, from a generalization of Prandtl's mixing length model; with Ri = zeta (equation 37) it is the form of Dyer and Hicks (ecmwf_ifs_gradient_function_momentum_unstable)."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "Ri", kind = "GradientRichardsonNumber", unit = "UNITLESS", description = "Gradient Richardson number" },
+]
+keywords = ["gradient function", "Richardson number", "unstable", "Businger", "Fleagle"]
+
+[[formulations.fleagle_businger1980_gradient_function_momentum_unstable.citations]]
+reference = "businger1985"
+equation = "41"
+note = "p. 20."
+notation = { Phi_M = '\phi_u', Ri = '\mathrm{Ri}' }
+assumptions = ["Unstable conditions (p. 20)."]
+
+[[formulations.fleagle_businger1980_gradient_function_momentum_unstable.citations]]
+reference = "fleagle_businger1980"
+note = "As Businger (1985) quotes it."
+
+[formulations.kramm2013_stability_parameter_webb]
+label = "Stability parameter from the gradient Richardson number, stable conditions, log-linear of Webb (Kramm et al. 2013)"
+expression = "Ri / (1 - 5 * Ri)"
+fixed_units = false
+note = "Equation 4.5, the inverse of Ri = zeta/(1 + gamma_7 zeta) (equation 4.4) with gamma_7 about 5, after Webb (1970)."
+output = { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" }
+inputs = [
+  { identifier = "Ri", kind = "GradientRichardsonNumber", unit = "UNITLESS", description = "Gradient Richardson number" },
+]
+keywords = ["stability parameter", "Richardson number", "stable", "Webb", "Kramm"]
+
+[[formulations.kramm2013_stability_parameter_webb.citations]]
+reference = "kramm2013"
+equation = "4.5"
+note = "pp. 589-590."
+notation = { zeta = '\zeta', Ri = 'Ri' }
+
+[[formulations.kramm2013_stability_parameter_webb.citations.domains]]
+bounds = { Ri = [0, 0.2] }
+criterion = "In stable conditions, zeta > 0; the formula becomes indeterminate at Ri = 0.2 and gives zeta < 0 beyond (p. 590)."
+
+[formulations.kramm2013_stability_parameter_businger]
+label = "Stability parameter from the gradient Richardson number, stable conditions, after Businger et al. 1971 (Kramm et al. 2013)"
+expression = "sqrt(Ri / (4.7 * (1 - 4.7 * Ri)) + ((0.37 - 4.7 * Ri) / (4.7 * (1 - 4.7 * Ri)))**2) - (0.37 - 4.7 * Ri) / (4.7 * (1 - 4.7 * Ri))"
+fixed_units = false
+note = "Equation 4.12, the inverse of equation 4.11, Ri = zeta/(1 + gamma_8 zeta) (1 - 0.26/(1 + gamma_8 zeta)), the stable forms of Businger et al. (1971), 1 + 4.7 zeta and 0.74 + 4.7 zeta, with gamma_8 about 4.7."
+output = { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" }
+inputs = [
+  { identifier = "Ri", kind = "GradientRichardsonNumber", unit = "UNITLESS", description = "Gradient Richardson number" },
+]
+keywords = ["stability parameter", "Richardson number", "stable", "Businger", "Kramm"]
+
+[[formulations.kramm2013_stability_parameter_businger.citations]]
+reference = "kramm2013"
+equation = "4.12"
+note = "p. 590."
+notation = { zeta = '\zeta', Ri = 'Ri' }
+
+[[formulations.kramm2013_stability_parameter_businger.citations.domains]]
+bounds = { Ri = [0, 0.2127] }
+criterion = "In stable conditions, zeta > 0; zeta becomes negative beyond Ri = 0.2127 with gamma_8 = 4.7 (p. 590)."
+
+[formulations.beljaars1992_bulk_richardson_number_lowest_level]
+label = "Bulk Richardson number of the lowest model level from z_1/L and the roughness lengths (Beljaars 1992)"
+expression = "zeta_1 * (ln(z_1 / z_0H + 1) - Psi_H(zeta=zeta_1)) / (ln(z_1 / z_0M + 1) - Psi_M(zeta=zeta_1))**2"
+calls = { Psi_H = "ecmwf_ifs_profile_function_heat", Psi_M = "ecmwf_ifs_profile_function_momentum" }
+fixed_units = false
+note = "Equation 99, the relation between the bulk Richardson number of the lowest model level (equation 98, ecmwf_ifs_bulk_richardson_number) and z_1/L, which the IFS solves for z/L (equation 3.25, by Newton iterations); written with the profile functions of the IFS, which equations 45 to 49 of the source give."
+output = { identifier = "Ri_b", kind = "BulkRichardsonNumber", unit = "UNITLESS", description = "Bulk Richardson number" }
+inputs = [
+  { identifier = "zeta_1", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z_1/L at the lowest model level" },
+  { identifier = "z_1", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+]
+keywords = ["Richardson number", "Monin-Obukhov", "lowest model level", "Beljaars"]
+
+[[formulations.beljaars1992_bulk_richardson_number_lowest_level.citations]]
+reference = "beljaars1992"
+equation = "99"
+note = "p. 39."
+notation = { Ri_b = 'Ri_\mathrm{b}', zeta_1 = 'z_1/L', z_1 = 'z_1', z_0M = 'z_{0\mathrm{M}}', z_0H = 'z_{0\mathrm{H}}' }
+
 # --- Profile functions ------------------------------------------------
 # Paulson (1970) for unstable conditions, with x = (1 - 16 zeta)^(1/4)
 # written out (x^2 = (1 - 16 zeta)^(1/2)); for stable conditions, the form
@@ -681,6 +1318,20 @@ assumptions = ["Unstable conditions, zeta = z/L < 0 (section 3.2.2 (i))."]
 reference = "paulson1970"
 note = "As the IFS quotes it."
 
+[[formulations.ecmwf_ifs_profile_function_momentum_unstable.citations]]
+reference = "beljaars1992"
+equation = "45"
+note = "With x = (1 - 16 z/L)^(1/4) (47); the source prints - atan(x), without the factor 2 of the IFS and of Businger (1985, p. 22): as printed, psi_M(0) would be pi/4 instead of 0, which the relation psi = integral of (1 - phi)/zeta, stated with it, rules out."
+
+[[formulations.ecmwf_ifs_profile_function_momentum_unstable.citations]]
+reference = "businger1985"
+note = "p. 22, psi_1, written with phi_u^(-1) = (1 - alpha zeta)^(1/4), alpha about 16."
+
+[[formulations.ecmwf_ifs_profile_function_momentum_unstable.citations]]
+reference = "kramm2013"
+equation = "3.14"
+note = "p. 586, with y = (1 - gamma_2 zeta)^(1/4), gamma_2 = 16."
+
 [formulations.ecmwf_ifs_profile_function_heat_unstable]
 label = "Profile function for heat and moisture, unstable conditions (IFS, after Paulson)"
 expression = "2 * ln((1 + (1 - 16 * zeta) ** (1 / 2)) / 2)"
@@ -701,11 +1352,25 @@ assumptions = ["Unstable conditions, zeta = z/L < 0 (section 3.2.2 (i)).", "The 
 reference = "paulson1970"
 note = "As the IFS quotes it."
 
+[[formulations.ecmwf_ifs_profile_function_heat_unstable.citations]]
+reference = "beljaars1992"
+equation = "46"
+note = "The same function for humidity."
+
+[[formulations.ecmwf_ifs_profile_function_heat_unstable.citations]]
+reference = "businger1985"
+note = "p. 22, psi_2, written with phi_u^(-2) = (1 - alpha zeta)^(1/2), alpha about 16."
+
+[[formulations.ecmwf_ifs_profile_function_heat_unstable.citations]]
+reference = "kramm2013"
+equation = "3.15"
+note = "p. 586."
+
 [formulations.ecmwf_ifs_profile_function_momentum_stable]
 label = "Profile function for momentum, stable conditions (IFS, Holtslag and De Bruin as modified by Beljaars and Holtslag)"
 expression = "-b * (zeta - c / d) * exp(-d * zeta) - a * zeta - b * c / d"
 fixed_units = false
-note = "The IFS attributes the form to Holtslag and De Bruin (1988), with a modification for a critical flux Richardson number at large zeta; its constants a = 1, b = 2/3, c = 5, d = 0.35 are those of Beljaars and Holtslag (1991), where Holtslag and De Bruin have a = 0.7 and b = 0.75 (Andreas 2002, equations 3.4 and 3.5, pp. 421-422, which give the gradient functions whose integrals these are)."
+note = "The IFS attributes the form to Holtslag and De Bruin (1988), with a modification for a critical flux Richardson number at large zeta; its constants a = 1, b = 2/3, c = 5, d = 0.35 are those of Beljaars and Holtslag (1991), where Holtslag and De Bruin have a = 0.7 and b = 0.75 (Andreas 2002, equations 3.4 and 3.5, pp. 421-422, which give the gradient functions whose integrals these are: beljaars_holtslag1991_gradient_function_*_stable). Beljaars (1992, equations 39 to 49) prints b = 0.667."
 output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
@@ -731,7 +1396,7 @@ note = "The constants of the IFS, as Andreas (2002, equation 3.5) gives them; no
 label = "Profile function for heat and moisture, stable conditions (IFS, Holtslag and De Bruin as modified by Beljaars and Holtslag)"
 expression = "-b * (zeta - c / d) * exp(-d * zeta) - (1 + 2 / 3 * a * zeta) ** 1.5 - b * c / d + 1"
 fixed_units = false
-note = "The IFS attributes the form to Holtslag and De Bruin (1988), with a modification for a critical flux Richardson number at large zeta; its constants a = 1, b = 2/3, c = 5, d = 0.35 are those of Beljaars and Holtslag (1991), where Holtslag and De Bruin have a = 0.7 and b = 0.75 (Andreas 2002, equations 3.4 and 3.5, pp. 421-422, which give the gradient functions whose integrals these are)."
+note = "The IFS attributes the form to Holtslag and De Bruin (1988), with a modification for a critical flux Richardson number at large zeta; its constants a = 1, b = 2/3, c = 5, d = 0.35 are those of Beljaars and Holtslag (1991), where Holtslag and De Bruin have a = 0.7 and b = 0.75 (Andreas 2002, equations 3.4 and 3.5, pp. 421-422, which give the gradient functions whose integrals these are: beljaars_holtslag1991_gradient_function_*_stable). Beljaars (1992, equations 39 to 49) prints b = 0.667."
 output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
@@ -794,6 +1459,11 @@ keywords = ["Richardson number", "stability", "IFS"]
 reference = "ecmwf_ifs_cy49r1"
 equation = "3.26"
 notation = { Ri_b = 'Ri_{\mathrm{bulk}}', g_n = "g", theta_v = '\theta_v', theta_vn = '\theta_{vn}', theta_vsurf = '\theta_{v\mathrm{surf}}', U_n = "|U_n|" }
+
+[[formulations.ecmwf_ifs_bulk_richardson_number.citations]]
+reference = "beljaars1992"
+equation = "98"
+note = "p. 39, without the free-convection velocity in |U_1|."
 
 [formulations.ecmwf_ifs_bulk_richardson_number_dry_static_energy]
 label = "Bulk Richardson number of the surface layer from dry static energy and specific humidity (IFS)"
@@ -1147,3 +1817,108 @@ community = "CF, numerical weather prediction (IFS)"
 kind = "SurfaceDragCoefficientForMomentum"
 definition = "The transfer coefficient relating the surface stress to the square of the wind speed at a height (CF surface_drag_coefficient_for_momentum_in_air; C_M of the IFS, equation 3.15)."
 sources = ["cf_standard_names_95", "ecmwf_ifs_cy49r1"]
+
+# --- Cross-checks -----------------------------------------------------------
+
+[cross_checks.coare36_psi]
+implementation = "COARE 3.6 bulk flux algorithm, Python version (coare36vn_zrf_et.py)"
+version = "commit bd1cac8, run with numpy 2.5.4"
+url = "https://github.com/NOAA-PSL/COARE-algorithm/blob/bd1cac80d2dae454e699f9ef46204dfd88086a71/Python/COARE3.6/coare36vn_zrf_et.py"
+checked = 2026-11-07
+note = "The functions psiu_26 and psit_26 of the code the formulations transcribe, imported from it and called on an array of eight values of zeta: a check of the transcription."
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = -10.0 }
+value = 2.7054530991953634
+call = "psiu_26(np.array([-10.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = -1.0 }
+value = 1.1104208601160885
+call = "psiu_26(np.array([-1.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = -0.1 }
+value = 0.2700639963660282
+call = "psiu_26(np.array([-0.1]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = -0.01 }
+value = 0.03586276925168819
+call = "psiu_26(np.array([-0.01]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = 0.01 }
+value = -0.051908247379508055
+call = "psiu_26(np.array([0.01]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = 0.1 }
+value = -0.5109338034596771
+call = "psiu_26(np.array([0.1]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = 1.0 }
+value = -4.392572248874249
+call = "psiu_26(np.array([1.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_momentum"
+inputs = { zeta = 10.0 }
+value = -17.617222696142548
+call = "psiu_26(np.array([10.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = -10.0 }
+value = 3.707916701014948
+call = "psit_26(np.array([-10.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = -1.0 }
+value = 1.8653594076606732
+call = "psit_26(np.array([-1.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = -0.1 }
+value = 0.5112696118456946
+call = "psit_26(np.array([-0.1]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = -0.01 }
+value = 0.07110472612809524
+call = "psit_26(np.array([-0.01]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = 0.01 }
+value = -0.05444827720275569
+call = "psit_26(np.array([0.01]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = 0.1 }
+value = -0.49800748238810577
+call = "psit_26(np.array([0.1]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = 1.0 }
+value = -4.437571468367469
+call = "psit_26(np.array([1.0]))"
+
+[[cross_checks.coare36_psi.cases]]
+formulation = "coare36_profile_function_heat"
+inputs = { zeta = 10.0 }
+value = -29.668255704290857
+call = "psit_26(np.array([10.0]))"
