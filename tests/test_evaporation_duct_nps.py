@@ -160,6 +160,7 @@ def test_the_nps_formulas_are_found_by_search() -> None:
     assert set(CATALOG.used_by("references.businger1971").refs) == {
         "formulations.fairall1978_gradient_function_momentum_unstable",
         "formulations.fairall1978_gradient_function_momentum_stable",
+        "formulations.businger1971_keyps",
     }
     assert "formulations.frederickson1994_gradient_function_scalar" in set(
         CATALOG.used_by("references.frederickson1994_nps").refs

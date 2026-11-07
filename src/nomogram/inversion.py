@@ -112,6 +112,12 @@ def _source(expr: Any) -> str:
 def _check(
     formulation: Formulation, solve_for: str, output: Variable, input: Variable
 ) -> None:
+    if formulation.implicit:
+        msg = (
+            f"{formulation.key}: an implicit equation is solved for its output, "
+            "not inverted"
+        )
+        raise InversionError(msg)
     if len(formulation.inputs) != 1:
         msg = f"{formulation.key}: only formulations of one input can be inverted"
         raise InversionError(msg)

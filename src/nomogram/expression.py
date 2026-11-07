@@ -360,6 +360,39 @@ def parse_expression(
         raise ExpressionError(msg) from None
 
 
+def _split_equation(
+    source: str, limit: int | None = MAX_SOURCE_LENGTH
+) -> tuple[str, str] | None:
+    """The two members of an implicit equation, ``left == right``; None otherwise.
+
+    One ``==`` at the top of the expression, between its two members
+    (VIM 2.48, note 1: h(Y, X1, ..., Xn) = 0); neither chained nor inside a
+    member, where :func:`parse_expression` refuses any comparison but
+    those of a piecewise condition, and no ``==`` there. A source longer
+    than ``limit``, or not valid, is not read here: :func:`parse_expression`
+    says why.
+
+    Raises
+    ------
+    ExpressionError
+        If the ``==`` is chained.
+    """
+    if limit is not None and len(source) > limit:
+        return None
+    try:
+        node = ast.parse(source.strip(), mode="eval").body
+    except (SyntaxError, RecursionError):
+        return None
+    if not isinstance(node, ast.Compare) or not any(
+        isinstance(op, ast.Eq) for op in node.ops
+    ):
+        return None
+    if len(node.ops) != 1:
+        msg = "an implicit equation has one ==, between its two members"
+        raise ExpressionError(msg)
+    return ast.unparse(node.left), ast.unparse(node.comparators[0])
+
+
 def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
     if isinstance(node, ast.BinOp) and type(node.op) in _BINARY_OPERATORS:
         left = _build(node.left, symbols, number)

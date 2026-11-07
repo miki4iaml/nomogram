@@ -1155,6 +1155,10 @@ def test_stats_counts_the_indicators_of_the_design_goals() -> None:
         "  quantity kinds computed by several formulations: 1 of 2",
         "2. Validity, scale and sources stated, never invented",
         "  formulations with a validity domain: 1 of 3",
+        (
+            "  implicit equations with their unknown bounded by a physical domain"
+            " or its kind: 0 of 0"
+        ),
         "  inputs on a conventional scale with their scale recorded: 1 of 2",
         "  references checked against the source: 1 of 2",
         "  formulations derived by nomogram, which no source prints: 0 of 3",

@@ -397,8 +397,16 @@ class Rendering:
 
     @cached_property
     def latex(self) -> str:
-        """The equation in LaTeX, without dollar signs."""
+        """The equation in LaTeX, without dollar signs.
+
+        An implicit equation is written member by member, each on its own
+        side of the sign, its terms in the order SymPy prints them.
+        """
         formulation = self.formulation
+        if formulation.implicit:
+            members = formulation.equation_members
+            left, right = (_tex(m, self._symbols, self.options) for m in members)
+            return f"{left} = {right}"
         left = _identifier(formulation.output.identifier, self._symbols, self.options)
         right = _tex(formulation.written_expression, self._symbols, self.options)
         return f"{left} = {right}"

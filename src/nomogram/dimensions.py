@@ -408,6 +408,21 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     context = _Context(
         formulation.fixed_units, units, frozenset(unknown), coefficients, {}
     )
+    if formulation.implicit:
+        # An implicit equation: its two members, the unknown in the
+        # output's unit, have one unit; a member 0 (h == 0) has every unit.
+        left, right = formulation.equation_members
+        _angles_in_radians(left, units)
+        _angles_in_radians(right, units)
+        equal = [] if left == 0 or right == 0 else [(left, right)]
+        candidates = [
+            *(_Constraint("equal", pair, f"{pair[0]} = {pair[1]}") for pair in equal),
+            *_constraints(left),
+            *_constraints(right),
+            *pieces,
+        ]
+        constraints = [c for c in candidates if not context.numerical(c)]
+        return context, constraints, left - right
     expr = formulation.sympy_expression
     _angles_in_radians(expr, units)
     output = sympy.Symbol(formulation.output.identifier, real=True)

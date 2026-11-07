@@ -69,6 +69,7 @@ each matching a word.
 | `nature` | the nature of a formulation: `definition` or `identity` |
 | `assumption` | an assumption of a formulation, stated by a source or noted with its status, or one of the parts it is built from |
 | `provenance` | where a formulation comes from: `cited` (a source gives it), `derived` (by nomogram, from cited formulations, with no citation of its own) or `uncited` (written by nomogram without a source: a usual approximation or a definition, as its note says) |
+| `implicit` | whether a formulation is an implicit equation, which nomogram solves for its output (`True`), or gives it explicitly (`False`); the words `true` and `false` are the same filter |
 
 `section=` keeps the entries of one section (a pattern too):
 `formulations`, `kinds`, `references`, `constants`, `notations`,

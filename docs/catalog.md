@@ -141,7 +141,9 @@ All sections are optional; a key may be defined in one file only.
   declared units (most empirical fits, such as the Magnus form). Inputs
   are then converted to the declared unit and scale before evaluation;
   coefficients are never converted. `false` for a quantity equation,
-  whose dimensional homogeneity is checked at load.
+  whose dimensional homogeneity is checked at load; the terms of a sum
+  are in one unit, since the numbers are added (a pressure in Pa plus
+  one in hPa is refused).
 - **`coefficients`**: a number, or a table
   `{ value, unit, unit_basis, note }` when the unit or a remark matters.
   See [units of coefficients](#units-of-coefficients).
@@ -201,6 +203,82 @@ expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_
   of a mixed-phase fraction, has no inverse. Otherwise the inverse is
   numerical (see
   [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
+
+### Implicit equations
+
+Some sources do not give their output explicitly: they write an equation
+it solves, the output in both members or impossible to isolate. The VIM
+calls it a measurement model, h(Y, X₁, …, Xₙ) = 0 (2.48, note 1). The
+KEYPS formula (Businger et al. 1971, equation 7) is one:
+
+```toml
+[formulations.businger1971_keyps]
+label = "Gradient function for momentum, KEYPS formula (Businger et al. 1971)"
+expression = "Phi_M**4 - gamma_1 * zeta * Phi_M**3 == 1"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [ { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" } ]
+coefficients = { gamma_1 = 9.0 }
+
+[[formulations.businger1971_keyps.domains]]
+bounds = { Phi_M = [0, inf] }
+criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind increasing with height, as in the observations the source fits."
+```
+
+- **The expression is an equation**: two members joined by one `==`,
+  never chained nor inside a piecewise definition. The output's
+  identifier is the unknown; it may appear in either member or both.
+  Loading refuses an unknown that the difference of the members does not
+  keep, and an unknown alone on one side, absent from the other: that is
+  an explicit expression, written as such. A member may be 0, as the VIM
+  writes the model (`h == 0`).
+- **Units**: the members of a quantity equation have the same dimension,
+  checked at load, a member 0 having every dimension, and the right one
+  is converted to the unit of the left one; those of a numerical value
+  equation are in the declared units.
+- **The root is sought numerically**, for each set of inputs, where the
+  physical domains on the output and the bounds of its kind allow (an
+  open end is swept up to 10¹² times the scale of the other one; on a
+  conventional scale other than the reference one, the bounds of the
+  kind are carried onto it). The residual is sampled, each change of
+  sign bisected to adjacent floating point numbers, and a root kept only
+  where the residual has fallen to a millionth of its value at the ends
+  of the bracket: across a jump between pieces it stays as large, at a
+  pole it grows. One root gives the value; none, several, or a residual
+  undefined inside a bracket give NaN and a `RootWarning` that counts
+  each case. Domains stated by sources apply to the root found, as to
+  any result (`outside=`); where the inputs lie outside them, the root
+  is not sought with `outside="nan"`, and `"raise"` raises first.
+- **A physical domain on the output selects the root.** KEYPS has two
+  real roots for every ζ, one negative: φm ≥ 0, the wind shear of a wind
+  increasing with height, keeps the one the source means. Without such a
+  domain, the caller narrows the interval, in the output's unit, with
+  `search=` (`evaluate(zeta=..., search=(0, 10))`), which is not a
+  validity domain: it narrows what the domains and the kind allow, never
+  widens it, except the sweep of an open end. An explicit formulation
+  refuses it.
+- **Rendering**: the two members joined by `=`, in the notation of each
+  citation, their terms in the order SymPy prints them.
+- **Duplicates**: two entries of one equation, members swapped or the
+  unknown named otherwise, are refused at load, as for explicit
+  formulations.
+- **Limits**: one unknown, the output. An implicit equation is solved
+  for its output, not inverted (`invert` refuses it); it calls no
+  formulation, is no part of a composition, a call or a branch, and
+  takes no part in a relation of equivalence or proportionality.
+  `compare`, `partial` and `compose` pass no `search=`: an implicit
+  equation compared there needs its root selected by a physical domain
+  or its kind. Roots closer than the grid's step (a factor of 10^(1/16)
+  on the geometric grids, a 63rd of a finite interval on the linear one)
+  or a double root, without a change of sign, escape the search; a jump
+  smaller than a millionth of the residual's change across its bracket
+  is taken for a root. A root costs a few hundred evaluations of the
+  members: some 40 µs a point for KEYPS on a laptop, over a thousand
+  times an explicit form, which counts in a dense plot.
+- `Formulation.implicit` tells an implicit equation, `equation_members`
+  gives its two members; `search(implicit=True)` finds them, and the
+  indicators count those whose unknown a physical domain or its kind
+  bounds.
 
 ### Composed formulations
 
