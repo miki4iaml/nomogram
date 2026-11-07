@@ -214,7 +214,7 @@ description = "Stability correction to the logarithmic profile of the mean veloc
 [kinds.ProfileFunctionForHeat]
 label = "Profile Function for Heat"
 specialization_of = "DimensionlessRatio"
-description = "Stability correction to the logarithmic profile of temperature in the surface layer of a fluid, Psi_H; of dry static energy, and of specific humidity, in the IFS."
+description = "Stability correction to the logarithmic profile of temperature, or of another scalar, in the surface layer of a fluid, Psi_H: of dry static energy and of specific humidity in the IFS, of potential refractivity in the evaporation duct model of Jeske."
 
 [kinds.BulkRichardsonNumber]
 label = "Bulk Richardson Number"

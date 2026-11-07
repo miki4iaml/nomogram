@@ -1,0 +1,293 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Evaporation duct over the sea: potential refractivity, the bulk
+# Richardson number and the Monin-Obukhov length of Jeske, and the
+# evaporation duct height of the Paulus-Jeske model (NOSC TD 1596, 1989),
+# one formulation per step of its algorithm.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "evaporation-duct"
+label = "Evaporation duct over the sea"
+format = 2
+requires = ["boundary-layer"]
+keywords = ["evaporation duct", "radio propagation", "surface layer", "sea"]
+
+# --- References -------------------------------------------------------
+
+[references.paulus1989_td1596]
+authors = "Paulus, R. A."
+year = 1989
+title = "Specification for evaporation duct height calculations"
+container = "Naval Ocean Systems Center, San Diego, Technical Document 1596, July 1989 (AD-A213 841)"
+url = "https://archive.org/details/DTIC_ADA213841"
+status = "verified"
+note = "Read in the copy of the Internet Archive (DTIC collection), approved for public release, distribution unlimited: section 1.0 (potential refractivity), Table 1 (inputs, outputs and limits), section 3.0 (the six steps of the model), Table 2 (37 test cases, to within 0.1 m), appendix A (development, after Jeske) and the FORTRAN listing of appendix D. No DOI. The model, proposed as a Navy standard of the Oceanographic and Atmospheric Master Library, is called Paulus-Jeske; it follows Jeske (1965, 1971, 1973) with the modifications of Paulus (1985), not read."
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.EvaporationDuctHeight]
+label = "Evaporation Duct Height"
+specialization_of = "Height"
+description = "Height above the sea surface at which the modified refractivity M reaches its minimum, dM/dz = 0, the gradient of potential refractivity reaching its critical value (Paulus 1989, NOSC TD 1596, section 1.0); for propagation, a measure of the strength of the duct rather than a height below which an antenna must be (section 2.4)."
+
+[kinds.PotentialRadioRefractivity]
+label = "Potential Radio Refractivity"
+specialization_of = "DimensionlessRatio"
+description = "N_p = 77.6 P_0 / theta + 3.73 x 10^5 e_p / theta^2, the radio refractivity written with the potential temperature theta = T (P_0/P)^0.286 and the potential vapour pressure e_p = e P_0/P, P_0 = 1000 hPa, in place of T, P and e (Paulus 1989, NOSC TD 1596, section 1.0); in N-units. Not a radio refractivity, which it does not feed."
+
+[kinds.PotentialRadioRefractivityDifference]
+label = "Potential Radio Refractivity Difference"
+specialization_of = "DimensionlessRatio"
+description = "Delta N_p = N_A - N_S, the potential refractivity of the air at a reference height minus that of the air in contact with the sea surface (Paulus 1989, NOSC TD 1596, step 6); a difference, which never feeds a potential refractivity."
+
+[kinds.SurfaceLayerProfileCoefficient]
+label = "Surface-Layer Profile Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "Gamma, the profile coefficient of Jeske's bulk Richardson number g Delta T z / (T u^2 Gamma): 1/ln((z + z_0)/z_0) in neutral conditions, about 0.1 over the sea; Gamma_e, read on measurements, in non-neutral ones (Paulus 1989, NOSC TD 1596, equations A-4 to A-7)."
+
+[kinds.BulkRichardsonNumberOverProfileCoefficient]
+label = "Bulk Richardson Number over the Profile Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "Jeske's bulk Richardson number, g Delta T z / (T u^2 Gamma), Delta T the air temperature minus the sea temperature and Gamma the surface-layer profile coefficient, about 0.1 (Paulus 1989, NOSC TD 1596, equation A-4): about ten times the bulk Richardson number of a layer, which it does not feed."
+
+# --- Potential refractivity -------------------------------------------
+
+[formulations.paulus1989_saturation_vapour_pressure]
+label = "Saturation vapour pressure over water (Paulus 1989, NOSC TD 1596)"
+expression = "C * exp(A * (T - T_0) / T - B * ln(T / T_0))"
+fixed_units = true
+note = "Step 3, for the air (at T_ak) and for the sea surface (at T_sk, e_0), the effect of salinity on vapour pressure neglected. The source states no origin for the formula, hence no conventional scale; T_0 = 273.2 K is also the offset of its conversion from Celsius (step 1), T_ak = T_a + 273.2."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { C = 6.105, A = 25.22, B = 5.31, T_0 = 273.2 }
+assumptions = [
+  { text = "Over liquid water: the slope of ln e_s at 273.2 K, (A - B)/T_0 = 0.0729 K-1, gives with R_v = 461.5 J kg-1 K-1 a latent heat of 2.51 MJ/kg, that of vaporization (computed by nomogram).", status = "deduced" },
+]
+keywords = ["saturation vapour pressure", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_saturation_vapour_pressure.citations]]
+reference = "paulus1989_td1596"
+note = "Step 3, p. 5; the same formula in the FORTRAN listing (appendix D, p. D-3)."
+notation = { e_s = "e_s", T = "T_{ak}", T_0 = "273.2" }
+
+[[formulations.paulus1989_saturation_vapour_pressure.citations.domains]]
+bounds = { T = [253.2, 323.2] }
+criterion = "Limits of the inputs of the model (Table 1): air temperature from -20 to 50 degC, sea temperature from 0 to 40 degC, converted by T_ak = T_a + 273.2 (step 1)."
+
+[formulations.paulus1989_potential_refractivity]
+label = "Potential radio refractivity (Paulus 1989, NOSC TD 1596)"
+expression = "k_1 / T * (P_0 + k_2 * e / T)"
+fixed_units = true
+note = "Step 3, for the air at the reference height (N_A, from T_ak and e) and for the air in contact with the sea surface (N_S, from T_sk and e_0). k_2 = 4810 is about 3.73e5/77.6 = 4807 of the definition of section 1.0, N_p = 77.6 P_0/theta + 3.73e5 e_p/theta^2, which the model does not use."
+output = { identifier = "N_p", kind = "PotentialRadioRefractivity", unit = "PPM", description = "Potential radio refractivity" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature, taken for the potential temperature" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure, taken for the potential vapour pressure" },
+]
+coefficients = { k_1 = 77.6, P_0 = 1000.0, k_2 = 4810.0 }
+keywords = ["potential refractivity", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_potential_refractivity.citations]]
+reference = "paulus1989_td1596"
+note = "Step 3, p. 5."
+notation = { N_p = "N_A", T = "T_{ak}", P_0 = "1000", k_1 = "77.6", k_2 = "4810" }
+units = { P_0 = "HectoPA" }
+assumptions = ["In the surface layer, T_ak = theta and e = e_p; the effect of salinity on vapour pressure is neglected (step 3)."]
+
+[[formulations.paulus1989_potential_refractivity.citations.domains]]
+bounds = { T = [253.2, 323.2] }
+criterion = "Limits of the inputs of the model (Table 1): air temperature from -20 to 50 degC, sea temperature from 0 to 40 degC, converted by T_ak = T_a + 273.2 (step 1)."
+
+[formulations.paulus1989_potential_refractivity_difference]
+label = "Potential radio refractivity difference between the air and the sea (Paulus 1989, NOSC TD 1596)"
+nature = "definition"
+expression = "N_A - N_S"
+fixed_units = false
+output = { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" }
+inputs = [
+  { identifier = "N_A", kind = "PotentialRadioRefractivity", unit = "PPM", description = "Potential refractivity of the air at the reference height" },
+  { identifier = "N_S", kind = "PotentialRadioRefractivity", unit = "PPM", description = "Potential refractivity of the air in contact with the sea surface" },
+]
+keywords = ["potential refractivity", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_potential_refractivity_difference.citations]]
+reference = "paulus1989_td1596"
+note = "Step 6, p. 7."
+notation = { Delta_N_p = '\Delta N_p' }
+
+# --- Stability: Jeske's bulk Richardson number and Monin-Obukhov length
+
+[formulations.paulus1989_bulk_richardson_number]
+label = "Bulk Richardson number of Jeske, wind in knots (Paulus 1989, NOSC TD 1596)"
+expression = "c * z_1 * (T_a - T_s) / (T_a * u ** 2)"
+fixed_units = true
+note = "Step 2, equation A-4 with g = 9.8 m s-2 and the profile coefficient Gamma of about 0.1 (A-5), the wind in knots: g/(Gamma (0.5144 m/s per knot)^2) = 370, against the 369 printed (computed by nomogram). The model restricts Ri_b to 1 at most (step 2), a step of the algorithm, not a validity domain. Below 0.01 knot, the model sets the evaporation duct height to 0 (step 1); its FORTRAN listing also raises the wind to 1 knot at least (appendix D, p. D-3), which the text does not say."
+output = { identifier = "Ri_b", kind = "BulkRichardsonNumberOverProfileCoefficient", unit = "UNITLESS", description = "Bulk Richardson number of Jeske" }
+inputs = [
+  { identifier = "T_a", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the reference height" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Sea surface temperature" },
+  { identifier = "u", kind = "Speed", unit = "KN", description = "Wind speed at the reference height" },
+]
+coefficients = { c = 369.0, z_1 = 6.0 }
+keywords = ["Richardson number", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_bulk_richardson_number.citations]]
+reference = "paulus1989_td1596"
+note = "Step 2, p. 5; z_1 = 6 m (step 6)."
+notation = { Ri_b = "Ri_b", T_a = "T_{ak}", T_s = "T_{sk}", c = "369" }
+units = { z_1 = "M" }
+assumptions = ["Gradients approximated by differences, and T = theta in the surface layer (appendix A, after equation A-4).", "Measurements at 6 m or more above the sea surface, whose height is then neglected (section 2.0)."]
+
+[[formulations.paulus1989_bulk_richardson_number.citations.domains]]
+bounds = { T_a = [253.2, 323.2], T_s = [273.2, 313.2], u = [0.0, 50.0] }
+criterion = "Limits of the inputs of the model (Table 1): wind speed from 0 to 50 knots, air temperature from -20 to 50 degC, sea temperature from 0 to 40 degC, converted by adding 273.2 (step 1)."
+
+[formulations.paulus1989_profile_coefficient]
+label = "Profile coefficient of Jeske, straight-line fit (Paulus 1989, NOSC TD 1596)"
+expression = "piecewise((G_0, Ri_b <= -3.75), (c_1 + d_1 * Ri_b, -3.75 < Ri_b <= -0.12), (c_2 + d_2 * Ri_b, -0.12 < Ri_b <= 0.14), (c_3 + d_3 * Ri_b, Ri_b > 0.14))"
+fixed_units = false
+note = "A straight-line-segment fit to the data of Jeske (figure A-1, Ri_b from -3 to 1)."
+output = { identifier = "Gamma_e", kind = "SurfaceLayerProfileCoefficient", unit = "UNITLESS", description = "Profile coefficient for non-neutral conditions" }
+inputs = [
+  { identifier = "Ri_b", kind = "BulkRichardsonNumberOverProfileCoefficient", unit = "UNITLESS", description = "Bulk Richardson number of Jeske" },
+]
+coefficients = { G_0 = 0.05, c_1 = 0.065, d_1 = 0.004, c_2 = 0.109, d_2 = 0.367, c_3 = 0.155, d_3 = 0.021 }
+keywords = ["profile coefficient", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_profile_coefficient.citations]]
+reference = "paulus1989_td1596"
+note = "Step 6, p. 7; appendix A, after equation A-7."
+notation = { Gamma_e = '\Gamma_e' }
+
+[formulations.paulus1989_obukhov_length_from_profile_coefficient]
+label = "Monin-Obukhov length from Jeske's bulk Richardson number and profile coefficient (Paulus 1989, NOSC TD 1596)"
+expression = "n * z_1 * Gamma_e / Ri_b"
+fixed_units = true
+note = "Equation A-7, 1/L' = Ri_b/(10 z_1 Gamma_e), from L' = T u^2 Gamma_e/(g Delta T) (A-6) and A-4, with 1/Gamma = 10 for Gamma of about 0.1. L' is the gradient form of the Monin-Obukhov scaling length corrected for stability (appendix A); infinite in neutral conditions, Ri_b = 0."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length" }
+inputs = [
+  { identifier = "Gamma_e", kind = "SurfaceLayerProfileCoefficient", unit = "UNITLESS", description = "Profile coefficient for non-neutral conditions" },
+  { identifier = "Ri_b", kind = "BulkRichardsonNumberOverProfileCoefficient", unit = "UNITLESS", description = "Bulk Richardson number of Jeske" },
+]
+coefficients = { n = 10.0, z_1 = 6.0 }
+keywords = ["Obukhov length", "Monin-Obukhov", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_obukhov_length_from_profile_coefficient.citations]]
+reference = "paulus1989_td1596"
+equation = "A-7"
+note = "Also step 6, p. 7; z_1 = 6 m."
+notation = { L = "L'", Gamma_e = '\Gamma_e', n = "10" }
+units = { z_1 = "M" }
+
+[formulations.paulus1989_obukhov_length]
+label = "Monin-Obukhov length from Jeske's bulk Richardson number (Paulus 1989, NOSC TD 1596)"
+composition = { outer = "paulus1989_obukhov_length_from_profile_coefficient", inner = { Gamma_e = "paulus1989_profile_coefficient" } }
+keywords = ["Obukhov length", "Monin-Obukhov", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_obukhov_length.citations]]
+reference = "paulus1989_td1596"
+note = "Step 6, p. 7: L' with the table of Gamma_e."
+notation = { L = "L'" }
+
+[formulations.paulus1989_profile_function]
+label = "Universal function of Jeske for unstable conditions, straight-line fit to the KEYPS profile (Paulus 1989, NOSC TD 1596)"
+expression = "piecewise((-c_0 * zeta, zeta >= -0.01), (10 ** (m_1 * log10(-zeta) + b_1), -0.026 <= zeta < -0.01), (10 ** (m_2 * log10(-zeta) + b_2), -0.1 <= zeta < -0.026), (10 ** (m_3 * log10(-zeta) + b_3), -1 <= zeta < -0.1), (10 ** (m_4 * log10(-zeta) + b_4), -2.2 <= zeta < -1), (psi_max, zeta < -2.2))"
+fixed_units = false
+note = "Step 5, a straight-line-segment fit to the KEYPS profile (Lumley and Panofsky 1964, figure A-2), quicker than the analytic form of Paulson (1970, equation A-16), which needs the KEYPS relation phi^4 - 4 alpha (z/L') phi^3 = 1, alpha = 4.5 (A-3), solved iteratively. The model uses it in unstable conditions only, Ri_b < 0; the first piece, as printed, holds for any zeta >= -0.01. Jeske takes it for any scalar, here potential refractivity (A-1)."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Universal function of a scalar" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z_1/L'" },
+]
+coefficients = { c_0 = 4.5, m_1 = 1.02, b_1 = 0.69, m_2 = 0.776, b_2 = 0.306, m_3 = 0.63, b_3 = 0.16, m_4 = 0.414, b_4 = 0.16, psi_max = 2.0 }
+keywords = ["profile function", "KEYPS", "unstable", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_profile_function.citations]]
+reference = "paulus1989_td1596"
+note = "Step 5, p. 6; the same pieces in the FORTRAN listing (appendix D, p. D-6)."
+notation = { Psi_H = '\psi', zeta = "z_1/L'" }
+
+# --- Evaporation duct height ------------------------------------------
+
+[formulations.paulus1989_evaporation_duct_height_stable]
+label = "Evaporation duct height, neutral and stable conditions (Paulus-Jeske, NOSC TD 1596)"
+expression = "piecewise((delta_0, Delta_N_p >= 0), (Delta_N_p / (b_1 * (ln(z_1 / z_0) + a * z_1 / L) - Delta_N_p * a / L), Delta_N_p < 0))"
+fixed_units = true
+note = "Step 4 (a) and (b), for 0 <= Ri_b <= 1, with B = ln(z_1/z_0) + a z_1/L' written out; from the log-linear stability function phi = 1 + a z/L', a = 5.2 (A-2), integrated (A-8 to A-13). Where (b) gives delta < 0 or delta/L' > 1, the model takes delta/L' = 1 (paulus1989_evaporation_duct_height_limited). The model limits the height to 40 m (step 6), and, when T_a - T_s > -1 degC, also computes it for T_a = T_s and T_a = T_s - 1 degC, the relative humidity unchanged, and keeps the second if the first is larger (p. 7): steps of the algorithm, which no formulation writes."
+output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length L' of Jeske" },
+]
+coefficients = { a = 5.2, b_1 = -0.125, z_0 = 1.5e-4, z_1 = 6.0, delta_0 = { value = 0.0, unit = "M", unit_basis = "added", note = "The zero height of step 4 (a), in the unit of the height." } }
+keywords = ["evaporation duct height", "evaporation duct", "stable", "Paulus-Jeske", "Jeske"]
+
+[[formulations.paulus1989_evaporation_duct_height_stable.citations]]
+reference = "paulus1989_td1596"
+equation = "A-12"
+note = "Step 4 (a) and (b), p. 5-6; B from A-13. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", delta_0 = "0" }
+units = { z_0 = "M", z_1 = "M" }
+assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+[formulations.paulus1989_evaporation_duct_height_limited]
+label = "Evaporation duct height at delta/L' = 1 (Paulus-Jeske, NOSC TD 1596)"
+expression = "(Delta_N_p * (1 + a) - b_1 * a * z_1) / (b_1 * ln(z_1 / z_0))"
+fixed_units = true
+note = "Step 4 (c): equation A-12 with delta = L', which Jeske recommends delta/L' not to exceed (appendix A, after A-13); the model takes it where step 4 (b) gives delta < 0 or delta/L' > 1."
+output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
+]
+coefficients = { a = 5.2, b_1 = -0.125, z_0 = 1.5e-4, z_1 = 6.0 }
+keywords = ["evaporation duct height", "evaporation duct", "stable", "Paulus-Jeske", "Jeske"]
+
+[[formulations.paulus1989_evaporation_duct_height_limited.citations]]
+reference = "paulus1989_td1596"
+note = "Step 4 (c), p. 6. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+notation = { delta = '\delta', Delta_N_p = '\Delta N_p' }
+units = { z_0 = "M", z_1 = "M" }
+
+[formulations.paulus1989_evaporation_duct_height_unstable]
+label = "Evaporation duct height, unstable conditions (Paulus-Jeske, NOSC TD 1596)"
+expression = "((b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 4 - 4 * beta / L * (b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 3) ** (-1 / 4)"
+fixed_units = true
+note = "Step 5, for Ri_b < 0, with B = ln(z_1/z_0) - psi written out, psi the universal function at z_1/L' (paulus1989_profile_function); from the KEYPS relation with alpha = 4.5 (A-3). Its FORTRAN listing sets the height to 0 when the bracket is not positive and, as in stable conditions, when Delta N_p >= 0 (appendix D, p. D-5 and D-7), which the text says for stable conditions only. The model limits the height to 40 m (step 6)."
+output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length L' of Jeske" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Universal function psi at z_1/L'" },
+]
+coefficients = { beta = 4.5, b_1 = -0.125, z_0 = 1.5e-4, z_1 = 6.0 }
+keywords = ["evaporation duct height", "evaporation duct", "unstable", "KEYPS", "Paulus-Jeske", "Jeske"]
+
+[[formulations.paulus1989_evaporation_duct_height_unstable.citations]]
+reference = "paulus1989_td1596"
+equation = "A-15"
+note = "Step 5, p. 6; B from A-16. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", Psi_H = '\psi', beta = '\beta' }
+units = { z_0 = "M", z_1 = "M" }
+assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+# --- Trade terms ------------------------------------------------------
+
+[trade_terms.bulk_richardson_number]
+term = "bulk Richardson number"
+language = "en"
+
+[[trade_terms.bulk_richardson_number.meanings]]
+community = "numerical weather prediction (IFS)"
+kind = "BulkRichardsonNumber"
+definition = "The ratio of buoyancy to wind shear across the surface layer, g z_n (theta_vn - theta_vsurf) / (theta_v |U_n|^2), from virtual potential temperatures (IFS, equation 3.26)."
+sources = ["ecmwf_ifs_cy49r1"]
+
+[[trade_terms.bulk_richardson_number.meanings]]
+community = "evaporation duct models (Jeske, Paulus-Jeske)"
+kind = "BulkRichardsonNumberOverProfileCoefficient"
+definition = "g Delta T z / (T u^2 Gamma), from the air temperature minus the sea temperature and the profile coefficient Gamma, about 0.1: about ten times the former (NOSC TD 1596, equation A-4)."
+sources = ["paulus1989_td1596"]

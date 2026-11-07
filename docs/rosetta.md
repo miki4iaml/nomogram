@@ -172,6 +172,8 @@ defines one, a sibling of the look-alikes
 
 | drag coefficient | force on a body in a flow over the dynamic pressure and a reference area, F/(½ ρ v² A) | fluid dynamics, aerodynamics | `DragCoefficient` (QUDT) | 1 | QUDT 3.5.3 |
 | drag coefficient | transfer coefficient relating the surface stress to the square of the wind speed at a height, τ = ρ C_M U² | boundary-layer meteorology (CF, IFS) | `SurfaceDragCoefficientForMomentum`, a sibling under `DimensionlessRatio` | 1 | CF table 95; IFS CY49R1, Part IV, 3.15 and 3.16 |
+| bulk Richardson number | ratio of buoyancy to wind shear across a layer, g z Δθ_v / (θ_v U²) | numerical weather prediction (IFS) | `BulkRichardsonNumber` (local) | 1 | IFS CY49R1, Part IV, 3.26 |
+| bulk Richardson number | g ΔT z / (T u² Γ), with the profile coefficient Γ, about 0.1: about ten times the former | evaporation duct models (Jeske, Paulus-Jeske) | `BulkRichardsonNumberOverProfileCoefficient`, a sibling under `DimensionlessRatio` | 1 | NOSC TD 1596 (Paulus 1989), A-4 |
 
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
 versus dimensionless), so mixing them is not a small numerical error.
@@ -365,6 +367,10 @@ here, not worked around silently.
     QUDT 3.5.3: the reciprocal metre is its parent's,
     `AttenuationCoefficient`, which nomogram takes for the extinction
     coefficient of the visibility.
+22. `unit:KN`, the knot, is declared for `Velocity` and `LinearVelocity`,
+    not for `Speed` (QUDT 3.5.3), whose magnitude it measures as well:
+    nomogram adds it to `Speed`, for the wind of the evaporation duct
+    model of Paulus (1989).
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

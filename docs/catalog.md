@@ -84,7 +84,7 @@ keywords = ["humidity", "psychrometrics"]
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
 (`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`,
-`boundary-layer`), and **aggregates** holding no entry, only
+`boundary-layer`, `evaporation-duct`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.

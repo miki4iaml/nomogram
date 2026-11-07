@@ -545,7 +545,12 @@ def test_curves_far_above_the_others_go_off_scale() -> None:
     assert -3.0 < low < -2.5
     assert 4.3 < high < 4.6
     # Still drawn, beyond the axis.
-    assert np.nanmax(ax.lines[0].get_ydata()) > 26
+    (bechtold,) = (
+        line
+        for line in ax.lines
+        if str(line.get_label()).startswith("Clausius-Clapeyron with a constant")
+    )
+    assert np.nanmax(bechtold.get_ydata()) > 26
     assert plot_deviations(table, off_scale=False).get_ylim()[1] > 26
 
 
