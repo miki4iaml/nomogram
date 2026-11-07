@@ -45,7 +45,7 @@ title = "Flux-profile relationships in the atmospheric surface layer"
 container = "Journal of the Atmospheric Sciences, 28, 181-189"
 doi = "10.1175/1520-0469(1971)028<0181:FPRITA>2.0.CO;2"
 status = "verified"
-note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU/dz and temperature gradient phi_h = (z/theta_*) dtheta/dz, theta_* = -w'theta'/(k u_*) (equations 2 and 3); phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
+note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU/dz and temperature gradient phi_h = (z/theta_*) dtheta/dz, theta_* = -w'theta'/(k u_*) (equations 2 and 3); the KEYPS formula phi_m^4 - 9 zeta phi_m^3 = 1 (7), phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
 
 [references.hogstrom1988]
 authors = "Högström, U."
@@ -420,6 +420,29 @@ reference = "ecmwf_ifs_cy49r1"
 equation = "3.23"
 notation = { Phi_H = '\Phi_{\mathrm{H}}', zeta = '\zeta' }
 assumptions = ["Stable conditions, zeta = z/L > 0 (section 3.2.2 (ii)).", "The same function for specific humidity, Phi_Q = Phi_H."]
+
+[formulations.businger1971_keyps]
+label = "Gradient function for momentum, KEYPS formula (Businger et al. 1971)"
+expression = "Phi_M**4 - gamma_1 * zeta * Phi_M**3 == 1"
+fixed_units = false
+note = "Equation 7, the KEYPS formula as the source names it, after Panofsky (1963) and Lumley and Panofsky (1964), not read; gamma_1 = 9 fitted on the unstable observations of the Kansas experiment, with k = 0.35 (p. 184). An implicit equation as printed: a quartic in Phi_M, with two real roots for every zeta, one negative; the gradient function of a wind increasing with height is the positive one, which the physical domain keeps. Jeske's evaporation duct model takes the same relation with 4 beta = 18 in place of gamma_1 (paulus1989_evaporation_duct_height_unstable). Its slope at zeta = 0 is gamma_1/4 = 2.25 (p. 184), that of equation 8 (fairall1978_gradient_function_momentum_unstable) 3.75."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { gamma_1 = 9.0 }
+keywords = ["gradient function", "KEYPS", "Monin-Obukhov", "unstable", "Businger", "implicit equation"]
+
+[[formulations.businger1971_keyps.domains]]
+bounds = { Phi_M = [0, inf] }
+criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind increasing with height, as in the observations the source fits."
+
+[[formulations.businger1971_keyps.citations]]
+reference = "businger1971"
+equation = "7"
+note = "p. 184."
+notation = { Phi_M = '\phi_m', zeta = '\zeta', gamma_1 = '\gamma_1' }
+assumptions = ["Unstable conditions: the formula is 'intended for unstable conditions' (p. 184)."]
 
 # --- Profile functions ------------------------------------------------
 # Paulson (1970) for unstable conditions, with x = (1 - 16 zeta)^(1/4)

@@ -104,6 +104,10 @@ FIELDS: Mapping[str, str] = {
         "where a formulation comes from: cited (a source gives it), derived "
         "(by nomogram, from others) or uncited (written without a source)"
     ),
+    "implicit": (
+        "whether a formulation is an implicit equation, solved for its output "
+        "(implicit=True), or an explicit expression of it (implicit=False)"
+    ),
 }
 
 # Greek letters by character, after case folding; variants and the micro
@@ -407,6 +411,7 @@ def _formulation(
             "nature": (words(f.nature.value),) if f.nature is not None else (),
             "assumption": tuple(words(a.text) for a in f.assumptions),
             "provenance": _provenance(f),
+            "implicit": (words("true" if f.implicit else "false"),),
         },
         kinds=(f.output.kind,),
         citations=citations,
@@ -734,10 +739,23 @@ def search(
     *,
     section: str | None = None,
     specializations: bool = True,
-    filters: Mapping[str, str],
+    filters: Mapping[str, str | bool],
 ) -> Selection:
     """See :meth:`nomogram.catalog.Catalog.search`."""
-    unknown = sorted(set(filters) - set(FIELDS))
+    # Checked at run time, whatever the caller passes.
+    given: Mapping[str, object] = filters
+    odd = sorted(
+        name for name, value in given.items() if not isinstance(value, str | bool)
+    )
+    if odd:
+        msg = f"search field(s) {', '.join(odd)}: expected a pattern, or True or False"
+        raise TypeError(msg)
+    # A flag (implicit=True) is matched as the word it reads.
+    patterns = {
+        name: str(value).lower() if isinstance(value, bool) else value
+        for name, value in filters.items()
+    }
+    unknown = sorted(set(patterns) - set(FIELDS))
     if unknown:
         msg = (
             f"unknown search field(s): {', '.join(unknown)}; known: {', '.join(FIELDS)}"
@@ -745,8 +763,8 @@ def search(
         raise TypeError(msg)
     built = catalog._search_index
     kinds = None
-    if "kind" in filters:
-        wanted = _terms(filters["kind"])
+    if "kind" in patterns:
+        wanted = _terms(patterns["kind"])
         matched = {
             name
             for name in catalog.kinds
@@ -755,12 +773,12 @@ def search(
         if specializations:
             matched = {d for name in matched for d in built.descendants[name]}
         kinds = frozenset(matched)
-    units = _units(built.unit_forms, filters["unit"]) if "unit" in filters else None
+    units = _units(built.unit_forms, patterns["unit"]) if "unit" in patterns else None
     folded = [t for term in terms for t in _terms(term)]
     chosen = tuple(
         r.entry
         for r in built.records
-        if _keep(r, folded, fold(section) if section else None, filters, kinds, units)
+        if _keep(r, folded, fold(section) if section else None, patterns, kinds, units)
     )
     return Selection(chosen, catalog)
 

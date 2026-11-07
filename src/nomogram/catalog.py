@@ -51,6 +51,7 @@ from nomogram.expression import (
     ExpressionError,
     _call_sites,
     _pieces,
+    _split_equation,
     compile_numeric,
     latex_commands,
     parse_expression,
@@ -267,7 +268,7 @@ class Catalog:
         *terms: str,
         section: str | None = None,
         specializations: bool = True,
-        **fields: str,
+        **fields: str | bool,
     ) -> Selection:
         """Find entries of the catalog by words, wildcards and fields.
 
@@ -283,11 +284,12 @@ class Catalog:
         specializations : bool
             With ``kind=``, also the kinds that specialize the matched ones
             (default).
-        **fields : str
+        **fields : str or bool
             Field filters, patterns as well (:data:`nomogram.search.FIELDS`):
             ``kind``, ``unit``, ``output``, ``input``, ``variable``,
             ``symbol`` with ``notation``, ``source`` with ``equation``,
-            ``family``, ``keyword``, ``key``.
+            ``family``, ``keyword``, ``key``...; a flag, such as
+            ``implicit``, takes ``True`` or ``False``.
 
         Returns
         -------
@@ -431,7 +433,13 @@ def _check_pieces(where: str, formulation: Formulation) -> None:
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {sympy.Symbol(name, real=True): value for name, value in pairs}
     inputs = [v.identifier for v in formulation.inputs]
-    for node in sympy.preorder_traversal(formulation.sympy_expression):
+    expressions = [formulation.sympy_expression] if not formulation.implicit else []
+    if formulation.implicit:
+        # The unknown of an implicit equation may be bounded as an input.
+        expressions = list(formulation.equation_members)
+        inputs.append(formulation.output.identifier)
+    nodes = [n for e in expressions for n in sympy.preorder_traversal(e)]
+    for node in nodes:
         if not isinstance(node, sympy.Piecewise):
             continue
         try:
@@ -457,6 +465,40 @@ def _check_pieces(where: str, formulation: Formulation) -> None:
             if high > low or (high == low and high_closed and not low_open):
                 msg = f"{where}.expression: the intervals of {variable} overlap"
                 raise CatalogError(msg)
+
+
+#: Identifiers a variable cannot take: options of ``Formulation.evaluate``.
+_RESERVED_IDENTIFIERS = ("basis", "outside", "scale", "search")
+
+
+def _check_implicit(where: str, formulation: Formulation) -> set[str]:
+    """The checks of an implicit equation; the names its members use.
+
+    Its members parse, the unknown remains in their difference, and the
+    equation is not an explicit one written with ==, which would escape
+    the detection of duplicates and inversion.
+    """
+    try:
+        left, right = formulation.equation_members
+    except ExpressionError as exc:
+        msg = f"{where}.expression: {exc}"
+        raise CatalogError(msg) from None
+    unknown = sympy.Symbol(formulation.output.identifier, real=True)
+    if unknown not in (left - right).free_symbols:
+        msg = (
+            f"{where}.expression: the output {unknown} vanishes from the "
+            "equation; it is the unknown the equation is solved for"
+        )
+        raise CatalogError(msg)
+    for alone, other in ((left, right), (right, left)):
+        if alone == unknown and unknown not in other.free_symbols:
+            msg = (
+                f"{where}.expression: {unknown} is alone on one side: write "
+                f"the explicit expression of {unknown}"
+            )
+            raise CatalogError(msg)
+    names = left.free_symbols | right.free_symbols
+    return {s.name for s in names} - {formulation.output.identifier}
 
 
 def _exact(constant: PhysicalConstant) -> Any:
@@ -1457,6 +1499,12 @@ class _Builder:
             ("identifier", "kind", "unit", "description"),
             ("scale", "scale_basis"),
         )
+        if f["identifier"] in _RESERVED_IDENTIFIERS:
+            msg = (
+                f"{where}.identifier: {f['identifier']} names an option of "
+                f"evaluate ({', '.join(_RESERVED_IDENTIFIERS)})"
+            )
+            raise CatalogError(msg)
         kind = self.kind(f"{where}.kind", f["kind"])
         unit = self.unit(f"{where}.unit", f["unit"])
         if unit not in kind.applicable_units:
@@ -1857,12 +1905,28 @@ class _Builder:
 
     @staticmethod
     def part(
-        where: str, name: Any, formulations: Mapping[str, Formulation]
+        where: str,
+        name: Any,
+        formulations: Mapping[str, Formulation],
+        *,
+        explicit: bool = False,
     ) -> Formulation:
+        """A formulation of the catalog, by key; ``explicit`` refuses an implicit one.
+
+        A composition, a call or a branch substitutes the expression of
+        its parts, which an implicit equation does not have.
+        """
         if not isinstance(name, str) or name not in formulations:
             msg = f"{where}: unknown formulation {name!r}"
             raise CatalogError(msg)
-        return formulations[name]
+        found = formulations[name]
+        if explicit and found.implicit:
+            msg = (
+                f"{where}: {name} is an implicit equation, which a composition, "
+                "a call or a branch cannot substitute"
+            )
+            raise CatalogError(msg)
+        return found
 
     @staticmethod
     def bindings(
@@ -1945,7 +2009,7 @@ class _Builder:
         )
         place = f"{where}.composition"
         c = _fields(place, f["composition"], ("outer", "inner"), ("bind",))
-        outer = self.part(f"{place}.outer", c["outer"], formulations)
+        outer = self.part(f"{place}.outer", c["outer"], formulations, explicit=True)
         if not isinstance(c["inner"], dict) or not c["inner"]:
             msg = f"{place}.inner: expected a table of input identifier to formulation"
             raise CatalogError(msg)
@@ -1959,7 +2023,7 @@ class _Builder:
         scaled: dict[str, Variable] = {}
         for identifier, name in c["inner"].items():
             w = f"{place}.inner.{identifier}"
-            part = self.part(w, name, formulations)
+            part = self.part(w, name, formulations, explicit=True)
             target = outer_inputs.get(identifier)
             if target is None:
                 msg = f"{w}: {outer.key} has no input {identifier!r}"
@@ -2263,7 +2327,17 @@ class _Builder:
             if not alias.isidentifier() or reserved or alias in own:
                 msg = f"{w}: {alias!r} cannot name a call: reserved or already used"
                 raise CatalogError(msg)
-            aliases[alias] = self.part(w, name, formulations)
+            aliases[alias] = self.part(w, name, formulations, explicit=True)
+        try:
+            equation = isinstance(f["expression"], str) and _split_equation(
+                f["expression"]
+            )
+        except ExpressionError as exc:
+            msg = f"{where}.expression: {exc}"
+            raise CatalogError(msg) from None
+        if equation:
+            msg = f"{where}.expression: an implicit equation calls no formulation"
+            raise CatalogError(msg)
         calls = self.calls_written(where, f["expression"], aliases, inputs)
         fixed = bool(f["fixed_units"])
         loose = [c.formulation.key for c in calls if c.formulation.fixed_units]
@@ -2561,7 +2635,9 @@ class _Builder:
         for index, item in enumerate(f["branches"]):
             w = f"{where}.branches[{index}]"
             b = _fields(w, item, ("formulation", "where"), ())
-            part = self.part(f"{w}.formulation", b["formulation"], formulations)
+            part = self.part(
+                f"{w}.formulation", b["formulation"], formulations, explicit=True
+            )
             if not self.feeds(part.output.kind, output.kind):
                 msg = (
                     f"{w}: {part.key} computes {part.output.kind}, which is not "
@@ -2743,6 +2819,13 @@ class _Builder:
                 raise CatalogError(msg)
             ends.append(formulations[f[role]])
         subject, other = ends
+        implicit = [e.key for e in ends if e.implicit]
+        if implicit and kind is not RelationKind.APPROXIMATES:
+            msg = (
+                f"{where}: nomogram proves an equivalence or a proportionality on "
+                f"explicit expressions; {', '.join(implicit)} is an implicit equation"
+            )
+            raise CatalogError(msg)
         if subject.output.kind != other.output.kind:
             msg = (
                 f"{where}: {subject.key} computes {subject.output.kind}, "
@@ -2965,12 +3048,15 @@ class _Builder:
         if duplicates:
             msg = f"{where}: identifiers declared twice: {', '.join(duplicates)}"
             raise CatalogError(msg)
-        try:
-            expr = formulation.sympy_expression
-        except ExpressionError as exc:
-            msg = f"{where}.expression: {exc}"
-            raise CatalogError(msg) from None
-        used = {s.name for s in expr.free_symbols}
+        if formulation.implicit:
+            used = _check_implicit(where, formulation)
+        else:
+            try:
+                expr = formulation.sympy_expression
+            except ExpressionError as exc:
+                msg = f"{where}.expression: {exc}"
+                raise CatalogError(msg) from None
+            used = {s.name for s in expr.free_symbols}
         if formulation.calls:
             # Checked on the expression as written: what a call brings needs
             # no use, and what the development simplifies stays declared.
@@ -3585,6 +3671,7 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
     specializes, is one a scale of the catalog applies to.
     """
     formulations = list(loaded.formulations.values())
+    implicit = [f for f in formulations if f.implicit]
     computed = Counter(f.output.kind for f in formulations)
     used = {f.output.kind for f in formulations}
     used |= {v.kind for f in formulations for v in f.inputs}
@@ -3622,6 +3709,12 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
             "formulations with a validity domain",
             sum(_reaches_domain(f) for f in formulations),
             len(formulations),
+        ),
+        (
+            stated,
+            "implicit equations with their unknown bounded by a physical domain or its kind",
+            sum(_bounded_unknown(f) for f in implicit),
+            len(implicit),
         ),
         (
             stated,
@@ -3672,6 +3765,16 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
             len(references),
         ),
     ]
+
+
+def _bounded_unknown(formulation: Formulation) -> bool:
+    """Whether objective bounds choose the root of an implicit equation.
+
+    A physical domain on its output, or the bounds of the output's kind.
+    """
+    output = formulation.output.identifier
+    bounded = any(output in d.bounds for d in formulation.physical_domains)
+    return bounded or formulation.output.kind_bounds is not None
 
 
 def _reaches_domain(formulation: Formulation) -> bool:

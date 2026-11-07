@@ -200,21 +200,36 @@ def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
     does not depend on the identifiers chosen by the source.
     """
     expr = _numbers(formulation, keep_coefficients=keep_coefficients)
+    # The residual of an implicit equation, of either sign: a == b and
+    # b == a are one equation. Its unknown is named alike in every entry.
+    writings = [expr]
+    base: dict[Any, Any] = {}
+    if formulation.implicit:
+        writings.append(sympy.expand(-expr))
+        base[sympy.Symbol(formulation.output.identifier, real=True)] = sympy.Symbol("y")
     groups = _input_groups(formulation)
     texts: list[str] = []
     for orders in itertools.product(
         *(itertools.permutations(groups[k]) for k in sorted(groups))
     ):
-        renaming = {}
+        renaming = dict(base)
         for index, name in enumerate(n for order in orders for n in order):
             renaming[sympy.Symbol(name, real=True)] = sympy.Symbol(f"x{index}")
-        texts.append(str(sympy.srepr(expr.xreplace(renaming))))
+        texts += [str(sympy.srepr(w.xreplace(renaming))) for w in writings]
     return _head(formulation, keep_coefficients=keep_coefficients) + "|" + min(texts)
+
+
+def _expression(formulation: Formulation) -> Any:
+    """The expression, or the residual left - right of an implicit equation."""
+    if not formulation.implicit:
+        return formulation.sympy_expression
+    left, right = formulation.equation_members
+    return sympy.expand(left - right)
 
 
 def _numbers(formulation: Formulation, *, keep_coefficients: bool) -> Any:
     """The expression, its coefficients and constants as exact rationals or ``c``."""
-    expr = formulation.sympy_expression
+    expr = _expression(formulation)
     if keep_coefficients:
         pairs = [(c.identifier, c.value) for c in formulation.coefficients]
         pairs += [(k.identifier, k.value) for k in formulation.constants]
@@ -241,9 +256,15 @@ def _shape(formulation: Formulation) -> Any:
     compared.
     """
     groups = _input_groups(formulation)
-    function = compile_numeric(formulation.sympy_expression, formulation.names)
+    names = formulation.names
     fixed = [c.value for c in formulation.coefficients]
     fixed += [float(k.value) for k in formulation.constants]
+    if formulation.implicit:
+        # The residual at a probe value of the unknown, whose sign depends
+        # on the order of the members.
+        names = (*names, formulation.output.identifier)
+        fixed.append(1.37)
+    function = compile_numeric(_expression(formulation), names)
     position = {v.identifier: i for i, v in enumerate(formulation.inputs)}
     values = []
     with np.errstate(all="ignore"):
@@ -258,7 +279,7 @@ def _shape(formulation: Formulation) -> Any:
                 value = float(function(*arguments, *fixed))
             except (ArithmeticError, TypeError, ValueError):
                 value = float("nan")
-            values.append(value)
+            values.append(abs(value) if formulation.implicit else value)
     return np.sort(np.array(values))
 
 
@@ -300,6 +321,10 @@ def _head(formulation: Formulation, *, keep_coefficients: bool = True) -> str:
         formulation.output.unit,
         str(formulation.fixed_units),
     ]
+    if formulation.implicit:
+        # Marked on implicit equations only: explicit signatures, which the
+        # registry of verdicts is keyed by, stay as they were.
+        parts.append("implicit")
     parts += [
         f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in sorted(groups)
     ]

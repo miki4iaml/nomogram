@@ -59,7 +59,24 @@ and this project adheres to
   (`Variable.kind_bounds`, `Variable.bounds_in_unit`). A kind of the
   catalog may take units besides those of its parent (`units`).
 
+- Implicit equations, the measurement model h(Y, X) = 0 of the VIM
+  (2.48): an expression may be an equation, `left == right`, which
+  nomogram solves numerically for its output, the root sought where the
+  physical domains on the output and the bounds of its kind allow,
+  narrowed by `evaluate(search=...)`. Without exactly one root there,
+  the value is NaN and a `RootWarning` says why
+  (`Formulation.implicit`, `Formulation.equation_members`). A member may
+  be 0. An implicit equation is not inverted and is no part of a
+  composition, a call or a branch; two entries of one equation are
+  refused as duplicates. The KEYPS formula of Businger et al. (1971,
+  equation 7) is the first, for unstable conditions, its root chosen by
+  φm ≥ 0; `search(implicit=True)` finds it, and the indicators count the
+  implicit equations whose unknown objective bounds select.
+
 ### Changed
+
+- `basis`, `outside`, `scale` and `search`, options of `evaluate`, are
+  refused as identifiers of variables.
 
 - **A value beyond the bounds of its kind is NaN by default**, whatever
   the domains selected, as a value outside a domain is (`outside="warn"`
@@ -78,6 +95,10 @@ and this project adheres to
 
 ### Fixed
 
+- A quantity equation whose sum adds terms in two units of one
+  dimension is refused when the catalog loads: the numbers were added,
+  and 1500 Pa plus 15 hPa gave 1515 Pa. No formulation of the catalog
+  did so.
 - `docs/security-and-compliance.md`: the attestations PyPI shows are
   those of version 0.6.0, checked after its publication.
 - The stable profile functions of the ECMWF IFS (equation 3.24) carry the
