@@ -196,7 +196,7 @@ def test_pdf_strings_with_a_backslash_before_8_or_9_are_read(
     status: int,
 ) -> None:
     # Not an octal escape: the backslash is dropped, and the string is still
-    # searched (a PDF printed by Chrome carries such strings).
+    # searched.
     author = b" /Author (Zorglub)" if status else b""
     f = tmp_path / "reference.pdf"
     f.write_bytes(pdf(b"<< /Title (Chapter " + escape + b")" + author + b" >>"))
