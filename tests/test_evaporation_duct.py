@@ -188,4 +188,4 @@ def test_the_evaporation_duct_is_found_by_search() -> None:
         "formulations.paulus1989_bulk_richardson_number",
         "formulations.paulus1989_profile_function",
     }
-    assert CATALOG.families["evaporation-duct"].requires == ("boundary-layer",)
+    assert CATALOG.families["evaporation-duct"].requires == ("boundary-layer", "radio")

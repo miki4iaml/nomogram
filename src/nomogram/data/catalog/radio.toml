@@ -37,6 +37,11 @@ specialization_of = "DimensionlessRatio"
 scale_type = "interval"
 description = "M = N + h/a x 10^6, the radio refractivity corrected for the curvature of the Earth (a: its radius); ITU-R P.453 calls its unit the M-unit. Its zero depends on the origin of heights: an interval scale."
 
+[kinds.VerticalRadioRefractivityGradient]
+label = "Vertical Radio Refractivity Gradient"
+specialization_of = "InverseLength"
+description = "dN/dz, the vertical gradient of radio refractivity, in N-units per metre, z increasing upwards. It defines ducts: below the critical gradient, -0.157 m-1 (Fairall et al. 1978, equation 3), a horizontal ray bends more than the Earth's curvature and is trapped; the top of a duct is where the gradient reaches it, the modified refractivity M being at its minimum."
+
 # --- Formulations -----------------------------------------------------
 
 [formulations.itu_r_p453_refractive_index]

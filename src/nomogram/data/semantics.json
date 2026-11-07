@@ -420,6 +420,27 @@
       "scale_type": "ratio",
       "specialization_of": "Length"
     },
+    "InverseLength": {
+      "added_units": [],
+      "applicable_units": [
+        "PER-KiloM",
+        "PER-M",
+        "PPM-PER-M"
+      ],
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/InverseLength",
+      "label": "Inverse Length",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q1028259",
+          "verified": "2026-11-07"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
     "InverseSquareTime": {
       "added_units": [],
       "applicable_units": [
@@ -1905,6 +1926,18 @@
       "pint": "ppm",
       "symbol": "ppm",
       "ucum": "[ppm]",
+      "udunits": null
+    },
+    "PPM-PER-M": {
+      "dimension_vector": "A0E0L-1I0M0H0T0D0",
+      "iri": null,
+      "label": "Parts per Million per Metre",
+      "matches": [],
+      "multiplier": 1e-06,
+      "offset": 0.0,
+      "pint": "ppm/m",
+      "symbol": "ppm/m",
+      "ucum": "[ppm].m-1",
       "udunits": null
     },
     "RAD": {

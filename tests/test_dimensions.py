@@ -56,6 +56,12 @@ NEEDED = {
     ("paulus1989_bulk_richardson_number", "z_1"),
     ("paulus1989_obukhov_length_from_profile_coefficient", "z_1"),
     ("paulus1989_obukhov_length", "z_1"),
+    # T u^2 / (k g (T_* + 0.61 T q_*)): k or g must carry a unit.
+    ("frederickson1994_obukhov_length", "g"),
+    # phi/(alpha_T kappa z) (7.2 q_* - 1.3 T_*): alpha_T and kappa, pure
+    # numbers, or 7.2 and 1.3 must carry the units.
+    ("fairall1978_vertical_refractivity_gradient", "alpha_T"),
+    ("fairall1978_vertical_refractivity_gradient", "kappa"),
 }
 
 

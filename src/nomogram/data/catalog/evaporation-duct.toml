@@ -4,7 +4,9 @@
 # Evaporation duct over the sea: potential refractivity, the bulk
 # Richardson number and the Monin-Obukhov length of Jeske, and the
 # evaporation duct height of the Paulus-Jeske model (NOSC TD 1596, 1989),
-# one formulation per step of its algorithm.
+# one formulation per step of its algorithm; the explicit formulas of the
+# Monin-Obukhov model of the Naval Postgraduate School (Fairall et al.
+# 1978, Frederickson et al. 1994).
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -12,7 +14,7 @@
 name = "evaporation-duct"
 label = "Evaporation duct over the sea"
 format = 2
-requires = ["boundary-layer"]
+requires = ["boundary-layer", "radio"]
 keywords = ["evaporation duct", "radio propagation", "surface layer", "sea"]
 
 # --- References -------------------------------------------------------
@@ -25,6 +27,24 @@ container = "Naval Ocean Systems Center, San Diego, Technical Document 1596, Jul
 url = "https://archive.org/details/DTIC_ADA213841"
 status = "verified"
 note = "Read in the copy of the Internet Archive (DTIC collection), approved for public release, distribution unlimited: section 1.0 (potential refractivity), Table 1 (inputs, outputs and limits), section 3.0 (the six steps of the model), Table 2 (37 test cases, to within 0.1 m), appendix A (development, after Jeske) and the FORTRAN listing of appendix D. No DOI. The model, proposed as a Navy standard of the Oceanographic and Atmospheric Master Library, is called Paulus-Jeske; it follows Jeske (1965, 1971, 1973) with the modifications of Paulus (1985), not read."
+
+[references.fairall1978_nps]
+authors = "Fairall, C. W., Davidson, K. L., Schacher, G. E. and Houlihan, T. M."
+year = 1978
+title = "Evaporation duct height measurements in the Mid-Atlantic: final report"
+container = "Naval Postgraduate School, Monterey, California, report NPS61-78-005, 15 August 1978"
+url = "https://hdl.handle.net/10945/29858"
+status = "verified"
+note = "Read in the copy of the NPS archive (Calhoun), approved for public release, distribution unlimited: section III (p. 19-23), the refractivity and its gradient (equations 1 to 4), the surface-layer equations of Monin-Obukhov similarity (8 to 13), the profile and bulk methods (14 to 21), the evaporation duct height (24 to 26) and the fit of xi on xi_0 (28a, 28b); appendix B, the stability functions."
+
+[references.frederickson1994_nps]
+authors = "Frederickson, P. A., Davidson, K. L. and Jones, F. K."
+year = 1994
+title = "The effect of infrared sea surface temperature measurements on evaporation duct height estimation"
+container = "Naval Postgraduate School, Monterey, California, report NPS-MR-94-003, November 1994"
+url = "https://hdl.handle.net/10945/28715"
+status = "verified"
+note = "Read in the copy of the NPS archive (Calhoun), approved for public release, distribution unlimited: the bulk method after Smith (1988), not read (p. 3-4, equations 1 and 2), the evaporation duct height after Fairall et al. (1978) (equation 3) and the scalar gradient function (equation 4)."
 
 # --- Quantity kinds ---------------------------------------------------
 
@@ -273,6 +293,237 @@ note = "Step 5, p. 6; B from A-16. The source gives b_1 = -0.125 m-1, the critic
 notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", Psi_H = '\psi', beta = '\beta' }
 units = { z_0 = "M", z_1 = "M" }
 assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+# --- Fairall et al. (1978) and Frederickson et al. (1994) ---------------
+# The explicit formulas of the Monin-Obukhov model of the evaporation duct
+# of the Naval Postgraduate School. The duct height itself, an implicit
+# equation that both sources solve iteratively (Fairall et al. 1978,
+# equation 25; Frederickson et al. 1994, equation 3), is not entered.
+
+[formulations.fairall1978_radio_refractivity]
+label = "Radio refractivity, two-term form (Fairall et al. 1978)"
+expression = "k_1 * P / T + k_2 * e / T ** 2"
+fixed_units = true
+note = "The source writes no unit: with P and e in hPa (mb) and T in kelvins, N comes out in N-units. ITU-R P.453 (equation 6) adds a term -5.6 e/T and writes 3.75e5 for k_2 (itu_r_p453_refractivity_total_pressure)."
+output = { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Atmospheric pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Partial pressure of water vapour" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_1 = 77.6, k_2 = 3.73e5 }
+keywords = ["radio refractivity", "evaporation duct", "Fairall"]
+
+[[formulations.fairall1978_radio_refractivity.citations]]
+reference = "fairall1978_nps"
+equation = "1"
+note = "p. 19."
+
+[formulations.fairall1978_mixing_ratio]
+label = "Water vapour mixing ratio from the vapour pressure, linear approximation (Fairall et al. 1978)"
+expression = "c * e"
+fixed_units = true
+note = "Given in passing, with the gradient of refractivity (equation 2): q = 0.625 e, q in g/kg. The source writes no unit for e: in hPa (mb)."
+output = { identifier = "q", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Water vapour mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Partial pressure of water vapour" },
+]
+coefficients = { c = 0.625 }
+assumptions = [
+  { text = "Near sea level: 0.625 e is the mixing ratio 622 e / (p - e), in g/kg, for a pressure of dry air p - e = 995 hPa (computed by nomogram); the source states no pressure.", status = "deduced" },
+]
+keywords = ["mixing ratio", "evaporation duct", "Fairall"]
+
+[[formulations.fairall1978_mixing_ratio.citations]]
+reference = "fairall1978_nps"
+equation = "2"
+note = "p. 19, in the text after equation 2."
+
+[formulations.fairall1978_gradient_function_momentum_unstable]
+label = "Gradient function for momentum, unstable conditions (Fairall et al. 1978, after Businger et al.)"
+expression = "(1 - 15 * zeta) ** (-1 / 4)"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "Fairall", "Businger"]
+
+[[formulations.fairall1978_gradient_function_momentum_unstable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1; with the diffusivity ratio alpha_u = 1 of equation 8 (p. 20)."
+notation = { Phi_M = '\phi_U', zeta = '\xi' }
+assumptions = ["Unstable conditions, xi = Z/L < 0 (appendix B)."]
+
+[[formulations.fairall1978_gradient_function_momentum_unstable.citations]]
+reference = "businger1971"
+equation = "8"
+note = "p. 184, the Businger-Dyer form with gamma_2 = 15, fitted with k = 0.35."
+notation = { Phi_M = '\phi_m', zeta = '\zeta' }
+
+[formulations.fairall1978_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions (Fairall et al. 1978, after Businger et al.)"
+expression = "1 + 4.7 * zeta"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Fairall", "Businger"]
+
+[[formulations.fairall1978_gradient_function_momentum_stable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1; with the diffusivity ratio alpha_u = 1 of equation 8 (p. 20)."
+notation = { Phi_M = '\phi_U', zeta = '\xi' }
+assumptions = ["Stable conditions, xi = Z/L > 0 (appendix B)."]
+
+[[formulations.fairall1978_gradient_function_momentum_stable.citations]]
+reference = "businger1971"
+equation = "10"
+note = "p. 184, with a slope between 4.5 and 5.0 allowed by the scatter of the data, fitted with k = 0.35."
+notation = { Phi_M = '\phi_m', zeta = '\zeta' }
+
+[formulations.fairall1978_gradient_function_momentum]
+label = "Gradient function for momentum, unstable then stable conditions (Fairall et al. 1978)"
+branches = [
+  { formulation = "fairall1978_gradient_function_momentum_unstable", where = "zeta < 0" },
+  { formulation = "fairall1978_gradient_function_momentum_stable", where = "zeta >= 0" },
+]
+note = "The source writes xi < 0 and xi > 0; both forms give 1 at xi = 0, which nomogram gives to the stable branch."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+keywords = ["gradient function", "Monin-Obukhov", "Fairall"]
+
+[formulations.fairall1978_gradient_function_heat_unstable]
+label = "Gradient function for heat and moisture, unstable conditions (Fairall et al. 1978)"
+expression = "(1 - 19 * zeta) ** (-1 / 3)"
+fixed_units = false
+note = "With the diffusivity ratio alpha_T = 1.35 of the profile equation dT/dZ = T_* phi_T/(alpha_T kappa Z) (equation 8, alpha_T and kappa = 0.35 from p. 23), the function is 1 in neutral conditions. Fairall et al. attribute their appendix B to Businger et al. (1971), whose unstable forms are phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (equation 11, after Elliott) and (1 - 9 zeta)^(-1/2) (equation 12, Businger-Dyer), with phi_h following zeta^(-1/2) rather than zeta^(-1/3) in very unstable conditions (p. 185)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "Fairall"]
+
+[[formulations.fairall1978_gradient_function_heat_unstable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1."
+notation = { Phi_H = '\phi_T', zeta = '\xi' }
+assumptions = ["Unstable conditions, xi = Z/L < 0 (appendix B).", "The same function for the water vapour mixing ratio, phi_q = phi_T, with alpha_q = alpha_T (p. 23)."]
+
+[formulations.fairall1978_gradient_function_heat_stable]
+label = "Gradient function for heat and moisture, stable conditions (Fairall et al. 1978, after Businger et al.)"
+expression = "1 + 6.4 * zeta"
+fixed_units = false
+note = "With the diffusivity ratio alpha_T = 1.35 of the profile equation dT/dZ = T_* phi_T/(alpha_T kappa Z) (equation 8, alpha_T and kappa = 0.35 from p. 23), the function is 1 in neutral conditions. From Businger et al. (1971), phi_h = 0.74 + 4.7 zeta (equation 14, p. 185), 0.74 in neutral conditions: over phi_h(0) = 0.74, 1 + 6.35 zeta (computed by nomogram)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Fairall", "Businger"]
+
+[[formulations.fairall1978_gradient_function_heat_stable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1."
+notation = { Phi_H = '\phi_T', zeta = '\xi' }
+assumptions = ["Stable conditions, xi = Z/L > 0 (appendix B).", "The same function for the water vapour mixing ratio, phi_q = phi_T, with alpha_q = alpha_T (p. 23)."]
+
+[formulations.fairall1978_gradient_function_heat]
+label = "Gradient function for heat and moisture, unstable then stable conditions (Fairall et al. 1978)"
+branches = [
+  { formulation = "fairall1978_gradient_function_heat_unstable", where = "zeta < 0" },
+  { formulation = "fairall1978_gradient_function_heat_stable", where = "zeta >= 0" },
+]
+note = "The source writes xi < 0 and xi > 0; both forms give 1 at xi = 0, which nomogram gives to the stable branch."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+keywords = ["gradient function", "Monin-Obukhov", "Fairall"]
+
+[formulations.frederickson1994_gradient_function_scalar]
+label = "Scalar gradient function for temperature and humidity (Frederickson et al. 1994)"
+expression = "piecewise(((1 - 16 * zeta) ** (-1 / 2), zeta < 0), (1 + 7 * zeta, zeta >= 0))"
+fixed_units = false
+note = "Equation 4 writes three cases: the neutral one, 1 at z/L = 0, is the stable form at 0, hence two pieces here. The unstable form is that of the IFS, after Dyer and Hicks (ecmwf_ifs_gradient_function_heat_unstable)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "evaporation duct", "Frederickson"]
+
+[[formulations.frederickson1994_gradient_function_scalar.citations]]
+reference = "frederickson1994_nps"
+equation = "4"
+note = "p. 4."
+notation = { Phi_H = '\phi_s', zeta = 'z/L' }
+assumptions = ["The same function for temperature and humidity, an empirical scalar gradient function (p. 4)."]
+
+[formulations.fairall1978_obukhov_length]
+label = "Monin-Obukhov length from the profile scales, mixing ratio in g/kg (Fairall et al. 1978)"
+expression = "T * u_s ** 2 / (kappa * g * (T_s + c * q_s))"
+fixed_units = true
+note = "Equation 10, with kappa = 0.35 (p. 20 and 23); the source gives g no value, hence an input. The term 0.18 q_*, q_* in g/kg, carries the buoyancy of water vapour."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov stability length" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Mean temperature" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scaling parameter of potential temperature" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scaling parameter of the water vapour mixing ratio" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+]
+coefficients = { kappa = 0.35, c = 0.18 }
+assumptions = [
+  { text = "0.18 q_*, q_* in g/kg, is 0.61 T q_*, q_* in kg/kg, at T = 295 K (computed by nomogram): the virtual temperature correction of the buoyancy flux.", status = "deduced" },
+]
+keywords = ["Obukhov length", "Monin-Obukhov", "evaporation duct", "Fairall"]
+
+[[formulations.fairall1978_obukhov_length.citations]]
+reference = "fairall1978_nps"
+equation = "10"
+note = "p. 20."
+notation = { u_s = "U_*", T_s = "T_*", q_s = "q_*", kappa = '\kappa' }
+
+[formulations.frederickson1994_obukhov_length]
+label = "Monin-Obukhov length from the profile scales, specific humidity (Frederickson et al. 1994)"
+expression = "T * u_s ** 2 / (kappa * g * (T_s + c * T * q_s))"
+fixed_units = false
+note = "Equation 2, with k = 0.4 (p. 3) and g = 9.8 m/s2 (p. 4). With L, the scales u_*, T_* and q_* of equation 1 make 'a system of four equations and four unknowns', solved iteratively (p. 4). The report writes the temperature T; it takes its bulk formulas from Smith (1988), not read."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length scale" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute air temperature" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scaling parameter of temperature" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scaling parameter of specific humidity" },
+]
+coefficients = { kappa = 0.4, g = 9.8, c = 0.61 }
+keywords = ["Obukhov length", "Monin-Obukhov", "evaporation duct", "Frederickson"]
+
+[[formulations.frederickson1994_obukhov_length.citations]]
+reference = "frederickson1994_nps"
+equation = "2"
+note = "p. 4."
+notation = { u_s = "u_*", T_s = "T_*", q_s = "q_*", kappa = "k" }
+units = { g = "M-PER-SEC2" }
+
+[formulations.fairall1978_vertical_refractivity_gradient]
+label = "Vertical gradient of radio refractivity in the surface layer, Monin-Obukhov form (Fairall et al. 1978)"
+expression = "c_0 + Phi_H / (alpha_T * kappa * z) * (c_q * q_s - c_T * T_s)"
+fixed_units = true
+note = "Equation 24: equation 2 with the hydrostatic term C_1 dP/dZ = -0.032 m-1 (equation 4) and the gradients of mixing ratio and potential temperature of equation 8; C_2 = 7.2 and C_3 = -1.3 are approximate (equation 2). The evaporation duct height Z_* is the height where it reaches the critical gradient, -0.157 m-1 (equation 3), which the source solves iteratively (equation 25)."
+output = { identifier = "dN_dz", kind = "VerticalRadioRefractivityGradient", unit = "PPM-PER-M", description = "Vertical gradient of radio refractivity" }
+inputs = [
+  { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat at Z/L" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height above the sea surface" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scaling parameter of the water vapour mixing ratio" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scaling parameter of potential temperature" },
+]
+coefficients = { c_0 = -0.032, c_q = 7.2, c_T = 1.3, alpha_T = 1.35, kappa = 0.35 }
+keywords = ["refractivity gradient", "evaporation duct", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_vertical_refractivity_gradient.citations]]
+reference = "fairall1978_nps"
+equation = "24"
+note = "p. 22; alpha_T and kappa from p. 23."
+notation = { dN_dz = "dN/dZ", Phi_H = '\phi_T', z = "Z", q_s = "q_*", T_s = "T_*", alpha_T = '\alpha_T', kappa = '\kappa' }
+units = { alpha_T = "UNITLESS", kappa = "UNITLESS" }
+assumptions = ["The fluxes are constant with height in the surface layer (Monin-Obukhov similarity).", "The same gradient function for the mixing ratio and the potential temperature, phi_q = phi_T (p. 23)."]
 
 # --- Trade terms ------------------------------------------------------
 
