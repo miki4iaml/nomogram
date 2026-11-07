@@ -38,6 +38,15 @@ doi = "10.1007/BF00240838"
 status = "to-confirm"
 note = "Cited by the IFS (CY49R1, Part IV, 3.2.2) for the gradient functions of unstable conditions, equation 3.21; not read. DOI checked with Crossref on 2026-11-04."
 
+[references.businger1971]
+authors = "Businger, J. A., Wyngaard, J. C., Izumi, Y. and Bradley, E. F."
+year = 1971
+title = "Flux-profile relationships in the atmospheric surface layer"
+container = "Journal of the Atmospheric Sciences, 28, 181-189"
+doi = "10.1175/1520-0469(1971)028<0181:FPRITA>2.0.CO;2"
+status = "to-confirm"
+note = "Cited by Fairall et al. (1978) for the gradient functions of its appendix B, and for alpha_T = 1.35 and kappa = 0.35 (p. 23); not read. DOI checked with Crossref on 2026-11-07."
+
 [references.hogstrom1988]
 authors = "Högström, U."
 year = 1988
@@ -204,7 +213,7 @@ description = "Dimensionless vertical gradient of the mean velocity in the surfa
 [kinds.GradientFunctionForHeat]
 label = "Gradient Function for Heat"
 specialization_of = "DimensionlessRatio"
-description = "Dimensionless vertical gradient of temperature in the surface layer of a fluid, a function of the stability parameter; written (kappa z / s_*) ds/dz with the dry static energy in the IFS, which takes the same function for specific humidity."
+description = "Dimensionless vertical gradient of temperature, or of another scalar, in the surface layer of a fluid, a function of the stability parameter, 1 in neutral conditions: (kappa z / s_*) ds/dz with the dry static energy in the IFS, which takes the same function for specific humidity; (alpha_T kappa z / T_*) dT/dz in Fairall et al. (1978), whose profile equation carries the diffusivity ratio alpha_T = 1.35 so that the function is 1 in neutral conditions."
 
 [kinds.ProfileFunctionForMomentum]
 label = "Profile Function for Momentum"

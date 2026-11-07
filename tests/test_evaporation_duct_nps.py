@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""The explicit formulas of the NPS evaporation duct model.
+
+Fairall et al. (1978, NPS61-78-005) and Frederickson et al. (1994,
+NPS-MR-94-003): the gradient functions of stability, the two-term radio
+refractivity and the linear mixing ratio.
+"""
+
+import numpy as np
+import pytest
+
+from nomogram.catalog import catalog
+from nomogram.units import Q_
+
+CATALOG = catalog()
+F = CATALOG.formulations
+ONE = "dimensionless"
+
+
+def value(key: str, **inputs: object) -> np.ndarray:
+    return np.asarray(F[key].evaluate(**inputs).magnitude)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("key", "zeta", "expected"),
+    [
+        # Points where the unstable forms are exact: 16^(-1/4), 8^(-1/3), 4^(-1/2).
+        ("fairall1978_gradient_function_momentum_unstable", -1.0, 0.5),
+        ("fairall1978_gradient_function_heat_unstable", -7 / 19, 0.5),
+        ("frederickson1994_gradient_function_scalar", -3 / 16, 0.5),
+        ("fairall1978_gradient_function_momentum_stable", 0.5, 3.35),
+        ("fairall1978_gradient_function_heat_stable", 0.5, 4.2),
+        ("frederickson1994_gradient_function_scalar", 0.5, 4.5),
+        ("frederickson1994_gradient_function_scalar", 0.0, 1.0),
+    ],
+)
+def test_gradient_functions_at_exact_points(
+    key: str, zeta: float, expected: float
+) -> None:
+    assert float(value(key, zeta=Q_(zeta, ONE))) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.parametrize("quantity", ["momentum", "heat"])
+def test_the_branches_of_fairall_meet_at_neutral(quantity: str) -> None:
+    key = f"fairall1978_gradient_function_{quantity}"
+    zeta = np.array([-2.0, -0.5, -1e-12, 0.0, 1e-12, 0.5, 2.0])
+    both = value(key, zeta=Q_(zeta, ONE))
+    unstable = value(f"{key}_unstable", zeta=Q_(zeta[:3], ONE))
+    stable = value(f"{key}_stable", zeta=Q_(zeta[3:], ONE))
+    np.testing.assert_allclose(both, np.concatenate([unstable, stable]), rtol=1e-12)
+    np.testing.assert_allclose(both[2:5], 1.0, rtol=1e-9)
+
+
+def test_the_unstable_piece_of_frederickson_is_that_of_the_ifs() -> None:
+    zeta = Q_(np.linspace(-5.0, -0.01, 9), ONE)
+    np.testing.assert_allclose(
+        value("frederickson1994_gradient_function_scalar", zeta=zeta),
+        value("ecmwf_ifs_gradient_function_heat_unstable", zeta=zeta),
+        rtol=1e-12,
+    )
+
+
+def test_the_two_term_refractivity_is_close_to_that_of_itu_r_p453() -> None:
+    # Fairall - P.453 = e/T (5.6 - 2000/T): a few tenths of an N-unit at most.
+    t = Q_(np.array([253.15, 273.15, 288.15, 303.15]), "K")
+    e = Q_(np.array([1.0, 6.0, 17.0, 42.0]), "hPa")
+    p = Q_(1013.25, "hPa")
+    fairall = value("fairall1978_radio_refractivity", P=p, e=e, T=t)
+    itu = value("itu_r_p453_refractivity_total_pressure", P=p, e=e, T=t)
+    assert float(fairall[2]) == pytest.approx(
+        77.6 * 1013.25 / 288.15 + 3.73e5 * 17 / 288.15**2, rel=1e-12
+    )
+    assert np.all(np.abs(fairall - itu) < 0.3)
+
+
+def test_the_linear_mixing_ratio_is_the_exact_one_near_995_hpa_of_dry_air() -> None:
+    e = Q_(10.0, "hPa")
+    linear = F["fairall1978_mixing_ratio"].evaluate(e=e)
+    assert linear.to("g/kg").magnitude == pytest.approx(6.25, rel=1e-12)
+    exact = F["mixing_ratio_from_vapour_pressure"].evaluate(e=e, p=Q_(1005.2, "hPa"))
+    assert exact.to("g/kg").magnitude == pytest.approx(6.25, rel=1e-3)
+
+
+def test_the_nps_formulas_are_found_by_search() -> None:
+    assert "formulations.fairall1978_radio_refractivity" in set(
+        CATALOG.search("Fairall").refs
+    )
+    refractivities = {f.key for f in CATALOG.formulations_of("RadioRefractivity")}
+    assert {
+        "fairall1978_radio_refractivity",
+        "itu_r_p453_refractivity_total_pressure",
+    } <= refractivities
+    heat = {f.key for f in CATALOG.formulations_of("GradientFunctionForHeat")}
+    assert {
+        "fairall1978_gradient_function_heat",
+        "frederickson1994_gradient_function_scalar",
+        "ecmwf_ifs_gradient_function_heat_unstable",
+    } <= heat
+    assert set(CATALOG.used_by("references.businger1971").refs) >= {
+        "formulations.fairall1978_gradient_function_heat_unstable",
+        "formulations.fairall1978_gradient_function_momentum_stable",
+    }
+    assert "formulations.frederickson1994_gradient_function_scalar" in set(
+        CATALOG.used_by("references.frederickson1994_nps").refs
+    )

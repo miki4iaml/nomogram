@@ -26,6 +26,14 @@ and this project adheres to
   `search("evaporation duct")` finds them.
 - The knot (`KN`), for `Speed` as well as `Velocity`, to which QUDT
   restricts it.
+- In the `evaporation-duct` family, now also requiring `radio`, the
+  explicit formulas of the evaporation duct model of the Naval
+  Postgraduate School: the gradient functions of Fairall et al. (1978),
+  after Businger et al. (1971), and the scalar gradient function of
+  Frederickson et al. (1994), the two-term radio refractivity and the
+  linear mixing ratio 0.625 e of Fairall et al. (1978). The gradient
+  function for heat is now described as 1 in neutral conditions, the
+  diffusivity ratio of Fairall et al. in their profile equation.
 
 ### Fixed
 
