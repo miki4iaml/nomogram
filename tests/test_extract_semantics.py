@@ -49,6 +49,7 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
         "UNITS",
         {"K": "K", "DEG_C": "degC", "HectoPA": "hPa", "PA": "Pa"},
     )
+    monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {})
 
 
 def run() -> dict[str, object]:
@@ -101,6 +102,35 @@ def test_links_read_after_the_extraction_date_keep_their_own(
         "2026-11-04"
     }
     assert {m["verified"] for m in found["VapourPressure"]["matches"]} == {"2026-10-14"}
+
+
+def test_a_unit_qudt_lacks_is_declared_by_nomogram(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    local = extract_semantics.LocalUnit(
+        label="Millibar",
+        symbol="mbar",
+        dimension_vector="A0E0L-1I0M1H0T-2D0",
+        multiplier=100.0,
+        ucum="mbar",
+        pint="mbar",
+        kinds=("Pressure",),
+    )
+    monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {"MilliBAR": local})
+    data = run()
+    units, kinds = data["units"], data["quantity_kinds"]
+    assert isinstance(units, dict)
+    assert isinstance(kinds, dict)
+    assert units["MilliBAR"]["iri"] is None
+    assert units["MilliBAR"]["multiplier"] == 100.0
+    assert units["MilliBAR"]["matches"] == []
+    # Declared for Pressure, it reaches VapourPressure, as QUDT units do.
+    assert "MilliBAR" in kinds["VapourPressure"]["applicable_units"]
+    assert "MilliBAR" not in kinds["VapourPressure"]["added_units"]
+    # Once QUDT has the unit, the local declaration is refused.
+    monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {"PA": local})
+    with pytest.raises(ValueError, match="PA is now in QUDT"):
+        run()
 
 
 def test_symbols_declared_by_nomogram_replace_qudt_ones(

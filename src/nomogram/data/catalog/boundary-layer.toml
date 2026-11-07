@@ -44,8 +44,8 @@ year = 1971
 title = "Flux-profile relationships in the atmospheric surface layer"
 container = "Journal of the Atmospheric Sciences, 28, 181-189"
 doi = "10.1175/1520-0469(1971)028<0181:FPRITA>2.0.CO;2"
-status = "to-confirm"
-note = "Cited by Fairall et al. (1978) for the gradient functions of its appendix B, and for alpha_T = 1.35 and kappa = 0.35 (p. 23); not read. DOI checked with Crossref on 2026-11-07."
+status = "verified"
+note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU/dz and temperature gradient phi_h = (z/theta_*) dtheta/dz, theta_* = -w'theta'/(k u_*) (equations 2 and 3); phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
 
 [references.hogstrom1988]
 authors = "Högström, U."
@@ -177,7 +177,27 @@ description = "Scale of the dry static energy in the surface layer, its surface 
 [kinds.SurfaceLayerScaleOfSpecificHumidity]
 label = "Surface-Layer Scale of Specific Humidity"
 specialization_of = "MassRatio"
-description = "Scale of the specific humidity in the surface layer, its surface flux over the density of air and the friction velocity (IFS, q_*): a scale, not a humidity."
+description = "Scale of the specific humidity in the surface layer, its surface flux over the density of air and the friction velocity (IFS, q_*): a scale, not a humidity, positive for an upward flux; of the opposite sign to the scales defined by the profile (SurfaceLayerProfileScaleOfSpecificHumidity)."
+
+[kinds.SurfaceLayerProfileScaleOfPotentialTemperature]
+label = "Surface-Layer Profile Scale of Potential Temperature"
+specialization_of = "TemperatureDifference"
+description = "Scaling parameter T_* of the profile of potential temperature in the surface layer, dtheta/dz = T_* phi_T / (alpha_T kappa z), the potential temperature theta written T (Fairall et al. 1978, equation 8): a scale, not a temperature, positive when the potential temperature increases with height (stable conditions); of the opposite sign to the scales the IFS defines by surface fluxes."
+
+[kinds.SurfaceLayerProfileScaleOfTemperature]
+label = "Surface-Layer Profile Scale of Temperature"
+specialization_of = "TemperatureDifference"
+description = "Scaling parameter T_* of the profile of temperature in the surface layer, from the temperature difference between a height and the surface over ln(z/z_0T) - psi_T (Frederickson et al. 1994, equation 1): a scale, not a temperature, positive when the temperature increases with height; of the temperature, not of the potential temperature."
+
+[kinds.SurfaceLayerProfileScaleOfMixingRatio]
+label = "Surface-Layer Profile Scale of Mixing Ratio"
+specialization_of = "MassRatio"
+description = "Scaling parameter q_* of the profile of the water vapour mixing ratio in the surface layer, dq/dz = q_* phi_q / (alpha_q kappa z) (Fairall et al. 1978, equation 8), in g/kg: a scale, not a mixing ratio, negative when the mixing ratio decreases with height, as over an evaporating sea."
+
+[kinds.SurfaceLayerProfileScaleOfSpecificHumidity]
+label = "Surface-Layer Profile Scale of Specific Humidity"
+specialization_of = "MassRatio"
+description = "Scaling parameter q_* of the profile of specific humidity in the surface layer, from the humidity difference between a height and the surface over ln(z/z_0q) - psi_q (Frederickson et al. 1994, equation 1): a scale, not a humidity, almost always negative over the sea (p. 4); of the opposite sign to the IFS's scale defined by the surface flux (SurfaceLayerScaleOfSpecificHumidity)."
 
 [kinds.RoughnessLengthForMomentum]
 label = "Roughness Length for Momentum"
@@ -213,7 +233,7 @@ description = "Dimensionless vertical gradient of the mean velocity in the surfa
 [kinds.GradientFunctionForHeat]
 label = "Gradient Function for Heat"
 specialization_of = "DimensionlessRatio"
-description = "Dimensionless vertical gradient of temperature, or of another scalar, in the surface layer of a fluid, a function of the stability parameter, 1 in neutral conditions: (kappa z / s_*) ds/dz with the dry static energy in the IFS, which takes the same function for specific humidity; (alpha_T kappa z / T_*) dT/dz in Fairall et al. (1978), whose profile equation carries the diffusivity ratio alpha_T = 1.35 so that the function is 1 in neutral conditions."
+description = "Dimensionless vertical gradient of temperature, or of another scalar, in the surface layer of a fluid, a function of the stability parameter, 1 in neutral conditions: (kappa z / s_*) ds/dz with the dry static energy in the IFS, which takes the same function for specific humidity; (alpha_T kappa z / T_*) dT/dz in Fairall et al. (1978), whose profile equation carries the diffusivity ratio alpha_T = 1.35 so that the function is 1 in neutral conditions. Not the phi_h of Businger et al. (1971), 0.74 in neutral conditions."
 
 [kinds.ProfileFunctionForMomentum]
 label = "Profile Function for Momentum"

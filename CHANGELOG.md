@@ -28,12 +28,22 @@ and this project adheres to
   restricts it.
 - In the `evaporation-duct` family, now also requiring `radio`, the
   explicit formulas of the evaporation duct model of the Naval
-  Postgraduate School: the gradient functions of Fairall et al. (1978),
-  after Businger et al. (1971), and the scalar gradient function of
-  Frederickson et al. (1994), the two-term radio refractivity and the
-  linear mixing ratio 0.625 e of Fairall et al. (1978). The gradient
-  function for heat is now described as 1 in neutral conditions, the
-  diffusivity ratio of Fairall et al. in their profile equation.
+  Postgraduate School: the gradient functions of Fairall et al. (1978)
+  and the scalar gradient function of Frederickson et al. (1994), their
+  Monin-Obukhov lengths, the two-term radio refractivity, the linear
+  mixing ratio 0.625 e and the vertical gradient of refractivity of
+  Fairall et al. (1978). New kinds `VerticalRadioRefractivityGradient`,
+  under QUDT's `InverseLength`, now extracted, and four surface-layer
+  scales defined by the profile, whose sign is opposite to the IFS's
+  scales defined by the flux; the unit `PPM-PER-M` (N-units per
+  metre), which QUDT lacks. The gradient function for heat is now
+  described as 1 in neutral conditions, which the `phi_h` of Businger
+  et al. (1971) is not.
+
+### Changed
+
+- `UnitDefinition.iri` is `None` for a unit QUDT does not have, which
+  nomogram declares until QUDT does.
 
 ### Fixed
 

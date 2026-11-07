@@ -585,6 +585,9 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
             for name in ("z_0", "z_1")
         },
         ("paulus1989_evaporation_duct_height_stable", "delta_0"): "added",
+        ("frederickson1994_obukhov_length", "g"): "stated",
+        ("fairall1978_vertical_refractivity_gradient", "alpha_T"): "stated",
+        ("fairall1978_vertical_refractivity_gradient", "kappa"): "stated",
     }
 
 

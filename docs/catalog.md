@@ -133,8 +133,10 @@ All sections are optional; a key may be defined in one file only.
 ### Formulations
 
 - **`output` and `inputs`** are variables: `identifier` (used in the
-  expression), `kind` (a quantity kind), `unit` (a QUDT unit name) and
-  `description`. The unit must apply to the kind.
+  expression), `kind` (a quantity kind), `unit` (a QUDT unit name, or
+  one of the few units QUDT lacks that the extraction script declares,
+  such as `PPM-PER-M`) and `description`. The unit must apply to the
+  kind.
 - **`fixed_units`**: `true` when the coefficients only hold in the
   declared units (most empirical fits, such as the Magnus form). Inputs
   are then converted to the declared unit and scale before evaluation;

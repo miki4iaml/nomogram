@@ -191,8 +191,10 @@ class UnitDefinition:
     ----------
     name : str
         QUDT local name, for example ``"DEG_C"``.
-    iri : str
-        QUDT IRI.
+    iri : str or None
+        QUDT IRI; None for a unit QUDT does not have, which nomogram
+        declares until QUDT does (``LOCAL_UNITS`` of
+        ``scripts/extract_semantics.py``).
     label : str
         QUDT English label.
     symbol : str or None
@@ -215,7 +217,7 @@ class UnitDefinition:
     """
 
     name: str
-    iri: str
+    iri: str | None
     label: str
     symbol: str | None
     dimension_vector: str

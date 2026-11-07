@@ -5,13 +5,16 @@
 
 Fairall et al. (1978, NPS61-78-005) and Frederickson et al. (1994,
 NPS-MR-94-003): the gradient functions of stability, the two-term radio
-refractivity and the linear mixing ratio.
+refractivity, the linear mixing ratio, the Monin-Obukhov length from the
+profile scales and the vertical gradient of refractivity.
 """
 
 import numpy as np
 import pytest
 
 from nomogram.catalog import catalog
+from nomogram.comparison import feeds
+from nomogram.semantics import semantic_catalog
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -83,6 +86,62 @@ def test_the_linear_mixing_ratio_is_the_exact_one_near_995_hpa_of_dry_air() -> N
     assert exact.to("g/kg").magnitude == pytest.approx(6.25, rel=1e-3)
 
 
+def test_the_obukhov_lengths_of_fairall_and_frederickson_agree_at_295_k() -> None:
+    # 0.18 q_* (g/kg) equals 0.61 T q_* (kg/kg) at T = 0.18/0.61 x 1000 K;
+    # the two lengths then differ only by their von Karman constants.
+    t = Q_(180 / 0.61, "K")
+    u_s, t_s = Q_(0.3, "m/s"), Q_(0.1, "K")
+    fairall = F["fairall1978_obukhov_length"].evaluate(
+        T=t, u_s=u_s, T_s=t_s, q_s=Q_(-0.2, "g/kg"), g=Q_(9.8, "m/s^2")
+    )
+    frederickson = F["frederickson1994_obukhov_length"].evaluate(
+        T=t, u_s=u_s, T_s=t_s, q_s=Q_(-0.2e-3, "kg/kg")
+    )
+    expected = t.magnitude * 0.09 / (0.35 * 9.8 * (0.1 - 0.18 * 0.2))
+    assert fairall.to("m").magnitude == pytest.approx(expected, rel=1e-12)
+    assert frederickson.to("m").magnitude == pytest.approx(
+        expected * 0.35 / 0.4, rel=1e-12
+    )
+    assert fairall.magnitude > 0  # T_* > 0: stable, in the profile convention
+
+
+def test_the_gradient_reaches_the_critical_one_at_the_neutral_duct_height() -> None:
+    # Equation 25 at phi_T = 1 gives Z_* = -(7.2 q_* - 1.3 T_*)/(alpha_T kappa 0.125),
+    # where equation 24 gives the critical gradient -0.157 m-1 (equation 3).
+    q_s, t_s = -0.2, 0.05
+    height = -(7.2 * q_s - 1.3 * t_s) / (1.35 * 0.35 * 0.125)
+    gradient = F["fairall1978_vertical_refractivity_gradient"].evaluate(
+        Phi_H=Q_(1.0, ONE), z=Q_(height, "m"), q_s=Q_(q_s, "g/kg"), T_s=Q_(t_s, "K")
+    )
+    assert gradient.to("ppm/m").magnitude == pytest.approx(-0.157, rel=1e-12)
+    assert gradient.to("1/km").magnitude == pytest.approx(-0.157e-3, rel=1e-12)
+
+
+def test_n_units_per_metre_are_declared_by_nomogram() -> None:
+    unit = semantic_catalog().units["PPM-PER-M"]
+    assert unit.iri is None  # absent from QUDT 3.5.3
+    assert unit.multiplier == 1e-6
+    kind = semantic_catalog().quantity_kinds["InverseLength"]
+    assert "PPM-PER-M" in kind.applicable_units
+
+
+def test_the_profile_scales_feed_no_look_alike() -> None:
+    profile = (
+        "SurfaceLayerProfileScaleOfPotentialTemperature",
+        "SurfaceLayerProfileScaleOfTemperature",
+        "SurfaceLayerProfileScaleOfMixingRatio",
+        "SurfaceLayerProfileScaleOfSpecificHumidity",
+    )
+    for kind in profile:
+        others = [k for k in profile if k != kind]
+        others += ["SurfaceLayerScaleOfSpecificHumidity"]  # the IFS's, by the flux
+        for other in others:
+            assert not feeds(kind, other)
+            assert not feeds(other, kind)
+    assert feeds("VerticalRadioRefractivityGradient", "InverseLength")
+    assert not feeds("VerticalRadioRefractivityGradient", "RadioRefractivity")
+
+
 def test_the_nps_formulas_are_found_by_search() -> None:
     assert "formulations.fairall1978_radio_refractivity" in set(
         CATALOG.search("Fairall").refs
@@ -98,10 +157,21 @@ def test_the_nps_formulas_are_found_by_search() -> None:
         "frederickson1994_gradient_function_scalar",
         "ecmwf_ifs_gradient_function_heat_unstable",
     } <= heat
-    assert set(CATALOG.used_by("references.businger1971").refs) >= {
-        "formulations.fairall1978_gradient_function_heat_unstable",
+    assert set(CATALOG.used_by("references.businger1971").refs) == {
+        "formulations.fairall1978_gradient_function_momentum_unstable",
         "formulations.fairall1978_gradient_function_momentum_stable",
     }
     assert "formulations.frederickson1994_gradient_function_scalar" in set(
         CATALOG.used_by("references.frederickson1994_nps").refs
+    )
+    lengths = {f.key for f in CATALOG.formulations_of("ObukhovLength")}
+    assert {
+        "fairall1978_obukhov_length",
+        "frederickson1994_obukhov_length",
+    } <= lengths
+    assert [
+        f.key for f in CATALOG.formulations_of("VerticalRadioRefractivityGradient")
+    ] == ["fairall1978_vertical_refractivity_gradient"]
+    assert "formulations.fairall1978_vertical_refractivity_gradient" in set(
+        CATALOG.search("refractivity gradient").refs
     )

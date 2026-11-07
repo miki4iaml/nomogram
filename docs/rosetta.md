@@ -174,6 +174,8 @@ defines one, a sibling of the look-alikes
 | drag coefficient | transfer coefficient relating the surface stress to the square of the wind speed at a height, τ = ρ C_M U² | boundary-layer meteorology (CF, IFS) | `SurfaceDragCoefficientForMomentum`, a sibling under `DimensionlessRatio` | 1 | CF table 95; IFS CY49R1, Part IV, 3.15 and 3.16 |
 | bulk Richardson number | ratio of buoyancy to wind shear across a layer, g z Δθ_v / (θ_v U²) | numerical weather prediction (IFS) | `BulkRichardsonNumber` (local) | 1 | IFS CY49R1, Part IV, 3.26 |
 | bulk Richardson number | g ΔT z / (T u² Γ), with the profile coefficient Γ, about 0.1: about ten times the former | evaporation duct models (Jeske, Paulus-Jeske) | `BulkRichardsonNumberOverProfileCoefficient`, a sibling under `DimensionlessRatio` | 1 | NOSC TD 1596 (Paulus 1989), A-4 |
+| gradient function for heat (φ_h, φ_T) | dimensionless gradient of temperature, 1 in neutral conditions; the neutral ratio of eddy diffusivities, if any, sits in the profile equation (α_T = 1.35) | numerical weather prediction (IFS), evaporation duct models (Fairall et al., Frederickson et al.) | `GradientFunctionForHeat` (local) | 1 | IFS CY49R1, Part IV, 3.21; NPS61-78-005, equation 8 and appendix B |
+| gradient function for heat (φ_h, φ_T) | (z/θ_*) ∂θ/∂z with θ_* = −w′θ′/(k u_*): about 0.74 in neutral conditions, the inverse of that ratio | micrometeorology (Kansas experiment) | not entered: it would be a sibling kind | 1 | Businger et al. (1971), equations 3 and 14 |
 
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
 versus dimensionless), so mixing them is not a small numerical error.
@@ -187,6 +189,16 @@ extrapolated to sea level) and for a height above ground in its equation
 17 (figure 12). nomogram keeps the identifiers apart (z, z_s, h, with
 distinct kinds) and gives each source its own symbols in the notation of
 its citation.
+
+Surface-layer scales collide by sign. The IFS defines s_* and q_* by
+the surface fluxes, positive for an upward flux (Part IV, 3.10); Fairall
+et al. (1978, equation 8) and Frederickson et al. (1994, equation 1)
+define T_* and q_* by the profiles, positive when the quantity increases
+with height, so that q_* is "almost always negative" over the sea. They
+are distinct kinds (`SurfaceLayerScaleOfSpecificHumidity` and the
+`SurfaceLayerProfileScaleOf…` kinds), which never feed one another; so
+are the scales of temperature and of potential temperature, and of
+specific humidity and of mixing ratio.
 
 Vertical coordinates collide most: WMO calls "geopotential" in its
 upper-air observations what CF calls the geopotential height (in
@@ -371,6 +383,13 @@ here, not worked around silently.
     not for `Speed` (QUDT 3.5.3), whose magnitude it measures as well:
     nomogram adds it to `Speed`, for the wind of the evaporation duct
     model of Paulus (1989).
+23. QUDT 3.5.3 has no unit of N-units per metre, the unit of the
+    vertical gradient of radio refractivity (−0.157 m⁻¹ of N, the
+    critical gradient for ducting, Fairall et al. 1978), nor a kind for
+    that gradient. nomogram declares the unit `PPM-PER-M`, written as
+    QUDT writes `PPM-PER-K` and `PERCENT-PER-M`, without an IRI
+    (`LOCAL_UNITS` of the extraction script), and the kind
+    `VerticalRadioRefractivityGradient` under `InverseLength`.
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

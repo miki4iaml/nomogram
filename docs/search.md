@@ -141,4 +141,11 @@ step comes the same way: `search("evaporation duct")` finds the steps
 of the Paulus-Jeske model, `formulations_of("EvaporationDuctHeight")`
 its three branches, `used_by("references.paulus1989_td1596")` every
 formulation it gives, and `search("bulk Richardson number")` the trade
-term whose two meanings tell Jeske's number from that of the IFS.
+term whose two meanings tell Jeske's number from that of the IFS. The
+explicit formulas of the model of Fairall et al. (1978) and Frederickson
+et al. (1994) join the alternatives of their kinds:
+`formulations_of("GradientFunctionForHeat")` sets their gradient
+functions beside those of the IFS, `formulations_of("ObukhovLength")`
+their lengths beside Jeske's and the IFS's, and
+`formulations_of("VerticalRadioRefractivityGradient")` the gradient
+whose critical value defines the duct height.

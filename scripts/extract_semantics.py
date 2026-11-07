@@ -31,7 +31,8 @@ What nomogram adds to the sources is stated here, not hidden in the data:
 the scale type and the point/difference typing of each kind (QUDT
 records it as ``isDeltaQuantity`` on a quantity in its context, not on
 kinds), the link from each kind to CF
-standard names, and the pint expression of each unit.
+standard names, the pint expression of each unit, and the few units QUDT
+does not have (``LOCAL_UNITS``), until it does.
 """
 
 from __future__ import annotations
@@ -265,6 +266,41 @@ KINDS: dict[str, KindSpec] = {
     # The IFS: the extinction coefficient of its visibility, in m-1;
     # QUDT's LinearAttenuationCoefficient, narrower, declares no unit.
     "AttenuationCoefficient": KindSpec("ratio", delta=False, checked="2026-11-04"),
+    # The parent of the vertical gradient of radio refractivity (catalog),
+    # in N-units per metre (Fairall et al. 1978).
+    "InverseLength": KindSpec("ratio", delta=False, checked="2026-11-07"),
+}
+
+
+class LocalUnit(NamedTuple):
+    """A unit QUDT does not have, declared by nomogram until it does."""
+
+    label: str
+    symbol: str
+    dimension_vector: str
+    multiplier: float
+    ucum: str | None
+    pint: str
+    #: Quantity kinds, by QUDT local name, the unit is declared for.
+    kinds: tuple[str, ...]
+
+
+#: Units absent from QUDT, declared by nomogram, with the reason; written
+#: as QUDT writes its neighbours (PPM-PER-K, PERCENT-PER-M).
+LOCAL_UNITS: dict[str, LocalUnit] = {
+    # The vertical gradient of radio refractivity in N-units per metre:
+    # the critical gradient for ducting, -0.157 m-1 of N (Fairall et al.
+    # 1978, NPS61-78-005, equation 3); -0.125 m-1 of potential refractivity
+    # (Paulus 1989, NOSC TD 1596, step 5). Absent from QUDT 3.5.3.
+    "PPM-PER-M": LocalUnit(
+        label="Parts per Million per Metre",
+        symbol="ppm/m",
+        dimension_vector="A0E0L-1I0M0H0T0D0",
+        multiplier=1e-6,
+        ucum="[ppm].m-1",
+        pint="ppm/m",
+        kinds=("InverseLength",),
+    ),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -494,6 +530,8 @@ def unit_kinds(graph: Graph) -> dict[str, set[str]]:
         declared = set(graph.objects(subject, QUDT.unitForQuantityKind))
         declared |= set(graph.objects(subject, QUDT.hasQuantityKind))
         kinds[name] = {str(_local(str(k))) for k in declared}
+    for name, local in LOCAL_UNITS.items():
+        kinds[name] = set(local.kinds)
     return kinds
 
 
@@ -531,6 +569,22 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
                 _value(graph, subject, QUDT.wikidataMatch),
                 UNITS_CHECKED.get(name, date),
             ),
+        }
+    for name, local in LOCAL_UNITS.items():
+        if (UNIT[name], None, None) in graph:
+            msg = f"{name} is now in QUDT: remove it from LOCAL_UNITS"
+            raise ValueError(msg)
+        units[name] = {
+            "iri": None,
+            "label": local.label,
+            "symbol": local.symbol,
+            "dimension_vector": local.dimension_vector,
+            "multiplier": local.multiplier,
+            "offset": 0.0,
+            "ucum": local.ucum,
+            "udunits": None,
+            "pint": local.pint,
+            "matches": [],
         }
     return units
 
