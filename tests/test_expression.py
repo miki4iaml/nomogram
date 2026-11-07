@@ -299,6 +299,8 @@ def test_latex_power_of_a_decimal_logarithm() -> None:
         ("x_alpha", r"x_{\alpha}"),
         ("T_celsius_zero", r"T_{\mathrm{celsius},\mathrm{zero}}"),
         ("x__max", r"x^{\mathrm{max}}"),
+        ("xhat", r"\hat{x}"),
+        ("alphahat", r"\hat{\alpha}"),
     ],
 )
 def test_upright_symbol_follows_iso_80000_2(identifier: str, expected: str) -> None:

@@ -196,6 +196,10 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         # Partial derivatives in notations (in the lists of MathJax and
         # KaTeX on 2026-11-01; parsed by mathtext).
         r"\partial",
+        # The hat accent of estimated or derived quantities (in the lists of
+        # MathJax, base package, and KaTeX on 2026-11-07; parsed by
+        # mathtext): an identifier xhat reads \hat{x}.
+        r"\hat",
     }
     | {"\\" + letter for letter in _GREEK}
 )
@@ -706,7 +710,7 @@ def upright_symbol(identifier: str) -> str:
     running index (x_i) needs a notation. The result stays within
     :data:`LATEX_COMMANDS`: a name SymPy would write with another command
     (``Tbar`` as ``\\bar{T}``, ``hbar``, ``ell``) is written upright as
-    it is spelt (``\\mathrm{Tbar}``).
+    it is spelt (``\\mathrm{Tbar}``), while ``xhat`` reads ``\\hat{x}``.
 
     Parameters
     ----------

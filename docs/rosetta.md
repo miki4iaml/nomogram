@@ -110,9 +110,11 @@ the objects themselves.
 
 SymPy's LaTeX printer reads a symbol's name (`split_super_sub`): a
 trailing number on the base name, or what follows `_`, becomes a
-subscript; what follows `__`, a superscript. Modifiers such as `bar` and
-`hat` (`translate`) are written upright as spelt by nomogram. So `e_s`
-reads e_s, `T0` reads T₀, and `a__w` reads aʷ. nomogram keeps that
+subscript; what follows `__`, a superscript. A modifier (`translate`)
+gives its accent when its command is in `LATEX_COMMANDS`, as `hat` does
+(`xhat` reads x̂, the usual mark of an estimate); others, such as `bar`,
+are written upright as spelt by nomogram. So `e_s` reads e_s, `T0` reads
+T₀, and `a__w` reads aʷ. nomogram keeps that
 reading for identifiers no notation covers, sets descriptive subscripts
 upright (`upright_symbol`), and writes upright, as spelt, a name SymPy
 would print with a command outside `LATEX_COMMANDS`. An identifier is

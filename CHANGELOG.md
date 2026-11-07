@@ -103,6 +103,29 @@ and this project adheres to
   `search(keyword="SHEBA")`, `search(keyword="COARE")`,
   `search(source="beljaars1992")`.
 
+- The roughness of the sea surface: Charnock's relation, with its
+  coefficient given (AMS Glossary, Businger 1985, Edson et al. 2013) or
+  0.015 within the range of rough flow Businger (1985) states; the
+  Charnock coefficient from the equivalent neutral wind at 10 m of COARE
+  3.5 (Edson et al. 2013, with its corrigendum and the range it was
+  fitted on), of the code of COARE 3.6 and of COARE 3.0 (Fairall et al.
+  2003); the roughness length of Edson et al. (2013); the roughness
+  Reynolds number by its definition; the scalar roughness lengths of
+  COARE 3.0 and of the code of COARE 3.6, of Beljaars (1992), and those
+  of the IFS with the sea state (equations 3.30 to 3.32) and their
+  approximation (3.34); the background roughness of gravity-capillary
+  waves of the wave model of the IFS until CY49R1 (part VII, 3.11) and
+  its coefficient from the wind at 10 m (3.15). New kinds
+  `CharnockCoefficient`, `RoughnessReynoldsNumber`,
+  `EquivalentNeutralWindSpeed`, `BackgroundRoughnessLength` and
+  `BackgroundCharnockCoefficient`; the trade term "Charnock parameter".
+  `search(keyword="Charnock")`, `search("Charnock parameter")`.
+
+- The hat accent, `\hat`, in notations and in the rendering of
+  identifiers (`xhat` reads x̂), checked in the lists of MathJax, KaTeX
+  and mathtext: the coefficient of the background roughness of the wave
+  model of the IFS is written as its source writes it.
+
 ### Changed
 
 - The log-linear gradient function 1 + 5 z/L of the IFS for stable
