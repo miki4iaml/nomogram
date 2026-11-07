@@ -50,6 +50,12 @@ NEEDED = {
     ("itu_r_p835_pressure", "T_0"),
     # rho = r P C / T: r or C must carry a unit.
     ("itu_r_p835_water_vapour_density_upper", "r"),
+    # 77.6 (1000 + 4810 e/T)/T: P_0 = 1000 hPa or 77.6 must carry a unit.
+    ("paulus1989_potential_refractivity", "P_0"),
+    # 369 z_1 and 10 z_1: z_1 or the number must carry the metre.
+    ("paulus1989_bulk_richardson_number", "z_1"),
+    ("paulus1989_obukhov_length_from_profile_coefficient", "z_1"),
+    ("paulus1989_obukhov_length", "z_1"),
 }
 
 

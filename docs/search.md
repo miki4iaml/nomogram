@@ -136,4 +136,9 @@ trade terms); see [vertical.md](vertical.md). The practices of a tool come the s
 MetPy's interpolations are formulations citing the code read, so that
 `search(source="metpy171*")` lists them, `search(keyword="isentropic")`
 finds its isentropic analysis, and the relative humidities composed from
-them are found with the others, by their kind.
+them are found with the others, by their kind. A model written step by
+step comes the same way: `search("evaporation duct")` finds the steps
+of the Paulus-Jeske model, `formulations_of("EvaporationDuctHeight")`
+its three branches, `used_by("references.paulus1989_td1596")` every
+formulation it gives, and `search("bulk Richardson number")` the trade
+term whose two meanings tell Jeske's number from that of the IFS.

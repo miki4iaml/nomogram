@@ -8,6 +8,25 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- `evaporation-duct` family: the evaporation duct height of the
+  Paulus-Jeske model (NOSC TD 1596, Paulus 1989), one formulation per
+  step of its algorithm: the saturation vapour pressure and the potential
+  refractivity of the air and of the sea surface, Jeske's bulk Richardson
+  number (wind in knots), profile coefficient and Monin-Obukhov length,
+  the universal function of unstable conditions, and the height in
+  stable, limited and unstable conditions. The 37 test cases of the
+  source are computed again from the catalog. New kinds
+  `EvaporationDuctHeight`, `PotentialRadioRefractivity`,
+  `PotentialRadioRefractivityDifference`,
+  `SurfaceLayerProfileCoefficient` and
+  `BulkRichardsonNumberOverProfileCoefficient`; the trade term "bulk
+  Richardson number" tells Jeske's number from that of the IFS.
+  `search("evaporation duct")` finds them.
+- The knot (`KN`), for `Speed` as well as `Velocity`, to which QUDT
+  restricts it.
+
 ### Fixed
 
 - `docs/security-and-compliance.md`: the attestations PyPI shows are

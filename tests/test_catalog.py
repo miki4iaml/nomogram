@@ -77,6 +77,7 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "vaisala2013_water",
         "hardy1998_water",
         "murphy_koop2005_water",
+        "paulus1989_saturation_vapour_pressure",
     }
 
 
@@ -574,6 +575,16 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ecmwf_ifs_saturation_ice", "e_0"): "stated",
         ("ecmwf_ifs_saturation_ice", "A"): "added",
         ("ecmwf_ifs_saturation_ice", "B"): "stated",
+        ("paulus1989_potential_refractivity", "P_0"): "stated",
+        ("paulus1989_bulk_richardson_number", "z_1"): "stated",
+        ("paulus1989_obukhov_length_from_profile_coefficient", "z_1"): "stated",
+        ("paulus1989_obukhov_length", "z_1"): "stated",
+        **{
+            (f"paulus1989_evaporation_duct_height_{branch}", name): "stated"
+            for branch in ("stable", "limited", "unstable")
+            for name in ("z_0", "z_1")
+        },
+        ("paulus1989_evaporation_duct_height_stable", "delta_0"): "added",
     }
 
 

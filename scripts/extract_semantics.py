@@ -239,8 +239,13 @@ KINDS: dict[str, KindSpec] = {
         delta=False,
         cf_standard_names=(("eastward_wind", "narrow"), ("northward_wind", "narrow")),
     ),
+    # QUDT declares the knot for Velocity and LinearVelocity, not for
+    # Speed (3.5.3), whose magnitude it measures as well.
     "Speed": KindSpec(
-        "ratio", delta=False, cf_standard_names=(("wind_speed", "narrow"),)
+        "ratio",
+        delta=False,
+        cf_standard_names=(("wind_speed", "narrow"),),
+        added_units=("KN",),
     ),
     # The parent of the geodetic latitude (catalog), in normal gravity
     # formulas.
@@ -321,11 +326,18 @@ UNITS: dict[str, str] = {
     # The IFS: the extinction coefficient of the visibility.
     "PER-M": "1/m",
     "PER-KiloM": "1/km",
+    # Paulus (1989), NOSC TD 1596: the wind speed of the evaporation duct
+    # height, in knots.
+    "KN": "knot",
 }
 
 #: Date the links of a unit added after the extraction date of the
 #: others were read; the extraction date for the others.
-UNITS_CHECKED: dict[str, str] = {"PER-M": "2026-11-04", "PER-KiloM": "2026-11-04"}
+UNITS_CHECKED: dict[str, str] = {
+    "PER-M": "2026-11-04",
+    "PER-KiloM": "2026-11-04",
+    "KN": "2026-11-07",
+}
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
 #: in the frozen subset so that the catalog can check them.
