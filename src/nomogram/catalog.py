@@ -3950,6 +3950,12 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
         ),
         (
             shared,
+            "quantity kinds used that are provisional, pending a QUDT pull request",
+            sum(any(q.origin == "provisional" for q in lineage(k)) for k in used),
+            len(used),
+        ),
+        (
+            shared,
             "quantity kinds used with a CF standard name",
             sum(bool(loaded.kinds[k].cf_standard_names) for k in used),
             len(used),

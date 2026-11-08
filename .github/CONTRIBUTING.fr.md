@@ -239,7 +239,11 @@ Pour le mainteneur, dans cet ordre :
    (`scripts/extract_semantics.py`), chacune enregistrée avec sa version ;
    les versions de correctif gardent l'extrait. Un genre ou une unité
    qu'une nouvelle version de QUDT définit remplace le genre ou l'unité
-   local dans la même PR, avec une entrée au CHANGELOG.
+   local dans la même PR, avec une entrée au CHANGELOG. La même PR
+   vérifie la PR de chaque genre provisoire (`LOCAL_KINDS`) : fusionnée et
+   publiée, le genre de QUDT le remplace, sous son nom et sa définition,
+   avec une entrée « Changed » qui nomme les deux ; fermée sans fusion, le
+   genre est retiré ou repris ; encore ouverte, il reste.
 2. PR vers `develop` (squash) : version dans `pyproject.toml` et
    `CITATION.cff`, section `[Unreleased]` du `CHANGELOG.md` devenue
    `[x.y.z] - date`, titre `chore: release x.y.z`. La même PR met à

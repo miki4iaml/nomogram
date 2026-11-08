@@ -50,6 +50,7 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
         {"K": "K", "DEG_C": "degC", "HectoPA": "hPa", "PA": "Pa"},
     )
     monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {})
+    monkeypatch.setattr(extract_semantics, "LOCAL_KINDS", {})
 
 
 def run() -> dict[str, object]:
@@ -345,3 +346,55 @@ def test_cf_names_of_local_kinds_are_extracted(monkeypatch: pytest.MonkeyPatch) 
     names = run()["cf_standard_names"]
     assert isinstance(names, dict)
     assert "air_temperature" in names
+
+
+def provisional(**changes: object) -> object:
+    fields: dict[str, object] = {
+        "label": "Kinematic Heat Flux",
+        "dimension_vector": "A0E0L1I0M0H1T-1D0",
+        "scale_type": "ratio",
+        "delta": False,
+        "units": ("K",),
+        "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612",
+        "opened": "2026-11-08",
+    }
+    fields.update(changes)
+    return extract_semantics.LocalKind(**fields)
+
+
+def test_a_provisional_kind_records_its_pull_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        extract_semantics.LOCAL_KINDS, "KinematicHeatFlux", provisional()
+    )
+    kind = run()["quantity_kinds"]["KinematicHeatFlux"]  # type: ignore[index]
+    assert kind["iri"] is None
+    assert kind["specialization_of"] is None
+    assert kind["applicable_units"] == ["K"]
+    assert kind["pending"] == {
+        "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612",
+        "opened": "2026-11-08",
+    }
+
+
+def test_a_provisional_kind_gives_way_to_the_kind_of_qudt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        extract_semantics.LOCAL_KINDS, "ThermodynamicTemperature", provisional()
+    )
+    with pytest.raises(ValueError, match="QUDT defines it now"):
+        run()
+
+
+def test_a_provisional_kind_takes_extracted_units(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        extract_semantics.LOCAL_KINDS,
+        "KinematicHeatFlux",
+        provisional(units=("K-M-PER-SEC",)),
+    )
+    with pytest.raises(ValueError, match="units not extracted: K-M-PER-SEC"):
+        run()
