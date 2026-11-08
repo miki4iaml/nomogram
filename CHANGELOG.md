@@ -170,7 +170,21 @@ and this project adheres to
   their source (the IFS CY50R1, Beljaars equations 71 and 98, the AMS
   Glossary). The guide says how a note writes these marks in plain text.
 
+- The transfer coefficient for humidity of the IFS, C_Q (equation 3.18,
+  Ψ_Q being Ψ_H), and the kind `SurfaceDragCoefficientForHumidity`, the
+  Dalton number, beside those for momentum and heat.
+  `Catalog.formulations_of("SurfaceDragCoefficientForHumidity")`.
+
 ### Changed
+
+- The formulations of the IFS that took a stability parameter per height
+  take the Obukhov length instead, and call the profile functions at
+  (z + z_0)/L and z_0/L, as the IFS writes them: the transfer
+  coefficients for momentum and heat (3.16, 3.17), the friction velocity
+  and the wind at 10 m from the blending height (3.108, 3.106), the dry
+  static energy and the specific humidity at 2 m (3.98 to 3.103). Their
+  inputs `zeta_n`, `zeta_0M`, `zeta_0H`, `zeta_0Q`, `zeta_2`, `zeta_10`,
+  `zeta_blend` and `zeta_0` give way to `L`; the notations write it 𝓛.
 
 - A symbol of a notation that adds or subtracts is written in
   parentheses (`\left(\bar{u} - u_s\right)`): printed as given, it would
