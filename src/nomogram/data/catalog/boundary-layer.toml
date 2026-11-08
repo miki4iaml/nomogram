@@ -2832,6 +2832,50 @@ note = "p. 10."
 units = { z_10 = "M" }
 notation = { C_E = 'C_E(z_u, \zeta)', C_EN = 'C_E', C_D = 'C_D(z_u, \zeta)', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
 
+# --- Flux-profile relations with the profile function as an input -------
+
+[formulations.businger1985_wind_profile]
+label = "Mean wind speed at a height from the friction velocity, the profile function as an input (Businger 1985)"
+expression = "u_s / k * (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 43 (after Paulson 1970), k* = 0.4 over water (pp. 22-23): the wind relative to its value at the roughness length, without the profile function at z_0/L."
+output = { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed at the height" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { k = 0.4 }
+keywords = ["wind profile", "Monin-Obukhov", "Businger"]
+
+[[formulations.businger1985_wind_profile.citations]]
+reference = "businger1985"
+equation = "43"
+note = "p. 20."
+notation = { U = '\bar{u}', u_s = 'u_*', k = 'k^*', z = 'z', z_0M = 'z_o', Psi_M = '\psi_1' }
+
+[formulations.businger1985_potential_temperature_profile]
+label = "Mean potential temperature at a height relative to the surface, from its scale, the profile function as an input (Businger 1985)"
+expression = "T_s / k * (ln(z / z_0M) - Psi_H)"
+fixed_units = false
+note = "Equation 44, k* = 0.4 over water (pp. 22-23): the mean potential temperature measured from its value at the roughness length, written theta-bar, with the roughness length of the wind and no Prandtl number."
+output = { identifier = "Delta_theta", kind = "TemperatureDifference", unit = "K", description = "Mean potential temperature at the height minus its value at the roughness length" }
+inputs = [
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { k = 0.4 }
+keywords = ["temperature profile", "potential temperature", "Monin-Obukhov", "Businger"]
+
+[[formulations.businger1985_potential_temperature_profile.citations]]
+reference = "businger1985"
+equation = "44"
+note = "p. 20."
+notation = { Delta_theta = '\bar{\theta}', T_s = '\theta_*', k = 'k^*', z = 'z', z_0M = 'z_o', Psi_H = '\psi_2' }
+
 [formulations.beljaars1992_roughness_length_heat]
 label = "Roughness length for heat over sea (Beljaars 1992)"
 expression = "z_c + alpha_H * nu / u_s"

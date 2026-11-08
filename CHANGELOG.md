@@ -190,6 +190,16 @@ and this project adheres to
   that of the IFS from the drag, which now cites them.
   `search(keyword="COARE")`, `search(keyword="CORE")`.
 
+- Flux-profile relations with the profile function as an input, for the
+  sources that leave it to others: the bulk method of Fairall et al.
+  (1978, equations 11 and 16: the wind, the potential temperature and
+  the mixing ratio at a height from their scales, and the scales from
+  the air-sea differences, with alpha = 1.35 and kappa = 0.35), the
+  scales of Frederickson et al. (1994, equation 1: friction velocity,
+  temperature, specific humidity), in the `evaporation-duct` family with
+  their other formulas; and the mean wind and potential temperature of
+  Businger (1985, equations 43 and 44), written ū and θ̄.
+
 ### Changed
 
 - The formulations of the IFS that took a stability parameter per height

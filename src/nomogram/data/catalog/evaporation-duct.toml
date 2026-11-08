@@ -567,3 +567,208 @@ community = "evaporation duct models (Jeske, Paulus-Jeske)"
 kind = "BulkRichardsonNumberOverProfileCoefficient"
 definition = "g Delta T z / (T u^2 Gamma), from the air temperature minus the sea temperature and the profile coefficient Gamma, about 0.1: about ten times the former (NOSC TD 1596, equation A-4)."
 sources = ["paulus1989_td1596"]
+
+# --- Flux-profile relations of Fairall et al. (1978) and Frederickson et al. (1994) ---
+# The profile function is an input, the reports leaving it to their sources.
+
+[formulations.fairall1978_wind_profile]
+label = "Wind speed at a height from the friction velocity, the profile function as an input (Fairall et al. 1978)"
+expression = "U_0 + u_s / kappa * (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 11 for the wind, alpha_u = 1 and kappa = 0.35 (p. 23); U(0) = 0 relative to the sea (p. 12). The profile function at z/L only."
+output = { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" }
+inputs = [
+  { identifier = "U_0", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the roughness length, zero relative to the sea" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { kappa = 0.35 }
+keywords = ["wind profile", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_wind_profile.citations]]
+reference = "fairall1978_nps"
+equation = "11"
+note = "p. 20."
+notation = { U = 'U(Z)', U_0 = 'U(Z_{0u})', u_s = 'U_*', kappa = '\kappa', z = 'Z', z_0M = 'Z_{0u}', Psi_M = '\psi_u(\xi)' }
+
+[formulations.fairall1978_potential_temperature_profile]
+label = "Potential temperature at a height from its scale, the profile function as an input (Fairall et al. 1978)"
+expression = "theta_0 + T_s / (alpha * kappa) * (ln(z / z_0H) - Psi_H)"
+fixed_units = false
+note = "Equation 11 for the potential temperature, the sea temperature at the roughness length (T(0), p. 12). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the height" }
+inputs = [
+  { identifier = "theta_0", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the roughness length, that of the sea surface" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["temperature profile", "potential temperature", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_potential_temperature_profile.citations]]
+reference = "fairall1978_nps"
+equation = "11"
+note = "p. 20."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { theta = 'T(Z)', theta_0 = 'T(Z_{0T})', T_s = 'T_*', alpha = '\alpha_T', kappa = '\kappa', z = 'Z', z_0H = 'Z_{0T}', Psi_H = '\psi_T(\xi)' }
+
+[formulations.fairall1978_mixing_ratio_profile]
+label = "Water vapour mixing ratio at a height from its scale, the profile function as an input (Fairall et al. 1978)"
+expression = "r_0 + r_s / (alpha * kappa) * (ln(z / z_0Q) - Psi_H)"
+fixed_units = false
+note = "Equation 11 for the mixing ratio, in g/kg, that of saturation at the sea temperature at the roughness length (H(0) = 100 %, p. 12); phi_q = phi_T (p. 23). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Water vapour mixing ratio at the height" }
+inputs = [
+  { identifier = "r_0", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio at the roughness length, saturated at the sea temperature" },
+  { identifier = "r_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scale of mixing ratio" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for humidity at z/L, that for heat" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["humidity profile", "mixing ratio", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_mixing_ratio_profile.citations]]
+reference = "fairall1978_nps"
+equation = "11"
+note = "p. 20."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { r = 'q(Z)', r_0 = 'q(Z_{0q})', r_s = 'q_*', alpha = '\alpha_q', kappa = '\kappa', z = 'Z', z_0Q = 'Z_{0q}', Psi_H = '\psi_q(\xi)' }
+
+[formulations.fairall1978_friction_velocity]
+label = "Friction velocity from the wind at a height, the profile function as an input (Fairall et al. 1978)"
+expression = "kappa * (U - U_0) / (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 16 for the wind, the bulk method, alpha_u = 1 and kappa = 0.35 (p. 23); U(0) = 0 relative to the sea (p. 12)."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" },
+  { identifier = "U_0", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the roughness length, zero relative to the sea" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { kappa = 0.35 }
+keywords = ["friction velocity", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_friction_velocity.citations]]
+reference = "fairall1978_nps"
+equation = "16"
+note = "p. 21."
+notation = { u_s = 'U_*', U = 'U(Z)', U_0 = 'U(0)', kappa = '\kappa', z = 'Z', z_0M = 'Z_{0u}', Psi_M = '\psi_u(\xi)' }
+
+[formulations.fairall1978_potential_temperature_scale]
+label = "Scale of potential temperature from the air-sea difference, the profile function as an input (Fairall et al. 1978)"
+expression = "alpha * kappa * (theta - theta_0) / (ln(z / z_0H) - Psi_H)"
+fixed_units = false
+note = "Equation 16 for the potential temperature, the bulk method. alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale. Positive when the air is warmer than the sea, L then positive (stable)."
+output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the height" },
+  { identifier = "theta_0", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the sea surface" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["temperature scale", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_potential_temperature_scale.citations]]
+reference = "fairall1978_nps"
+equation = "16"
+note = "p. 21."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { T_s = 'T_*', theta = 'T(Z)', theta_0 = 'T(0)', alpha = '\alpha_T', kappa = '\kappa', z = 'Z', z_0H = 'Z_{0T}', Psi_H = '\psi_T(\xi)' }
+
+[formulations.fairall1978_mixing_ratio_scale]
+label = "Scale of mixing ratio from the air-sea difference, the profile function as an input (Fairall et al. 1978)"
+expression = "alpha * kappa * (r - r_0) / (ln(z / z_0Q) - Psi_H)"
+fixed_units = false
+note = "Equation 16 for the mixing ratio, in g/kg, the bulk method; phi_q = phi_T (p. 23). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale."
+output = { identifier = "r_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scale of mixing ratio" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio at the height" },
+  { identifier = "r_0", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio saturated at the sea temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for humidity at z/L, that for heat" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["humidity scale", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_mixing_ratio_scale.citations]]
+reference = "fairall1978_nps"
+equation = "16"
+note = "p. 21."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { r_s = 'q_*', r = 'q(Z)', r_0 = 'q(0)', alpha = '\alpha_q', kappa = '\kappa', z = 'Z', z_0Q = 'Z_{0q}', Psi_H = '\psi_q(\xi)' }
+
+[formulations.frederickson1994_friction_velocity]
+label = "Friction velocity from the wind at a height, the profile function as an input (Frederickson et al. 1994)"
+expression = "(U - U_0) * k / (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 3)."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" },
+  { identifier = "U_0", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the surface, zero" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { k = 0.4 }
+keywords = ["friction velocity", "bulk method", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_friction_velocity.citations]]
+reference = "frederickson1994_nps"
+equation = "1"
+note = "p. 3."
+notation = { u_s = 'u_*', U = 'u_z', U_0 = 'u_o', k = 'k', z = 'z', z_0M = 'z_{ou}', Psi_M = '\psi_u(z/L)' }
+
+[formulations.frederickson1994_temperature_scale]
+label = "Scale of temperature from the air-sea difference, the profile function as an input (Frederickson et al. 1994)"
+expression = "(T - T_0) * k / (ln(z / z_0H) - Psi_H)"
+fixed_units = false
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 3). A temperature, not a potential temperature."
+output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scale of temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height" },
+  { identifier = "T_0", kind = "ThermodynamicTemperature", unit = "K", description = "Sea surface temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { k = 0.4 }
+keywords = ["temperature scale", "bulk method", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_temperature_scale.citations]]
+reference = "frederickson1994_nps"
+equation = "1"
+note = "p. 3."
+notation = { T_s = 'T_*', T = 'T_z', T_0 = 'T_o', k = 'k', z = 'z', z_0H = 'z_{oT}', Psi_H = '\psi_T(z/L)' }
+
+[formulations.frederickson1994_humidity_scale]
+label = "Scale of specific humidity from the air-sea difference, the profile function as an input (Frederickson et al. 1994)"
+expression = "(q - q_0) * k / (ln(z / z_0Q) - Psi_H)"
+fixed_units = false
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 3). q_o is the saturation specific humidity at the sea temperature."
+output = { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity" }
+inputs = [
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the height" },
+  { identifier = "q_0", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity at the sea surface" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for humidity at z/L, that for heat" },
+]
+coefficients = { k = 0.4 }
+keywords = ["humidity scale", "bulk method", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_humidity_scale.citations]]
+reference = "frederickson1994_nps"
+equation = "1"
+note = "p. 3."
+notation = { q_s = 'q_*', q = 'q_z', q_0 = 'q_o', k = 'k', z = 'z', z_0Q = 'z_{oq}', Psi_H = '\psi_q(z/L)' }

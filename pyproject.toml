@@ -133,8 +133,9 @@ skip = "*.fr.md,uv.lock"
 # French name of the BIPM (Bureau International des Poids et Mesures).
 ignore-words-list = "flate,alph,mesures"
 # The subscript of z_ot, the roughness length for temperature of COARE
-# (Fairall et al. 2003), in notations only ([t], so that this line passes).
-ignore-regex = 'z_\{o[t]\}'
+# (Fairall et al. 2003) and of Frederickson et al. (1994), z_oT, in
+# notations only ([tT], so that this line passes).
+ignore-regex = 'z_\{o[tT]\}'
 
 [tool.repo-review.ignore]
 PC110 = "ruff format runs as a local hook through uv run --frozen (single version source: uv.lock)"
