@@ -617,6 +617,20 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
             for quantity in ("momentum", "heat")
             for name in ("c", "k")
         },
+        # 10 m in a logarithm, and the specific heat of air in the lapse rate
+        # of COARE 3.6, whose code writes no unit for it.
+        ("coare36_equivalent_neutral_wind_10m", "z_10"): "stated",
+        ("coare36_temperature_scale", "c_pa"): "added",
+        ("coare36_temperature_at_height", "c_pa"): "added",
+        **{
+            (f"large_yeager2004_{key}", "z_10"): "stated"
+            for key in (
+                "neutral_wind_10m",
+                "drag_coefficient_at_height",
+                "transfer_coefficient_heat_at_height",
+                "transfer_coefficient_humidity_at_height",
+            )
+        },
     }
 
 
