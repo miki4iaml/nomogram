@@ -394,3 +394,131 @@ def test_the_alternatives_are_found_together() -> None:
         "large_yeager2004_neutral_wind_10m",
     } <= neutral
     assert math.isfinite(K)
+
+
+# --- Relations with the profile function as an input -------------------------------
+
+
+def test_fairall_scale_and_profile_are_inverse() -> None:
+    # Equation 16 gives the scale from the difference, 11 the value back.
+    lengths = {"z": Q_(10.0, "m"), "z_0H": Q_(1e-4, "m")}
+    psi = Q_(np.array([0.8, 0.0, -2.0]), "")
+    theta_0, theta = Q_(300.0, "K"), Q_(298.5, "K")
+    scale = value(
+        "fairall1978_potential_temperature_scale",
+        theta=theta,
+        theta_0=theta_0,
+        Psi_H=psi,
+        **lengths,
+    )
+    back = value(
+        "fairall1978_potential_temperature_profile",
+        theta_0=theta_0,
+        T_s=Q_(scale, "K"),
+        Psi_H=psi,
+        **lengths,
+    )
+    np.testing.assert_allclose(back, 298.5, rtol=1e-12)
+    u_star = value(
+        "fairall1978_friction_velocity",
+        U=Q_(7.0, "m/s"),
+        U_0=Q_(0.0, "m/s"),
+        z=Q_(10.0, "m"),
+        z_0M=Q_(1e-4, "m"),
+        Psi_M=psi,
+    )
+    wind = value(
+        "fairall1978_wind_profile",
+        U_0=Q_(0.0, "m/s"),
+        u_s=Q_(u_star, "m/s"),
+        z=Q_(10.0, "m"),
+        z_0M=Q_(1e-4, "m"),
+        Psi_M=psi,
+    )
+    np.testing.assert_allclose(wind, 7.0, rtol=1e-12)
+    r_star = value(
+        "fairall1978_mixing_ratio_scale",
+        r=Q_(15.0, "g/kg"),
+        r_0=Q_(22.0, "g/kg"),
+        z=Q_(10.0, "m"),
+        z_0Q=Q_(1e-4, "m"),
+        Psi_H=psi,
+    )
+    mixing = value(
+        "fairall1978_mixing_ratio_profile",
+        r_0=Q_(22.0, "g/kg"),
+        r_s=Q_(r_star, "g/kg"),
+        z=Q_(10.0, "m"),
+        z_0Q=Q_(1e-4, "m"),
+        Psi_H=psi,
+    )
+    np.testing.assert_allclose(mixing, 15.0, rtol=1e-12)
+    # Over an evaporating sea, the mixing ratio decreases with height.
+    assert np.all(r_star < 0)
+
+
+def test_fairall_and_frederickson_differ_by_their_constants() -> None:
+    # The same form, k = 0.4 for Frederickson, alpha kappa = 1.35 x 0.35 for
+    # the scales of Fairall, kappa = 0.35 for his friction velocity.
+    wind = {"U": Q_(7.0, "m/s"), "U_0": Q_(0.0, "m/s"), "z": Q_(10.0, "m")}
+    common = {"z_0M": Q_(1e-4, "m"), "Psi_M": Q_(0.3, "")}
+    fairall = value("fairall1978_friction_velocity", **wind, **common)
+    frederickson = value("frederickson1994_friction_velocity", **wind, **common)
+    assert float(fairall / frederickson) == pytest.approx(0.35 / 0.4, rel=1e-12)
+    humidity = {"z": Q_(10.0, "m"), "z_0Q": Q_(1e-4, "m"), "Psi_H": Q_(0.3, "")}
+    q_star = value(
+        "frederickson1994_humidity_scale",
+        q=Q_(0.015, "kg/kg"),
+        q_0=Q_(0.022, "kg/kg"),
+        **humidity,
+    )
+    r_star = value(
+        "fairall1978_mixing_ratio_scale",
+        r=Q_(15.0, "g/kg"),
+        r_0=Q_(22.0, "g/kg"),
+        **humidity,
+    )
+    assert float(r_star / (q_star * 1000)) == pytest.approx(
+        1.35 * 0.35 / 0.4, rel=1e-12
+    )
+
+
+def test_businger_profiles_are_logarithmic_at_neutral() -> None:
+    neutral = Q_(0.0, "")
+    wind = value(
+        "businger1985_wind_profile",
+        u_s=Q_(0.3, "m/s"),
+        z=Q_(10.0, "m"),
+        z_0M=Q_(1e-4, "m"),
+        Psi_M=neutral,
+    )
+    assert float(wind) == pytest.approx(0.3 / 0.4 * math.log(1e5), rel=1e-12)
+    rise = value(
+        "businger1985_potential_temperature_profile",
+        T_s=Q_(0.05, "K"),
+        z=Q_(10.0, "m"),
+        z_0M=Q_(1e-4, "m"),
+        Psi_H=neutral,
+    )
+    assert float(rise) == pytest.approx(0.05 / 0.4 * math.log(1e5), rel=1e-12)
+    # The wind of Businger gives back the friction velocity of Frederickson.
+    u_star = value(
+        "frederickson1994_friction_velocity",
+        U=Q_(float(wind), "m/s"),
+        U_0=Q_(0.0, "m/s"),
+        z=Q_(10.0, "m"),
+        z_0M=Q_(1e-4, "m"),
+        Psi_M=neutral,
+    )
+    assert float(u_star) == pytest.approx(0.3, rel=1e-12)
+
+
+def test_the_generic_alternatives_are_found_together() -> None:
+    friction = {f.key for f in CATALOG.formulations_of("FrictionVelocity")}
+    assert {
+        "fairall1978_friction_velocity",
+        "frederickson1994_friction_velocity",
+        "coare36_friction_velocity",
+    } <= friction
+    assert F["fairall1978_friction_velocity"].family == "evaporation-duct"
+    assert F["businger1985_wind_profile"].family == "boundary-layer"
