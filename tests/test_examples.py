@@ -447,3 +447,13 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
         46,
         74,
     )
+
+
+def test_evaporation_duct_guide_lists_the_references_of_its_chain(
+    duct: Any, duct_results: dict[str, Any]
+) -> None:
+    text = DUCT_GUIDE.read_text(encoding="utf-8")
+    section = text.split("\n## References\n", 1)[1]
+    listed = [line for line in section.splitlines() if line.startswith("- ")]
+    assert listed == duct.bibliography(duct_results["called"])
+    assert any("COARE 3.6 bulk flux algorithm" in line for line in listed)

@@ -1,5 +1,13 @@
 # The evaporation duct: from shipboard measurements to the duct height
 
+- Measurements and reference values: the test data of COARE 3.6 and its
+  outputs, Python version (NOAA-PSL/COARE-algorithm, commit `bd1cac8` of
+  2026-03-17, MIT licence). Thanks to the NOAA Physical Sciences
+  Laboratory for publishing the algorithm with the data that test it.
+- Computed with nomogram 0.7.0, in development, on 2026-11-08; the tests
+  compute every value of this page again for each later version, and fail
+  if one changes.
+
 Over the sea, the humidity falls quickly with height in the first metres,
 and with it the radio refractivity N. A horizontal wave whose refraction
 exceeds the curvature of the Earth is trapped, or ducted (Fairall et al.
@@ -40,11 +48,10 @@ called by its key:
 | Stability | `coare36_obukhov_length`, from the scales | `ecmwf_ifs_bulk_richardson_number` (3.26), then `ecmwf_ifs_obukhov_length_from_bulk_richardson_number` (3.25) |
 | Scales | `coare36_friction_velocity`, `coare36_temperature_scale`, `coare36_humidity_scale` | `ecmwf_ifs_transfer_coefficient_momentum`, `_heat`, `_humidity` (3.16 to 3.18), `ecmwf_ifs_friction_velocity` |
 
-Not in the catalog, and written in the script: the convective gust of
-COARE, 1.2 w\* from the buoyancy flux (Fairall et al. 1996), and the
-kinematic viscosity of air as COARE writes it (Andreas 1989). The IFS
-has a gust too (equations 3.19 and 3.20), not yet in the catalog: its
-variant goes without. The gravity is the normal gravity of WGS 84 at the
+Not yet in the catalog, and written in the script: the convective gust,
+1.2 w\* from the buoyancy flux, and the kinematic viscosity of air, as
+the code of COARE 3.6 writes them. The IFS has a gust too (equations 3.19
+and 3.20), not yet in the catalog either: its variant goes without. The gravity is the normal gravity of WGS 84 at the
 latitude (`wmo_normal_gravity_wgs84`).
 
 Two steps show how the catalog keeps a formula within its bounds:
@@ -147,3 +154,30 @@ surface layer, four ways to the height), each with its source, its
 assumptions and its bounds; a formula appears once, in its own entry,
 whatever the chain that calls it; a value beyond the bounds of its kind
 is NaN unless asked, which keeps a chain from going on silently.
+
+## References
+
+The sources the formulations of the chain cite, and those of the
+formulations and constants they use, followed through the links of the
+catalog (`Catalog.uses`) and written by the script:
+
+- Alduchov, O. A.; Eskridge, R. E. (1996). *Improved Magnus form approximation of saturation vapor pressure*. Journal of Applied Meteorology 35, 601-609. <https://doi.org/10.1175/1520-0450(1996)035<0601:IMFAOS>2.0.CO;2>
+- Beljaars, A. (1992). *The parametrization of the planetary boundary layer*. ECMWF Meteorological Training Course Lecture Series (May 1992; reprinted 2002). <https://www.ecmwf.int/sites/default/files/elibrary/2002/16959-parametrization-planetary-boundary-layer.pdf>
+- Beljaars, A. C. M. (1995). *The parametrization of surface fluxes in large-scale models under free convection*. Quarterly Journal of the Royal Meteorological Society, 121, 255-270. <https://doi.org/10.1002/qj.49712152203>
+- Beljaars, A. C. M. and Holtslag, A. A. M. (1991). *Flux parameterization over land surfaces for atmospheric models*. Journal of Applied Meteorology, 30, 327-341. <https://doi.org/10.1175/1520-0450(1991)030<0327:FPOLSF>2.0.CO;2>
+- Brutsaert, W. (1982). *Evaporation into the Atmosphere*. D. Reidel, Dordrecht.
+- Buck, A. L. (1981). *New equations for computing vapor pressure and enhancement factor*. Journal of Applied Meteorology 20, 1527-1532. <https://doi.org/10.1175/1520-0450(1981)020<1527:NEFCVP>2.0.CO;2>
+- Bureau International des Poids et Mesures (2019). *The International System of Units (SI), 9th edition*. BIPM, version 4.01 (June 2026). <https://doi.org/10.59161/AUEZ1291>
+- Businger, J. A. (1985). *The marine boundary layer, from air-sea interface to inversion*. NCAR Technical Note NCAR/TN-252+STR, National Center for Atmospheric Research, Boulder. <https://opensky.ucar.edu/system/files/2024-08/technotes_362.pdf>
+- ECMWF (2024). *IFS Documentation CY49R1 - Part IV: Physical Processes*. <https://doi.org/10.21957/c731ee1102>
+- Edson, J. B., Jampana, V., Weller, R. A., Bigorre, S. P., Plueddemann, A. J., Fairall, C. W., Miller, S. D., Mahrt, L., Vickers, D. and Hersbach, H. (2013). *On the exchange of momentum over the open ocean*. Journal of Physical Oceanography, 43, 1589-1610. <https://doi.org/10.1175/JPO-D-12-0173.1>
+- Fairall, C. W., Davidson, K. L., Schacher, G. E. and Houlihan, T. M. (1978). *Evaporation duct height measurements in the Mid-Atlantic: final report*. Naval Postgraduate School, Monterey, California, report NPS61-78-005, 15 August 1978. <https://hdl.handle.net/10945/29858>
+- Frederickson, P. A., Davidson, K. L. and Jones, F. K. (1994). *The effect of infrared sea surface temperature measurements on evaporation duct height estimation*. Naval Postgraduate School, Monterey, California, report NPS-MR-94-003, November 1994. <https://hdl.handle.net/10945/28715>
+- Holtslag, A. A. M. and De Bruin, H. A. R. (1988). *Applied modeling of the nighttime surface energy balance over land*. Journal of Applied Meteorology, 27, 689-704. <https://doi.org/10.1175/1520-0450(1988)027<0689:AMOTNS>2.0.CO;2>
+- ITU-R (2019). *Recommendation ITU-R P.453-14: The radio refractive index: its formula and refractivity data*. <https://www.itu.int/rec/R-REC-P.453-14-201908-I>
+- Kramm, G., Amaya, D. J., Foken, T. and Molders, N. (2013). *Hans A. Panofsky's integral similarity function, at fifty*. Atmospheric and Climate Sciences, 3, 581-594. <https://doi.org/10.4236/acs.2013.34061>
+- Large, W. G. and Yeager, S. G. (2004). *Diurnal to decadal global forcing for ocean and sea-ice models: the data sets and flux climatologies*. NCAR Technical Note NCAR/TN-460+STR, National Center for Atmospheric Research, Boulder. <https://doi.org/10.5065/D6KK98Q6>
+- NOAA Physical Sciences Laboratory (2026). *COARE 3.6 bulk flux algorithm, Python version (coare36vn_zrf_et.py)*. <https://github.com/NOAA-PSL/COARE-algorithm/blob/bd1cac80d2dae454e699f9ef46204dfd88086a71/Python/COARE3.6/coare36vn_zrf_et.py>
+- Paulson, C. A. (1970). *The mathematical representation of wind speed and temperature profiles in the unstable atmospheric surface layer*. Journal of Applied Meteorology, 9, 857-861. <https://doi.org/10.1175/1520-0450(1970)009<0857:TMROWS>2.0.CO;2>
+- Paulus, R. A. (1989). *Specification for evaporation duct height calculations*. Naval Ocean Systems Center, San Diego, Technical Document 1596, July 1989 (AD-A213 841). <https://archive.org/details/DTIC_ADA213841>
+- World Meteorological Organization (2024). *Guide to Instruments and Methods of Observation (WMO-No. 8), Volume I*. <https://doi.org/10.59327/WMO/CIMO/1>

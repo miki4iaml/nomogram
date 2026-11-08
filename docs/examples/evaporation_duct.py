@@ -15,6 +15,7 @@ Run from the repository (extra ``viz`` installed)::
 
 import math
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,10 @@ mpl.use("Agg")  # render to a file, without a display
 
 #: One row in 20 of the test data of COARE 3.6 (see data/NOTICE.md).
 DATA = Path(__file__).parent / "data" / "coare36_test.csv"
-F = catalog().formulations
+CATALOG = catalog()
+F = CATALOG.formulations
+#: The keys of the formulations the chain calls, for its references.
+CALLED: set[str] = set()
 ONE = "dimensionless"
 #: Heights of the profiles of refractivity, from 0.1 m to 100 m.
 HEIGHTS = np.geomspace(0.1, 100.0, 3000)
@@ -38,6 +42,7 @@ HEIGHTS = np.geomspace(0.1, 100.0, 3000)
 
 def value(key: str, unit: str, **inputs: Any) -> np.ndarray:
     """The values of a formulation of the catalog, in ``unit``."""
+    CALLED.add(key)
     return np.asarray(F[key].evaluate(**inputs).to(unit).magnitude)
 
 
@@ -67,8 +72,8 @@ def air(m: dict[str, np.ndarray]) -> dict[str, Any]:
         p=Q_(p_t, "hPa"),
     )
     t = m["ta"]
-    # The kinematic viscosity of air as COARE 3.6 writes it (Andreas 1989),
-    # in m2/s: not in the catalog.
+    # The kinematic viscosity of air as the code of COARE 3.6 writes it, in
+    # m2/s: not yet in the catalog.
     nu = 1.326e-5 * (1 + 6.542e-3 * t + 8.301e-6 * t**2 - 4.84e-9 * t**3)
     return {
         "g": Q_(g, "m/s**2"),
@@ -148,8 +153,8 @@ def coare(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:
             q_s=Q_(q_s, "kg/kg"),
             g=a["g"],
         )
-        # The convective gust of COARE, 1.2 w* (Fairall et al. 1996), from
-        # the buoyancy flux: not in the catalog.
+        # The convective gust, 1.2 w* from the buoyancy flux, as the code of
+        # COARE 3.6 writes it: not yet in the catalog.
         q = a["q"].magnitude
         buoyancy = -a["g"].magnitude / a["T"].magnitude * u_s
         buoyancy = buoyancy * (t_s * (1 + 0.61 * q) + 0.61 * a["T"].magnitude * q_s)
@@ -400,7 +405,43 @@ def compute() -> dict[str, Any]:
         "ifs": by_ifs,
         "profiles": profiles,
         "heights": heights,
+        "called": sorted(CALLED),
     }
+
+
+def bibliography(called: Iterable[str]) -> list[str]:
+    """The references of the formulations called, and of what they use.
+
+    Followed through the links of the catalog (``Catalog.uses``): the
+    formulations a formulation calls or is made of, and the constants it
+    takes, each with its own references; one Markdown line per reference.
+    """
+    queue = [f"formulations.{key}" for key in called]
+    seen: set[str] = set()
+    cited: set[str] = set()
+    while queue:
+        entry = queue.pop()
+        if entry in seen:
+            continue
+        seen.add(entry)
+        for ref in CATALOG.uses(entry).refs:
+            section, _, key = ref.partition(".")
+            if section == "references":
+                cited.add(key)
+            elif section in ("formulations", "constants"):
+                queue.append(ref)
+    lines = []
+    for reference in sorted(
+        (CATALOG.references[key] for key in cited),
+        key=lambda r: (r.authors.casefold(), r.year or 0),
+    ):
+        link = f"https://doi.org/{reference.doi}" if reference.doi else reference.url
+        container = f" {reference.container}." if reference.container else ""
+        lines.append(
+            f"- {reference.authors} ({reference.year}). *{reference.title}*."
+            f"{container}" + (f" <{link}>" if link else "")
+        )
+    return lines
 
 
 def main(output: str) -> None:

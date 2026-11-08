@@ -16,7 +16,8 @@ and this project adheres to
   surface layer of COARE 3.6, which the chain gives back, and of the IFS,
   with equation 3.25 solved at each iteration; the duct height as the
   minimum of M of ITU-R P.453, by Fairall et al. (1978), Frederickson et
-  al. (1994) and Paulus-Jeske, compared.
+  al. (1994) and Paulus-Jeske, compared; its references are those the
+  catalog links to the formulations of the chain.
 
 - **An implicit equation may call formulations**, and pass its unknown
   in their arguments: the root is sought on the equation with each call
