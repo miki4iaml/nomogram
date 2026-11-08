@@ -261,6 +261,10 @@ and this project adheres to
 
 ### Changed
 
+- The notation of Large and Yeager (2004) writes the wind difference as
+  they do, |ΔU⃗|, with the arrow of a vector, `\vec`, now admitted (in
+  the lists of MathJax, KaTeX and mathtext).
+
 - Loading the catalog and searching it are faster: unit inference builds
   the text of a constraint only for a message, numerical functions are
   cached, and so are the folded words of a search. Measured on
