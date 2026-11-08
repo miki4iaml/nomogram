@@ -49,7 +49,7 @@ title = "Flux-profile relationships in the atmospheric surface layer"
 container = "Journal of the Atmospheric Sciences, 28, 181-189"
 doi = "10.1175/1520-0469(1971)028<0181:FPRITA>2.0.CO;2"
 status = "verified"
-note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU/dz and temperature gradient phi_h = (z/theta_*) dtheta/dz, theta_* = -w'theta'/(k u_*) (equations 2 and 3); the KEYPS formula phi_m^4 - 9 zeta phi_m^3 = 1 (7), phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
+note = "Read on the page images, p. 181-185: the dimensionless wind shear phi_m = (kz/u_*) dU-bar/dz and temperature gradient phi_h = (z/theta_*) dtheta-bar/dz, theta_* = -overline(w'theta')/(k u_*), the bar a time mean and the prime the departure from it (p. 182) (equations 2 and 3); the KEYPS formula phi_m^4 - 9 zeta phi_m^3 = 1 (7), phi_m = (1 - 15 zeta)^(-1/4) unstable (8) and 1 + 4.7 zeta stable (10); phi_h(0) of about 0.74, phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (11, after Elliott) or (1 - 9 zeta)^(-1/2) (12, Businger-Dyer) unstable, phi_h = 0.74 + 4.7 zeta stable (14); k of about 0.35 and a neutral ratio of eddy diffusivities of about 1.35 (abstract). DOI checked with Crossref on 2026-11-07."
 
 [references.beljaars1992]
 authors = "Beljaars, A."
@@ -129,7 +129,7 @@ title = "IFS Documentation CY50R1 - Part 7: ECMWF Wave Model"
 doi = "10.21957/d8a284ca2a"
 url = "https://www.ecmwf.int/en/elibrary/81737-ifs-documentation-cy50r1-part-7-ecmwf-wave-model"
 status = "verified"
-note = "CC BY 4.0. Section 3.2 read (pp. 14-16): z_o = z_b / (1 - tau_w/tau_a)^(1/2) (3.9); z_b = alpha^ u_*^2/g until CY49R1 (3.11), alpha^ = 0.0095 before CY38R1 and 0.0060 from CY38R1 to CY46R1 (3.23, 3.24), a function of the wind at 10 m from CY47R1 (3.15, 3.25); the Charnock parameter alpha = alpha^ / (1 - tau_w/tau_a)^(1/2) (3.13), 'not constant'; for old wind sea its mean, 0.0165, agrees with the observations collected by Wu (1982). DOI checked with DataCite on 2026-11-07."
+note = "CC BY 4.0. Section 3.2 read (pp. 14-19): z_o = z_b / (1 - tau_w/tau_a)^(1/2) (3.9); z_b = alpha^ u_*^2/g until CY49R1 (3.11), alpha^ = 0.0095 before CY38R1 and 0.0060 from CY38R1 to CY46R1 (3.23, 3.24), a function of the wind at 10 m from CY47R1 (3.15, 3.25); the Charnock parameter alpha = alpha^ / (1 - tau_w/tau_a)^(1/2) (3.13), 'not constant'; for old wind sea its mean, 0.0165, agrees with the observations collected by Wu (1982). DOI checked with DataCite on 2026-11-07."
 
 [references.large_yeager2004]
 authors = "Large, W. G. and Yeager, S. G."
@@ -589,7 +589,7 @@ keywords = ["Obukhov length", "Monin-Obukhov", "stability", "IFS"]
 [[formulations.ecmwf_ifs_obukhov_length.citations]]
 reference = "ecmwf_ifs_cy49r1"
 equation = "3.10"
-notation = { u_s = "u_*",s_s = "s_*", q_s = "q_*", kappa = '\kappa', g_n = "g", c_pd = "c_p" }
+notation = { L = '\mathcal{L}', u_s = "u_*", s_s = "s_*", q_s = "q_*", kappa = '\kappa', g_n = "g", c_pd = "c_p" }
 assumptions = ["The turbulent fluxes are constant with height in the surface layer, equal to their surface values (section 3.2)."]
 
 # --- Gradient functions -----------------------------------------------
@@ -1613,6 +1613,7 @@ notation = { Ri_b = 'Ri_{\mathrm{bulk}}', g_n = "g", theta_v = '\theta_v', theta
 reference = "beljaars1992"
 equation = "98"
 note = "p. 39, without the free-convection velocity in |U_1|."
+notation = { Ri_b = 'Ri_\mathrm{b}', theta_v = '\theta_\mathrm{v}', z_n = 'z_1', theta_vn = '\theta_{\mathrm{v}1}', theta_vsurf = '\theta_{\mathrm{v}0}', U_n = '|\mathbf{U}_1|', g_n = 'g' }
 
 [formulations.ecmwf_ifs_bulk_richardson_number_dry_static_energy]
 label = "Bulk Richardson number of the surface layer from dry static energy and specific humidity (IFS)"
@@ -1665,6 +1666,7 @@ note = "As the IFS quotes it; the constant alpha_M after Brutsaert (1982)."
 reference = "beljaars1992"
 equation = "71"
 note = "p. 29, combining the smooth-surface limit with the conclusions of Smith (1988); nu not given."
+notation = { z_0M = 'z_{0\mathrm{M}}', u_s = 'u_*', nu = '\nu', g_n = 'g' }
 
 [formulations.ecmwf_ifs_roughness_length_heat_sea]
 label = "Roughness length for heat over sea, smooth surface (IFS before CY49R1)"
@@ -1772,6 +1774,7 @@ criterion = "Rough flow, Rr > 2.5 after Nikuradse's criterion, which Charnock's 
 [[formulations.businger1985_roughness_length_charnock.citations]]
 reference = "ams_glossary_charnock"
 note = "alpha_c about 0.015."
+notation = { z_0M = 'z_0', a = '\alpha_c', u_s = 'u_*', g = 'g' }
 
 [formulations.edson2013_roughness_length_momentum]
 label = "Roughness length for momentum over sea, smooth and rough flow (Edson et al. 2013)"
@@ -1980,6 +1983,7 @@ assumptions = ["beta_hq = 0.25 is 'a tuning coefficient added to the original fo
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.30-3.32"
 note = "pp. 52-53, unchanged from CY49R1."
+notation = { z_0H = 'z_{0\mathrm{H}}', beta_hq = '\beta_{\mathrm{hq}}', alpha_Ch = '\alpha_{\mathrm{Ch}}', u_s = 'u_*', g_n = 'g', z_b = 'z_\mathrm{b}', alpha_H = '\alpha_{\mathrm{H}}', nu = '\nu' }
 
 [formulations.ecmwf_ifs_roughness_length_humidity_sea_state]
 label = "Roughness length for humidity over sea, with the sea state (IFS from CY49R1)"
@@ -2006,6 +2010,7 @@ assumptions = ["beta_hq = 0.25 is 'a tuning coefficient added to the original fo
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.30-3.32"
 note = "pp. 52-53, unchanged from CY49R1."
+notation = { z_0Q = 'z_{0\mathrm{Q}}', beta_hq = '\beta_{\mathrm{hq}}', alpha_Ch = '\alpha_{\mathrm{Ch}}', u_s = 'u_*', g_n = 'g', z_b = 'z_\mathrm{b}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\nu' }
 
 [formulations.ecmwf_wam_background_roughness_length]
 label = "Background roughness length of gravity-capillary waves, Charnock relation (IFS wave model until CY49R1)"
@@ -2023,17 +2028,20 @@ keywords = ["roughness length", "sea surface", "sea state", "Charnock", "wave mo
 [[formulations.ecmwf_wam_background_roughness_length.citations]]
 reference = "ecmwf_ifs_cy50r1_part7"
 equation = "3.11"
-note = "p. 14."
+note = "p. 15, written alpha^ tau_a/g, the kinematic stress tau_a being u_*^2 (3.8)."
 notation = { z_b = 'z_b', alpha_hat = '\hat{\alpha}', u_s = 'u_*', g_n = 'g' }
 
 [[formulations.ecmwf_wam_background_roughness_length.citations]]
 reference = "ecmwf_ifs_cy49r1_part7"
 equation = "3.11"
+note = "p. 15, as in CY50R1."
+notation = { z_b = 'z_b', alpha_hat = '\hat{\alpha}', u_s = 'u_*', g_n = 'g' }
 
 [[formulations.ecmwf_wam_background_roughness_length.citations]]
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.33"
 note = "p. 53, 'until CY49R1'."
+notation = { z_b = 'z_\mathrm{b}', alpha_hat = '\hat{\alpha}', u_s = 'u_*', g_n = 'g' }
 
 [formulations.ecmwf_wam_background_charnock_coefficient]
 label = "Background Charnock coefficient from the wind at 10 m (IFS wave model from CY47R1 until CY49R1)"
@@ -2050,7 +2058,7 @@ keywords = ["Charnock", "sea surface", "sea state", "wave model", "IFS"]
 [[formulations.ecmwf_wam_background_charnock_coefficient.citations]]
 reference = "ecmwf_ifs_cy50r1_part7"
 equation = "3.15"
-note = "p. 15; the values of equation 3.25, p. 16."
+note = "p. 16; the values of equation 3.25, p. 19."
 notation = { alpha_hat = '\hat{\alpha}', alpha_min = '\hat{\alpha}_\mathrm{min}', alpha_o = '\hat{\alpha}_o', U_10 = 'U_{10}' }
 
 [[formulations.ecmwf_wam_background_charnock_coefficient.citations]]
@@ -2397,8 +2405,8 @@ keywords = ["drag coefficient", "definition", "Businger"]
 [[formulations.businger1985_drag_coefficient.citations]]
 reference = "businger1985"
 equation = "24"
-note = "p. 14, where U is written u-bar - u_s, the mean wind relative to the surface current u_s."
-notation = { C_d = 'C_d', u_s = 'u_*' }
+note = "p. 14, with the mean wind relative to the surface current u_s."
+notation = { C_d = 'C_d', u_s = 'u_*', U = '\left(\bar{u} - u_s\right)' }
 
 [formulations.beljaars1992_roughness_length_heat]
 label = "Roughness length for heat over sea (Beljaars 1992)"
@@ -2461,6 +2469,7 @@ notation = { z_0H = 'z_{0\mathrm{H}}', alpha_H = '\alpha_{\mathrm{H}}', nu = '\n
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.34"
 note = "p. 53, unchanged from CY49R1."
+notation = { z_0H = 'z_{0\mathrm{H}}', alpha_H = '\alpha_{\mathrm{H}}', nu = '\nu', u_s = 'u_*', z_0M = 'z_{0\mathrm{M}}' }
 
 [formulations.ecmwf_ifs_roughness_length_humidity_sea_simplified]
 label = "Roughness length for humidity over sea, sea-state approximation (IFS from CY49R1)"
@@ -2485,6 +2494,7 @@ notation = { z_0Q = 'z_{0\mathrm{Q}}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\n
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.34"
 note = "p. 53, unchanged from CY49R1."
+notation = { z_0Q = 'z_{0\mathrm{Q}}', alpha_Q = '\alpha_{\mathrm{Q}}', nu = '\nu', u_s = 'u_*', z_0M = 'z_{0\mathrm{M}}' }
 
 [formulations.ecmwf_ifs_roughness_length_momentum_sea_ice]
 label = "Roughness length for momentum over sea ice, from the sea ice concentration (IFS)"
@@ -2613,6 +2623,7 @@ notation = { s_surf = 's_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0H = 'z
 [[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.137, 3.139 to 3.141"
+notation = { s_surf = 's_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0H = 'z_{0\mathrm{HWMO}}', zeta_2 = '\zeta_2', zeta_n = '\zeta_n', zeta_0H = '\zeta_{0\mathrm{H}}', lambda_2m = '\lambda_{2\mathrm{m}}', gamma_2m = '\gamma_{2\mathrm{m}}' }
 units = { z_2 = "M" }
 
 [[formulations.ecmwf_ifs_dry_static_energy_2m.citations]]
@@ -2648,6 +2659,7 @@ notation = { q_surf = 'q_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0Q = 'z
 [[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.138, 3.139, 3.140, 3.142"
+notation = { q_surf = 'q_{\mathrm{surf}}', z_0ma = 'z_{0\mathrm{ma}}', z_0Q = 'z_{0\mathrm{QWMO}}', zeta_2 = '\zeta_2', zeta_n = '\zeta_n', zeta_0Q = '\zeta_{0\mathrm{Q}}', lambda_2m = '\lambda_{2\mathrm{m}}', gamma_2m = '\gamma_{2\mathrm{m}}' }
 units = { z_2 = "M" }
 
 [[formulations.ecmwf_ifs_specific_humidity_2m.citations]]
@@ -2681,6 +2693,7 @@ notation = { F_10 = "F_{10}", F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mat
 [[formulations.ecmwf_ifs_wind_speed_10m.citations]]
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.145"
+notation = { F_10 = "F_{10}", F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mathrm{blend}}', z_0 = 'z_{0\mathrm{MWMO}}', zeta_10 = '\zeta_{10}', zeta_blend = '\zeta_{\mathrm{blend}}', zeta_0 = '\zeta_0' }
 units = { z_10 = "M" }
 
 [formulations.ecmwf_ifs_friction_velocity_blending_height]
@@ -2708,6 +2721,7 @@ notation = { u_s = "u_*", kappa = '\kappa', F_blend = 'F_{\mathrm{blend}}', z_bl
 [[formulations.ecmwf_ifs_friction_velocity_blending_height.citations]]
 reference = "ecmwf_ifs_cy50r1_part4"
 equation = "3.147"
+notation = { u_s = "u_*", kappa = '\kappa', F_blend = 'F_{\mathrm{blend}}', z_blend = 'z_{\mathrm{blend}}', z_0 = 'z_{0\mathrm{MWMO}}', zeta_blend = '\zeta_{\mathrm{blend}}', zeta_0 = '\zeta_0' }
 
 # --- Visibility -------------------------------------------------------
 

@@ -556,6 +556,33 @@ inputs = [
     assert s.evaluate(x=Q_(1500.0, "Pa"), z=Q_(15.0, "hPa")).magnitude == 3000.0
 
 
+LOGARITHM = """
+[formulations.f]
+label = "f"
+expression = "ln(p / p_0)"
+fixed_units = false
+citations = [{ reference = "src" }]
+output = { identifier = "y", kind = "DimensionlessRatio", unit = "UNITLESS", description = "y" }
+inputs = [{ identifier = "p", kind = "Pressure", unit = "HectoPA", description = "p" }]
+coefficients = { p_0 = { value = 100000, unit = "PA", unit_basis = "added", note = "Test." } }
+"""
+
+
+def test_a_function_takes_a_pure_number_whose_units_leave_no_factor() -> None:
+    # ln(1000 hPa / 100000 Pa) would give -4.6, the logarithm of the numbers.
+    with pytest.raises(CatalogError, match="worth 100 times its numbers"):
+        load_catalog([SOURCE + LOGARITHM])
+    # In units whose ratio is 1, the function is computed as written.
+    same = LOGARITHM.replace(
+        'value = 100000, unit = "PA"', 'value = 1000, unit = "HectoPA"'
+    )
+    f = load_catalog([SOURCE + same]).formulations["f"]
+    assert float(f.evaluate(p=Q_(1000.0, "hPa")).magnitude) == pytest.approx(0.0)
+    # In a member of an implicit equation as well: y in hPa, x in Pa.
+    with pytest.raises(CatalogError, match="worth 100 times its numbers"):
+        quantity("exp(y / x) == k", "{ k = 2.0 }")
+
+
 def test_an_expression_too_long_is_refused_before_it_is_read() -> None:
     long = " + ".join(["a * x"] * 600)
     with pytest.raises(CatalogError, match="longer than 2000 characters"):

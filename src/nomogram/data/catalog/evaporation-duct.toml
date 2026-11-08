@@ -219,7 +219,7 @@ notation = { L = "L'" }
 label = "Universal function of Jeske for unstable conditions, straight-line fit to the KEYPS profile (Paulus 1989, NOSC TD 1596)"
 expression = "piecewise((-c_0 * zeta, zeta >= -0.01), (10 ** (m_1 * log10(-zeta) + b_1), -0.026 <= zeta < -0.01), (10 ** (m_2 * log10(-zeta) + b_2), -0.1 <= zeta < -0.026), (10 ** (m_3 * log10(-zeta) + b_3), -1 <= zeta < -0.1), (10 ** (m_4 * log10(-zeta) + b_4), -2.2 <= zeta < -1), (psi_max, zeta < -2.2))"
 fixed_units = false
-note = "Step 5, a straight-line-segment fit to the KEYPS profile (Lumley and Panofsky 1964, figure A-2), quicker than the analytic form of Paulson (1970, equation A-16), which needs the KEYPS relation phi^4 - 4 alpha (z/L') phi^3 = 1, alpha = 4.5 (A-3), solved iteratively. The model uses it in unstable conditions only, Ri_b < 0; the first piece, as printed, holds for any zeta >= -0.01. Jeske takes it for any scalar, here potential refractivity (A-1)."
+note = "Step 5, a straight-line-segment fit to the KEYPS profile (Lumley and Panofsky 1964, figure A-2), quicker than the analytic form of Paulson (1970), equation A-16 of the source, which needs the KEYPS relation phi^4 - 4 alpha (z/L') phi^3 = 1, alpha = 4.5 (A-3), solved iteratively. The model uses it in unstable conditions only, Ri_b < 0; the first piece, as printed, holds for any zeta >= -0.01. Jeske takes it for any scalar, here potential refractivity (A-1)."
 output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Universal function of a scalar" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z_1/L'" },
@@ -297,8 +297,8 @@ keywords = ["evaporation duct height", "evaporation duct", "unstable", "KEYPS", 
 
 [[formulations.paulus1989_evaporation_duct_height_unstable.citations]]
 reference = "paulus1989_td1596"
-equation = "A-15"
-note = "Step 5, p. 6; B from A-16. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+equation = "A-14"
+note = "Step 5, p. 6; B from A-15 and psi from A-16 (p. A-3); A-14 writes 4 a/L', step 5 writes 4 beta/L', which nomogram follows. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
 notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", Psi_H = '\psi', beta = '\beta' }
 units = { z_0 = "M", z_1 = "M" }
 assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]

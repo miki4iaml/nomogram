@@ -316,6 +316,29 @@ def test_notation_symbols_stay_within_the_common_latex_subset() -> None:
         load_catalog([VALID + NOTATION.format(symbol=r"E_{\textrm{w}}")])
 
 
+@pytest.mark.parametrize(
+    ("symbol", "accepted"),
+    [
+        (r"\bar{u} - u_s", False),
+        (r"e + f", False),
+        (r"\left(\bar{u} - u_s\right)", True),
+        (r"-e", True),
+        (r"e^{-1}", True),
+        (r"e_{w+i}", True),
+    ],
+)
+def test_a_symbol_that_adds_is_written_in_parentheses(
+    symbol: str, accepted: bool
+) -> None:
+    # Printed as given, u-bar - u_s squared would read u-bar - u_s^2.
+    document = VALID + NOTATION.format(symbol=symbol)
+    if accepted:
+        assert load_catalog([document]).notations["n"].symbols["e"] == symbol
+    else:
+        with pytest.raises(CatalogError, match="write it in parentheses"):
+            load_catalog([document])
+
+
 KIND = """
 [kinds.{name}]
 label = "Local kind"
