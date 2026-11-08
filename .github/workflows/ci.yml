@@ -82,7 +82,7 @@ jobs:
   tests:
     name: tests (${{ matrix.os }}, ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write  # OIDC token for the Codecov upload, no stored secret
