@@ -175,6 +175,21 @@ and this project adheres to
   Dalton number, beside those for momentum and heat.
   `Catalog.formulations_of("SurfaceDragCoefficientForHumidity")`.
 
+- Flux-profile relations of the surface layer from two bulk algorithms,
+  as their sources print them. From the code of COARE 3.6: the friction
+  velocity, gustiness included, and the scales of potential temperature
+  and specific humidity from the air-sea differences, the Obukhov
+  length, the equivalent neutral wind at 10 m of its loop, and the wind,
+  temperature and humidity at a reference height; all checked against
+  the test data of COARE 3.6 (u*, t*, L, U10, T10, U10N), the profile
+  functions called at z/L. From Large and Yeager (2004): their profile
+  functions (Paulson, −5ζ), the stability parameter, the scales from the
+  transfer coefficients, the neutral wind at 10 m, the temperature and
+  humidity brought to the height of the wind, and the transfer
+  coefficients at that height and stability; their friction velocity is
+  that of the IFS from the drag, which now cites them.
+  `search(keyword="COARE")`, `search(keyword="CORE")`.
+
 ### Changed
 
 - The formulations of the IFS that took a stability parameter per height

@@ -2414,6 +2414,424 @@ equation = "24"
 note = "p. 14, with the mean wind relative to the surface current u_s."
 notation = { C_d = 'C_d', u_s = 'u_*', U = '\left(\bar{u} - u_s\right)' }
 
+# --- Flux-profile relations of COARE 3.6 and of Large and Yeager (2004) ---
+
+[formulations.coare36_friction_velocity]
+label = "Friction velocity from the wind at a height, gustiness included (COARE 3.6)"
+expression = "k * S / (ln(z_u / z_0M) - psi_u(zeta=z_u / L))"
+calls = { psi_u = "coare36_profile_function_momentum" }
+fixed_units = false
+note = "As coded in the loop: the logarithmic profile with the profile function at z_u/L, without its value at z_0/L; S includes the gustiness, and so does u_*, 'friction velocity that includes gustiness' (header). The first guess takes psiu_40 instead (l. 443)."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity, gustiness included" }
+inputs = [
+  { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u, gustiness included, S = (U^2 + U_g^2)^(1/2)" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" },
+]
+coefficients = { k = 0.4 }
+keywords = ["friction velocity", "Monin-Obukhov", "gustiness", "COARE"]
+
+[[formulations.coare36_friction_velocity.citations]]
+reference = "coare36"
+note = "Lines 502 and 505, cdhf = von/(log(zu/zo) - psiu_26(zu/L)) and usr = ut*cdhf."
+notation = { u_s = 'u_*', k = '\mathrm{von}', S = 'u_t', z_u = 'z_u', z_0M = 'z_o', L = 'L' }
+
+[formulations.coare36_temperature_scale]
+label = "Scale of potential temperature from the air-sea difference (COARE 3.6)"
+expression = "-k * (T_surf - T - g / c_pa * z_t) / (ln(z_t / z_0T) - psi_t(zeta=z_t / L))"
+calls = { psi_t = "coare36_profile_function_heat" }
+fixed_units = false
+note = "As coded in the loop, with fdg = 1 and without the cool-skin term (jcool = 0): T_surf is then the skin temperature. dT = ts - t - lapse*zt (l. 383), lapse = grav/cpa, makes the difference one of potential temperature within 0.0022 K (comment of l. 384-409); written in kelvins, the code taking degrees Celsius, whose difference is the same. Positive when the air is warmer than the sea."
+output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" }
+inputs = [
+  { identifier = "T_surf", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature of the sea surface (of the skin)" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at z_t" },
+  { identifier = "z_t", kind = "Height", unit = "M", description = "Height of the air temperature" },
+  { identifier = "z_0T", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for temperature" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity at the latitude" },
+]
+coefficients = { k = 0.4, c_pa = { value = 1004.67, unit = "J-PER-KiloGM-K", unit_basis = "added", note = "The specific heat of air, in J/(kg K), its unit not written in the code." } }
+keywords = ["temperature scale", "Monin-Obukhov", "COARE"]
+
+[[formulations.coare36_temperature_scale.citations]]
+reference = "coare36"
+note = "Lines 383, 504 and 507, dT = ts - t - lapse*zt, cthf = von*fdg/(log(zt/zot) - psit_26(zt/L)) and tsr = -(dT - dT_skin*jcool)*cthf."
+notation = { T_s = 't_*', k = '\mathrm{von}', T_surf = 't_s', T = 't', z_t = 'z_t', z_0T = 'z_{ot}', g = '\mathrm{grav}', c_pa = 'c_{pa}' }
+
+[formulations.coare36_humidity_scale]
+label = "Scale of specific humidity from the air-sea difference (COARE 3.6)"
+expression = "-k * (q_surf - q) / (ln(z_q / z_0Q) - psi_t(zeta=z_q / L))"
+calls = { psi_t = "coare36_profile_function_heat" }
+fixed_units = false
+note = "As coded in the loop, with fdg = 1 and without the cool-skin term (jcool = 0); q_surf is the saturation specific humidity at the surface, with the salinity factor (qsat26sea). Positive when the air is moister than the surface, so almost always negative over the sea."
+output = { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" }
+inputs = [
+  { identifier = "q_surf", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity at the sea surface" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity of the air at z_q" },
+  { identifier = "z_q", kind = "Height", unit = "M", description = "Height of the humidity" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" },
+]
+coefficients = { k = 0.4 }
+keywords = ["humidity scale", "Monin-Obukhov", "COARE"]
+
+[[formulations.coare36_humidity_scale.citations]]
+reference = "coare36"
+note = "Lines 412, 503 and 506, dq = Qs - Q, cqhf = von*fdg/(log(zq/zoq) - psit_26(zq/L)) and qsr = -(dq - wetc*dT_skin*jcool)*cqhf."
+notation = { q_s = 'q_*', k = '\mathrm{von}', q_surf = 'Q_s', q = 'Q', z_q = 'z_q', z_0Q = 'z_{oq}' }
+
+[formulations.coare36_obukhov_length]
+label = "Obukhov length from the scales of the surface layer (COARE 3.6)"
+expression = "T * u_s**2 / (k * g * (T_s + c * T * q_s))"
+fixed_units = false
+note = "As coded in the loop, the buoyancy of the original COARE version (0.61), ta = t + T2K with T2K = 273.16; the form of Frederickson et al. (1994, frederickson1994_obukhov_length) with the gravity at the latitude."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity at the latitude" },
+]
+coefficients = { k = 0.4, c = 0.61 }
+keywords = ["Obukhov length", "Monin-Obukhov", "COARE"]
+
+[[formulations.coare36_obukhov_length.citations]]
+reference = "coare36"
+note = "Lines 481 and 482, zeta = von*grav*zu/ta*(tsr + 0.61*ta*qsr)/usr**2 and L = zu/zeta."
+notation = { T = 't_a', u_s = 'u_*', T_s = 't_*', q_s = 'q_*', k = '\mathrm{von}', g = '\mathrm{grav}' }
+
+[formulations.coare36_wind_speed_at_height]
+label = "Wind speed at a reference height from the wind at another (COARE 3.6)"
+expression = "U + u_s * U / (k * S) * (ln(z_r / z_u) - psi_u(zeta=z_r / L) + psi_u(zeta=z_u / L))"
+calls = { psi_u = "coare36_profile_function_momentum" }
+fixed_units = false
+note = "As coded, the gustiness factor gf = S/U dividing u_*: the mean wind, without gustiness, at the reference height (U10 at 10 m, l. 658-659). Fairall et al. (2003, equation 31) write G^(1/2), with a u_* that does not include the gustiness."
+output = { identifier = "U_r", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed at the reference height" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u" },
+  { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u, gustiness included, S = (U^2 + U_g^2)^(1/2)" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "z_r", kind = "Height", unit = "M", description = "Reference height" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" },
+]
+coefficients = { k = 0.4 }
+keywords = ["wind speed", "reference height", "10 m", "Monin-Obukhov", "COARE"]
+
+[[formulations.coare36_wind_speed_at_height.citations]]
+reference = "coare36"
+note = "Line 660, Urf = U + usr/von/gf*(log(zrf_u/zu) - psirf + psi), with gf = ut/du (l. 648), psi = psiu_26(zu/L) and psirf = psiu_26(zrf_u/L)."
+notation = { U_r = 'U_{rf}', U = 'U', S = 'u_t', u_s = 'u_*', k = '\mathrm{von}', z_u = 'z_u', z_r = 'z_{rf}' }
+
+[formulations.coare36_equivalent_neutral_wind_10m]
+label = "Equivalent neutral wind at 10 m from the friction velocity and the roughness length (COARE 3.6)"
+expression = "u_s * U / (k * S) * ln(z_10 / z_0M)"
+fixed_units = false
+note = "As coded in the loop, for the Charnock coefficient of the next iteration (coare36_charnock_coefficient); at convergence, the U10N of the output (l. 662) equals it."
+output = { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u" },
+  { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u, gustiness included, S = (U^2 + U_g^2)^(1/2)" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { k = 0.4, z_10 = 10 }
+keywords = ["equivalent neutral wind", "10 m", "Charnock", "COARE"]
+
+[[formulations.coare36_equivalent_neutral_wind_10m.citations]]
+reference = "coare36"
+note = "Line 587, u10N = usr/von/gf*log(10/zo)."
+units = { z_10 = "M" }
+notation = { U_10N = 'u_{10N}', u_s = 'u_*', U = 'U', S = 'u_t', k = '\mathrm{von}', z_0M = 'z_o' }
+
+[formulations.coare36_temperature_at_height]
+label = "Air temperature at a reference height from the temperature at another (COARE 3.6)"
+expression = "T + T_s / k * (ln(z_r / z_t) - psi_t(zeta=z_r / L) + psi_t(zeta=z_t / L)) + g / c_pa * (z_t - z_r)"
+calls = { psi_t = "coare36_profile_function_heat" }
+fixed_units = false
+note = "As coded: the profile of potential temperature, with the dry adiabatic lapse rate lapse = grav/cpa bringing back a temperature (T10 at 10 m, l. 681); written in kelvins, the code taking degrees Celsius."
+output = { identifier = "T_r", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the reference height" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at z_t" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" },
+  { identifier = "z_t", kind = "Height", unit = "M", description = "Height of the air temperature" },
+  { identifier = "z_r", kind = "Height", unit = "M", description = "Reference height" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity at the latitude" },
+]
+coefficients = { k = 0.4, c_pa = { value = 1004.67, unit = "J-PER-KiloGM-K", unit_basis = "added", note = "The specific heat of air, in J/(kg K), its unit not written in the code." } }
+keywords = ["temperature", "reference height", "10 m", "Monin-Obukhov", "COARE"]
+
+[[formulations.coare36_temperature_at_height.citations]]
+reference = "coare36"
+note = "Line 682, Trf = t + tsr/von*(log(zrf_t/zt) - psirfT + psiT) + lapse*(zt - zrf_t)."
+notation = { T_r = 'T_{rf}', T = 't', T_s = 't_*', k = '\mathrm{von}', z_t = 'z_t', z_r = 'z_{rf}', g = '\mathrm{grav}', c_pa = 'c_{pa}' }
+
+[formulations.coare36_specific_humidity_at_height]
+label = "Specific humidity at a reference height from the humidity at another (COARE 3.6)"
+expression = "q + q_s / k * (ln(z_r / z_q) - psi_t(zeta=z_r / L) + psi_t(zeta=z_t / L))"
+calls = { psi_t = "coare36_profile_function_heat" }
+fixed_units = false
+note = "As coded: the profile function at the height of the humidity is taken at z_t, the height of the temperature (psiT), not at z_q; the two are equal when the sensors share a height. In kg/kg, the code writing g/kg with a factor of 1000 (Q10 at 10 m, l. 698)."
+output = { identifier = "q_r", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the reference height" }
+inputs = [
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity of the air at z_q" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" },
+  { identifier = "z_q", kind = "Height", unit = "M", description = "Height of the humidity" },
+  { identifier = "z_t", kind = "Height", unit = "M", description = "Height of the air temperature" },
+  { identifier = "z_r", kind = "Height", unit = "M", description = "Reference height" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" },
+]
+coefficients = { k = 0.4 }
+keywords = ["specific humidity", "reference height", "10 m", "Monin-Obukhov", "COARE"]
+
+[[formulations.coare36_specific_humidity_at_height.citations]]
+reference = "coare36"
+note = "Line 699, Qrf = Q + 1000*qsr/von*(log(zrf_q/zq) - psirfQ + psiT)."
+notation = { q_r = 'Q_{rf}', q = 'Q', q_s = 'q_*', k = '\mathrm{von}', z_q = 'z_q', z_t = 'z_t', z_r = 'z_{rf}' }
+
+[formulations.large_yeager2004_profile_function_momentum]
+label = "Profile function for momentum, Paulson in unstable and linear in stable conditions (Large and Yeager 2004)"
+expression = "piecewise((2 * ln((1 + ((1 - 16 * zeta) ** (1 / 4))) / 2) + ln((1 + ((1 - 16 * zeta) ** (1 / 4))**2) / 2) - 2 * atan((1 - 16 * zeta) ** (1 / 4)) + pi / 2, zeta < 0), (-5 * zeta, zeta >= 0))"
+fixed_units = false
+note = "Equations 8b to 8d: Paulson (1970) with X = (1 - 16 zeta)^(1/4) in unstable conditions, -5 zeta in stable ones."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "momentum", "Paulson", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_profile_function_momentum.citations]]
+reference = "large_yeager2004"
+equation = "8b-8d"
+note = "p. 9."
+notation = { Psi_M = '\psi_m', zeta = '\zeta' }
+
+[formulations.large_yeager2004_profile_function_heat]
+label = "Profile function for heat and moisture, Paulson in unstable and linear in stable conditions (Large and Yeager 2004)"
+expression = "piecewise((2 * ln((1 + (1 - 16 * zeta) ** (1 / 2)) / 2), zeta < 0), (-5 * zeta, zeta >= 0))"
+fixed_units = false
+note = "Equations 8b, 8c and 8e: 2 ln((1 + X^2)/2), X^2 = (1 - 16 zeta)^(1/2), in unstable conditions, -5 zeta in stable ones; for heat and moisture alike."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat and moisture" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["profile function", "heat", "moisture", "Paulson", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_profile_function_heat.citations]]
+reference = "large_yeager2004"
+equation = "8b, 8c, 8e"
+note = "p. 9."
+notation = { Psi_H = '\psi_h', zeta = '\zeta' }
+
+[formulations.large_yeager2004_stability_parameter]
+label = "Stability parameter at a height from the scales of the surface layer (Large and Yeager 2004)"
+expression = "kappa * g * z / u_s**2 * (T_s / theta_v + q_s / (q + 1 / c))"
+fixed_units = false
+note = "Equation 8a, with the virtual potential temperature theta_v = theta(z_theta)(1 + 0.608 q(z_q)) (p. 8); the gravitational acceleration is not given a value."
+output = { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L at the height z" }
+inputs = [
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" },
+  { identifier = "theta_v", kind = "VirtualPotentialTemperature", unit = "K", description = "Virtual potential temperature" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at z_q" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity at the latitude" },
+]
+coefficients = { kappa = 0.4, c = 0.608 }
+keywords = ["stability parameter", "Monin-Obukhov", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_stability_parameter.citations]]
+reference = "large_yeager2004"
+equation = "8a"
+note = "p. 9."
+notation = { zeta = '\zeta', kappa = '\kappa', u_s = 'u^*', T_s = 't^*', theta_v = '\theta_v', q_s = 'q^*', q = 'q(z_q)' }
+
+[formulations.large_yeager2004_temperature_scale]
+label = "Scale of potential temperature from the transfer coefficients (Large and Yeager 2004)"
+expression = "C_H / sqrt(C_D) * (theta - T_surf)"
+fixed_units = false
+note = "Equation 7b, with the coefficients at the height of the wind and the stability (10a, 10b) and theta at that height (9b), from the second iteration on."
+output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" }
+inputs = [
+  { identifier = "C_H", kind = "SurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Transfer coefficient for heat at the height of the wind" },
+  { identifier = "C_D", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Drag coefficient at the height of the wind" },
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the air" },
+  { identifier = "T_surf", kind = "ThermodynamicTemperature", unit = "K", description = "Sea surface temperature" },
+]
+keywords = ["temperature scale", "transfer coefficient", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_temperature_scale.citations]]
+reference = "large_yeager2004"
+equation = "7b"
+note = "p. 9."
+notation = { T_s = 't^*', C_H = 'C_H', C_D = 'C_D', theta = '\theta(z_\theta)', T_surf = '\mathrm{SST}' }
+
+[formulations.large_yeager2004_humidity_scale]
+label = "Scale of specific humidity from the transfer coefficients (Large and Yeager 2004)"
+expression = "C_E / sqrt(C_D) * (q - q_sat)"
+fixed_units = false
+note = "Equation 7c, with the coefficients at the height of the wind and the stability (10a, 10c) and q at that height (9c), from the second iteration on; q_sat is the saturation specific humidity at the sea surface (equation 5)."
+output = { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" }
+inputs = [
+  { identifier = "C_E", kind = "SurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Transfer coefficient for humidity at the height of the wind" },
+  { identifier = "C_D", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Drag coefficient at the height of the wind" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity of the air" },
+  { identifier = "q_sat", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity at the sea surface" },
+]
+keywords = ["humidity scale", "transfer coefficient", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_humidity_scale.citations]]
+reference = "large_yeager2004"
+equation = "7c"
+note = "p. 9."
+notation = { q_s = 'q^*', C_E = 'C_E', C_D = 'C_D', q = 'q(z_q)', q_sat = 'q_{sat}' }
+
+[formulations.large_yeager2004_neutral_wind_10m]
+label = "Equivalent neutral wind at 10 m from the wind at another height (Large and Yeager 2004)"
+expression = "U * (1 + sqrt(C_DN) / kappa * (ln(z_u / z_10) - Psi_M(zeta=zeta_u))) ** (-1)"
+calls = { Psi_M = "large_yeager2004_profile_function_momentum" }
+fixed_units = false
+note = "Equation 9a, C_D written without arguments being the neutral coefficient at 10 m of equation 6, as in 10a, where C_D(z_u, zeta) is the other."
+output = { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed relative to the sea surface at z_u" },
+  { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "zeta_u", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the height of the wind, z_u/L" },
+]
+coefficients = { kappa = 0.4, z_10 = 10 }
+keywords = ["equivalent neutral wind", "10 m", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_neutral_wind_10m.citations]]
+reference = "large_yeager2004"
+equation = "9a"
+note = "p. 9."
+units = { z_10 = "M" }
+notation = { U_10N = 'U_N(10m)', U = '|\Delta U|', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
+
+[formulations.large_yeager2004_potential_temperature_at_wind_height]
+label = "The potential temperature brought to the height of the wind (Large and Yeager 2004)"
+expression = "theta - T_s / kappa * (ln(z_theta / z_u) + Psi_H(zeta=zeta_u) - Psi_H(zeta=zeta_theta))"
+calls = { Psi_H = "large_yeager2004_profile_function_heat" }
+fixed_units = false
+note = "Equation 9b, which brings the potential temperature measured at z_theta to the height of the wind before the scales are computed again (step 5)."
+output = { identifier = "theta_u", kind = "PotentialTemperature", unit = "K", description = "The potential temperature at the height of the wind" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "The potential temperature at z_theta" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" },
+  { identifier = "z_theta", kind = "Height", unit = "M", description = "Height of the potential temperature" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "zeta_u", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the height of the wind, z_u/L" },
+  { identifier = "zeta_theta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at z_theta, z_theta/L" },
+]
+coefficients = { kappa = 0.4 }
+keywords = ["potential temperature", "height of the wind", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_potential_temperature_at_wind_height.citations]]
+reference = "large_yeager2004"
+equation = "9b"
+note = "p. 9."
+notation = { theta_u = '\theta(z_u)', theta = '\theta(z_\theta)', T_s = '\theta^*', kappa = '\kappa', z_theta = 'z_\theta', zeta_u = '\zeta_u', zeta_theta = '\zeta_\theta' }
+
+[formulations.large_yeager2004_specific_humidity_at_wind_height]
+label = "The specific humidity brought to the height of the wind (Large and Yeager 2004)"
+expression = "q - q_s / kappa * (ln(z_q / z_u) + Psi_H(zeta=zeta_u) - Psi_H(zeta=zeta_q))"
+calls = { Psi_H = "large_yeager2004_profile_function_heat" }
+fixed_units = false
+note = "Equation 9c, which brings the specific humidity measured at z_q to the height of the wind before the scales are computed again (step 5)."
+output = { identifier = "q_u", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "The specific humidity at the height of the wind" }
+inputs = [
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "The specific humidity at z_q" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" },
+  { identifier = "z_q", kind = "Height", unit = "M", description = "Height of the specific humidity" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "zeta_u", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the height of the wind, z_u/L" },
+  { identifier = "zeta_q", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at z_q, z_q/L" },
+]
+coefficients = { kappa = 0.4 }
+keywords = ["specific humidity", "height of the wind", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_specific_humidity_at_wind_height.citations]]
+reference = "large_yeager2004"
+equation = "9c"
+note = "p. 9."
+notation = { q_u = 'q(z_u)', q = 'q(z_q)', q_s = 'q^*', kappa = '\kappa', z_q = 'z_q', zeta_u = '\zeta_u', zeta_q = '\zeta_q' }
+
+[formulations.large_yeager2004_drag_coefficient_at_height]
+label = "Drag coefficient at the height of the wind and the stability, from the neutral one at 10 m (Large and Yeager 2004)"
+expression = "C_DN * (1 + sqrt(C_DN) / kappa * (ln(z_u / z_10) - Psi_M(zeta=zeta_u))) ** (-2)"
+calls = { Psi_M = "large_yeager2004_profile_function_momentum" }
+fixed_units = false
+note = "Equation 10a."
+output = { identifier = "C_D", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Drag coefficient at the height of the wind" }
+inputs = [
+  { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "zeta_u", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the height of the wind, z_u/L" },
+]
+coefficients = { kappa = 0.4, z_10 = 10 }
+keywords = ["drag coefficient", "stability", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_drag_coefficient_at_height.citations]]
+reference = "large_yeager2004"
+equation = "10a"
+note = "p. 10."
+units = { z_10 = "M" }
+notation = { C_D = 'C_D(z_u, \zeta)', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
+
+[formulations.large_yeager2004_transfer_coefficient_heat_at_height]
+label = "Transfer coefficient for heat at the height of the wind and the stability, from the neutral ones at 10 m (Large and Yeager 2004)"
+expression = "C_HN * sqrt(C_D / C_DN) * (1 + C_HN / (kappa * sqrt(C_DN)) * (ln(z_u / z_10) - Psi_H(zeta=zeta_u))) ** (-1)"
+calls = { Psi_H = "large_yeager2004_profile_function_heat" }
+fixed_units = false
+note = "Equation 10b, with the drag coefficient at the height of the wind of 10a."
+output = { identifier = "C_H", kind = "SurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Transfer coefficient for heat at the height of the wind" }
+inputs = [
+  { identifier = "C_HN", kind = "NeutralSurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Neutral transfer coefficient for heat at 10 m" },
+  { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" },
+  { identifier = "C_D", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Drag coefficient at the height of the wind" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "zeta_u", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the height of the wind, z_u/L" },
+]
+coefficients = { kappa = 0.4, z_10 = 10 }
+keywords = ["transfer coefficient", "heat", "stability", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_transfer_coefficient_heat_at_height.citations]]
+reference = "large_yeager2004"
+equation = "10b"
+note = "p. 10."
+units = { z_10 = "M" }
+notation = { C_H = 'C_H(z_u, \zeta)', C_HN = 'C_H', C_D = 'C_D(z_u, \zeta)', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
+
+[formulations.large_yeager2004_transfer_coefficient_humidity_at_height]
+label = "Transfer coefficient for humidity at the height of the wind and the stability, from the neutral ones at 10 m (Large and Yeager 2004)"
+expression = "C_EN * sqrt(C_D / C_DN) * (1 + C_EN / (kappa * sqrt(C_DN)) * (ln(z_u / z_10) - Psi_H(zeta=zeta_u))) ** (-1)"
+calls = { Psi_H = "large_yeager2004_profile_function_heat" }
+fixed_units = false
+note = "Equation 10c, with the drag coefficient at the height of the wind of 10a."
+output = { identifier = "C_E", kind = "SurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Transfer coefficient for humidity at the height of the wind" }
+inputs = [
+  { identifier = "C_EN", kind = "NeutralSurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Neutral transfer coefficient for humidity at 10 m" },
+  { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" },
+  { identifier = "C_D", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Drag coefficient at the height of the wind" },
+  { identifier = "z_u", kind = "Height", unit = "M", description = "Height of the wind" },
+  { identifier = "zeta_u", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter at the height of the wind, z_u/L" },
+]
+coefficients = { kappa = 0.4, z_10 = 10 }
+keywords = ["transfer coefficient", "humidity", "stability", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_transfer_coefficient_humidity_at_height.citations]]
+reference = "large_yeager2004"
+equation = "10c"
+note = "p. 10."
+units = { z_10 = "M" }
+notation = { C_E = 'C_E(z_u, \zeta)', C_EN = 'C_E', C_D = 'C_D(z_u, \zeta)', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
+
 [formulations.beljaars1992_roughness_length_heat]
 label = "Roughness length for heat over sea (Beljaars 1992)"
 expression = "z_c + alpha_H * nu / u_s"
@@ -2605,6 +3023,12 @@ inputs = [
   { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, with the free-convection velocity (equation 3.19)" },
 ]
 keywords = ["friction velocity", "IFS"]
+
+[[formulations.ecmwf_ifs_friction_velocity.citations]]
+reference = "large_yeager2004"
+equation = "7a"
+note = "p. 9, with the drag coefficient at the height of the wind and the stability (10a) from the second iteration on."
+notation = { u_s = 'u^*', C_M = 'C_D', U_n = '|\Delta U|' }
 
 [[formulations.ecmwf_ifs_friction_velocity.citations]]
 reference = "ecmwf_ifs_cy49r1"
