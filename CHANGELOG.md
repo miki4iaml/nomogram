@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- The inverses of Sonntag (1994): the dew point and the frost point from
+  the vapour pressure (equations 9 to 13), which give back his formulations
+  over water and ice within 0.011 to 0.065 K, as the notes say against the
+  ranges he states, and those of his Magnus forms (equations 15 and 17);
+  Sonntag (1994) cited for those forms (equations 14 and 16). Goff (1957)
+  over ice, as Murphy and Koop (2005) give it, beside the form WMO-No. 49
+  (2012) prints, whose third term the note compares.
+
 - Free convection in the surface layer: the virtual temperature flux,
   the free convection velocity scale w* and the wind speed of the lowest
   model level of the IFS (CY49R1, equations 3.10, 3.20, 3.19), and the
@@ -303,6 +311,10 @@ and this project adheres to
 
 ### Fixed
 
+- The reference of Goff (1957), written from memory, now as Murphy and
+  Koop (2005) list it: "Saturation pressure of water on the new Kelvin
+  scale", Transactions of the American Society of Heating and
+  Air-Conditioning Engineers, 63, 347-354.
 - A condition comparing an input with 0, such as `Q_0v > 0` for a flux in
   K m/s, no longer asks 0 for the unit of the input: 0 has every unit, as
   a member 0 of an implicit equation does.

@@ -654,6 +654,19 @@ def test_every_declared_unit_is_listed_with_its_reason() -> None:
         # cube root; and the gust of 0.2 m/s of the code of COARE.
         ("ecmwf_ifs_free_convection_velocity_scale", "z_i"): "stated",
         ("coare36_convective_gust", "u_0"): "added",
+        # Sonntag (1994) writes e in hPa in the logarithms of his inverses;
+        # Murphy and Koop (2005) give Goff (1957) over ice in K and Pa.
+        **dict.fromkeys(
+            (
+                ("sonntag1994_dew_point", "e_0"),
+                ("sonntag1994_frost_point", "e_0"),
+                ("sonntag1994_dew_point_magnus", "C"),
+                ("sonntag1994_frost_point_magnus", "C"),
+                ("goff1957_ice", "T_t"),
+                ("goff1957_ice", "p_t"),
+            ),
+            "stated",
+        ),
         **{
             (f"large_yeager2004_{key}", "z_10"): "stated"
             for key in (

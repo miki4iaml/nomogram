@@ -1170,6 +1170,116 @@ inputs = [
 ]
 keywords = ["frost point", "radiosonde"]
 
+[formulations.sonntag1994_dew_point]
+label = "Dew point from the vapour pressure, Sonntag (1994) inverse of his formulation over water on ITS-90"
+expression = "piecewise((a1 * ln(e / e_0) + a2 * ln(e / e_0) ** 2 + a3 * ln(e / e_0) ** 3 + a4 * ln(e / e_0) ** 4, e >= e_0), (b1 * ln(e / e_0) + b2 * ln(e / e_0) ** 2 + b3 * ln(e / e_0) ** 3 + b4 * ln(e / e_0) ** 4, e < e_0))"
+fixed_units = true
+note = "Equations 9 to 11, the reference conversion formulae derived from equation 7 (sonntag1990): y = ln(e/6.11213), e in hPa, the dew point in degC; equation 10 for y >= 0, from 0 to 100 degC within 0.01 K, equation 11 for y < 0, within 0.01 K down to -75 degC, 0.02 K to -80 degC and 0.06 K to -100 degC. As printed, they give back equation 7 within 0.011 K from 0 to 100 degC, 0.014 K down to -75 degC, 0.019 K to -80 degC and 0.065 K to -100 degC (largest near 8, -65 and -92 degC)."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+keywords = ["dew point", "Sonntag", "radiosonde"]
+
+[formulations.sonntag1994_dew_point.coefficients]
+a1 = 13.715
+a2 = 8.4262e-1
+a3 = 1.9048e-2
+a4 = 7.8158e-3
+b1 = 13.7204
+b2 = 7.36631e-1
+b3 = 3.32136e-2
+b4 = 7.78591e-4
+e_0 = 6.11213
+
+[[formulations.sonntag1994_dew_point.citations]]
+reference = "sonntag1994"
+equation = "9, 10, 11"
+note = "p. 53."
+notation = { t_d = 't_\mathrm{d}' }
+units = { e_0 = "HectoPA" }
+scales = { t_d = "its90" }
+
+[[formulations.sonntag1994_dew_point.citations.domains]]
+bounds = { t_d = [-100.0, 100.0] }
+criterion = "The ranges of equations 10 and 11: 0 to 100 degC within 0.01 K; down to -75 degC within 0.01 K, -80 degC within 0.02 K, -100 degC within 0.06 K."
+
+[formulations.sonntag1994_frost_point]
+label = "Frost point from the vapour pressure, Sonntag (1994) inverse of his formulation over ice on ITS-90"
+expression = "c1 * ln(e / e_0) + c2 * ln(e / e_0) ** 2 + c3 * ln(e / e_0) ** 3 + c4 * ln(e / e_0) ** 4"
+fixed_units = true
+note = "Equations 12 and 13, the reference conversion formula derived from equation 8 (sonntag1990_ice): y = ln(e/6.11153), e in hPa, the frost point in degC, for y <= 0, within 0.01 K down to -80 degC and 0.03 K to -100 degC. As printed, it gives back equation 8 within 0.011 K down to -80 degC and 0.037 K to -100 degC (largest near -92 degC)."
+output = { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+keywords = ["frost point", "Sonntag", "radiosonde"]
+
+[formulations.sonntag1994_frost_point.coefficients]
+c1 = 12.1197
+c2 = 5.25112e-1
+c3 = 1.92206e-2
+c4 = 3.8403e-4
+e_0 = 6.11153
+
+[[formulations.sonntag1994_frost_point.citations]]
+reference = "sonntag1994"
+equation = "12, 13"
+note = "p. 53."
+notation = { t_f = 't_\mathrm{f}' }
+units = { e_0 = "HectoPA" }
+scales = { t_f = "its90" }
+
+[[formulations.sonntag1994_frost_point.citations.domains]]
+bounds = { t_f = [-100.0, 0.01] }
+criterion = "The range of equation 13: down to -80 degC within 0.01 K, -100 degC within 0.03 K."
+
+[formulations.sonntag1994_dew_point_magnus]
+label = "Dew point from the vapour pressure, inverse of the Magnus form of Sonntag over water"
+expression = "B * ln(e / C) / (A - ln(e / C))"
+fixed_units = true
+note = "Equation 15, the conversion of equation 14 (sonntag1990_magnus), within 0.02 K (standard deviation) over its range, -45 to 60 degC; e in hPa, the dew point in degC."
+output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+coefficients = { A = 17.62, B = 243.12, C = 6.112 }
+keywords = ["dew point", "Magnus", "Sonntag"]
+
+[[formulations.sonntag1994_dew_point_magnus.citations]]
+reference = "sonntag1994"
+equation = "15"
+note = "p. 53."
+notation = { t_d = 't_\mathrm{d}' }
+units = { C = "HectoPA" }
+
+[[formulations.sonntag1994_dew_point_magnus.citations.domains]]
+bounds = { t_d = [-45.0, 60.0] }
+criterion = "The range of equation 14, which it inverts, within 0.02 K."
+
+[formulations.sonntag1994_frost_point_magnus]
+label = "Frost point from the vapour pressure, inverse of the Magnus form of Sonntag over ice"
+expression = "B * ln(e / C) / (A - ln(e / C))"
+fixed_units = true
+note = "Equation 17, the conversion of equation 16 (wmo2008_ice), within 0.004 K (standard deviation) over its range, -65 to 0.01 degC; e in hPa, the frost point in degC."
+output = { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
+]
+coefficients = { A = 22.46, B = 272.62, C = 6.112 }
+keywords = ["frost point", "Magnus", "Sonntag"]
+
+[[formulations.sonntag1994_frost_point_magnus.citations]]
+reference = "sonntag1994"
+equation = "17"
+note = "p. 53."
+notation = { t_f = 't_\mathrm{f}' }
+units = { C = "HectoPA" }
+
+[[formulations.sonntag1994_frost_point_magnus.citations.domains]]
+bounds = { t_f = [-65.0, 0.01] }
+criterion = "The range of equation 16, which it inverts, within 0.004 K."
+
 [formulations.hardy1998_frost_point.coefficients]
 c0 = { value = 2.1257969e2, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
 c1 = { value = -1.0264612e1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
