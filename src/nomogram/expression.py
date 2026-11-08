@@ -210,6 +210,10 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         r"\overline",
         r"\mathcal",
         r"\mathbf",
+        # The arrow of a vector, as Large and Yeager (2004) write the wind
+        # difference |Delta U-arrow| (in the lists of MathJax, base package,
+        # and KaTeX, accents, on 2026-11-08; parsed by mathtext).
+        r"\vec",
     }
     | {"\\" + letter for letter in _GREEK}
 )

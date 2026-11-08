@@ -2782,7 +2782,7 @@ reference = "large_yeager2004"
 equation = "9a"
 note = "p. 9."
 units = { z_10 = "M" }
-notation = { U_10N = 'U_N(10m)', U = '|\Delta U|', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
+notation = { U_10N = 'U_N(10m)', U = '|\Delta \vec{U}|', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
 
 [formulations.large_yeager2004_potential_temperature_at_wind_height]
 label = "The potential temperature brought to the height of the wind (Large and Yeager 2004)"
@@ -3028,7 +3028,7 @@ notation = { J_M = 'J_{\mathrm{M}}', rho = '\rho', C_M = 'C_{\mathrm{M}}', U_n =
 reference = "large_yeager2004"
 equation = "4d"
 note = "p. 7, the magnitude of the vector stress, with the wind difference relative to the surface current."
-notation = { J_M = '|\tau|', rho = '\rho_a', C_M = 'C_D', U_n = '|\Delta U|' }
+notation = { J_M = '|\tau|', rho = '\rho_a', C_M = 'C_D', U_n = '|\Delta \vec{U}|' }
 
 [formulations.ecmwf_ifs_sensible_heat_flux]
 label = "Downward flux of dry static energy at the surface from the transfer coefficient for heat (IFS)"
@@ -3076,7 +3076,7 @@ notation = { J_q = 'J_q', rho = '\rho', C_Q = 'C_{\mathrm{Q}}', U_n = '|U_n|', q
 reference = "large_yeager2004"
 equation = "4a"
 note = "p. 6, the evaporation E."
-notation = { J_q = 'E', rho = '\rho_a', C_Q = 'C_E', U_n = '|\Delta U|', q_n = 'q(z_q)', q_surf = 'q_{sat}' }
+notation = { J_q = 'E', rho = '\rho_a', C_Q = 'C_E', U_n = '|\Delta \vec{U}|', q_n = 'q(z_q)', q_surf = 'q_{sat}' }
 
 [formulations.large_yeager2004_sensible_heat_flux]
 label = "Downward sensible heat flux at the sea surface from the transfer coefficient for heat (Large and Yeager 2004)"
@@ -3099,7 +3099,7 @@ reference = "large_yeager2004"
 equation = "4c"
 note = "p. 7."
 units = { c_p = "J-PER-KiloGM-K" }
-notation = { Q_H = 'Q_H', rho = '\rho_a', c_p = 'c_p', C_H = 'C_H', theta = '\theta(z_\theta)', T_surf = '\mathrm{SST}', U = '|\Delta U|' }
+notation = { Q_H = 'Q_H', rho = '\rho_a', c_p = 'c_p', C_H = 'C_H', theta = '\theta(z_\theta)', T_surf = '\mathrm{SST}', U = '|\Delta \vec{U}|' }
 
 [formulations.large_yeager2004_latent_heat_flux]
 label = "Downward latent heat flux at the sea surface from the evaporation (Large and Yeager 2004)"
@@ -3316,7 +3316,7 @@ keywords = ["friction velocity", "IFS"]
 reference = "large_yeager2004"
 equation = "7a"
 note = "p. 9, with the drag coefficient at the height of the wind and the stability (10a) from the second iteration on."
-notation = { u_s = 'u^*', C_M = 'C_D', U_n = '|\Delta U|' }
+notation = { u_s = 'u^*', C_M = 'C_D', U_n = '|\Delta \vec{U}|' }
 
 [[formulations.ecmwf_ifs_friction_velocity.citations]]
 reference = "ecmwf_ifs_cy49r1"
