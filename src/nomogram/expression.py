@@ -855,7 +855,9 @@ def compile_numeric(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]
     return _lambdify(expr, arguments)
 
 
-@lru_cache(maxsize=256)
+# A catalog compiles some 1600 expressions as it loads: a smaller cache
+# would evict them before a second catalog, or a second check, asks again.
+@lru_cache(maxsize=8192)
 def _lambdify(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]:
     named = {s.name: s for s in expr.free_symbols}
     symbols = [named.get(name, sympy.Symbol(name, real=True)) for name in arguments]

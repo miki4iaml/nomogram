@@ -214,6 +214,13 @@ and this project adheres to
 
 ### Changed
 
+- Loading the catalog and searching it are faster: unit inference builds
+  the text of a constraint only for a message, numerical functions are
+  cached, and so are the folded words of a search. Measured on
+  2026-11-08 for the bundled catalog: a first load from about 5.9 s to
+  4.7 s, a later one in the same process from 4.9 s to 1.9 s, and
+  searches twice as fast.
+
 - The formulations of the IFS that took a stability parameter per height
   take the Obukhov length instead, and call the profile functions at
   (z + z_0)/L and z_0/L, as the IFS writes them: the transfer

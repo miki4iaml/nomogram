@@ -38,6 +38,7 @@ import unicodedata
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, overload
 
 from nomogram.model import Formulation, _origin
@@ -155,11 +156,13 @@ _INNER = re.compile(r"[._:'\-]+")
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
+@lru_cache(maxsize=65536)
 def fold(text: str) -> str:
     """Text without case or accents, LaTeX commands and Greek letters by name.
 
     ``"Équation"`` gives ``"equation"``, ``"\\rho"`` and ``"ρ"`` give
-    ``"rho"``.
+    ``"rho"``. Cached: a search folds the same keys of notations and
+    references for every entry it reads.
     """
     text = unicodedata.normalize("NFKD", text)
     text = "".join(c for c in text if not unicodedata.combining(c)).casefold()
@@ -642,8 +645,14 @@ def index(catalog: Catalog) -> _Index:
 _SYMBOLIC = frozenset({"output", "input", "variable"})
 
 
-def _terms(pattern: str, symbol: bool = False) -> list[str]:
-    return [symbol_form(t) if symbol else fold(t) for t in pattern.split()]
+@lru_cache(maxsize=4096)
+def _terms(pattern: str, symbol: bool = False) -> tuple[str, ...]:
+    """The terms of a pattern, folded or in the normal form of a symbol.
+
+    Cached: a search matches the same pattern against every entry, and
+    the normal form of a symbol parses its LaTeX.
+    """
+    return tuple(symbol_form(t) if symbol else fold(t) for t in pattern.split())
 
 
 def _notation_matches(key: str, pattern: str) -> bool:
@@ -658,11 +667,20 @@ def _notation_matches(key: str, pattern: str) -> bool:
     )
 
 
-def _all_match(terms: list[str], found: frozenset[str]) -> bool:
+#: The signs that make a term a pattern for :func:`fnmatch.fnmatchcase`.
+_WILDCARDS = frozenset("*?[")
+
+
+def _all_match(terms: Sequence[str], found: frozenset[str]) -> bool:
     # A word equal to a term matches it, wildcard signs included: an
-    # address holding [0] finds itself.
+    # address holding [0] finds itself. A term without them matches no
+    # other word, which spares comparing it with every word.
     return all(
-        term in found or any(fnmatchcase(word, term) for word in found)
+        term in found
+        or (
+            not _WILDCARDS.isdisjoint(term)
+            and any(fnmatchcase(word, term) for word in found)
+        )
         for term in terms
     )
 

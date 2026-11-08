@@ -4,10 +4,10 @@
 """Tests for expressions passed as arguments of the formulations called."""
 
 import math
-from importlib.resources import files
 
 import numpy as np
 import pytest
+from bundled_catalog import bundled_documents
 from matplotlib.mathtext import MathTextParser
 
 from nomogram.catalog import Catalog, CatalogError, load_catalog
@@ -77,13 +77,8 @@ def load(*documents: str) -> Catalog:
 
 
 def _bundled() -> list[str]:
-    """The documents of the bundled catalog."""
-    folder = files("nomogram.data.catalog")
-    return [
-        f.read_text(encoding="utf-8")
-        for f in sorted(folder.iterdir(), key=lambda f: f.name)
-        if f.name.endswith(".toml")
-    ]
+    """The core of the bundled catalog, which holds the temperature scales."""
+    return bundled_documents("core")
 
 
 def psi(zeta: float) -> float:

@@ -485,7 +485,11 @@ def test_declared_units_say_where_they_come_from(table: str, message: str) -> No
         load_catalog([document])
 
 
-def test_catalog_declares_only_units_inference_cannot_give() -> None:
+def test_every_declared_unit_is_listed_with_its_reason() -> None:
+    # A review list, not a property: on 2026-11-08, inference would give
+    # back every declared unit of 25 of the 50 formulations that declare
+    # some, units their source states and that the catalog keeps. A unit
+    # declared without need thus shows here, and its reason is written.
     origins = {
         (f.key, name): unit.origin
         for f in CATALOG.formulations.values()

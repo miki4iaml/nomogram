@@ -4,12 +4,11 @@
 """Tests for formulations that call others: syntax, checks, values, display."""
 
 import re
-from importlib.resources import files
-from importlib.resources.abc import Traversable
 
 import numpy as np
 import pytest
 import sympy
+from bundled_catalog import with_families
 from matplotlib.mathtext import MathTextParser
 
 from nomogram.catalog import Catalog, CatalogError, catalog, load_catalog
@@ -432,16 +431,13 @@ composition = { outer = "wmo_relative_humidity", inner = { e_ws = "wmo_es_water_
 
 
 def with_catalog(*documents: str) -> Catalog:
-    """The bundled catalog, with documents written for a test."""
-    bundled: list[Traversable] = sorted(
-        (
-            f
-            for f in files("nomogram.data.catalog").iterdir()
-            if f.name.endswith(".toml")
-        ),
-        key=lambda f: f.name,
-    )
-    return load_catalog([*(f.read_text(encoding="utf-8") for f in bundled), *documents])
+    """The moist-air family and those it requires, with documents for a test.
+
+    The formulations these tests call, compose or rename (the saturation
+    vapour pressures of WMO and Sonntag, the mixing ratio) and the scales
+    are there: the rest of the catalog would only lengthen each load.
+    """
+    return with_families(("moist-air",), *documents)
 
 
 # --- More paths -------------------------------------------------------------------
