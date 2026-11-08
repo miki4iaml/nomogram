@@ -622,6 +622,10 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("coare36_equivalent_neutral_wind_10m", "z_10"): "stated",
         ("coare36_temperature_scale", "c_pa"): "added",
         ("coare36_temperature_at_height", "c_pa"): "added",
+        # The specific heat and the latent heat of Large and Yeager (2004),
+        # given with their units, in a quantity equation.
+        ("large_yeager2004_sensible_heat_flux", "c_p"): "stated",
+        ("large_yeager2004_latent_heat_flux", "Lambda_v"): "stated",
         # alpha and kappa of Fairall et al. (1978) appear only in their product.
         **{
             (f"fairall1978_{key}", name): "stated"

@@ -538,6 +538,30 @@ specialization_of = "DimensionlessRatio"
 bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative: water vapour flows down the difference of humidity." }
 description = "Transfer coefficient relating the surface flux of water vapour to the speed of the flow and the difference of specific humidity between a height and the surface, the Dalton number; in the IFS, J_q = rho C_Q |U_n| (alpha_n q_n - alpha_surf q_surf)."
 
+[kinds.SurfaceDownwardSensibleHeatFlux]
+label = "Surface Downward Sensible Heat Flux"
+specialization_of = "HeatFluxDensity"
+description = "Flux of sensible heat across the surface, positive toward it, from the air into the sea or the ground, as the IFS and Large and Yeager (2004) write it: negative when the surface warms the air."
+cf_standard_names = [{ name = "surface_downward_sensible_heat_flux", relation = "exact", verified = 2026-11-08 }]
+
+[kinds.SurfaceDownwardLatentHeatFlux]
+label = "Surface Downward Latent Heat Flux"
+specialization_of = "HeatFluxDensity"
+description = "Flux of latent heat across the surface, positive toward it, the latent heat of vaporization times the downward flux of water vapour: negative over an evaporating sea."
+cf_standard_names = [{ name = "surface_downward_latent_heat_flux", relation = "exact", verified = 2026-11-08 }]
+
+[kinds.SurfaceDownwardWaterVapourFlux]
+label = "Surface Downward Water Vapour Flux"
+specialization_of = "MassPerAreaTime"
+description = "Mass flux of water vapour across the surface, positive toward it, as the IFS and Large and Yeager (2004) write it: negative over an evaporating sea, the opposite of the evaporation; CF names the upward flux, surface_upward_water_vapor_flux_in_air, of the opposite sign."
+
+[kinds.MagnitudeOfSurfaceDownwardStress]
+label = "Magnitude of Surface Downward Stress"
+specialization_of = "Stress"
+bounds = { low = 0, high = inf, unit = "PA", criterion = "The magnitude of a vector, never negative." }
+description = "Magnitude of the stress the air exerts on the surface, the downward flux of horizontal momentum, rho u_*^2."
+cf_standard_names = [{ name = "magnitude_of_surface_downward_stress", relation = "exact", verified = 2026-11-08 }]
+
 [kinds.SeaIceAreaFraction]
 label = "Sea Ice Area Fraction"
 specialization_of = "DimensionlessRatio"
@@ -2875,6 +2899,123 @@ reference = "businger1985"
 equation = "44"
 note = "p. 20."
 notation = { Delta_theta = '\bar{\theta}', T_s = '\theta_*', k = 'k^*', z = 'z', z_0M = 'z_o', Psi_H = '\psi_2' }
+
+# --- Surface fluxes -----------------------------------------------------
+
+[formulations.ecmwf_ifs_surface_stress]
+label = "Magnitude of the surface stress from the drag coefficient (IFS)"
+expression = "rho * C_M * U_n**2"
+fixed_units = false
+note = "Equation 3.15, J_M; Large and Yeager (2004, equation 4d) write the vector, whose magnitude this is."
+output = { identifier = "J_M", kind = "MagnitudeOfSurfaceDownwardStress", unit = "PA", description = "Magnitude of the surface stress" }
+inputs = [
+  { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Density of the air" },
+  { identifier = "C_M", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Transfer coefficient for momentum" },
+  { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, the free convection velocity included (3.19)" },
+]
+keywords = ["surface stress", "momentum flux", "transfer coefficient", "IFS", "NCAR", "CORE"]
+
+[[formulations.ecmwf_ifs_surface_stress.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.15"
+note = "p. 48."
+notation = { J_M = 'J_{\mathrm{M}}', rho = '\rho', C_M = 'C_{\mathrm{M}}', U_n = '|U_n|' }
+
+[[formulations.ecmwf_ifs_surface_stress.citations]]
+reference = "large_yeager2004"
+equation = "4d"
+note = "p. 7, the magnitude of the vector stress, with the wind difference relative to the surface current."
+notation = { J_M = '|\tau|', rho = '\rho_a', C_M = 'C_D', U_n = '|\Delta U|' }
+
+[formulations.ecmwf_ifs_sensible_heat_flux]
+label = "Downward flux of dry static energy at the surface from the transfer coefficient for heat (IFS)"
+expression = "rho * C_H * U_n * (s_n - s_surf)"
+fixed_units = false
+note = "Equation 3.15, J_s, positive downward as written, (s_n - s_surf); the flux of dry static energy, s_surf = c_p T_surf, which the IFS takes as the sensible heat flux."
+output = { identifier = "J_s", kind = "SurfaceDownwardSensibleHeatFlux", unit = "W-PER-M2", description = "Downward flux of dry static energy at the surface" }
+inputs = [
+  { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Density of the air" },
+  { identifier = "C_H", kind = "SurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Transfer coefficient for heat" },
+  { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, the free convection velocity included (3.19)" },
+  { identifier = "s_n", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the lowest model level" },
+  { identifier = "s_surf", kind = "DryStaticEnergy", unit = "J-PER-KiloGM", description = "Dry static energy at the surface" },
+]
+keywords = ["sensible heat flux", "dry static energy", "transfer coefficient", "IFS"]
+
+[[formulations.ecmwf_ifs_sensible_heat_flux.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.15"
+note = "p. 48."
+notation = { J_s = 'J_s', rho = '\rho', C_H = 'C_{\mathrm{H}}', U_n = '|U_n|', s_n = 's_n', s_surf = 's_{\mathrm{surf}}' }
+
+[formulations.ecmwf_ifs_moisture_flux]
+label = "Downward flux of water vapour at the sea surface from the transfer coefficient for humidity (IFS)"
+expression = "rho * C_Q * U_n * (q_n - q_surf)"
+fixed_units = false
+note = "Equation 3.15, J_q, over water, where alpha_n = alpha_surf = 1; positive downward as written, so negative over an evaporating sea. Large and Yeager (2004, equation 4a) write the same evaporation E, with the specific humidity at z_q and that of saturation at the sea temperature."
+output = { identifier = "J_q", kind = "SurfaceDownwardWaterVapourFlux", unit = "KiloGM-PER-M2-SEC", description = "Downward flux of water vapour at the surface" }
+inputs = [
+  { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Density of the air" },
+  { identifier = "C_Q", kind = "SurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Transfer coefficient for humidity" },
+  { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, the free convection velocity included (3.19)" },
+  { identifier = "q_n", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the lowest model level" },
+  { identifier = "q_surf", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity at the sea surface" },
+]
+keywords = ["moisture flux", "evaporation", "transfer coefficient", "IFS", "NCAR", "CORE"]
+
+[[formulations.ecmwf_ifs_moisture_flux.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.15"
+note = "p. 48, with alpha_n = alpha_surf = 1 over water."
+notation = { J_q = 'J_q', rho = '\rho', C_Q = 'C_{\mathrm{Q}}', U_n = '|U_n|', q_n = 'q_n', q_surf = 'q_{\mathrm{surf}}' }
+
+[[formulations.ecmwf_ifs_moisture_flux.citations]]
+reference = "large_yeager2004"
+equation = "4a"
+note = "p. 6, the evaporation E."
+notation = { J_q = 'E', rho = '\rho_a', C_Q = 'C_E', U_n = '|\Delta U|', q_n = 'q(z_q)', q_surf = 'q_{sat}' }
+
+[formulations.large_yeager2004_sensible_heat_flux]
+label = "Downward sensible heat flux at the sea surface from the transfer coefficient for heat (Large and Yeager 2004)"
+expression = "rho * c_p * C_H * (theta - T_surf) * U"
+fixed_units = false
+note = "Equation 4c, positive into the ocean as written, (theta(z_theta) - SST); c_p is about 1000.5 J/kg/K, the effect of humidity on it being ignored."
+output = { identifier = "Q_H", kind = "SurfaceDownwardSensibleHeatFlux", unit = "W-PER-M2", description = "Downward sensible heat flux at the surface" }
+inputs = [
+  { identifier = "rho", kind = "Density", unit = "KiloGM-PER-M3", description = "Density of the air" },
+  { identifier = "C_H", kind = "SurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Transfer coefficient for heat" },
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the air at z_theta" },
+  { identifier = "T_surf", kind = "ThermodynamicTemperature", unit = "K", description = "Sea surface temperature" },
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed relative to the surface current" },
+]
+coefficients = { c_p = 1000.5 }
+keywords = ["sensible heat flux", "transfer coefficient", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_sensible_heat_flux.citations]]
+reference = "large_yeager2004"
+equation = "4c"
+note = "p. 7."
+units = { c_p = "J-PER-KiloGM-K" }
+notation = { Q_H = 'Q_H', rho = '\rho_a', c_p = 'c_p', C_H = 'C_H', theta = '\theta(z_\theta)', T_surf = '\mathrm{SST}', U = '|\Delta U|' }
+
+[formulations.large_yeager2004_latent_heat_flux]
+label = "Downward latent heat flux at the sea surface from the evaporation (Large and Yeager 2004)"
+expression = "Lambda_v * E"
+fixed_units = false
+note = "Equation 4b, the latent heat of vaporization about 2.5e6 J/kg, its variation with temperature ignored; E, positive into the ocean, from equation 4a (ecmwf_ifs_moisture_flux)."
+output = { identifier = "Q_E", kind = "SurfaceDownwardLatentHeatFlux", unit = "W-PER-M2", description = "Downward latent heat flux at the surface" }
+inputs = [
+  { identifier = "E", kind = "SurfaceDownwardWaterVapourFlux", unit = "KiloGM-PER-M2-SEC", description = "Downward flux of water vapour, the evaporation of 4a" },
+]
+coefficients = { Lambda_v = 2.5e6 }
+keywords = ["latent heat flux", "evaporation", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_latent_heat_flux.citations]]
+reference = "large_yeager2004"
+equation = "4b"
+note = "p. 7."
+units = { Lambda_v = "J-PER-KiloGM" }
+notation = { Q_E = 'Q_E', Lambda_v = '\Lambda_v', E = 'E' }
 
 [formulations.beljaars1992_roughness_length_heat]
 label = "Roughness length for heat over sea (Beljaars 1992)"

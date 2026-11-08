@@ -522,3 +522,175 @@ def test_the_generic_alternatives_are_found_together() -> None:
     } <= friction
     assert F["fairall1978_friction_velocity"].family == "evaporation-duct"
     assert F["businger1985_wind_profile"].family == "boundary-layer"
+
+
+# --- COARE 3.6 in stable conditions, from its code -----------------------------------
+
+# Three stable cases (air warmer than the sea, zu/L = 1.45, 0.53, 0.086),
+# computed by running the code of COARE 3.6 (commit bd1cac8, MIT License)
+# on: u = 4, 8, 12 m/s at zu = 18 m; ts = 15 degC; t = ts + 1.5, 3, 2 degC at
+# zt = zq = 17 m; rh = 85 %; P = 1015 hPa; lat = 45 deg; no shortwave, 350 W/m2
+# of longwave; zi = 600 m; Ss = 35. Its test data hold no stable case.
+STABLE_U = np.array([4.0, 8.0, 12.0])
+STABLE_T = 15.0 + np.array([1.5, 3.0, 2.0])
+STABLE = {
+    "usr": [8.1431175969e-02, 2.0328575138e-01, 4.1123988124e-01],
+    "tsr": [4.1012278196e-02, 8.8366303201e-02, 6.0602824368e-02],
+    "qsr": [-8.4990662981e-06, 1.5268838629e-05, -3.4204571420e-06],
+    "zo": [1.9576704175e-05, 3.2917280022e-05, 2.3849905281e-04],
+    "zot": [1.6000000000e-04, 1.0299809242e-04, 1.4837566586e-05],
+    "L": [1.2393560378e01, 3.3680142907e01, 2.0851331646e02],
+    "dT_skinx": [1.2044009284e-01, 1.2471414605e-02, 9.6161380596e-03],
+    "U10": [3.4160218168e00, 7.1585830408e00, 1.1195494636e01],
+    "U10N": [2.6724401729e00, 6.4137440870e00, 1.0941296455e01],
+    "T10": [1.6289424719e01, 1.7743530193e01, 1.6962926773e01],
+}
+STABLE_GUST = 0.2  # the gustiness of the code where the buoyancy flux is negative
+
+
+def test_coare_in_stable_conditions() -> None:
+    expected = {k: np.array(v) for k, v in STABLE.items()}
+    s = Q_(np.sqrt(STABLE_U**2 + STABLE_GUST**2), "m/s")
+    length = Q_(expected["L"], "m")
+    g = Q_(grv(np.full(3, 45.0)), "m/s**2")
+    found = value(
+        "coare36_friction_velocity",
+        S=s,
+        z_u=Q_(Z_U, "m"),
+        z_0M=Q_(expected["zo"], "m"),
+        L=length,
+    )
+    np.testing.assert_allclose(found, expected["usr"], rtol=1e-8)
+    scale = value(
+        "coare36_temperature_scale",
+        T_surf=Q_(15.0 - expected["dT_skinx"] + 273.15, "K"),
+        T=Q_(STABLE_T + 273.15, "K"),
+        z_t=Q_(Z_T, "m"),
+        z_0T=Q_(expected["zot"], "m"),
+        L=length,
+        g=g,
+    )
+    np.testing.assert_allclose(scale, expected["tsr"], rtol=1e-6)
+    obukhov_length = value(
+        "coare36_obukhov_length",
+        T=Q_(STABLE_T + 273.16, "K"),
+        u_s=Q_(expected["usr"], "m/s"),
+        T_s=Q_(expected["tsr"], "K"),
+        q_s=Q_(expected["qsr"], "kg/kg"),
+        g=g,
+    )
+    # The code computes L at the start of an iteration from the scales of the
+    # one before: in stable conditions, it lags them by about 1e-5.
+    np.testing.assert_allclose(obukhov_length, expected["L"], rtol=2e-5)
+    wind = value(
+        "coare36_wind_speed_at_height",
+        U=Q_(STABLE_U, "m/s"),
+        S=s,
+        u_s=Q_(expected["usr"], "m/s"),
+        z_u=Q_(Z_U, "m"),
+        z_r=Q_(10.0, "m"),
+        L=length,
+    )
+    np.testing.assert_allclose(wind, expected["U10"], rtol=1e-8)
+    temperature = value(
+        "coare36_temperature_at_height",
+        T=Q_(STABLE_T + 273.15, "K"),
+        T_s=Q_(expected["tsr"], "K"),
+        z_t=Q_(Z_T, "m"),
+        z_r=Q_(10.0, "m"),
+        L=length,
+        g=g,
+    )
+    np.testing.assert_allclose(temperature - 273.15, expected["T10"], atol=1e-7)
+    neutral = value(
+        "coare36_equivalent_neutral_wind_10m",
+        u_s=Q_(expected["usr"], "m/s"),
+        U=Q_(STABLE_U, "m/s"),
+        S=s,
+        z_0M=Q_(expected["zo"], "m"),
+    )
+    np.testing.assert_allclose(neutral, expected["U10N"], rtol=1e-7)
+
+
+# --- Surface fluxes --------------------------------------------------------------
+
+
+def test_the_surface_stress_is_rho_u_star_squared() -> None:
+    rho, c_m, wind = Q_(1.2, "kg/m**3"), Q_(1.3e-3, ""), Q_(8.0, "m/s")
+    stress = value("ecmwf_ifs_surface_stress", rho=rho, C_M=c_m, U_n=wind)
+    u_star = value("ecmwf_ifs_friction_velocity", C_M=c_m, U_n=wind)
+    assert float(stress) == pytest.approx(1.2 * float(u_star) ** 2, rel=1e-12)
+    cited = {c.reference for c in F["ecmwf_ifs_surface_stress"].citations}
+    assert cited == {"ecmwf_ifs_cy49r1", "large_yeager2004"}
+
+
+def test_heat_fluxes_close_on_the_scales_and_keep_their_sign() -> None:
+    rho, c_d, c_h = Q_(1.2, "kg/m**3"), Q_(1.3e-3, ""), Q_(1.2e-3, "")
+    wind, theta, sst = Q_(8.0, "m/s"), Q_(288.0, "K"), Q_(290.0, "K")
+    flux = value(
+        "large_yeager2004_sensible_heat_flux",
+        rho=rho,
+        C_H=c_h,
+        theta=theta,
+        T_surf=sst,
+        U=wind,
+    )
+    u_star = value("ecmwf_ifs_friction_velocity", C_M=c_d, U_n=wind)
+    t_star = value(
+        "large_yeager2004_temperature_scale", C_H=c_h, C_D=c_d, theta=theta, T_surf=sst
+    )
+    # Q_H = rho c_p u* t*, negative: the warmer sea heats the air.
+    assert float(flux) == pytest.approx(
+        1.2 * 1000.5 * float(u_star * t_star), rel=1e-12
+    )
+    assert float(flux) < 0
+    dry_static = value(
+        "ecmwf_ifs_sensible_heat_flux",
+        rho=rho,
+        C_H=c_h,
+        U_n=wind,
+        s_n=Q_(288000.0, "J/kg"),
+        s_surf=Q_(290000.0, "J/kg"),
+    )
+    assert float(dry_static) == pytest.approx(1.2 * 1.2e-3 * 8.0 * -2000.0, rel=1e-12)
+
+
+def test_the_evaporation_and_its_latent_heat() -> None:
+    evaporation = value(
+        "ecmwf_ifs_moisture_flux",
+        rho=Q_(1.2, "kg/m**3"),
+        C_Q=Q_(1.2e-3, ""),
+        U_n=Q_(8.0, "m/s"),
+        q_n=Q_(0.015, "kg/kg"),
+        q_surf=Q_(0.020, "kg/kg"),
+    )
+    # Negative over an evaporating sea, as written: the flux into it.
+    assert float(evaporation) == pytest.approx(1.2 * 1.2e-3 * 8.0 * -0.005, rel=1e-12)
+    latent = value(
+        "large_yeager2004_latent_heat_flux", E=Q_(float(evaporation), "kg/m**2/s")
+    )
+    assert float(latent) == pytest.approx(2.5e6 * float(evaporation), rel=1e-12)
+
+
+def test_the_flux_kinds_are_linked_to_cf() -> None:
+    names = {
+        name
+        for kind in (
+            "SurfaceDownwardSensibleHeatFlux",
+            "SurfaceDownwardLatentHeatFlux",
+            "MagnitudeOfSurfaceDownwardStress",
+        )
+        for name in CATALOG.kinds[kind].cf_standard_names
+    }
+    assert {
+        "surface_downward_sensible_heat_flux",
+        "surface_downward_latent_heat_flux",
+        "magnitude_of_surface_downward_stress",
+    } <= names
+    sensible = {
+        f.key for f in CATALOG.formulations_of("SurfaceDownwardSensibleHeatFlux")
+    }
+    assert sensible == {
+        "ecmwf_ifs_sensible_heat_flux",
+        "large_yeager2004_sensible_heat_flux",
+    }

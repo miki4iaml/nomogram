@@ -200,6 +200,18 @@ and this project adheres to
   their other formulas; and the mean wind and potential temperature of
   Businger (1985, equations 43 and 44), written ū and θ̄.
 
+- Surface fluxes, positive downward as their sources write them: the
+  magnitude of the stress, the flux of dry static energy and the flux of
+  water vapour of the IFS (equation 3.15), the last two also those of
+  Large and Yeager (2004, equations 4d and 4a, now cited), and their
+  sensible and latent heat fluxes (4c, 4b). New kinds
+  `SurfaceDownwardSensibleHeatFlux`, `SurfaceDownwardLatentHeatFlux`,
+  `SurfaceDownwardWaterVapourFlux` and `MagnitudeOfSurfaceDownwardStress`,
+  linked to the CF standard names of the downward fluxes; the frozen
+  subset of QUDT 3.5.3 gains `HeatFluxDensity`, `MassPerAreaTime` and
+  `Stress`, with their units W/m² and kg m⁻² s⁻¹ (`docs/rosetta.md`,
+  item 25).
+
 ### Changed
 
 - The formulations of the IFS that took a stability parameter per height
