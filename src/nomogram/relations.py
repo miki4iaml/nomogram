@@ -1366,6 +1366,8 @@ def _beyond_parts(formulation: Formulation) -> list[str]:
     for part in formulation.parts:
         key = part.formulation.key
         for name, (low, high) in _stated_extent(part.formulation).items():
+            if name in part.arguments:
+                continue  # applied to the value of the expression passed
             identifier = part.rename.get(name, name)
             if identifier not in inputs:
                 lines.append(

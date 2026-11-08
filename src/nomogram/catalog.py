@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import dataclasses
 import datetime
 import math
@@ -422,18 +423,86 @@ def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
     return found, value
 
 
+def _check_passed_units(where: str, formulation: Formulation) -> None:
+    """An expression passed to a call has the unit of the input it feeds.
+
+    Exactly: the same dimension, a factor of 1 and the same scale (a
+    kelvin is no degree Celsius, a kilometre no metre), in fixed units as
+    in a quantity equation, since the value of the expression is passed as
+    a number. The unit of a coefficient the expression uses is declared,
+    or inferred from the expressions passed.
+    """
+    parts = [p for p in formulation.parts if p.arguments]
+    if not parts:
+        return
+    import numpy as np
+
+    units = semantic_catalog().units
+    known = {v.identifier: units[v.unit].pint for v in formulation.inputs}
+    known |= {k.identifier: units[k.unit].pint for k in formulation.constants}
+    known |= {
+        c.identifier: units[c.unit].pint for c in formulation.coefficients if c.unit
+    }
+    for part in parts:
+        called = part.formulation
+        for v in called.inputs:
+            text = part.arguments.get(v.identifier)
+            if text is None:
+                continue
+            expr = parse_expression(text, formulation.names)
+            names = sorted(s.name for s in expr.free_symbols)
+            if any(name not in known for name in names):
+                try:
+                    inferred = formulation.coefficient_units
+                except DimensionError:
+                    return  # the check of the formulation reports it
+                for name in names:
+                    if name not in known and name in inferred:
+                        known[name] = inferred[name].unit
+            expected = ureg.Unit(units[v.unit].pint)
+            w = f"{where}.expression: the argument {v.identifier}={text} of {called.key}"
+            values = [
+                Q_(1.05 ** (i + 1), known.get(n, "dimensionless"))
+                for i, n in enumerate(names)
+            ]
+            try:
+                with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+                    unit = Q_(compile_numeric(expr, tuple(names))(*values)).units
+            except pint.errors.OffsetUnitCalculusError:
+                msg = (
+                    f"{w} computes with temperatures on an interval scale: "
+                    "pass an input, or write it in kelvins"
+                )
+                raise CatalogError(msg) from None
+            except pint.errors.DimensionalityError:
+                msg = f"{w} adds or compares quantities of different dimensions"
+                raise CatalogError(msg) from None
+            try:
+                same = Q_(1.0, unit).to(expected).magnitude == 1.0
+            except pint.errors.DimensionalityError:
+                same = False
+            same = same and is_offset_unit(unit) == is_offset_unit(expected)
+            if not same:
+                msg = f"{w} is in {unit:~P}, but {called.key} takes it in {v.unit}"
+                raise CatalogError(msg)
+
+
 def _check_pieces(where: str, formulation: Formulation) -> None:
     """A piecewise definition cuts the range of one input into intervals.
 
     Every condition is an interval of the same input, bounded by numbers,
     coefficients or constants, and the intervals do not overlap; where none
-    holds, the formulation gives NaN.
+    holds, the formulation gives NaN. The pieces of a formulation called
+    are checked on it, before it is taken into the caller, where a
+    condition may bound an expression passed to its input (``z_s / L < 0``).
     """
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {sympy.Symbol(name, real=True): value for name, value in pairs}
     inputs = [v.identifier for v in formulation.inputs]
     expressions = [formulation.sympy_expression] if not formulation.implicit else []
+    if formulation.calls:
+        expressions = [formulation.written_expression]
     if formulation.implicit:
         # The unknown of an implicit equation may be bounded as an input.
         expressions = list(formulation.equation_members)
@@ -780,27 +849,49 @@ def _qualified(formulation: Formulation, identifier: str) -> str:
     return f"{written}__{definer}"
 
 
+class _Into(ast.NodeTransformer):
+    """A called expression taken into the caller: names renamed, or replaced.
+
+    An input passed an expression is replaced by a copy of its tree, which
+    ``ast.unparse`` parenthesizes as needed; the copy is not renamed.
+    """
+
+    def __init__(self, rename: Mapping[str, str], passed: Mapping[str, str]) -> None:
+        self.rename = rename
+        self.subtrees = {
+            name: ast.parse(argument, mode="eval").body
+            for name, argument in passed.items()
+        }
+
+    def visit_Name(self, node: ast.Name) -> ast.expr:
+        if node.id in self.subtrees:
+            return copy.deepcopy(self.subtrees[node.id])
+        node.id = self.rename.get(node.id, node.id)
+        return node
+
+
 def _developed(
     written: str,
     calls: Iterable[Call],
     renames: Iterable[Mapping[str, str]],
+    expressions: Iterable[Mapping[str, str]],
     fixed: bool,
 ) -> str:
     """The expression with each call replaced by the expression it calls.
 
-    Each called expression takes the arguments of its call and the renamed
-    coefficients and constants; in a fixed-units formulation, a quantity
-    equation keeps its value in its output unit through its factor.
+    Each called expression takes the arguments of its call, an input
+    renamed or an expression substituted as a whole (its parentheses
+    kept), and the renamed coefficients and constants; in a fixed-units
+    formulation, a quantity equation keeps its value in its output unit
+    through its factor.
     """
-    pairs = list(zip(calls, renames, strict=True))
-    text, _ = _call_sites(written, {call.alias for call, _ in pairs})
+    triples = list(zip(calls, renames, expressions, strict=True))
+    text, _ = _call_sites(written, {call.alias for call, _, _ in triples})
     bodies: dict[str, ast.expr] = {}
-    for i, (call, rename) in enumerate(pairs):
+    for i, (call, rename, passed) in enumerate(triples):
         part = call.formulation
-        tree = ast.parse(part.expression, mode="eval").body
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name):
-                node.id = rename.get(node.id, node.id)
+        into = _Into(rename, passed)
+        tree = into.visit(ast.parse(part.expression, mode="eval").body)
         if fixed and not part.fixed_units and part.output_factor != 1.0:
             tree = ast.BinOp(ast.Constant(part.output_factor), ast.Mult(), tree)
         bodies[f"_call_{i}"] = tree
@@ -2338,7 +2429,9 @@ class _Builder:
         if equation:
             msg = f"{where}.expression: an implicit equation calls no formulation"
             raise CatalogError(msg)
-        calls = self.calls_written(where, f["expression"], aliases, inputs)
+        calls = self.calls_written(
+            where, f["expression"], aliases, inputs, own - {output.identifier}
+        )
         fixed = bool(f["fixed_units"])
         loose = [c.formulation.key for c in calls if c.formulation.fixed_units]
         if loose and not fixed:
@@ -2349,17 +2442,25 @@ class _Builder:
             raise CatalogError(msg)
 
         # Each input takes the scale of the inputs it feeds, when that scale
-        # applies to its own kind.
+        # applies to its own kind; an input written in an expression feeds
+        # the input the expression is passed to (on the reference scale,
+        # the only one an expression may reach).
         fed: dict[str, dict[Any, tuple[str, Any]]] = {}
         own_kinds = {v.identifier: v.kind for v in inputs}
         for call in calls:
             for v in call.formulation.inputs:
+                if v.scale is None:
+                    continue
                 argument = call.arguments[v.identifier]
-                if v.scale is not None and v.scale.applies_to(
-                    own_kinds[argument], self.kinds
-                ):
-                    target = fed.setdefault(argument, {})
-                    target[v.scale.key] = (call.formulation.key, v)
+                named = {
+                    n.id
+                    for n in ast.walk(ast.parse(argument, mode="eval"))
+                    if isinstance(n, ast.Name) and n.id in own_kinds
+                }
+                for name in sorted(named):
+                    if v.scale.applies_to(own_kinds[name], self.kinds):
+                        target = fed.setdefault(name, {})
+                        target[v.scale.key] = (call.formulation.key, v)
         inherited: dict[str, str] = {}
         typed = []
         for variable in inputs:
@@ -2392,9 +2493,15 @@ class _Builder:
         known = {c.identifier for c in coefficients}
         constants = dict(own_constants)
         renames: list[dict[str, str]] = []
+        expressions: list[dict[str, str]] = []
         for call in calls:
             part = call.formulation
-            rename = dict(call.arguments)
+            # Inputs passed as such rename the inputs called; expressions
+            # are substituted for them.
+            rename = {k: a for k, a in call.arguments.items() if a in own_kinds}
+            expressions.append(
+                {k: a for k, a in call.arguments.items() if a not in own_kinds}
+            )
             for coefficient in part.coefficients:
                 name = _qualified(part, coefficient.identifier)
                 rename[coefficient.identifier] = name
@@ -2433,7 +2540,7 @@ class _Builder:
         )
         stated = f"{where}.citations"
         parts: dict[str, Part] = {}
-        for call, rename in zip(calls, renames, strict=True):
+        for call, rename, passed in zip(calls, renames, expressions, strict=True):
             written = ", ".join(f"{k}={v}" for k, v in call.arguments.items())
             parts.setdefault(
                 f"{call.alias}({written})",
@@ -2441,6 +2548,7 @@ class _Builder:
                     call.formulation,
                     f"{call.alias}({written})",
                     MappingProxyType(rename),
+                    MappingProxyType(passed),
                 ),
             )
         own_names = {c.identifier for c in own_coefficients}
@@ -2467,7 +2575,7 @@ class _Builder:
                 *(c for c in coefficients if c.identifier not in own_names),
             ),
             constants=tuple(constants.values()),
-            expression=_developed(f["expression"], calls, renames, fixed),
+            expression=_developed(f["expression"], calls, renames, expressions, fixed),
             fixed_units=fixed,
             physical_domains=self.domains(
                 f"{where}.domains", f["domains"], tuple(typed), None, output
@@ -2489,6 +2597,7 @@ class _Builder:
             calls=tuple(calls),
             written=f["expression"],
         )
+        _check_passed_units(where, formulation)
         self.check(where, formulation)
         # What the entry declares is used as written, not only by a call.
         declared = set(own_constants) | own_names
@@ -2506,8 +2615,14 @@ class _Builder:
         expression: Any,
         aliases: Mapping[str, Formulation],
         inputs: tuple[Variable, ...],
+        names: Iterable[str],
     ) -> list[Call]:
-        """The calls of an expression, checked against what they call."""
+        """The calls of an expression, checked against what they call.
+
+        An argument is an input of the calling formulation, or an
+        expression of its inputs, coefficients and constants (``names``),
+        kept as normalized text (``zeta=z_s / L``).
+        """
         if not isinstance(expression, str):
             msg = f"{where}.expression: expected a string"
             raise CatalogError(msg)
@@ -2560,13 +2675,9 @@ class _Builder:
                 if keyword.arg in arguments:
                     msg = f"{w}: {keyword.arg} is given twice"
                     raise CatalogError(msg)
-                if (
-                    not isinstance(keyword.value, ast.Name)
-                    or keyword.value.id not in by_name
-                ):
-                    msg = f"{w}: the argument {keyword.arg} is an input of the formulation"
-                    raise CatalogError(msg)
-                arguments[keyword.arg] = keyword.value.id
+                arguments[keyword.arg] = self.call_argument(
+                    f"{w}: the argument {keyword.arg}", keyword.value, aliases, names
+                )
             expected = [v.identifier for v in part.inputs]
             unknown = sorted(set(arguments) - set(expected))
             missing = [n for n in expected if n not in arguments]
@@ -2578,7 +2689,17 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             for v in part.inputs:
-                self.argument(w, part, v, by_name[arguments[v.identifier]])
+                argument = arguments[v.identifier]
+                if argument in by_name:
+                    self.argument(w, part, v, by_name[argument])
+                elif v.scale is not None and not v.scale.is_reference:
+                    # Only an input takes the scale of the input it feeds,
+                    # so that evaluation converts it.
+                    msg = (
+                        f"{w}: {v.identifier} is on {v.scale.key}; pass it an "
+                        "input of the formulation, not an expression"
+                    )
+                    raise CatalogError(msg)
             calls.append(
                 Call(alias, part, MappingProxyType({n: arguments[n] for n in expected}))
             )
@@ -2587,6 +2708,54 @@ class _Builder:
             msg = f"{where}.calls: declared but not called: {', '.join(unused)}"
             raise CatalogError(msg)
         return calls
+
+    def call_argument(
+        self,
+        where: str,
+        value: ast.expr,
+        aliases: Mapping[str, Formulation],
+        names: Iterable[str],
+    ) -> str:
+        """An argument of a call, as normalized text.
+
+        A name of the calling formulation, or an expression of its inputs,
+        coefficients and constants. It may not call a formulation, hold a
+        condition or a piecewise definition, nor be a number alone, which
+        SymPy would fold into the expression called: a value a source
+        gives is a coefficient.
+        """
+        inner = sorted(
+            {
+                cast("ast.Name", n.func).id  # found by name
+                for n in ast.walk(value)
+                if _named_call(n, aliases)
+            }
+        )
+        if inner:
+            msg = f"{where} calls {', '.join(inner)}: a call takes no call as argument"
+            raise CatalogError(msg)
+        if any(
+            isinstance(n, ast.Compare | ast.BoolOp) or _named_call(n, {PIECEWISE})
+            for n in ast.walk(value)
+        ):
+            msg = (
+                f"{where} holds a condition: define the formulation called by "
+                "pieces, or the caller by branches"
+            )
+            raise CatalogError(msg)
+        text = ast.unparse(value)
+        try:
+            parsed = parse_expression(text, names)
+        except ExpressionError as exc:
+            msg = (
+                f"{where} is an expression of the inputs, coefficients and "
+                f"constants of the formulation: {exc}"
+            )
+            raise CatalogError(msg) from None
+        if not parsed.free_symbols:
+            msg = f"{where} is a number: declare it as a coefficient, with its source"
+            raise CatalogError(msg)
+        return text
 
     def argument(
         self, where: str, part: Formulation, inner: Variable, outer: Variable

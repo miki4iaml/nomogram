@@ -59,7 +59,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sympy
 
-from nomogram.expression import _relations
+from nomogram.expression import _relations, parse_expression
 from nomogram.semantics import semantic_catalog
 from nomogram.units import ureg
 
@@ -354,32 +354,47 @@ def _check(context: _Context, constraints: list[_Constraint]) -> None:
 
 
 def _intermediates(
-    formulation: Formulation, rename: Mapping[str, str], path: str
+    formulation: Formulation, into: Mapping[str, Any], path: str
 ) -> Iterator[tuple[Any, Any, Any]]:
     """Each intermediate quantity of a formulation made of others.
 
     Yields a marker, the unit of the part's output and the part's
-    expression, renamed into the outermost formulation (``rename`` maps the
-    identifiers of ``formulation`` to it), for the parts and, recursively,
-    the parts of the parts.
+    expression, taken into the outermost formulation (``into`` maps the
+    identifiers of ``formulation`` to expressions of the outermost one),
+    for the parts and, recursively, the parts of the parts; and for each
+    expression passed to an input of a called formulation, the unit of
+    that input and the expression.
     """
     for part in formulation.parts:
         inner = part.formulation
-        into = {
-            name: rename.get(part.rename.get(name, name), part.rename.get(name, name))
-            for name in inner.names
-        }
+        local: dict[str, Any] = {}
+        for name in inner.names:
+            if name in part.arguments:
+                passed = parse_expression(part.arguments[name], formulation.names)
+                local[name] = passed.xreplace(
+                    {sympy.Symbol(k, real=True): v for k, v in into.items()}
+                )
+            else:
+                target = part.rename.get(name, name)
+                local[name] = into.get(target, sympy.Symbol(target, real=True))
         if part.computes is not None:
             piece = inner.sympy_expression.xreplace(
                 {
-                    sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
-                    for old, new in into.items()
-                    if old != new
+                    sympy.Symbol(old, real=True): new
+                    for old, new in local.items()
+                    if new != sympy.Symbol(old, real=True)
                 }
             )
             marker = sympy.Symbol(f"{path}{part.computes} ({inner.key})", real=True)
             yield marker, _pint(inner.output.unit), piece
-        yield from _intermediates(inner, into, f"{path}{part.computes or inner.key}/")
+            for v in inner.inputs:
+                if v.identifier in part.arguments:
+                    passed_marker = sympy.Symbol(
+                        f"{path}{part.computes} ({inner.key}).{v.identifier}",
+                        real=True,
+                    )
+                    yield passed_marker, _pint(v.unit), local[v.identifier]
+        yield from _intermediates(inner, local, f"{path}{part.computes or inner.key}/")
 
 
 def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:

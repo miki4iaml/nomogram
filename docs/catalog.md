@@ -363,6 +363,37 @@ bounds = { t = [-40.0, 50.0] }
   outer formulation and the parts; the legend of a single formula says
   what it is composed of.
 
+### Composing or calling
+
+Both write a formula once and reuse it; they answer different needs.
+
+- A **composition** feeds the output of a formulation into an input of
+  another: ITU-R P.453 multiplies the Buck (1996) saturation vapour
+  pressure by its enhancement factor. Each inner formulation is
+  evaluated once, at the inputs of the composed formulation, and its
+  result takes the place of an input; the entry writes only the wiring
+  (`outer`, `inner`, `bind`). `nomogram.comparison.compose` does the same
+  at run time, for a chain the catalog does not hold.
+- A **call** evaluates a formulation inside the expression of another,
+  where the source writes it, as many times as the source does: WMO-No. 8
+  takes the saturation vapour pressure at the dew point and at the air
+  temperature, `e_w(t=t_d) / e_w(t=t)`. A composition evaluates each
+  inner formulation once, and cannot do this.
+- An **argument may be an expression** when the source evaluates a
+  formulation at a point it computes: the profiles of the surface layer
+  take their profile functions at a height over the Obukhov length,
+  ψ_H(z_t/L), and the IFS at (z + z_0)/L and z_0/L. Without it, each
+  such point would be an input of its own, a stability parameter per
+  height, which the user would compute and keep consistent with the
+  others, although the formula says how. With it, the dependence on L
+  stays in the catalog, where it is checked (the unit of z_t/L, the
+  domain of the profile function applied to its value) and shown as the
+  source writes it.
+
+Whatever an entry calls or composes, it is evaluated from its own
+inputs: `written_expression` shows the calls as written,
+`sympy_expression` the developed expression the computation uses.
+
 ### Formulations calling others
 
 When a source evaluates one formula at several arguments, the entry calls
@@ -389,20 +420,40 @@ inputs = [
   identifier of the entry, and every formulation declared is called.
 - **A call names its arguments** by the identifiers of the inputs of the
   formulation called, even when it has only one: `e_w(t=t_d)`. Every
-  input is given once, and each argument is an input of the entry, not
-  a number, an expression nor another call. A call stands anywhere in the
-  expression but in a `piecewise` definition, where the domains of the
-  formulation called would hold in every branch: such an entry is defined
-  by branches.
-- **An argument has the kind of the input it feeds, or a specialization
-  of it**, in the same unit. A point at which a formula is evaluated is
-  the exception: a dew or frost point, a wet- or ice-bulb temperature
-  may feed a Celsius or a thermodynamic temperature, still in the same
-  unit. A temperature difference never
-  feeds a temperature.
+  input is given once. An argument is an input of the entry, or an
+  expression of its inputs, coefficients and constants, as a source
+  writes a profile function of z/L: `psi_H(zeta=z_t / L)`. It calls no
+  formulation, holds no condition nor piecewise definition, and is not a
+  number alone, which would be folded into the formulation called (a
+  value a source gives is a coefficient); it is kept as written,
+  normalized (`z_t / L`). A call
+  stands anywhere in the expression but in a `piecewise` definition,
+  where the domains of the formulation called would hold in every
+  branch: such an entry is defined by branches.
+- **An input passed as such has the kind of the input it feeds, or a
+  specialization of it**, in the same unit. A point at which a formula is
+  evaluated is the exception: a dew or frost point, a wet- or ice-bulb
+  temperature may feed a Celsius or a thermodynamic temperature, still in
+  the same unit. A temperature difference never feeds a temperature.
+- **An expression passed has exactly the unit of the input it feeds**:
+  the same dimension, a factor of 1 and the same scale, in fixed units as
+  in a quantity equation, since its value is passed as a number. A
+  kilometre does not feed a metre, nor a kelvin a degree Celsius, and an
+  expression computing with degrees Celsius is refused: it is written in
+  kelvins, or the temperature is passed as an input. The units of the
+  coefficients it uses are inferred from it. It takes the kind of the
+  input it feeds, without an algebra of kinds. The
+  expression is substituted for the input, with its parentheses, and a
+  condition of the formulation called may then bound it (`z_t / L < 0`):
+  the pieces of a formulation called are checked on it, before it is
+  substituted.
 - **An input takes the conventional scale of the inputs it feeds**. One
   that feeds inputs on two scales is refused, and so is one that states
-  a scale other than that of the input it feeds.
+  a scale other than that of the input it feeds. An input written in an
+  expression feeds the scale of the input the expression is passed to,
+  under the same rules. An input on a scale other than the reference
+  takes an input of the entry, never an expression, which could not take
+  that scale.
 - **A result on another scale than the reference** (a dew point on
   IPTS-68) makes the entry state that scale for its own output, in its
   citation, so that evaluation converts the result back.
@@ -425,14 +476,16 @@ inputs = [
   not use it in its own identifiers. Elsewhere it marks a superscript, as
   SymPy reads it (`a__w` is written aʷ).
 - **Validity domains**: those of each formulation called apply to the
-  values each call receives (t_d and t above, each against −45 to 60 °C).
-  Those the entry states apply as well; they never replace them.
+  values each call receives (t_d and t above, each against −45 to 60 °C),
+  the value of an expression passed included (z_t/L against the domain
+  stated for the profile function). Those the entry states apply as
+  well; they never replace them.
 - **Nothing is removed.** A factor common to two calls (the enhancement
   factor above, the coefficient C of the Magnus form) may simplify away
   from the computation; the inputs written stay inputs (p above), and the
   coefficients stay listed.
 - The expression shown is the one written, with its calls,
-  `e_w(p, t_d)`; `Formulation.written_expression` holds it, with each call
+  `e_w(p, t_d)` or ψ_H(z_t/L); `Formulation.written_expression` holds it, with each call
   kept as an opaque function, and `sympy_expression` the developed one,
   for the computation. The `derivation` records the method `"calls"`,
   the first formulation called as its `source`, and each call with its
@@ -444,7 +497,9 @@ inputs = [
 - A formulation calling others takes part in `uses` and `used_by`, its
   inputs in `search(input=...)` (a search for a dew point input finds
   it), and the coefficients it calls in `search(symbol=...)`, by the name
-  they are written with.
+  they are written with. An input fed by an expression is not one of its
+  inputs: a search for a stability parameter input does not find an entry
+  that passes z_t/L, but `uses` links it to the profile function.
 
 ### Definitions, identities and derived formulations
 

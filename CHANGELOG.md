@@ -144,6 +144,20 @@ and this project adheres to
   and mathtext: the coefficient of the background roughness of the wave
   model of the IFS is written as its source writes it.
 
+- A formulation calling another may pass it an expression of its
+  inputs, coefficients and constants, as sources write a profile
+  function of z/L: `psi_H(zeta=z_t / L)`. The expression has exactly the
+  unit of the input it feeds, in fixed units too (a kilometre does not
+  feed a metre, nor a kelvin a degree Celsius), and the units of its
+  coefficients are inferred from it; the domains of the formulation
+  called apply to its value, a condition of that formulation may bound
+  it, and the display shows the call as written, ψ_H(z_t/L). An input
+  written in it feeds the scale of the input it is passed to; an input
+  on a scale other than the reference still takes an input of the
+  caller. A number alone, a condition or a call is refused as an
+  argument. `Part.arguments` holds the expressions passed. The guide
+  says when to compose and when to call ("Composing or calling").
+
 ### Changed
 
 - The log-linear gradient function 1 + 5 z/L of the IFS for stable
