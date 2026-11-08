@@ -94,7 +94,7 @@ def test_the_transfer_coefficients_are_logarithmic_at_neutral() -> None:
 
 def test_the_transfer_coefficient_for_humidity_is_that_for_heat() -> None:
     # Psi_Q = Psi_H (3.22, 3.24): with z_0Q = z_0H, C_Q = C_H at any L.
-    lengths = {"z_n": Q_(10.0, "m"), "z_0M": Q_(1e-3, "m")}
+    lengths: dict[str, Any] = {"z_n": Q_(10.0, "m"), "z_0M": Q_(1e-3, "m")}
     obukhov = Q_(np.array([-50.0, -5.0, 20.0, 200.0]), "m")
     c_h = F["ecmwf_ifs_transfer_coefficient_heat"].evaluate(
         **lengths, z_0H=Q_(2e-5, "m"), L=obukhov
