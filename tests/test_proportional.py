@@ -4,9 +4,9 @@
 """Tests for proportionalities and relations computed by nomogram."""
 
 import dataclasses
-from importlib.resources import files
 
 import pytest
+from bundled_catalog import with_families
 
 from nomogram.catalog import Catalog, CatalogError, catalog, load_catalog, main
 from nomogram.model import RelationKind
@@ -40,16 +40,12 @@ reference = "src"
 
 
 def with_catalog(*documents: str) -> Catalog:
-    """The bundled catalog, its scales among others, with documents for a test."""
-    bundled = sorted(
-        (
-            f
-            for f in files("nomogram.data.catalog").iterdir()
-            if f.name.endswith(".toml")
-        ),
-        key=lambda f: f.name,
-    )
-    return load_catalog([*(f.read_text(encoding="utf-8") for f in bundled), *documents])
+    """The sea-water family and those it requires, with documents for a test.
+
+    Its scales of salinity, and the temperature scales of the core, are
+    those these tests move a formulation along.
+    """
+    return with_families(("sea-water",), *documents)
 
 
 def relation(subject: str, other: str, extra: str = "") -> str:

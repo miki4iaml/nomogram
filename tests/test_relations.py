@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 import sympy
+from bundled_catalog import with_families
 
 from nomogram.catalog import CatalogError, catalog, check, load_catalog
 from nomogram.expression import MAX_SOURCE_LENGTH, parse_expression
@@ -190,7 +191,7 @@ def test_a_relation_on_a_composed_expression_is_decided_on_samples(
     # the longest written expression, would not end: the samples decide.
     mine = tmp_path / f"mine_{kind}.toml"
     mine.write_text(LONG.replace("{kind}", kind), encoding="utf-8")
-    loaded = catalog(extra=[mine])
+    loaded = with_families(("atmosphere",), mine.read_text(encoding="utf-8"))
     subject = loaded.formulations["metpy171_relative_humidity_isentropic"]
     assert subject.parts
     verdict = verify(loaded.relations["mine:r"], loaded)
@@ -210,7 +211,7 @@ def test_a_relation_on_a_short_derived_expression_is_decided_on_samples(
     )
     mine = tmp_path / f"mine_{kind}.toml"
     mine.write_text(short.replace("{kind}", kind), encoding="utf-8")
-    loaded = catalog(extra=[mine])
+    loaded = with_families(("atmosphere",), mine.read_text(encoding="utf-8"))
     relation = loaded.relations["mine:r"]
     for key in (relation.subject, relation.object):
         assert len(loaded.formulations[key].expression) <= MAX_SOURCE_LENGTH

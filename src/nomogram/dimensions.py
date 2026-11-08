@@ -164,7 +164,7 @@ class _Context:
     units: dict[str, Any]
     unknown: frozenset[str]
     coefficients: frozenset[str]
-    reasons: dict[str, str]
+    reasons: dict[str, Any]
 
     def involves(self, node: Any, names: frozenset[str]) -> bool:
         """Whether the dimension of a node involves one of ``names``.
@@ -235,7 +235,7 @@ class _Context:
         msg = f"unsupported node: {type(node).__name__}"  # pragma: no cover
         raise TypeError(msg)  # pragma: no cover
 
-    def solve(self, node: Any, target: Any, reason: str) -> bool:
+    def solve(self, node: Any, target: Any, reason: Any) -> bool:
         """Give the unknowns of a node the units that make it ``target``.
 
         Called on nodes of unknown unit only. Returns whether something was
@@ -274,11 +274,21 @@ class _Context:
 
 @dataclass(frozen=True)
 class _Constraint:
-    """Nodes that must share a dimension, or be pure numbers."""
+    """Nodes that must share a dimension, or be pure numbers.
+
+    ``parts`` say where the constraint comes from, joined by ``=`` into
+    :attr:`where` only when a message or a reason needs it: printing SymPy
+    expressions is costly, and a catalog sets thousands of constraints.
+    """
 
     kind: Literal["equal", "pure"]
     nodes: tuple[Any, ...]
-    where: str
+    parts: tuple[Any, ...]
+
+    @property
+    def where(self) -> str:
+        """The part of the expression the constraint comes from."""
+        return " = ".join(str(part) for part in self.parts)
 
 
 def _constraints(expr: Any) -> Iterator[_Constraint]:
@@ -291,9 +301,9 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
     if isinstance(expr, sympy.Piecewise):
         branches = tuple(e for e, _ in expr.args)
         if len(branches) > 1:
-            yield _Constraint("equal", branches, str(expr))
+            yield _Constraint("equal", branches, (expr,))
         for relation in _relations(expr):
-            yield _Constraint("equal", (relation.lhs, relation.rhs), str(relation))
+            yield _Constraint("equal", (relation.lhs, relation.rhs), (relation,))
         for branch in branches:
             yield from _constraints(branch)
         return
@@ -303,9 +313,9 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
     elif expr.is_Pow and not expr.exp.is_Number:
         pure = [expr.base, expr.exp]
     elif expr.is_Add:
-        yield _Constraint("equal", tuple(expr.args), str(expr))
+        yield _Constraint("equal", tuple(expr.args), (expr,))
     for node in pure:
-        yield _Constraint("pure", (node,), str(expr))
+        yield _Constraint("pure", (node,), (expr,))
     for arg in expr.args:
         yield from _constraints(arg)
 
@@ -329,7 +339,7 @@ def _propagate(context: _Context, constraints: list[_Constraint]) -> None:
             if target is None:
                 continue
             for node, unit in zip(constraint.nodes, units, strict=True):
-                if unit is None and context.solve(node, target, constraint.where):
+                if unit is None and context.solve(node, target, constraint):
                     changed = True
 
 
@@ -417,7 +427,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     pieces = []
     for marker, unit, piece in _intermediates(formulation, {}, ""):
         units[marker.name] = unit
-        pieces.append(_Constraint("equal", (marker, piece), f"{marker} = {piece}"))
+        pieces.append(_Constraint("equal", (marker, piece), (marker, piece)))
         pieces.extend(_constraints(piece))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
@@ -431,7 +441,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
         _angles_in_radians(right, units)
         equal = [] if left == 0 or right == 0 else [(left, right)]
         candidates = [
-            *(_Constraint("equal", pair, f"{pair[0]} = {pair[1]}") for pair in equal),
+            *(_Constraint("equal", pair, pair) for pair in equal),
             *_constraints(left),
             *_constraints(right),
             *pieces,
@@ -442,7 +452,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     _angles_in_radians(expr, units)
     output = sympy.Symbol(formulation.output.identifier, real=True)
     candidates = [
-        _Constraint("equal", (output, expr), f"{output} = {expr}"),
+        _Constraint("equal", (output, expr), (output, expr)),
         *_constraints(expr),
         *pieces,
     ]
@@ -622,6 +632,11 @@ def _solved_together(
     return found
 
 
+def _reason(reason: Any) -> str | None:
+    """The reason of an inferred unit as text: a constraint's, or a phrase."""
+    return reason.where if isinstance(reason, _Constraint) else reason
+
+
 def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
     """The unit of each coefficient of a formulation, declared or inferred.
 
@@ -674,7 +689,7 @@ def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
             name,
             context.units.get(name),
             origin,
-            context.reasons.get(name),
+            _reason(context.reasons.get(name)),
             citation if origin == "stated" else None,
         )
     return MappingProxyType(result)

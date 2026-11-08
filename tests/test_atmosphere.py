@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from bundled_catalog import with_families
 
 from nomogram.catalog import catalog
 from nomogram.comparison import feeds
@@ -592,7 +593,9 @@ def test_a_lapse_rate_feeds_a_vertical_gradient_only_through_the_definition(
     path.write_text(
         LAYER.format(inner="vertical_temperature_gradient_definition"), encoding="utf-8"
     )
-    layer = catalog(extra=[path]).formulations["mine:layer"]
+    layer = with_families(
+        ("atmosphere",), path.read_text(encoding="utf-8")
+    ).formulations["mine:layer"]
     gradient = CATALOG.formulations["ussa1976_pressure_layer_gradient"]
     common: dict[str, Any] = {
         "P_b": Q_(101325.0, "Pa"),
@@ -609,7 +612,7 @@ def test_a_lapse_rate_feeds_a_vertical_gradient_only_through_the_definition(
         LAYER.format(inner="bechtold2015_dry_adiabatic_lapse_rate"), encoding="utf-8"
     )
     with pytest.raises(CatalogError, match="computes LapseRate, but L is"):
-        catalog(extra=[direct])
+        with_families(("atmosphere",), direct.read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize(

@@ -10,9 +10,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 import sympy
+from bundled_catalog import with_families
 from matplotlib.mathtext import MathTextParser
 
-from nomogram.catalog import CatalogError, catalog, load_catalog
+from nomogram.catalog import CatalogError, load_catalog
 from nomogram.expression import (
     LATEX_COMMANDS,
     ExpressionError,
@@ -945,7 +946,7 @@ def test_branches_give_values_on_one_scale(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     with pytest.raises(CatalogError, match="values on different scales"):
-        catalog(extra=[path])
+        with_families(("sea-water",), path.read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize(
@@ -969,8 +970,10 @@ def test_a_scale_declared_on_the_output_is_that_of_the_branches(
     )
     if refused:
         with pytest.raises(CatalogError, match="on cox1967, but the branches give"):
-            catalog(extra=[path])
+            with_families(("sea-water",), path.read_text(encoding="utf-8"))
     else:
-        salinity = catalog(extra=[path]).formulations["mylab:salinity"]
+        salinity = with_families(
+            ("sea-water",), path.read_text(encoding="utf-8")
+        ).formulations["mylab:salinity"]
         assert salinity.output.scale is not None
         assert salinity.output.scale.key == "knudsen1901"

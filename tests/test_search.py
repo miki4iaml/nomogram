@@ -109,29 +109,17 @@ def test_a_cf_name_finds_a_kind_defined_by_nomogram() -> None:
 
 
 def test_variables_whatever_their_notation() -> None:
+    # Within a family of standards, which new formulations seldom join: a
+    # density appears in most families.
     expected = {
-        "formulations.mass_concentration_ideal_gas",
-        "formulations.itu_r_p453_vapour_pressure_from_density",
-        "formulations.wmo_vapour_concentration_definition",
-        "formulations.bechtold2015_virtual_temperature_definition",
         "formulations.itu_r_p835_water_vapour_density",
         "formulations.itu_r_p835_water_vapour_density_upper",
-        "formulations.bechtold2015_density",
-        "formulations.metpy171_density_virtual_temperature",
-        "formulations.metpy171_density",
-        "formulations.ecmwf_ifs_density",
-        "formulations.ecmwf_ifs_density_specific_humidity",
-        "formulations.vaisala2013_absolute_humidity",
         "formulations.iso2533_air_density",
         "formulations.iso2533_kinematic_viscosity",
-        # The density of the air in the surface fluxes.
-        "formulations.ecmwf_ifs_surface_stress",
-        "formulations.ecmwf_ifs_sensible_heat_flux",
-        "formulations.ecmwf_ifs_moisture_flux",
-        "formulations.large_yeager2004_sensible_heat_flux",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
-        assert refs(CATALOG.search(variable=pattern)) == expected, pattern
+        found = CATALOG.search(variable=pattern, family="atmosphere")
+        assert refs(found) == expected, pattern
     assert refs(CATALOG.search(variable=r"\rho_{\mathrm{v}}")) == {
         "formulations.mass_concentration_ideal_gas",
         "formulations.wmo_vapour_concentration_definition",
@@ -167,6 +155,9 @@ def test_symbols_in_a_given_notation() -> None:
 
 
 def test_every_symbol_finds_itself_as_its_notation_writes_it() -> None:
+    # Each symbol is searched once, for all the formulations that write it.
+    by_notation: dict[tuple[str, str], set[str]] = {}
+    by_symbol: dict[str, set[str]] = {}
     for key, formulation in CATALOG.formulations.items():
         notations = [c.notation for c in formulation.citations if c.notation]
         notations += CATALOG.notations.values()
@@ -179,12 +170,16 @@ def test_every_symbol_finds_itself_as_its_notation_writes_it() -> None:
         for notation in notations:
             for identifier in identifiers:
                 tex = notation.symbols.get(identifier)
-                if tex is None:
-                    continue
-                ref = f"formulations.{key}"
-                found = CATALOG.search(symbol=tex, notation=notation.key)
-                assert ref in found.refs, (notation.key, tex)
-                assert ref in CATALOG.search(variable=tex).refs, (notation.key, tex)
+                if tex is not None:
+                    ref = f"formulations.{key}"
+                    by_notation.setdefault((notation.key, tex), set()).add(ref)
+                    by_symbol.setdefault(tex, set()).add(ref)
+    for (notation_key, tex), expected in by_notation.items():
+        found = refs(CATALOG.search(symbol=tex, notation=notation_key))
+        assert not expected - found, (notation_key, tex, expected - found)
+    for tex, expected in by_symbol.items():
+        found = refs(CATALOG.search(variable=tex))
+        assert not expected - found, (tex, expected - found)
 
 
 def test_a_symbol_with_a_space_is_found_whole_or_by_its_parts() -> None:

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from bundled_catalog import with_families
 
 from nomogram.catalog import catalog
 from nomogram.comparison import feeds
@@ -120,7 +121,9 @@ composition = { outer = "itu_r_p453_modified_refractivity", inner = { h = "heigh
 """,
         encoding="utf-8",
     )
-    composed = catalog(extra=[document]).formulations["personal:m_from_altitude"]
+    composed = with_families(
+        ("radio",), document.read_text(encoding="utf-8")
+    ).formulations["personal:m_from_altitude"]
     assert [v.kind for v in composed.inputs] == [
         "RadioRefractivity",
         "Altitude",
