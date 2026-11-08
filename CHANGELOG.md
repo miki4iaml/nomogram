@@ -121,6 +121,24 @@ and this project adheres to
   `BackgroundCharnockCoefficient`; the trade term "Charnock parameter".
   `search(keyword="Charnock")`, `search("Charnock parameter")`.
 
+- The neutral transfer coefficients of the sea surface: those of Large
+  and Yeager (2004, the CORE forcing) from the equivalent neutral wind at
+  10 m; from the roughness lengths by the logarithmic profile, of
+  Beljaars (1992, equations 107 to 109) and of the code of COARE 3.6;
+  those of Edson et al. (2013) for a fully rough sea, above 8.5 m/s, and
+  of Hersbach (2011), as Edson et al. quote it; the drag coefficient by
+  its definition (Businger 1985); the neutral drag coefficient at 10 m
+  from the wind, the fixed point of the loop of COARE 3.6 and that of the
+  roughness length of the IFS, as implicit equations whose physical
+  domain keeps the root of a logarithmic profile above the roughness
+  length; the stability factors of Louis et al. (1982), as Beljaars
+  (1992) quotes them. New kinds `NeutralSurfaceDragCoefficientForMomentum`,
+  `NeutralSurfaceDragCoefficientForHeat`,
+  `NeutralSurfaceDragCoefficientForHumidity`,
+  `TransferStabilityFactorForMomentum` and
+  `TransferStabilityFactorForHeat`, siblings of the coefficients they
+  cannot replace. `Catalog.formulations_of`, `search(keyword="Louis")`.
+
 - The hat accent, `\hat`, in notations and in the rendering of
   identifiers (`xhat` reads x̂), checked in the lists of MathJax, KaTeX
   and mathtext: the coefficient of the background roughness of the wave

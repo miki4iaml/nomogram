@@ -588,6 +588,12 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("frederickson1994_obukhov_length", "g"): "stated",
         ("fairall1978_vertical_refractivity_gradient", "alpha_T"): "stated",
         ("fairall1978_vertical_refractivity_gradient", "kappa"): "stated",
+        # c and k of Louis et al. (1982) appear only in their product c k^2.
+        **{
+            (f"louis1982_stability_factor_{quantity}", name): "stated"
+            for quantity in ("momentum", "heat")
+            for name in ("c", "k")
+        },
     }
 
 
