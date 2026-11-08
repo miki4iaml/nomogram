@@ -131,6 +131,32 @@ url = "https://www.ecmwf.int/en/elibrary/81737-ifs-documentation-cy50r1-part-7-e
 status = "verified"
 note = "CC BY 4.0. Section 3.2 read (pp. 14-16): z_o = z_b / (1 - tau_w/tau_a)^(1/2) (3.9); z_b = alpha^ u_*^2/g until CY49R1 (3.11), alpha^ = 0.0095 before CY38R1 and 0.0060 from CY38R1 to CY46R1 (3.23, 3.24), a function of the wind at 10 m from CY47R1 (3.15, 3.25); the Charnock parameter alpha = alpha^ / (1 - tau_w/tau_a)^(1/2) (3.13), 'not constant'; for old wind sea its mean, 0.0165, agrees with the observations collected by Wu (1982). DOI checked with DataCite on 2026-11-07."
 
+[references.large_yeager2004]
+authors = "Large, W. G. and Yeager, S. G."
+year = 2004
+title = "Diurnal to decadal global forcing for ocean and sea-ice models: the data sets and flux climatologies"
+container = "NCAR Technical Note NCAR/TN-460+STR, National Center for Atmospheric Research, Boulder"
+doi = "10.5065/D6KK98Q6"
+status = "verified"
+note = "Read on the page image (p. 7): the neutral transfer coefficients at 10 m of the CORE forcing, 1000 C_D = 2.70/U_N + 0.142 + U_N/13.09 (6a), 1000 C_E = 34.6 C_D^(1/2) (6b), 1000 C_H = 18.0 C_D^(1/2) in stable conditions (6c) and 32.7 C_D^(1/2) in unstable ones (6d), U_N the equivalent neutral wind at 10 m in m/s. The term in U_N^6 and the bound at 33 m/s of later versions are not in this note."
+
+[references.hersbach2011]
+authors = "Hersbach, H."
+year = 2011
+title = "Sea surface roughness and drag coefficient as functions of neutral wind speed"
+container = "Journal of Physical Oceanography, 41, 247-251"
+doi = "10.1175/2010JPO4567.1"
+status = "to-confirm"
+note = "Its neutral drag coefficient, as Edson et al. (2013, equation 20) quote it; not read. DOI checked with Crossref on 2026-11-07."
+
+[references.louis1982]
+authors = "Louis, J. F., Tiedtke, M. and Geleyn, J. F."
+year = 1982
+title = "A short history of the operational PBL-parameterization at ECMWF"
+container = "Workshop on boundary layer parameterization, November 1981, ECMWF, Reading"
+status = "to-confirm"
+note = "Its stability functions of the transfer coefficients, used at ECMWF since December 1981, as Beljaars (1992, equations 110 to 113) quotes them; not read."
+
 [references.charnock1955]
 authors = "Charnock, H."
 year = 1955
@@ -475,6 +501,36 @@ specialization_of = "DimensionlessRatio"
 bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative: heat flows down the difference of temperature." }
 description = "Transfer coefficient relating the surface flux of heat to the speed of the flow and the difference of temperature between a height and the surface; of dry static energy in the IFS, J_s = rho C_H |U| (s - s_surf)."
 cf_standard_names = [{ name = "surface_drag_coefficient_for_heat_in_air", relation = "narrow", verified = 2026-11-04 }]
+
+[kinds.NeutralSurfaceDragCoefficientForMomentum]
+label = "Neutral Surface Drag Coefficient for Momentum"
+specialization_of = "DimensionlessRatio"
+description = "The value the transfer coefficient for momentum (the drag coefficient) takes in neutral conditions, from the logarithmic profiles alone, at a height (10 m in most sources): not the coefficient itself, which depends on stability and which it cannot replace."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative." }
+
+[kinds.NeutralSurfaceDragCoefficientForHeat]
+label = "Neutral Surface Drag Coefficient for Heat"
+specialization_of = "DimensionlessRatio"
+description = "The value the transfer coefficient for heat (the Stanton number) takes in neutral conditions, from the logarithmic profiles alone, at a height (10 m in most sources): not the coefficient itself, which depends on stability and which it cannot replace."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative." }
+
+[kinds.NeutralSurfaceDragCoefficientForHumidity]
+label = "Neutral Surface Drag Coefficient for Humidity"
+specialization_of = "DimensionlessRatio"
+description = "The value the transfer coefficient for humidity (the Dalton number) takes in neutral conditions, from the logarithmic profiles alone, at a height (10 m in most sources): not the coefficient itself, which depends on stability and which it cannot replace."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A transfer coefficient, never negative." }
+
+[kinds.TransferStabilityFactorForMomentum]
+label = "Transfer Stability Factor for Momentum"
+specialization_of = "DimensionlessRatio"
+description = "The transfer coefficient for momentum over its neutral value at the same height and roughness, C/C_N, a function of the bulk Richardson number (Louis et al. 1982)."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A ratio of transfer coefficients, never negative." }
+
+[kinds.TransferStabilityFactorForHeat]
+label = "Transfer Stability Factor for Heat"
+specialization_of = "DimensionlessRatio"
+description = "The transfer coefficient for heat over its neutral value at the same height and roughness, C/C_N, a function of the bulk Richardson number (Louis et al. 1982)."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "A ratio of transfer coefficients, never negative." }
 
 [kinds.SeaIceAreaFraction]
 label = "Sea Ice Area Fraction"
@@ -2000,6 +2056,349 @@ notation = { alpha_hat = '\hat{\alpha}', alpha_min = '\hat{\alpha}_\mathrm{min}'
 [[formulations.ecmwf_wam_background_charnock_coefficient.citations]]
 reference = "ecmwf_ifs_cy49r1_part7"
 equation = "3.15"
+
+# --- Neutral transfer coefficients and their stability factors ------------
+
+[formulations.large_yeager2004_neutral_drag_coefficient]
+label = "Neutral drag coefficient at 10 m from the equivalent neutral wind (Large and Yeager 2004)"
+expression = "(a_1 / U_10N + a_2 + U_10N / a_3) / 1000"
+fixed_units = true
+note = "Equation 6a, U_N in m/s, of the CORE forcing of ocean and sea-ice models."
+output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { a_1 = { value = 2.70, note = "In m/s." }, a_2 = 0.142, a_3 = { value = 13.09, note = "In m/s." } }
+keywords = ["drag coefficient", "neutral", "sea surface", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_neutral_drag_coefficient.citations]]
+reference = "large_yeager2004"
+equation = "6a"
+note = "p. 7."
+notation = { C_DN = 'C_D', U_10N = 'U_N(10m)' }
+
+[formulations.large_yeager2004_neutral_transfer_coefficient_humidity]
+label = "Neutral transfer coefficient for humidity at 10 m from the neutral drag coefficient (Large and Yeager 2004)"
+expression = "c_E / 1000 * sqrt(C_DN)"
+fixed_units = true
+note = "Equation 6b, for evaporation."
+output = { identifier = "C_EN", kind = "NeutralSurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Neutral transfer coefficient for humidity at 10 m" }
+inputs = [
+  { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" },
+]
+coefficients = { c_E = 34.6 }
+keywords = ["transfer coefficient", "neutral", "Dalton number", "sea surface", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_neutral_transfer_coefficient_humidity.citations]]
+reference = "large_yeager2004"
+equation = "6b"
+note = "p. 7."
+notation = { C_EN = 'C_E', C_DN = 'C_D' }
+
+[formulations.large_yeager2004_neutral_transfer_coefficient_heat]
+label = "Neutral transfer coefficient for heat at 10 m from the neutral drag coefficient (Large and Yeager 2004)"
+expression = "piecewise((c_s / 1000 * sqrt(C_DN), zeta > 0), (c_u / 1000 * sqrt(C_DN), zeta <= 0))"
+fixed_units = true
+note = "Equations 6c and 6d: a neutral coefficient that the sign of the stability selects."
+output = { identifier = "C_HN", kind = "NeutralSurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Neutral transfer coefficient for heat at 10 m" }
+inputs = [
+  { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" },
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+coefficients = { c_s = 18.0, c_u = 32.7 }
+keywords = ["transfer coefficient", "neutral", "Stanton number", "sea surface", "NCAR", "CORE"]
+
+[[formulations.large_yeager2004_neutral_transfer_coefficient_heat.citations]]
+reference = "large_yeager2004"
+equation = "6c-6d"
+note = "p. 7."
+notation = { C_HN = 'C_H', C_DN = 'C_D', zeta = '\zeta' }
+
+[formulations.beljaars1992_neutral_drag_coefficient]
+label = "Neutral transfer coefficient for momentum from the roughness length (Beljaars 1992)"
+expression = "(k / ln(z_1 / z_0M))**2"
+fixed_units = false
+note = "Equation 107, the logarithmic profile, k = 0.4 (equation 36)."
+output = { identifier = "C_MN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral transfer coefficient for momentum" }
+inputs = [
+  { identifier = "z_1", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { k = 0.4 }
+keywords = ["drag coefficient", "neutral", "roughness length", "Beljaars"]
+
+[[formulations.beljaars1992_neutral_drag_coefficient.citations]]
+reference = "beljaars1992"
+equation = "107"
+note = "p. 39."
+notation = { C_MN = 'C_\mathrm{MN}', k = 'k', z_1 = 'z_1', z_0M = 'z_{0\mathrm{M}}' }
+
+[formulations.beljaars1992_neutral_transfer_coefficient_heat]
+label = "Neutral transfer coefficient for heat from the roughness length for heat (Beljaars 1992)"
+expression = "(k / ln(z_1 / z_0H))**2"
+fixed_units = false
+note = "Equation 108, as printed; the captions of figures 18 and 19 write {k/ln(z_1/z_0M)}{k/ln(z_1/z_0H)} instead, the form of COARE (coare36_neutral_transfer_coefficient_heat), larger by 9.4 % for z_1 = 10 m, z_0M = 1e-4 m and z_0H = 3.4e-5 m."
+output = { identifier = "C_HN", kind = "NeutralSurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Neutral transfer coefficient for heat" }
+inputs = [
+  { identifier = "z_1", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+]
+coefficients = { k = 0.4 }
+keywords = ["transfer coefficient", "neutral", "roughness length", "Beljaars"]
+
+[[formulations.beljaars1992_neutral_transfer_coefficient_heat.citations]]
+reference = "beljaars1992"
+equation = "108"
+note = "p. 40."
+notation = { C_HN = 'C_\mathrm{HN}', k = 'k', z_1 = 'z_1', z_0H = 'z_{0\mathrm{H}}' }
+
+[formulations.beljaars1992_neutral_transfer_coefficient_humidity]
+label = "Neutral transfer coefficient for humidity from the roughness length for humidity (Beljaars 1992)"
+expression = "(k / ln(z_1 / z_0Q))**2"
+fixed_units = false
+note = "Equation 109, as printed; the caption of figure 19 writes {k/ln(z_1/z_0M)}{k/ln(z_1/z_0Q)} instead, the form of COARE (coare36_neutral_transfer_coefficient_humidity)."
+output = { identifier = "C_QN", kind = "NeutralSurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Neutral transfer coefficient for humidity" }
+inputs = [
+  { identifier = "z_1", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+]
+coefficients = { k = 0.4 }
+keywords = ["transfer coefficient", "neutral", "roughness length", "Beljaars"]
+
+[[formulations.beljaars1992_neutral_transfer_coefficient_humidity.citations]]
+reference = "beljaars1992"
+equation = "109"
+note = "p. 40."
+notation = { C_QN = 'C_\mathrm{QN}', k = 'k', z_1 = 'z_1', z_0Q = 'z_{0\mathrm{Q}}' }
+
+[formulations.coare36_neutral_drag_coefficient]
+label = "Neutral drag coefficient at 10 m from the roughness length (COARE 3.6)"
+expression = "k**2 / ln(10 / z_0M)**2"
+fixed_units = true
+note = "As coded, at 10 m, z_0M in metres, von = 0.4."
+output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
+inputs = [
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { k = 0.4 }
+keywords = ["drag coefficient", "neutral", "roughness length", "COARE"]
+
+[[formulations.coare36_neutral_drag_coefficient.citations]]
+reference = "coare36"
+note = "Line 634, Cdn_10 = von**2/log(10/zo)**2."
+notation = { C_DN = 'C_{dn,10}', k = '\mathrm{von}', z_0M = 'z_o' }
+
+[formulations.coare36_neutral_transfer_coefficient_heat]
+label = "Neutral transfer coefficient for heat at 10 m from the roughness lengths (COARE 3.6)"
+expression = "k**2 / (ln(10 / z_0M) * ln(10 / z_0T))"
+fixed_units = true
+note = "As coded, at 10 m, the roughness lengths in metres, von = 0.4 and fdg = 1."
+output = { identifier = "C_HN", kind = "NeutralSurfaceDragCoefficientForHeat", unit = "UNITLESS", description = "Neutral transfer coefficient for heat at 10 m" }
+inputs = [
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "z_0T", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for temperature" },
+]
+coefficients = { k = 0.4 }
+keywords = ["transfer coefficient", "neutral", "roughness length", "COARE"]
+
+[[formulations.coare36_neutral_transfer_coefficient_heat.citations]]
+reference = "coare36"
+note = "Line 635, Chn_10 = von**2*fdg/log(10/zo)/log(10/zot)."
+notation = { C_HN = 'C_{hn,10}', k = '\mathrm{von}', z_0M = 'z_o', z_0T = 'z_{ot}' }
+
+[formulations.coare36_neutral_transfer_coefficient_humidity]
+label = "Neutral transfer coefficient for humidity at 10 m from the roughness lengths (COARE 3.6)"
+expression = "k**2 / (ln(10 / z_0M) * ln(10 / z_0Q))"
+fixed_units = true
+note = "As coded, at 10 m, the roughness lengths in metres, von = 0.4 and fdg = 1."
+output = { identifier = "C_EN", kind = "NeutralSurfaceDragCoefficientForHumidity", unit = "UNITLESS", description = "Neutral transfer coefficient for humidity at 10 m" }
+inputs = [
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+]
+coefficients = { k = 0.4 }
+keywords = ["transfer coefficient", "neutral", "roughness length", "COARE"]
+
+[[formulations.coare36_neutral_transfer_coefficient_humidity.citations]]
+reference = "coare36"
+note = "Line 636, Cen_10 = von**2*fdg/log(10/zo)/log(10/zoq)."
+notation = { C_EN = 'C_{en,10}', k = '\mathrm{von}', z_0M = 'z_o', z_0Q = 'z_{oq}' }
+
+[formulations.coare36_neutral_drag_coefficient_from_wind]
+label = "Neutral drag coefficient at 10 m from the equivalent neutral wind, the fixed point of COARE 3.6"
+expression = "k / sqrt(C_DN) == ln(10 / (piecewise((a_1 * U_10N + a_2, U_10N <= U_max), (a_1 * U_max + a_2, U_10N > U_max)) * U_10N**2 * C_DN / g + gamma * nu / (U_10N * sqrt(C_DN))))"
+fixed_units = true
+note = "The equation the loop of the code converges to: the neutral logarithmic profile at 10 m, U_10N = u_*/k ln(10/z_0), with u_* = U_10N C_DN^(1/2) and the roughness length of Edson et al. (2013, equation 11; coare36_charnock_coefficient, edson2013_roughness_length_momentum). The physical domain keeps the root of a logarithmic profile above the roughness length; the other root puts z_0 near 10 m."
+output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+  { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of the air" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+]
+coefficients = { k = 0.4, gamma = 0.11, a_1 = 0.0017, a_2 = -0.005, U_max = 19 }
+keywords = ["drag coefficient", "neutral", "sea surface", "COARE", "Charnock", "implicit equation"]
+
+[[formulations.coare36_neutral_drag_coefficient_from_wind.domains]]
+bounds = { C_DN = [0, 0.04] }
+criterion = "C_DN <= k^2/4, that is z/z_0 >= e^2 at 10 m: the logarithmic profile holds for z/z_0 much larger than 1 (Businger 1985, p. 13)."
+reference = "businger1985"
+
+[[formulations.coare36_neutral_drag_coefficient_from_wind.citations]]
+reference = "coare36"
+note = "Lines 480 to 590: the loop on zo, u10N and charnC, and line 634, Cdn_10 = von**2/log(10/zo)**2."
+notation = { C_DN = 'C_{dn,10}', k = '\mathrm{von}', U_10N = 'u_{10N}', nu = '\mathrm{visa}', g = '\mathrm{grav}' }
+
+[formulations.ecmwf_ifs_neutral_drag_coefficient_from_wind]
+label = "Neutral drag coefficient at 10 m from the equivalent neutral wind, after the IFS"
+expression = "kappa / sqrt(C_DN) == ln((10 + (alpha_M * nu / (U_10N * sqrt(C_DN)) + alpha_Ch * U_10N**2 * C_DN / g_n)) / (alpha_M * nu / (U_10N * sqrt(C_DN)) + alpha_Ch * U_10N**2 * C_DN / g_n))"
+fixed_units = true
+note = "Not printed by the IFS: equation 3.16 in neutral conditions (Psi = 0) at 10 m, u_* = U_10N C_DN^(1/2), with the roughness length of 3.28, z_0 = alpha_M nu/u_* + alpha_Ch u_*^2/g (alpha_Ch = 0.018 without the wave model). The physical domain keeps the root of a logarithmic profile above the roughness length."
+output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { alpha_M = 0.11, alpha_Ch = 0.018 }
+constants = ["kappa_ecmwf_ifs", "nu_ecmwf_ifs", "g_n_cgpm1901"]
+keywords = ["drag coefficient", "neutral", "sea surface", "Charnock", "IFS", "implicit equation"]
+
+[[formulations.ecmwf_ifs_neutral_drag_coefficient_from_wind.domains]]
+bounds = { C_DN = [0, 0.04] }
+criterion = "C_DN <= kappa^2/4, that is z/z_0 >= e^2 at 10 m: the logarithmic profile holds for z/z_0 much larger than 1 (Businger 1985, p. 13)."
+reference = "businger1985"
+
+[formulations.edson2013_friction_velocity_high_wind]
+label = "Friction velocity from the equivalent neutral wind at 10 m, fully rough sea (Edson et al. 2013)"
+expression = "C_m * U_10N + u_0"
+fixed_units = true
+note = "Equation 22, U_10N in m/s; Andreas et al. (2012) report 0.058 and -0.24 (p. 1603)."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { C_m = 0.062, u_0 = { value = -0.28, note = "In m/s." } }
+keywords = ["friction velocity", "sea surface", "high wind", "Edson"]
+
+[[formulations.edson2013_friction_velocity_high_wind.citations]]
+reference = "edson2013"
+equation = "22"
+note = "p. 1603."
+notation = { u_s = 'u_*', C_m = 'C_m', U_10N = 'U_{10N}', u_0 = 'u_{*0}' }
+
+[[formulations.edson2013_friction_velocity_high_wind.citations.domains]]
+bounds = { U_10N = [8.5, inf] }
+criterion = "Fitted on the data above 8.5 m/s, considered fully rough (p. 1603)."
+
+[formulations.edson2013_neutral_drag_coefficient_high_wind]
+label = "Neutral drag coefficient at 10 m from the equivalent neutral wind, fully rough sea (Edson et al. 2013)"
+expression = "(C_m + u_0 / U_10N)**2"
+fixed_units = true
+note = "Equation 23, equation 22 rearranged: the coefficient tends to C_m^2, about 3.8e-3, as the wind grows (p. 1603)."
+output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { C_m = 0.062, u_0 = { value = -0.28, note = "In m/s." } }
+keywords = ["drag coefficient", "neutral", "sea surface", "high wind", "Edson"]
+
+[[formulations.edson2013_neutral_drag_coefficient_high_wind.citations]]
+reference = "edson2013"
+equation = "23"
+note = "p. 1603."
+notation = { C_DN = 'C_{D10N}', C_m = 'C_m', U_10N = 'U_{10N}', u_0 = 'u_{*0}' }
+
+[[formulations.edson2013_neutral_drag_coefficient_high_wind.citations.domains]]
+bounds = { U_10N = [8.5, inf] }
+criterion = "Equation 22 rearranged, fitted on the data above 8.5 m/s, considered fully rough (p. 1603)."
+
+[formulations.hersbach2011_neutral_drag_coefficient]
+label = "Neutral drag coefficient at 10 m from the equivalent neutral wind, of the coupled atmosphere-wave model of ECMWF (Hersbach 2011)"
+expression = "(c_1 + c_2 * U_10N**p_1) / U_10N**p_2"
+fixed_units = true
+note = "Derived by ECMWF from the wave-age dependent roughness of its coupled model, U_10N in m/s (Edson et al. 2013, p. 1600)."
+output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
+inputs = [
+  { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
+]
+coefficients = { c_1 = 1.03e-3, c_2 = 0.04e-3, p_1 = 1.48, p_2 = 0.21 }
+keywords = ["drag coefficient", "neutral", "sea surface", "ECMWF", "Hersbach"]
+
+[[formulations.hersbach2011_neutral_drag_coefficient.citations]]
+reference = "edson2013"
+equation = "20"
+note = "p. 1600."
+notation = { C_DN = 'C_{DN}', U_10N = 'U_{10N}', c_1 = 'c_1', c_2 = 'c_2', p_1 = 'p_1', p_2 = 'p_2' }
+
+[[formulations.hersbach2011_neutral_drag_coefficient.citations]]
+reference = "hersbach2011"
+note = "As Edson et al. (2013) quote it."
+
+[formulations.louis1982_stability_factor_momentum]
+label = "Stability factor of the transfer coefficient for momentum from the bulk Richardson number (Louis et al. 1982)"
+expression = "piecewise((1 - 2 * b * Ri_b / (1 + 3 * b * c * k**2 * (1 + z_1 / z_0M) ** (1 / 2) / ln(1 + z_1 / z_0M) ** 2 * (-Ri_b) ** (1 / 2)), Ri_b < 0), (1 / (1 + 2 * b * Ri_b * (1 + d * Ri_b) ** (-1 / 2)), Ri_b >= 0))"
+fixed_units = false
+note = "Equations 110 and 112, with C_h = 3 b c k^2 (1 + z_1/z_0M)^(1/2) / ln(1 + z_1/z_0M)^2 in the surface layer (l^2/(3 z^2) above it, with the mixing length l), b = c = d = 5, k = 0.4; the source writes Ri_0 > 0 for the second piece, and both give 1 at Ri_b = 0, which nomogram gives to the stable piece."
+output = { identifier = "F_M", kind = "TransferStabilityFactorForMomentum", unit = "UNITLESS", description = "Stability factor of the transfer coefficient for momentum" }
+inputs = [
+  { identifier = "Ri_b", kind = "BulkRichardsonNumber", unit = "UNITLESS", description = "Bulk Richardson number of the lowest model level" },
+  { identifier = "z_1", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { b = 5, c = 5, d = 5, k = 0.4 }
+keywords = ["transfer coefficient", "stability", "Richardson number", "Louis", "ECMWF"]
+
+[[formulations.louis1982_stability_factor_momentum.citations]]
+reference = "beljaars1992"
+equation = "110, 112"
+note = "p. 40, the functions used at ECMWF since December 1981."
+units = { c = "UNITLESS", k = "UNITLESS" }
+notation = { F_M = 'F_\mathrm{M}', Ri_b = 'Ri_0', z_1 = 'z_1', z_0M = 'z_{0\mathrm{M}}' }
+
+[[formulations.louis1982_stability_factor_momentum.citations]]
+reference = "louis1982"
+note = "As Beljaars (1992) quotes it."
+
+[formulations.louis1982_stability_factor_heat]
+label = "Stability factor of the transfer coefficient for heat from the bulk Richardson number (Louis et al. 1982)"
+expression = "piecewise((1 - 3 * b * Ri_b / (1 + 3 * b * c * k**2 * (1 + z_1 / z_0M) ** (1 / 2) / ln(1 + z_1 / z_0M) ** 2 * (-Ri_b) ** (1 / 2)), Ri_b < 0), (1 / (1 + 3 * b * Ri_b * (1 + d * Ri_b) ** (1 / 2)), Ri_b >= 0))"
+fixed_units = false
+note = "Equations 111 and 113, with C_h = 3 b c k^2 (1 + z_1/z_0M)^(1/2) / ln(1 + z_1/z_0M)^2 in the surface layer (l^2/(3 z^2) above it, with the mixing length l), b = c = d = 5, k = 0.4; the source writes Ri_0 > 0 for the second piece, and both give 1 at Ri_b = 0, which nomogram gives to the stable piece."
+output = { identifier = "F_H", kind = "TransferStabilityFactorForHeat", unit = "UNITLESS", description = "Stability factor of the transfer coefficient for heat" }
+inputs = [
+  { identifier = "Ri_b", kind = "BulkRichardsonNumber", unit = "UNITLESS", description = "Bulk Richardson number of the lowest model level" },
+  { identifier = "z_1", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+]
+coefficients = { b = 5, c = 5, d = 5, k = 0.4 }
+keywords = ["transfer coefficient", "stability", "Richardson number", "Louis", "ECMWF"]
+
+[[formulations.louis1982_stability_factor_heat.citations]]
+reference = "beljaars1992"
+equation = "111, 113"
+note = "p. 40, the functions used at ECMWF since December 1981."
+units = { c = "UNITLESS", k = "UNITLESS" }
+notation = { F_H = 'F_\mathrm{H}', Ri_b = 'Ri_0', z_1 = 'z_1', z_0M = 'z_{0\mathrm{M}}' }
+
+[[formulations.louis1982_stability_factor_heat.citations]]
+reference = "louis1982"
+note = "As Beljaars (1992) quotes it."
+
+[formulations.businger1985_drag_coefficient]
+label = "Drag coefficient, by its definition (Businger 1985)"
+nature = "definition"
+expression = "u_s**2 / U**2"
+fixed_units = false
+output = { identifier = "C_d", kind = "SurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Drag coefficient" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed at the height, relative to the surface current" },
+]
+keywords = ["drag coefficient", "definition", "Businger"]
+
+[[formulations.businger1985_drag_coefficient.citations]]
+reference = "businger1985"
+equation = "24"
+note = "p. 14, where U is written u-bar - u_s, the mean wind relative to the surface current u_s."
+notation = { C_d = 'C_d', u_s = 'u_*' }
 
 [formulations.beljaars1992_roughness_length_heat]
 label = "Roughness length for heat over sea (Beljaars 1992)"
