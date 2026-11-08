@@ -15,8 +15,8 @@ Columns: the inputs `jd` (day of the year), `u` (wind speed, m/s, at
 (latitude, degrees), `zi` (height of the boundary layer, m, 600 in the
 test); the outputs `Qs` (specific humidity at the sea surface, g/kg),
 `usr`, `tsr`, `qsr` (scales of wind, m/s, temperature, K, and specific
-humidity, kg/kg), `L` (Obukhov length, m) and `zo` (roughness length,
-m). Changes: the rows and columns were selected, the values rounded to
+humidity, kg/kg), `L` (Obukhov length, m), `zo` (roughness length, m)
+and `gust` (gustiness, m/s). Changes: the rows and columns were selected, the values rounded to
 seven significant digits, and `T_skin` added, the skin temperature COARE
 computes with its warm layer and cool skin, `tsnk + dT_warm_to_skin -
 dT_skinx` (°C), as its code documents.

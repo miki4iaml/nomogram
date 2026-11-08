@@ -358,6 +358,11 @@ matches = [
 ]
 cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", relation = "narrow", verified = 2026-11-04 }]
 
+[kinds.ConvectiveVelocityScale]
+label = "Convective Velocity Scale"
+specialization_of = "Speed"
+description = "Velocity scale of the large eddies of free convection, w_* = (z_i g Q_0v / T)^(1/3), from the virtual temperature flux at the surface and a height of the boundary layer; a gustiness added to the mean wind in the bulk formulas."
+
 [kinds.SurfaceLayerScaleOfDryStaticEnergy]
 label = "Surface-Layer Scale of Dry Static Energy"
 specialization_of = "SpecificEnergy"
@@ -621,6 +626,26 @@ reference = "ecmwf_ifs_cy49r1"
 equation = "3.10"
 notation = { L = '\mathcal{L}', u_s = "u_*", s_s = "s_*", q_s = "q_*", kappa = '\kappa', g_n = "g", c_pd = "c_p" }
 assumptions = ["The turbulent fluxes are constant with height in the surface layer, equal to their surface values (section 3.2)."]
+
+[formulations.ecmwf_ifs_virtual_temperature_flux]
+label = "Virtual temperature flux of the surface layer (IFS)"
+expression = "u_s * s_s / c_pd + (R_v / R_d - 1) * T_n * u_s * q_s"
+fixed_units = false
+note = "Equation 3.10, Q_0v = u_* s_*/c_p + epsilon T_n u_* q_*, epsilon = R_vap/R_dry - 1, positive upward, written out in ecmwf_ifs_obukhov_length; a kinematic heat flux, of the provisional kind KinematicHeatFlux."
+output = { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux in the surface layer" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "s_s", kind = "SurfaceLayerScaleOfDryStaticEnergy", unit = "J-PER-KiloGM", description = "Surface-layer scale of dry static energy" },
+  { identifier = "q_s", kind = "SurfaceLayerScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Surface-layer scale of specific humidity" },
+  { identifier = "T_n", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature near the surface (lowest model level)" },
+]
+constants = ["c_pd_ecmwf_ifs", "R_v_ecmwf_ifs", "R_d_ecmwf_ifs"]
+keywords = ["virtual temperature flux", "buoyancy", "surface layer", "IFS"]
+
+[[formulations.ecmwf_ifs_virtual_temperature_flux.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.10"
+notation = { Q_0v = 'Q_{0\mathrm{v}}', u_s = "u_*", s_s = "s_*", q_s = "q_*", c_pd = "c_p" }
 
 # --- Gradient functions -----------------------------------------------
 
@@ -2877,6 +2902,63 @@ note = "p. 10."
 units = { z_10 = "M" }
 notation = { C_E = 'C_E(z_u, \zeta)', C_EN = 'C_E', C_D = 'C_D(z_u, \zeta)', C_DN = 'C_D', kappa = '\kappa', zeta_u = '\zeta_u' }
 
+# --- Gustiness and viscosity of air in the code of COARE 3.6 ---------------
+
+[formulations.coare36_kinematic_viscosity_of_air]
+label = "Kinematic viscosity of air from its temperature (COARE 3.6 code)"
+expression = "a * (1 + b * t + c * t**2 + d * t**3)"
+fixed_units = true
+note = "Line 331 of the code, visa, with t the air temperature in degC; the code names no source. It enters the smooth flow term of the roughness length and the roughness Reynolds number."
+output = { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of air" }
+inputs = [
+  { identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "Air temperature" },
+]
+coefficients = { a = 1.326e-5, b = 0.006542, c = 8.301e-6, d = -4.84e-9 }
+keywords = ["kinematic viscosity", "air", "COARE"]
+
+[[formulations.coare36_kinematic_viscosity_of_air.citations]]
+reference = "coare36"
+note = "Line 331."
+
+[formulations.coare36_virtual_temperature_flux]
+label = "Virtual temperature flux from the scales of the surface layer (COARE 3.6 code)"
+expression = "-u_s * (T_s * (1 + c * q) + c * T * q_s)"
+fixed_units = false
+note = "Lines 514 and 516 of the code: tvsr = tsr (1 + 0.61 Q) + 0.61 ta qsr, the buoyancy flux of COARE after Stull (1988, p. 146), and Bf = -g/ta usr tvsr; written here positive upward, Q_0v = -usr tvsr, so that Bf = g Q_0v/ta. Q is the specific humidity at the height of measurement, ta the air temperature."
+output = { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux, positive upward" }
+inputs = [
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature of the surface layer" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity of the surface layer" },
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the height of measurement" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height of measurement" },
+]
+coefficients = { c = 0.61 }
+keywords = ["virtual temperature flux", "buoyancy", "COARE"]
+
+[[formulations.coare36_virtual_temperature_flux.citations]]
+reference = "coare36"
+note = "Lines 514 and 516."
+
+[formulations.coare36_convective_gust]
+label = "Convective gustiness from the virtual temperature flux (COARE 3.6 code)"
+expression = "piecewise((beta * (z_i * g / T * Q_0v) ** 0.333, Q_0v > 0), (u_0, Q_0v <= 0))"
+fixed_units = true
+note = "Lines 517 to 535 of the code: gust = Beta (Bf zi)^0.333 where the buoyancy flux Bf = g Q_0v/ta is positive, Beta = 1.2 (line 318), else 0.2 m/s. The exponent as the code writes it, 0.333 and not 1/3, makes it a numerical value equation, in the units of the code; with 1/3, the gust of the test data would be about 0.06 % larger. It is added to the wind, S = sqrt(U^2 + gust^2), the wind speed the scales take (coare36_friction_velocity); the test data take zi = 600 m."
+output = { identifier = "u_g", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Gustiness" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height of measurement" },
+  { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux, positive upward" },
+  { identifier = "z_i", kind = "Height", unit = "M", description = "Height of the boundary layer" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity at the latitude" },
+]
+coefficients = { beta = 1.2, u_0 = { value = 0.2, unit = "M-PER-SEC", unit_basis = "added", note = "The code writes the number alone; the gustiness is in m/s." } }
+keywords = ["gustiness", "free convection", "convective velocity", "COARE"]
+
+[[formulations.coare36_convective_gust.citations]]
+reference = "coare36"
+note = "Lines 318 and 517 to 535."
+
 # --- Flux-profile relations with the profile function as an input -------
 
 [formulations.businger1985_wind_profile]
@@ -3240,6 +3322,51 @@ notation = { u_s = 'u^*', C_M = 'C_D', U_n = '|\Delta U|' }
 reference = "ecmwf_ifs_cy49r1"
 equation = "3.29"
 notation = { u_s = "u_*", C_M = 'C_{\mathrm{M}}', U_n = "|U_n|" }
+
+# --- Free convection velocity (IFS) ----------------------------------
+
+[formulations.ecmwf_ifs_free_convection_velocity_scale]
+label = "Free convection velocity scale (IFS)"
+expression = "(z_i * g_n / T_n * Q_0v) ** (1 / 3)"
+fixed_units = false
+note = "Equation 3.20, z_i 'a scale height of the boundary layer depth ... set to constant value of 1000 m, since only the order of magnitude matters'. The term it adds to the wind (equation 3.19) acts 'when the surface is heated', an upward virtual temperature flux."
+output = { identifier = "w_s", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Free convection velocity scale" }
+inputs = [
+  { identifier = "T_n", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature near the surface (lowest model level)" },
+  { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux in the surface layer, positive upward" },
+]
+coefficients = { z_i = 1000.0 }
+constants = ["g_n_cgpm1901"]
+keywords = ["free convection", "convective velocity", "gustiness", "IFS"]
+
+[[formulations.ecmwf_ifs_free_convection_velocity_scale.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.20"
+note = "p. 48."
+notation = { w_s = "w_*", z_i = 'z_{\mathrm{i}}', g_n = "g", Q_0v = 'Q_{0\mathrm{v}}' }
+units = { z_i = "M" }
+
+[[formulations.ecmwf_ifs_free_convection_velocity_scale.citations.domains]]
+bounds = { Q_0v = [0, inf] }
+
+[formulations.ecmwf_ifs_wind_speed_free_convection]
+label = "Wind speed of the lowest model level with the free convection velocity (IFS)"
+expression = "sqrt(u_n**2 + v_n**2 + w_s**2)"
+fixed_units = false
+note = "Equation 3.19, |U_n|^2 = u_n^2 + v_n^2 + w_*^2: 'the near surface wind induced by large eddies in the free-convection regime', which keeps |U_n| and L from becoming zero; Beljaars (1994) found it consistent with the scaling laws of free convection."
+output = { identifier = "U_n", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the lowest model level, free convection included" }
+inputs = [
+  { identifier = "u_n", kind = "Velocity", unit = "M-PER-SEC", description = "Eastward wind at the lowest model level" },
+  { identifier = "v_n", kind = "Velocity", unit = "M-PER-SEC", description = "Northward wind at the lowest model level" },
+  { identifier = "w_s", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Free convection velocity scale" },
+]
+keywords = ["wind speed", "free convection", "gustiness", "IFS"]
+
+[[formulations.ecmwf_ifs_wind_speed_free_convection.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.19"
+note = "p. 48."
+notation = { U_n = '|U_n|', w_s = "w_*" }
 
 # --- Diagnostics at 2 m and 10 m --------------------------------------
 # Interpolations between the lowest model level and the surface with the

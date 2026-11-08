@@ -650,6 +650,10 @@ def test_every_declared_unit_is_listed_with_its_reason() -> None:
         ("fairall1978_evaporation_duct_height", "c"): "added",
         ("frederickson1994_evaporation_duct_height", "k"): "added",
         ("frederickson1994_evaporation_duct_height", "c"): "added",
+        # z_i = 1000 m of the IFS, which the source writes in metres, under a
+        # cube root; and the gust of 0.2 m/s of the code of COARE.
+        ("ecmwf_ifs_free_convection_velocity_scale", "z_i"): "stated",
+        ("coare36_convective_gust", "u_0"): "added",
         **{
             (f"large_yeager2004_{key}", "z_10"): "stated"
             for key in (
@@ -1246,7 +1250,13 @@ def test_stats_counts_the_indicators_of_the_design_goals() -> None:
 def test_every_kind_of_the_bundled_catalog_is_tied_to_qudt(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    # QUDT kinds and their specializations, and the provisional kinds,
+    # admitted while a pull request adding them to QUDT is open.
     assert main(["stats"]) == 0
-    line = next(x for x in capsys.readouterr().out.splitlines() if "QUDT" in x)
-    count, total = line.rsplit(": ", 1)[1].split(" of ")
-    assert count == total
+    lines = [x for x in capsys.readouterr().out.splitlines() if "QUDT" in x]
+    (tied, total), (provisional, _) = (
+        line.rsplit(": ", 1)[1].split(" of ") for line in lines[:2]
+    )
+    assert int(tied) + int(provisional) == int(total)
+    for name in ("KinematicHeatFlux",):
+        assert CATALOG.kinds[name].pending is not None

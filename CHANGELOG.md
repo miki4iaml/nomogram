@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- Free convection in the surface layer: the virtual temperature flux,
+  the free convection velocity scale w* and the wind speed of the lowest
+  model level of the IFS (CY49R1, equations 3.10, 3.20, 3.19), and the
+  virtual temperature flux, the convective gustiness and the kinematic
+  viscosity of air of the code of COARE 3.6, whose gust its test data
+  give back to 1e-5; new kind `ConvectiveVelocityScale`, under `Speed`.
+  The fluxes are of the provisional kind `KinematicHeatFlux`.
+
 - **Provisional quantity kinds**: a kind with no QUDT kind to specialize
   is admitted only while a pull request adding it to QUDT is open, and
   records it (`QuantityKind.pending`, `PendingPullRequest`, origin
@@ -295,6 +303,9 @@ and this project adheres to
 
 ### Fixed
 
+- A condition comparing an input with 0, such as `Q_0v > 0` for a flux in
+  K m/s, no longer asks 0 for the unit of the input: 0 has every unit, as
+  a member 0 of an implicit equation does.
 - A quantity equation whose sum adds terms in two units of one
   dimension is refused when the catalog loads: the numbers were added,
   and 1500 Pa plus 15 hPa gave 1515 Pa. No formulation of the catalog
