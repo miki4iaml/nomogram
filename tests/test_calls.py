@@ -809,9 +809,14 @@ def test_a_constant_declared_but_used_only_by_a_call_is_refused() -> None:
 
 
 def test_the_name_of_a_call_is_written_like_an_identifier() -> None:
+    # A bar reads as one (e-bar); a command outside the subset is spelt.
     f = rh(caller("100 * ebar(t=t_d) / ebar(t=t)", '{ ebar = "ew" }'))
     latex = f.render().latex
-    assert r"\mathrm{ebar}\left(t_{\mathrm{d}}\right)" in latex
+    assert r"\bar{e}\left(t_{\mathrm{d}}\right)" in latex
+    assert latex_commands(latex) <= LATEX_COMMANDS
+    f = rh(caller("100 * ebold(t=t_d) / ebold(t=t)", '{ ebold = "ew" }'))
+    latex = f.render().latex
+    assert r"\mathrm{ebold}\left(t_{\mathrm{d}}\right)" in latex
     assert latex_commands(latex) <= LATEX_COMMANDS
 
 

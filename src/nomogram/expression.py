@@ -200,6 +200,16 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         # MathJax, base package, and KaTeX on 2026-11-07; parsed by
         # mathtext): an identifier xhat reads \hat{x}.
         r"\hat",
+        # The bar of a mean and the overline of a mean of a product, which
+        # sources of turbulence write to tell a mean from a fluctuation
+        # (u-bar, the overline of w'theta'); the calligraphic letter of the
+        # Obukhov length of the IFS; the bold of a vector (in the lists of
+        # MathJax, base package, and KaTeX on 2026-11-08; parsed by
+        # mathtext): an identifier ubar reads \bar{u}, Lcal \mathcal{L}.
+        r"\bar",
+        r"\overline",
+        r"\mathcal",
+        r"\mathbf",
     }
     | {"\\" + letter for letter in _GREEK}
 )
@@ -711,8 +721,9 @@ def upright_symbol(identifier: str) -> str:
     abbreviation (``RH`` gives ``\\mathrm{RH}``, never a product R H). A
     running index (x_i) needs a notation. The result stays within
     :data:`LATEX_COMMANDS`: a name SymPy would write with another command
-    (``Tbar`` as ``\\bar{T}``, ``hbar``, ``ell``) is written upright as
-    it is spelt (``\\mathrm{Tbar}``), while ``xhat`` reads ``\\hat{x}``.
+    (``hbar``, ``ell``, ``ubold``) is written upright as it is spelt
+    (``\\mathrm{hbar}``), while ``xhat`` reads ``\\hat{x}`` and ``Tbar``
+    ``\\bar{T}``.
 
     Parameters
     ----------
@@ -768,7 +779,7 @@ def to_latex(
         the symbols of its notations against :data:`LATEX_COMMANDS`).
         Identifiers not listed keep SymPy's default rendering, or
         :func:`upright_symbol` if ``upright``; a default rendering that
-        would use another command (``Tbar`` as ``\\bar{T}``) is replaced
+        would use another command (``hbar`` as ``\\hbar``) is replaced
         by :func:`upright_symbol`.
     mul_symbol : {None, "times", "dot", "ldot"}, optional
         Multiplication sign, passed to SymPy's printer: ``None`` writes

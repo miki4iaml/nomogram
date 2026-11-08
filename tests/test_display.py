@@ -152,6 +152,23 @@ def test_every_formula_stays_within_the_common_latex_subset(
             assert latex_commands(rendering.markdown) <= LATEX_COMMANDS, formulation.key
 
 
+def test_the_marks_the_sources_put_on_symbols_are_kept() -> None:
+    def written(key: str, reference: str) -> str:
+        formulation = FORMULATIONS[key]
+        citation = next(c for c in formulation.citations if c.reference == reference)
+        return formulation.render(citation.notation).latex
+
+    # The mean wind of Businger (1985), the calligraphic L of the IFS, the
+    # bold vector of Beljaars (1992).
+    businger = written("businger1985_drag_coefficient", "businger1985")
+    assert r"\left(\bar{u} - u_s\right)^{2}" in businger
+    assert written("ecmwf_ifs_obukhov_length", "ecmwf_ifs_cy49r1").startswith(
+        r"\mathcal{L} = "
+    )
+    beljaars = written("ecmwf_ifs_bulk_richardson_number", "beljaars1992")
+    assert r"|\mathbf{U}_1|^{2}" in beljaars
+
+
 def test_rendering_targets() -> None:
     rendering = MAGNUS.render()
     assert isinstance(rendering, Rendering)
