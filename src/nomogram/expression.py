@@ -635,14 +635,19 @@ def _variants(expr: Any) -> list[Any]:
 
 
 def _relations(expr: Any) -> list[Any]:
-    """The comparisons of the conditions of the piecewise definitions."""
+    """The comparisons of the conditions of the piecewise definitions.
+
+    Those with 0 are left out: 0 has every dimension, so that ``Q_0v > 0``
+    compares a flux with no unit to match, as a member 0 of an implicit
+    equation has every unit.
+    """
     found = []
     for node in sympy.preorder_traversal(expr):
         if isinstance(node, sympy.Piecewise):
             for _, condition in node.args:
                 is_chain = isinstance(condition, sympy.And)
                 found += list(condition.args) if is_chain else [condition]
-    return found
+    return [r for r in found if not (r.lhs.is_zero or r.rhs.is_zero)]
 
 
 def _condition(node: ast.expr, symbols: Mapping[str, Any], number: Any) -> Any:

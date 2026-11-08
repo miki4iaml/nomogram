@@ -47,12 +47,14 @@ called by its key:
 | Roughness for heat and humidity | `coare36_roughness_length_heat`, `coare36_roughness_length_humidity` | `ecmwf_ifs_roughness_length_heat_sea`, `ecmwf_ifs_roughness_length_humidity_sea` |
 | Stability | `coare36_obukhov_length`, from the scales | `ecmwf_ifs_bulk_richardson_number` (3.26), then `ecmwf_ifs_obukhov_length_from_bulk_richardson_number` (3.25) |
 | Scales | `coare36_friction_velocity`, `coare36_temperature_scale`, `coare36_humidity_scale` | `ecmwf_ifs_transfer_coefficient_momentum`, `_heat`, `_humidity` (3.16 to 3.18), `ecmwf_ifs_friction_velocity` |
+| Gustiness of free convection | `coare36_virtual_temperature_flux`, `coare36_convective_gust` | `ecmwf_ifs_virtual_temperature_flux` (3.10), `ecmwf_ifs_free_convection_velocity_scale` (3.20), `ecmwf_ifs_wind_speed_free_convection` (3.19) |
+| Viscosity of air | `coare36_kinematic_viscosity_of_air` | in its roughness lengths |
 
-Not yet in the catalog, and written in the script: the convective gust,
-1.2 w\* from the buoyancy flux, and the kinematic viscosity of air, as
-the code of COARE 3.6 writes them. The IFS has a gust too (equations 3.19
-and 3.20), not yet in the catalog either: its variant goes without. The gravity is the normal gravity of WGS 84 at the
-latitude (`wmo_normal_gravity_wgs84`).
+Both add a gustiness to the wind in free convection, from the virtual
+temperature flux at the surface: COARE 1.2 w\* with a boundary layer of
+600 m, the IFS w\* with 1000 m; these fluxes are of the provisional kind
+`KinematicHeatFlux`, pending a QUDT pull request. The gravity is the
+normal gravity of WGS 84 at the latitude (`wmo_normal_gravity_wgs84`).
 
 Two steps show how the catalog keeps a formula within its bounds:
 
@@ -90,7 +92,7 @@ and the skin temperature fixed at its final value.
 
 On the same measurements, the IFS departs from COARE: its roughness
 length is twice COARE's (a Charnock coefficient of 0.018, where the line
-of Edson et al. gives about 0.011 at 10 m/s), u\* +5 %, L +18 % (less
+of Edson et al. gives about 0.011 at 10 m/s), u\* +6 %, L +20 % (less
 unstable), θ\* -6 % and q\* -3 %, in medians.
 
 ## From the profiles to the duct

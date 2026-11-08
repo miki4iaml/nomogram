@@ -424,8 +424,8 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
 
     # The IFS against COARE, on the same measurements.
     assert round(float(np.median(by_ifs["z_0M"] / by_coare["z_0M"]))) == 2
-    assert median(by_ifs["u_s"] / by_coare["u_s"]) == 5
-    assert median(by_ifs["L"] / by_coare["L"]) == 18
+    assert median(by_ifs["u_s"] / by_coare["u_s"]) == 6
+    assert median(by_ifs["L"] / by_coare["L"]) == 20
     assert median(by_ifs["T_s"] / by_coare["T_s"]) == -6
     assert median(by_ifs["q_s"] / by_coare["q_s"]) == -3
 

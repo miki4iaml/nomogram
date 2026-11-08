@@ -72,9 +72,7 @@ def air(m: dict[str, np.ndarray]) -> dict[str, Any]:
         p=Q_(p_t, "hPa"),
     )
     t = m["ta"]
-    # The kinematic viscosity of air as the code of COARE 3.6 writes it, in
-    # m2/s: not yet in the catalog.
-    nu = 1.326e-5 * (1 + 6.542e-3 * t + 8.301e-6 * t**2 - 4.84e-9 * t**3)
+    nu = value("coare36_kinematic_viscosity_of_air", "m**2/s", t=Q_(t, "degC"))
     return {
         "g": Q_(g, "m/s**2"),
         "T": Q_(t + 273.16, "K"),  # as COARE converts
@@ -153,12 +151,23 @@ def coare(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:
             q_s=Q_(q_s, "kg/kg"),
             g=a["g"],
         )
-        # The convective gust, 1.2 w* from the buoyancy flux, as the code of
-        # COARE 3.6 writes it: not yet in the catalog.
-        q = a["q"].magnitude
-        buoyancy = -a["g"].magnitude / a["T"].magnitude * u_s
-        buoyancy = buoyancy * (t_s * (1 + 0.61 * q) + 0.61 * a["T"].magnitude * q_s)
-        gust = np.where(buoyancy > 0, 1.2 * np.abs(buoyancy * m["zi"]) ** 0.333, 0.2)
+        flux = value(  # the virtual temperature flux, positive upward
+            "coare36_virtual_temperature_flux",
+            "K*m/s",
+            u_s=Q_(u_s, "m/s"),
+            T_s=Q_(t_s, "K"),
+            q_s=Q_(q_s, "kg/kg"),
+            q=a["q"],
+            T=a["T"],
+        )
+        gust = value(
+            "coare36_convective_gust",
+            "m/s",
+            T=a["T"],
+            Q_0v=Q_(flux, "K*m/s"),
+            z_i=Q_(m["zi"], "m"),
+            g=a["g"],
+        )
     return {"u_s": u_s, "T_s": t_s, "q_s": q_s, "L": length, "z_0M": z_0M}
 
 
@@ -166,24 +175,25 @@ def ifs(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:
     """The scales of the IFS: a fixed point, L from Ri_b (equation 3.25).
 
     One model level: the wind at 18 m, the temperature and humidity at 17 m
-    taken there; no convective gust (equations 3.19 and 3.20 are not in the
-    catalog).
+    taken there; the free convection velocity added to the wind (3.19, 3.20).
     """
     u, z_n = m["u"], Q_(m["zu"], "m")
-    theta = a["T"] + a["g"] / Q_(1004.67, "J/(kg*K)") * Q_(m["zt"], "m")
+    c_p = Q_(1004.67, "J/(kg*K)")
+    theta = a["T"] + a["g"] / c_p * Q_(m["zt"], "m")
     theta_v = theta * (1 + 0.61 * a["q"].magnitude)
     surface_v = a["T_surf"] * (1 + 0.61 * a["q_surf"].to("kg/kg").magnitude)
-    richardson = value(
-        "ecmwf_ifs_bulk_richardson_number",
-        ONE,
-        theta_v=theta_v,
-        z_n=z_n,
-        theta_vn=theta_v,
-        theta_vsurf=surface_v,
-        U_n=Q_(u, "m/s"),
-    )
     u_s = 0.035 * u
+    wind = u
     for _ in range(15):
+        richardson = value(
+            "ecmwf_ifs_bulk_richardson_number",
+            ONE,
+            theta_v=theta_v,
+            z_n=z_n,
+            theta_vn=theta_v,
+            theta_vsurf=surface_v,
+            U_n=Q_(wind, "m/s"),
+        )
         z_0 = {
             name: Q_(
                 value(f"ecmwf_ifs_roughness_length_{key}_sea", "m", u_s=Q_(u_s, "m/s")),
@@ -215,13 +225,39 @@ def ifs(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:
         at = {"z_n": z_n, "z_0M": z_0["z_0M"], "L": Q_(length, "m")}
         c_m = value("ecmwf_ifs_transfer_coefficient_momentum", ONE, **at)
         u_s = value(
-            "ecmwf_ifs_friction_velocity", "m/s", C_M=Q_(c_m, ONE), U_n=Q_(u, "m/s")
+            "ecmwf_ifs_friction_velocity", "m/s", C_M=Q_(c_m, ONE), U_n=Q_(wind, "m/s")
         )
-    c_h = value("ecmwf_ifs_transfer_coefficient_heat", ONE, z_0H=z_0["z_0H"], **at)
-    c_q = value("ecmwf_ifs_transfer_coefficient_humidity", ONE, z_0Q=z_0["z_0Q"], **at)
-    # The scales of the fluxes, positive when the quantity increases upwards.
-    t_s = -c_h * u * (a["T_surf"] - theta).to("K").magnitude / u_s
-    q_s = -c_q * u * (a["q_surf"] - a["q"]).to("kg/kg").magnitude / u_s
+        c_h = value("ecmwf_ifs_transfer_coefficient_heat", ONE, z_0H=z_0["z_0H"], **at)
+        c_q = value(
+            "ecmwf_ifs_transfer_coefficient_humidity", ONE, z_0Q=z_0["z_0Q"], **at
+        )
+        # The scales of the IFS take the sign of the upward flux.
+        upward_s = c_h * wind * (c_p * (a["T_surf"] - theta)).to("J/kg").magnitude
+        upward_q = c_q * wind * (a["q_surf"] - a["q"]).to("kg/kg").magnitude
+        flux = value(
+            "ecmwf_ifs_virtual_temperature_flux",
+            "K*m/s",
+            u_s=Q_(u_s, "m/s"),
+            s_s=Q_(upward_s / u_s, "J/kg"),
+            q_s=Q_(upward_q / u_s, "kg/kg"),
+            T_n=a["T"],
+        )
+        w_s = value(  # NaN where the surface cools the air: no gust there
+            "ecmwf_ifs_free_convection_velocity_scale",
+            "m/s",
+            T_n=a["T"],
+            Q_0v=Q_(flux, "K*m/s"),
+        )
+        wind = value(
+            "ecmwf_ifs_wind_speed_free_convection",
+            "m/s",
+            u_n=Q_(u, "m/s"),
+            v_n=Q_(0.0, "m/s"),
+            w_s=Q_(np.nan_to_num(w_s), "m/s"),
+        )
+    # The scales of the profiles, positive when the quantity increases upwards.
+    t_s = -upward_s / c_p.magnitude / u_s
+    q_s = -upward_q / u_s
     return {
         "u_s": u_s,
         "T_s": t_s,
