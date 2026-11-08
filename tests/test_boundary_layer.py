@@ -74,17 +74,39 @@ def test_the_profile_function_is_written_with_the_arctangent() -> None:
 
 def test_the_transfer_coefficients_are_logarithmic_at_neutral() -> None:
     z_n, z_0m, z_0h = Q_(10.0, "m"), Q_(1e-3, "m"), Q_(1e-4, "m")
-    neutral = Q_(0.0, ONE)
+    # Neutral: an infinite Obukhov length, z/L = 0 at every height.
+    neutral = Q_(math.inf, "m")
     c_m = F["ecmwf_ifs_transfer_coefficient_momentum"].evaluate(
-        z_n=z_n, z_0M=z_0m, zeta_n=neutral, zeta_0M=neutral
+        z_n=z_n, z_0M=z_0m, L=neutral
     )
     log_m = math.log((10.0 + 1e-3) / 1e-3)
     assert c_m.magnitude == pytest.approx((0.4 / log_m) ** 2, rel=1e-12)
     c_h = F["ecmwf_ifs_transfer_coefficient_heat"].evaluate(
-        z_n=z_n, z_0M=z_0m, z_0H=z_0h, zeta_n=neutral, zeta_0M=neutral, zeta_0H=neutral
+        z_n=z_n, z_0M=z_0m, z_0H=z_0h, L=neutral
     )
     log_h = math.log((10.0 + 1e-3) / 1e-4)
     assert c_h.magnitude == pytest.approx(0.4**2 / (log_m * log_h), rel=1e-12)
+    c_q = F["ecmwf_ifs_transfer_coefficient_humidity"].evaluate(
+        z_n=z_n, z_0M=z_0m, z_0Q=z_0h, L=neutral
+    )
+    assert c_q.magnitude == pytest.approx(c_h.magnitude, rel=1e-12)
+
+
+def test_the_transfer_coefficient_for_humidity_is_that_for_heat() -> None:
+    # Psi_Q = Psi_H (3.22, 3.24): with z_0Q = z_0H, C_Q = C_H at any L.
+    lengths: dict[str, Any] = {"z_n": Q_(10.0, "m"), "z_0M": Q_(1e-3, "m")}
+    obukhov = Q_(np.array([-50.0, -5.0, 20.0, 200.0]), "m")
+    c_h = F["ecmwf_ifs_transfer_coefficient_heat"].evaluate(
+        **lengths, z_0H=Q_(2e-5, "m"), L=obukhov
+    )
+    c_q = F["ecmwf_ifs_transfer_coefficient_humidity"].evaluate(
+        **lengths, z_0Q=Q_(2e-5, "m"), L=obukhov
+    )
+    np.testing.assert_allclose(c_q.magnitude, c_h.magnitude, rtol=1e-12)
+    # Written with the Obukhov length, as the IFS writes it.
+    written = str(F["ecmwf_ifs_transfer_coefficient_humidity"].written_expression)
+    assert "Psi_Q(z_0Q/L)" in written
+    assert "Psi_Q((z_0M + z_n)/L)" in written
 
 
 def test_the_transfer_coefficient_calls_the_profile_function_twice() -> None:
@@ -94,10 +116,7 @@ def test_the_transfer_coefficient_calls_the_profile_function_twice() -> None:
     psi = F["ecmwf_ifs_profile_function_momentum"]
     psi_n, psi_0 = psi.evaluate(zeta=zeta(zeta_n, zeta_0)).magnitude
     c_m = F["ecmwf_ifs_transfer_coefficient_momentum"].evaluate(
-        z_n=Q_(z_n, "m"),
-        z_0M=Q_(z_0m, "m"),
-        zeta_n=Q_(zeta_n, ONE),
-        zeta_0M=Q_(zeta_0, ONE),
+        z_n=Q_(z_n, "m"), z_0M=Q_(z_0m, "m"), L=Q_(length, "m")
     )
     expected = 0.4**2 / (math.log((z_n + z_0m) / z_0m) - psi_n + psi_0) ** 2
     assert c_m.magnitude == pytest.approx(expected, rel=1e-12)
@@ -181,7 +200,7 @@ def test_the_surface_layer_is_found_by_search() -> None:
     assert "formulations.ecmwf_ifs_profile_function_momentum_unstable" in paulson
     term = CATALOG.search("drag coefficient").refs
     assert "trade_terms.drag_coefficient" in term
-    assert CATALOG.families["boundary-layer"].requires == ("atmosphere",)
+    assert CATALOG.families["boundary-layer"].requires == ("atmosphere", "sea-water")
 
 
 def test_the_surface_layer_is_linked_to_wikidata() -> None:
@@ -220,45 +239,33 @@ def test_the_dry_static_energy_at_2_m_at_neutral_and_very_stable() -> None:
         "z_0ma": Q_(z_0ma, "m"),
         "z_0H": Q_(z_0h, "m"),
     }
-    neutral = Q_(0.0, ONE)
-    s_2 = f.evaluate(**lengths, zeta_2=neutral, zeta_n=neutral, zeta_0H=neutral)
+    s_2 = f.evaluate(**lengths, L=Q_(math.inf, "m"))
     beta = math.log((2 + z_0ma) / z_0h) / math.log((z_n + z_0ma) / z_0h)
     assert s_2.magnitude == pytest.approx(s_surf + (s_n - s_surf) * beta, rel=1e-12)
-    # Very stable: f_2m tends to 1, and the interpolation factor to 0.75.
-    far = f.evaluate(
-        **lengths, zeta_2=Q_(1e9, ONE), zeta_n=Q_(1e9, ONE), zeta_0H=Q_(1e7, ONE)
-    )
+    # Very stable, (z_2 + z_0ma)/L = 1e9: f_2m tends to 1, and the
+    # interpolation factor to 0.75.
+    far = f.evaluate(**lengths, L=Q_((2 + z_0ma) / 1e9, "m"))
     assert far.magnitude == pytest.approx(s_surf + 0.75 * (s_n - s_surf), rel=1e-6)
 
 
 def test_the_wind_at_10_m_is_the_wind_at_a_blending_height_of_10_m() -> None:
-    zeta_10 = Q_(-0.2, ONE)
     f_10 = F["ecmwf_ifs_wind_speed_10m"].evaluate(
         F_blend=Q_(6.0, "m/s"),
         z_blend=Q_(10.0, "m"),
         z_0=Q_(0.03, "m"),
-        zeta_10=zeta_10,
-        zeta_blend=zeta_10,
-        zeta_0=Q_(-0.0006, ONE),
+        L=Q_(-50.0, "m"),
     )
     assert f_10.to("m/s").magnitude == pytest.approx(6.0, rel=1e-12)
 
 
 def test_the_friction_velocity_of_the_diagnostics_agrees_with_the_drag() -> None:
     # 3.108 against 3.29 with C_M of 3.16, at the same heights.
-    z_b, z_0, zeta_b, zeta_0 = 40.0, 0.03, (40.0 + 0.03) / -100.0, 0.03 / -100.0
+    z_b, z_0, length = 40.0, 0.03, Q_(-100.0, "m")
     u_s = F["ecmwf_ifs_friction_velocity_blending_height"].evaluate(
-        F_blend=Q_(8.0, "m/s"),
-        z_blend=Q_(z_b, "m"),
-        z_0=Q_(z_0, "m"),
-        zeta_blend=Q_(zeta_b, ONE),
-        zeta_0=Q_(zeta_0, ONE),
+        F_blend=Q_(8.0, "m/s"), z_blend=Q_(z_b, "m"), z_0=Q_(z_0, "m"), L=length
     )
     c_m = F["ecmwf_ifs_transfer_coefficient_momentum"].evaluate(
-        z_n=Q_(z_b, "m"),
-        z_0M=Q_(z_0, "m"),
-        zeta_n=Q_(zeta_b, ONE),
-        zeta_0M=Q_(zeta_0, ONE),
+        z_n=Q_(z_b, "m"), z_0M=Q_(z_0, "m"), L=length
     )
     from_drag = F["ecmwf_ifs_friction_velocity"].evaluate(C_M=c_m, U_n=Q_(8.0, "m/s"))
     assert u_s.to("m/s").magnitude == pytest.approx(
@@ -271,3 +278,25 @@ def test_the_visibility_of_clean_air_is_100_km() -> None:
     v = F["ecmwf_ifs_visibility"].evaluate(beta_tot=Q_(beta, "1/m"))
     assert v.to("km").magnitude == pytest.approx(100.0, rel=1e-12)
     assert CATALOG.kinds["Visibility"].cf_standard_names == ("visibility_in_air",)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "ecmwf_ifs_profile_function_momentum_stable",
+        "ecmwf_ifs_profile_function_heat_stable",
+    ],
+)
+def test_the_stable_profile_functions_carry_the_constants_of_beljaars_and_holtslag(
+    key: str,
+) -> None:
+    # The IFS attributes the form to Holtslag and De Bruin (1988), modified;
+    # a = 1 and b = 2/3 are those of Beljaars and Holtslag (1991), where
+    # Holtslag and De Bruin have 0.7 and 0.75 (Andreas 2002, eq. 3.4, 3.5).
+    formulation = F[key]
+    coefficients = {c.identifier: c.value for c in formulation.coefficients}
+    assert coefficients["a"] == 1.0
+    assert coefficients["b"] == pytest.approx(2 / 3)
+    assert "beljaars_holtslag1991" in formulation.references
+    assert f"formulations.{key}" in CATALOG.search("Beljaars").refs
+    assert CATALOG.references["andreas2002"].status.value == "verified"

@@ -50,6 +50,25 @@ NEEDED = {
     ("itu_r_p835_pressure", "T_0"),
     # rho = r P C / T: r or C must carry a unit.
     ("itu_r_p835_water_vapour_density_upper", "r"),
+    # 77.6 (1000 + 4810 e/T)/T: P_0 = 1000 hPa or 77.6 must carry a unit.
+    ("paulus1989_potential_refractivity", "P_0"),
+    # 369 z_1 and 10 z_1: z_1 or the number must carry the metre.
+    ("paulus1989_bulk_richardson_number", "z_1"),
+    ("paulus1989_obukhov_length_from_profile_coefficient", "z_1"),
+    ("paulus1989_obukhov_length", "z_1"),
+    # T u^2 / (k g (T_* + 0.61 T q_*)): k or g must carry a unit.
+    ("frederickson1994_obukhov_length", "g"),
+    # phi/(alpha_T kappa z) (7.2 q_* - 1.3 T_*): alpha_T and kappa, pure
+    # numbers, or 7.2 and 1.3 must carry the units.
+    ("fairall1978_vertical_refractivity_gradient", "alpha_T"),
+    ("fairall1978_vertical_refractivity_gradient", "kappa"),
+    # -(7.2 q_* - 1.3 T_*)/(alpha_T kappa 0.125) phi: the same product, and
+    # 0.125 m-1 or the numbers 7.2 and 1.3 must carry the units of N.
+    ("fairall1978_evaporation_duct_height", "alpha_T"),
+    ("fairall1978_evaporation_duct_height", "kappa"),
+    ("fairall1978_evaporation_duct_height", "c"),
+    ("frederickson1994_evaporation_duct_height", "k"),
+    ("frederickson1994_evaporation_duct_height", "c"),
 }
 
 

@@ -31,7 +31,8 @@ What nomogram adds to the sources is stated here, not hidden in the data:
 the scale type and the point/difference typing of each kind (QUDT
 records it as ``isDeltaQuantity`` on a quantity in its context, not on
 kinds), the link from each kind to CF
-standard names, and the pint expression of each unit.
+standard names, the pint expression of each unit, and the few units QUDT
+does not have (``LOCAL_UNITS``), until it does.
 """
 
 from __future__ import annotations
@@ -75,6 +76,34 @@ class KindSpec(NamedTuple):
     #: Date its links were read, for a kind added after the extraction date
     #: of the others; the extraction date by default.
     checked: str | None = None
+    #: The values the kind admits by its definition, which QUDT does not
+    #: state: (low, high, unit, criterion), None for an open end.
+    bounds: tuple[float | None, float | None, str, str] | None = None
+
+
+class LocalKind(NamedTuple):
+    """A quantity kind absent from QUDT, with no QUDT kind to specialize.
+
+    Provisional (AGENTS.md, design goal 5): admitted only while a pull
+    request adding it to QUDT is open, written as that pull request writes
+    it. Each extraction before a minor version checks its state
+    (CONTRIBUTING, Releasing): merged and released, QUDT's kind replaces it;
+    closed without merge, it is removed or reworked.
+    """
+
+    label: str
+    dimension_vector: str
+    scale_type: str
+    delta: bool
+    #: QUDT local names of its units.
+    units: tuple[str, ...]
+    #: The pull request adding it to QUDT, and the date it was opened.
+    pull_request: str
+    opened: str
+
+
+#: The criterion of bounds that only exclude negative values.
+_NEVER_NEGATIVE = "A {what}, never negative by its definition."
 
 
 #: Quantity kinds kept, by QUDT local name.
@@ -103,7 +132,23 @@ KINDS: dict[str, KindSpec] = {
     # which the catalog declares the frost point and the ice-bulb
     # temperature as their siblings: a frost point must not feed a dew
     # point input.
-    "Temperature": KindSpec("interval", delta=False, offset_units="any"),
+    "Temperature": KindSpec(
+        "interval",
+        delta=False,
+        offset_units="any",
+        bounds=(
+            0.0,
+            None,
+            "K",
+            (
+                "A temperature, never below absolute zero, 0 K, the zero of "
+                "thermodynamic temperature, from which the Celsius temperature is "
+                "t = T - 273.15 K (SI Brochure, 9th edition, 2.3.1); the negative "
+                "absolute temperatures of some spin systems lie outside nomogram. A "
+                "temperature difference has no such bound."
+            ),
+        ),
+    ),
     # The temperature of a wet-bulb thermometer (psychrometer), in degC in
     # the formulas, in K for CF.
     "WetBulbTemperature": KindSpec(
@@ -120,6 +165,15 @@ KINDS: dict[str, KindSpec] = {
         "ratio",
         delta=False,
         added_units=("PERCENT",),
+        bounds=(
+            0.0,
+            None,
+            "UNITLESS",
+            (
+                "A ratio of mass ratios, never negative by its definition; not "
+                "bounded above, supersaturation existing."
+            ),
+        ),
     ),
     # p / p_sat over either phase, the parent of the relative humidity (with
     # respect to water, as QUDT defines it) under which the catalog declares
@@ -130,6 +184,15 @@ KINDS: dict[str, KindSpec] = {
         "ratio",
         delta=False,
         added_units=("UNITLESS", "PERCENT"),
+        bounds=(
+            0.0,
+            None,
+            "UNITLESS",
+            (
+                "A ratio of partial pressures, never negative by its definition; not "
+                "bounded above, supersaturation existing."
+            ),
+        ),
     ),
     # CF's canonical unit for relative humidity is 1.
     "RelativeHumidity": KindSpec(
@@ -145,11 +208,23 @@ KINDS: dict[str, KindSpec] = {
         "ratio",
         delta=False,
         cf_standard_names=(("water_vapor_partial_pressure_in_air", "exact"),),
+        bounds=(
+            0.0,
+            None,
+            "PA",
+            _NEVER_NEGATIVE.format(what="partial pressure of a gas"),
+        ),
     ),
     "MassConcentrationOfWaterVapour": KindSpec(
         "ratio",
         delta=False,
         cf_standard_names=(("mass_concentration_of_water_vapor_in_air", "exact"),),
+        bounds=(
+            0.0,
+            None,
+            "KiloGM-PER-M3",
+            _NEVER_NEGATIVE.format(what="mass per volume"),
+        ),
     ),
     # QUDT gives this kind no specializationOf MassRatio, so the mass
     # ratio units do not reach it; g/kg is its usual unit.
@@ -158,6 +233,12 @@ KINDS: dict[str, KindSpec] = {
         delta=False,
         cf_standard_names=(("humidity_mixing_ratio", "exact"),),
         added_units=("GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
+        bounds=(
+            0.0,
+            None,
+            "KiloGM-PER-KiloGM",
+            _NEVER_NEGATIVE.format(what="mass of water vapour over that of dry air"),
+        ),
     ),
     # CF's canonical unit for specific humidity is 1.
     "SpecificHumidity": KindSpec(
@@ -165,6 +246,15 @@ KINDS: dict[str, KindSpec] = {
         delta=False,
         cf_standard_names=(("specific_humidity", "exact"),),
         added_units=("UNITLESS",),
+        bounds=(
+            0.0,
+            1.0,
+            "KiloGM-PER-KiloGM",
+            (
+                "The mass of water vapour over that of the moist air, from 0 to 1 by "
+                "its definition."
+            ),
+        ),
     ),
     # Kept although nomogram does not use it as a kind: the term is
     # ambiguous across trades (see docs/rosetta.md).
@@ -201,34 +291,109 @@ KINDS: dict[str, KindSpec] = {
         "ratio",
         delta=False,
         added_units=("PERMILLE", "GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
+        bounds=(
+            0.0,
+            1.0,
+            "UNITLESS",
+            "A part of a mass over the whole mass, from 0 to 1 by its definition.",
+        ),
     ),
     # Vapour pressure of sea water from its osmotic coefficient and the total
     # molality of dissolved species (Dickson et al. 2007).
     "OsmoticCoefficient": KindSpec("ratio", delta=False),
-    "MolalityOfSolute": KindSpec("ratio", delta=False),
+    "MolalityOfSolute": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "MOL-PER-KiloGM",
+            _NEVER_NEGATIVE.format(what="amount of substance per mass"),
+        ),
+    ),
     # The definitions of WMO-No. 8, Annex 4.A: the mixing ratio, specific
     # humidity and vapour concentration from masses and a volume, the mole
     # fraction of water vapour from amounts of substance.
-    "Mass": KindSpec("ratio", delta=False),
-    "Volume": KindSpec("ratio", delta=False),
-    "AmountOfSubstance": KindSpec("ratio", delta=False),
-    "MoleFraction": KindSpec("ratio", delta=False),
+    "Mass": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(0.0, None, "KiloGM", _NEVER_NEGATIVE.format(what="mass")),
+    ),
+    "Volume": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(0.0, None, "M3", _NEVER_NEGATIVE.format(what="volume")),
+    ),
+    "AmountOfSubstance": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(0.0, None, "MOL", _NEVER_NEGATIVE.format(what="amount of substance")),
+    ),
+    "MoleFraction": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            1.0,
+            "UNITLESS",
+            (
+                "A part of an amount of substance over the whole, from 0 to 1 by its "
+                "definition."
+            ),
+        ),
+    ),
     # Bechtold (2015): the density of moist air, which defines the virtual
     # temperature, and the total water mixing ratio of the equivalent
     # potential temperature, specialized in the catalog.
-    "Density": KindSpec("ratio", delta=False),
+    "Density": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "KiloGM-PER-M3",
+            _NEVER_NEGATIVE.format(what="mass per volume"),
+        ),
+    ),
     # WMO-No. 8: the psychrometer coefficient A, in K-1 (4.1, 4.2), and the
     # specific heats of dry air and water vapour of the wet-bulb
     # temperature (4.A.19).
     "InverseTemperature": KindSpec("ratio", delta=False),
-    "SpecificHeatCapacityAtConstantPressure": KindSpec("ratio", delta=False),
-    "MassRatio": KindSpec("ratio", delta=False),
+    "SpecificHeatCapacityAtConstantPressure": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "J-PER-KiloGM-K",
+            "Positive for matter in stable thermodynamic equilibrium.",
+        ),
+    ),
+    "MassRatio": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "KiloGM-PER-KiloGM",
+            _NEVER_NEGATIVE.format(what="ratio of two masses"),
+        ),
+    ),
     # Vertical coordinates: the parent of the geopotential height
     # (catalog), which must not feed an altitude input: the two differ by
     # 19 m at 11 km.
     "Length": KindSpec("ratio", delta=False),
     # The acceleration of free fall, local or conventional (g_n).
-    "AccelerationOfGravity": KindSpec("ratio", delta=False),
+    "AccelerationOfGravity": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "M-PER-SEC2",
+            "The magnitude of the acceleration of free fall, never negative.",
+        ),
+    ),
     # A temperature difference per length, without a sign; the catalog
     # specializes it in two siblings, the lapse rate -dT/dz and dT/dz.
     "TemperatureGradient": KindSpec("ratio", delta=False),
@@ -239,8 +404,14 @@ KINDS: dict[str, KindSpec] = {
         delta=False,
         cf_standard_names=(("eastward_wind", "narrow"), ("northward_wind", "narrow")),
     ),
+    # QUDT declares the knot for Velocity and LinearVelocity, not for
+    # Speed (3.5.3), whose magnitude it measures as well.
     "Speed": KindSpec(
-        "ratio", delta=False, cf_standard_names=(("wind_speed", "narrow"),)
+        "ratio",
+        delta=False,
+        cf_standard_names=(("wind_speed", "narrow"),),
+        added_units=("KN",),
+        bounds=(0.0, None, "M-PER-SEC", "The magnitude of a velocity, never negative."),
     ),
     # The parent of the geodetic latitude (catalog), in normal gravity
     # formulas.
@@ -251,15 +422,115 @@ KINDS: dict[str, KindSpec] = {
     "SpeedOfSound": KindSpec(
         "ratio", delta=False, cf_standard_names=(("speed_of_sound_in_air", "narrow"),)
     ),
-    "DynamicViscosity": KindSpec("ratio", delta=False),
-    "KinematicViscosity": KindSpec("ratio", delta=False),
-    "ThermalConductivity": KindSpec("ratio", delta=False),
+    "DynamicViscosity": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "PA-SEC",
+            "Never negative: viscous dissipation produces entropy (second law).",
+        ),
+    ),
+    "KinematicViscosity": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "M2-PER-SEC",
+            "Never negative: viscous dissipation produces entropy (second law).",
+        ),
+    ),
+    "ThermalConductivity": KindSpec(
+        "ratio",
+        delta=False,
+        bounds=(
+            0.0,
+            None,
+            "W-PER-M-K",
+            "Never negative: heat flows from hot to cold (second law).",
+        ),
+    ),
     # The IFS: the parent of the square of the Brunt-Vaisala frequency
     # (catalog), in s-2.
     "InverseSquareTime": KindSpec("ratio", delta=False),
     # The IFS: the extinction coefficient of its visibility, in m-1;
     # QUDT's LinearAttenuationCoefficient, narrower, declares no unit.
-    "AttenuationCoefficient": KindSpec("ratio", delta=False, checked="2026-11-04"),
+    "AttenuationCoefficient": KindSpec(
+        "ratio",
+        delta=False,
+        checked="2026-11-04",
+        bounds=(
+            0.0,
+            None,
+            "PER-M",
+            "An attenuation, never negative in a passive medium.",
+        ),
+    ),
+    # The parent of the vertical gradient of radio refractivity (catalog),
+    # in N-units per metre (Fairall et al. 1978).
+    "InverseLength": KindSpec("ratio", delta=False, checked="2026-11-07"),
+    # Surface fluxes of the IFS and of Large and Yeager (2004), signed as
+    # their sources write them: the parent of the sensible heat flux
+    # (catalog), in W/m2; of the flux of water vapour (catalog), in
+    # kg m-2 s-1 (MassPerAreaTime, since QUDT 3.5.3 labels its
+    # MassFluxDensity in en-US only); of the magnitude of the surface
+    # stress (catalog), in Pa.
+    "HeatFluxDensity": KindSpec("ratio", delta=False, checked="2026-11-08"),
+    "MassPerAreaTime": KindSpec("ratio", delta=False, checked="2026-11-08"),
+    "Stress": KindSpec("ratio", delta=False, checked="2026-11-08"),
+}
+
+
+class LocalUnit(NamedTuple):
+    """A unit QUDT does not have, declared by nomogram until it does."""
+
+    label: str
+    symbol: str
+    dimension_vector: str
+    multiplier: float
+    ucum: str | None
+    pint: str
+    #: Quantity kinds, by QUDT local name, the unit is declared for.
+    kinds: tuple[str, ...]
+
+
+#: Provisional quantity kinds, by the local name the pull request adding
+#: them to QUDT gives them, with the reason.
+LOCAL_KINDS: dict[str, LocalKind] = {
+    # A heat flux density over rho c_p, in K m/s: the flux of the Obukhov
+    # length and of the convective velocity scale w* of the IFS (CY49R1,
+    # Part IV, equations 3.10, 3.19 and 3.20). No QUDT kind has its
+    # dimension; QUDT 3.5.3 files unit:K-M-PER-SEC under
+    # quantitykind:Unknown (qudt/qudt-public-repo#1601, #1091).
+    "KinematicHeatFlux": LocalKind(
+        label="Kinematic Heat Flux",
+        dimension_vector="A0E0L1I0M0H1T-1D0",
+        scale_type="ratio",
+        delta=False,
+        units=("K-M-PER-SEC",),
+        pull_request="https://github.com/qudt/qudt-public-repo/pull/1612",
+        opened="2026-11-08",
+    ),
+}
+
+#: Units absent from QUDT, declared by nomogram, with the reason; written
+#: as QUDT writes its neighbours (PPM-PER-K, PERCENT-PER-M).
+LOCAL_UNITS: dict[str, LocalUnit] = {
+    # The vertical gradient of radio refractivity in N-units per metre:
+    # the critical gradient for ducting, -0.157 m-1 of N (Fairall et al.
+    # 1978, NPS61-78-005, equation 3); -0.125 m-1 of potential refractivity
+    # (Paulus 1989, NOSC TD 1596, step 5). Absent from QUDT 3.5.3.
+    "PPM-PER-M": LocalUnit(
+        label="Parts per Million per Metre",
+        symbol="ppm/m",
+        dimension_vector="A0E0L-1I0M0H0T0D0",
+        multiplier=1e-6,
+        ucum="[ppm].m-1",
+        pint="ppm/m",
+        kinds=("InverseLength",),
+    ),
 }
 
 #: Units kept, by QUDT local name, with their pint expression.
@@ -270,6 +541,9 @@ UNITS: dict[str, str] = {
     "PA": "Pa",
     "HectoPA": "hPa",
     "KiloPA": "kPa",
+    # Surface fluxes (boundary-layer family).
+    "W-PER-M2": "W/m^2",
+    "KiloGM-PER-M2-SEC": "kg/m^2/s",
     "GM-PER-M3": "g/m^3",
     "KiloGM-PER-M3": "kg/m^3",
     "GM-PER-KiloGM": "g/kg",
@@ -321,11 +595,20 @@ UNITS: dict[str, str] = {
     # The IFS: the extinction coefficient of the visibility.
     "PER-M": "1/m",
     "PER-KiloM": "1/km",
+    # Paulus (1989), NOSC TD 1596: the wind speed of the evaporation duct
+    # height, in knots.
+    "KN": "knot",
+    # The kinematic heat flux, a provisional kind (LOCAL_KINDS).
+    "K-M-PER-SEC": "K*m/s",
 }
 
 #: Date the links of a unit added after the extraction date of the
 #: others were read; the extraction date for the others.
-UNITS_CHECKED: dict[str, str] = {"PER-M": "2026-11-04", "PER-KiloM": "2026-11-04"}
+UNITS_CHECKED: dict[str, str] = {
+    "PER-M": "2026-11-04",
+    "PER-KiloM": "2026-11-04",
+    "KN": "2026-11-07",
+}
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
 #: in the frozen subset so that the catalog can check them.
@@ -370,6 +653,11 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "surface_drag_coefficient_for_heat_in_air",
     "sea_ice_area_fraction",
     "visibility_in_air",
+    # Surface fluxes, positive downward as the IFS and Large and Yeager
+    # (2004) write them.
+    "surface_downward_sensible_heat_flux",
+    "surface_downward_latent_heat_flux",
+    "magnitude_of_surface_downward_stress",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
@@ -482,6 +770,8 @@ def unit_kinds(graph: Graph) -> dict[str, set[str]]:
         declared = set(graph.objects(subject, QUDT.unitForQuantityKind))
         declared |= set(graph.objects(subject, QUDT.hasQuantityKind))
         kinds[name] = {str(_local(str(k))) for k in declared}
+    for name, local in LOCAL_UNITS.items():
+        kinds[name] = set(local.kinds)
     return kinds
 
 
@@ -520,6 +810,22 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
                 UNITS_CHECKED.get(name, date),
             ),
         }
+    for name, local in LOCAL_UNITS.items():
+        if (UNIT[name], None, None) in graph:
+            msg = f"{name} is now in QUDT: remove it from LOCAL_UNITS"
+            raise ValueError(msg)
+        units[name] = {
+            "iri": None,
+            "label": local.label,
+            "symbol": local.symbol,
+            "dimension_vector": local.dimension_vector,
+            "multiplier": local.multiplier,
+            "offset": 0.0,
+            "ucum": local.ucum,
+            "udunits": None,
+            "pint": local.pint,
+            "matches": [],
+        }
     return units
 
 
@@ -556,7 +862,15 @@ def extract_kinds(
             and (offset == "any" or (data["offset"] != 0.0) == offset)
         }
         added = set(spec.added_units) - applicable
+        bounds = None
+        if spec.bounds is not None:
+            low, high, unit, criterion = spec.bounds
+            if unit not in applicable | added:
+                msg = f"bounds of {name}: {unit} does not apply to it"
+                raise ValueError(msg)
+            bounds = {"low": low, "high": high, "unit": unit, "criterion": criterion}
         kinds[name] = {
+            "bounds": bounds,
             "iri": str(subject),
             "label": _english_label(graph, subject),
             "dimension_vector": _local(_value(graph, subject, QUDT.hasDimensionVector)),
@@ -576,6 +890,39 @@ def extract_kinds(
                 }
                 for cf, relation in spec.cf_standard_names
             ],
+        }
+    return kinds
+
+
+def provisional_kinds(
+    graph: Graph, units: dict[str, dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """The provisional kinds of :data:`LOCAL_KINDS`, with their pull request.
+
+    Refused once QUDT defines one: its kind then replaces the provisional
+    one, with a CHANGELOG entry (CONTRIBUTING, Releasing).
+    """
+    kinds: dict[str, dict[str, Any]] = {}
+    for name, spec in LOCAL_KINDS.items():
+        if (QK[name], None, None) in graph:
+            msg = f"{name}: QUDT defines it now; replace the provisional kind"
+            raise ValueError(msg)
+        missing = sorted(set(spec.units) - set(units))
+        if missing:
+            msg = f"{name}: units not extracted: {', '.join(missing)}"
+            raise ValueError(msg)
+        kinds[name] = {
+            "bounds": None,
+            "iri": None,
+            "label": spec.label,
+            "dimension_vector": spec.dimension_vector,
+            "specialization_of": None,
+            "scale_type": spec.scale_type,
+            "delta": spec.delta,
+            "applicable_units": sorted(spec.units),
+            "added_units": sorted(spec.units),
+            "matches": [],
+            "pending": {"pull_request": spec.pull_request, "opened": spec.opened},
         }
     return kinds
 
@@ -617,6 +964,7 @@ def extract(
     kinds_graph.parse(kinds_path, format="turtle")
     units = extract_units(units_graph, date)
     kinds = extract_kinds(kinds_graph, units, unit_kinds(units_graph), date)
+    kinds.update(provisional_kinds(kinds_graph, units))
     cf_names = {n for spec in KINDS.values() for n, _ in spec.cf_standard_names}
     cf_names |= set(SCALE_CF_NAMES) | set(LOCAL_KIND_CF_NAMES)
     cf_version, cf = extract_cf(cf_path, cf_names)

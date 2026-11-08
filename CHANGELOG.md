@@ -8,6 +8,358 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-08
+
+### Added
+
+- The inverses of Sonntag (1994): the dew point and the frost point from
+  the vapour pressure (equations 9 to 13), which give back his formulations
+  over water and ice within 0.011 to 0.065 K, as the notes say against the
+  ranges he states, and those of his Magnus forms (equations 15 and 17);
+  Sonntag (1994) cited for those forms (equations 14 and 16). Goff (1957)
+  over ice, as Murphy and Koop (2005) give it, beside the form WMO-No. 49
+  (2012) prints, whose third term the note compares.
+
+- Free convection in the surface layer: the virtual temperature flux,
+  the free convection velocity scale w* and the wind speed of the lowest
+  model level of the IFS (CY49R1, equations 3.10, 3.20, 3.19), and the
+  virtual temperature flux, the convective gustiness and the kinematic
+  viscosity of air of the code of COARE 3.6, whose gust its test data
+  give back to 1e-5; new kind `ConvectiveVelocityScale`, under `Speed`.
+  The fluxes are of the provisional kind `KinematicHeatFlux`.
+
+- **Provisional quantity kinds**: a kind with no QUDT kind to specialize
+  is admitted only while a pull request adding it to QUDT is open, and
+  records it (`QuantityKind.pending`, `PendingPullRequest`, origin
+  `provisional`); each minor version checks its state. The first is
+  `KinematicHeatFlux` (K m/s), pending qudt/qudt-public-repo#1612. QUDT
+  may adopt such a kind under another name: a personal catalog naming it
+  then needs the new name, which the changelog gives. The search finds
+  them by their origin and the number of their pull request, and the
+  indicators of the design goals count them.
+
+- Guide [The evaporation duct](docs/evaporation-duct.md): the catalog
+  chained from shipboard measurements (the test data of COARE 3.6, an
+  extract under its MIT licence) to the height of the duct, through the
+  surface layer of COARE 3.6, which the chain gives back, and of the IFS,
+  with equation 3.25 solved at each iteration; the duct height as the
+  minimum of M of ITU-R P.453, by Fairall et al. (1978), Frederickson et
+  al. (1994) and Paulus-Jeske, compared; its references are those the
+  catalog links to the formulations of the chain.
+
+- **An implicit equation may call formulations**, and pass its unknown
+  in their arguments: the root is sought on the equation with each call
+  developed, and the domains of a formulation called apply to the
+  argument computed from the root. `Formulation.written_members` gives
+  the two members with each call kept as written, as rendered. A
+  formulation calling others may note assumptions (`assumptions`).
+- The evaporation duct heights of Fairall et al. (1978, equation 25) and
+  Frederickson et al. (1994, equation 3), implicit equations in z\*/L,
+  checked against 26 rows of table II-C of Fairall et al.; and the
+  Obukhov length from the bulk Richardson number of the lowest model
+  level of the IFS (equation 3.25), solved for L.
+
+- `evaporation-duct` family: the evaporation duct height of the
+  Paulus-Jeske model (NOSC TD 1596, Paulus 1989), one formulation per
+  step of its algorithm: the saturation vapour pressure and the potential
+  refractivity of the air and of the sea surface, Jeske's bulk Richardson
+  number (wind in knots), profile coefficient and Monin-Obukhov length,
+  the universal function of unstable conditions, and the height in
+  stable, limited and unstable conditions. The 37 test cases of the
+  source are computed again from the catalog. New kinds
+  `EvaporationDuctHeight`, `PotentialRadioRefractivity`,
+  `PotentialRadioRefractivityDifference`,
+  `SurfaceLayerProfileCoefficient` and
+  `BulkRichardsonNumberOverProfileCoefficient`; the trade term "bulk
+  Richardson number" tells Jeske's number from that of the IFS.
+  `search("evaporation duct")` finds them.
+- The knot (`KN`), for `Speed` as well as `Velocity`, to which QUDT
+  restricts it.
+- In the `evaporation-duct` family, now also requiring `radio`, the
+  explicit formulas of the evaporation duct model of the Naval
+  Postgraduate School: the gradient functions of Fairall et al. (1978)
+  and the scalar gradient function of Frederickson et al. (1994), their
+  Monin-Obukhov lengths, the two-term radio refractivity, the linear
+  mixing ratio 0.625 e and the vertical gradient of refractivity of
+  Fairall et al. (1978). New kinds `VerticalRadioRefractivityGradient`,
+  under QUDT's `InverseLength`, now extracted, and four surface-layer
+  scales defined by the profile, whose sign is opposite to the IFS's
+  scales defined by the flux; the unit `PPM-PER-M` (N-units per
+  metre), which QUDT lacks. The gradient function for heat is now
+  described as 1 in neutral conditions, which the `phi_h` of Businger
+  et al. (1971) is not.
+
+- Validity domains may bound the output of a formulation, where its
+  source or physics does, with their criterion: a result outside is NaN
+  by default, as an input outside is, and the bounds of each part of a
+  composition or of a formulation by branches apply to the value it
+  gives. One end of a domain may be open (`[0, inf]`). The evaporation
+  duct height of Paulus-Jeske is bounded from 0 to 40 m, as Table 1 of
+  NOSC TD 1596 states; the limit of its algorithm stays a step of it.
+
+- The values a quantity kind admits by its definition, with their
+  criterion (`KindBounds`, `QuantityKind.bounds`, `Catalog.bounds_of`):
+  no temperature below 0 K, no negative vapour pressure, density, mass
+  ratio or speed, mass and mole fractions from 0 to 1, a geodetic
+  latitude from -90 to 90 degrees... Declared in the extraction script
+  for QUDT's kinds, which state none, and in `bounds` for the catalog's
+  own; inherited, narrowed never widened, never by a kind of
+  differences, and converted to the unit of each variable
+  (`Variable.kind_bounds`, `Variable.bounds_in_unit`). A kind of the
+  catalog may take units besides those of its parent (`units`), and links
+  to them: `search(unit="g/kg", section="kinds")` finds it.
+
+- Implicit equations, the measurement model h(Y, X) = 0 of the VIM
+  (2.48): an expression may be an equation, `left == right`, which
+  nomogram solves numerically for its output, the root sought where the
+  physical domains on the output and the bounds of its kind allow,
+  narrowed by `evaluate(search=...)`. Without exactly one root there,
+  the value is NaN and a `RootWarning` says why
+  (`Formulation.implicit`, `Formulation.equation_members`). A member may
+  be 0; members in units with an offset between them (K and degC) are
+  refused. An implicit equation is not inverted and is no part of a
+  composition, a call or a branch; two entries of one equation are
+  refused as duplicates. The KEYPS formula of Businger et al. (1971,
+  equation 7) is the first, for unstable conditions, its root chosen by
+  φm ≥ 0; `search(implicit=True)` finds it, and the indicators count the
+  implicit equations whose unknown objective bounds select.
+
+- Dyer and Hicks (1970) cited, read on the page images, for the two
+  unstable gradient functions of the IFS, with the domain they state, z/L
+  from -1 to -0.01 where the forms approximate their Table 1 to within a
+  few per cent; their equation 3, the gradient Richardson number
+  z/L Phi_H / Phi_M^2, as an identity, and its composition with the two
+  forms, z/L exactly. New kind `GradientRichardsonNumber`.
+- The GUST relations of Long (1984, NMC Office Note 302) as implicit
+  equations in eta = -gamma z/L: the KEYPS quartic and the cubic of
+  Helfand, each with its positive root, as the source states; their
+  Table 1 is computed again. New kind `ScaledStabilityParameter`. Also
+  the normalized gradient function for heat of Businger et al. (1971,
+  equation 12) and the form of Carl et al. (1973) as Long quotes it.
+  `search(keyword="GUST")`, `search(source="dyer_hicks1970")`.
+
+- Stability functions of the surface layer from more sources, side by
+  side with those of the IFS: the SHEBA functions of Grachev et al.
+  (2007); those of Cheng and Brutsaert (2005), with the ranges they were
+  fitted on; the gradient functions of Holtslag and De Bruin (1988) and
+  of Beljaars and Holtslag (1991) as Andreas (2002) gives them; the
+  log-linear forms of Webb (1970, as Beljaars 1992 quotes it) and of
+  Businger (1985); the profile functions of COARE 3.6 as its code writes
+  them, checked against that code (`cross_checks.coare36_psi`). Relations
+  between z/L and the Richardson numbers: Ri = z/L / (1 + 4.7 z/L) and
+  the gradient function from Ri of Businger (1985), z/L from Ri of Kramm
+  et al. (2013), and the bulk Richardson number of the lowest model
+  level from z/L of Beljaars (1992). Beljaars (1992), Businger (1985) and
+  Kramm et al. (2013) are cited for the forms already in the catalog.
+  `search(keyword="SHEBA")`, `search(keyword="COARE")`,
+  `search(source="beljaars1992")`.
+
+- The roughness of the sea surface: Charnock's relation, with its
+  coefficient given (AMS Glossary, Businger 1985, Edson et al. 2013) or
+  0.015 within the range of rough flow Businger (1985) states; the
+  Charnock coefficient from the equivalent neutral wind at 10 m of COARE
+  3.5 (Edson et al. 2013, with its corrigendum and the range it was
+  fitted on), of the code of COARE 3.6 and of COARE 3.0 (Fairall et al.
+  2003); the roughness length of Edson et al. (2013); the roughness
+  Reynolds number by its definition; the scalar roughness lengths of
+  COARE 3.0 and of the code of COARE 3.6, of Beljaars (1992), and those
+  of the IFS with the sea state (equations 3.30 to 3.32) and their
+  approximation (3.34); the background roughness of gravity-capillary
+  waves of the wave model of the IFS until CY49R1 (part VII, 3.11) and
+  its coefficient from the wind at 10 m (3.15). New kinds
+  `CharnockCoefficient`, `RoughnessReynoldsNumber`,
+  `EquivalentNeutralWindSpeed`, `BackgroundRoughnessLength` and
+  `BackgroundCharnockCoefficient`; the trade term "Charnock parameter".
+  `search(keyword="Charnock")`, `search("Charnock parameter")`.
+
+- The neutral transfer coefficients of the sea surface: those of Large
+  and Yeager (2004, the CORE forcing) from the equivalent neutral wind at
+  10 m; from the roughness lengths by the logarithmic profile, of
+  Beljaars (1992, equations 107 to 109) and of the code of COARE 3.6;
+  those of Edson et al. (2013) for a fully rough sea, above 8.5 m/s, and
+  of Hersbach (2011), as Edson et al. quote it; the drag coefficient by
+  its definition (Businger 1985); the neutral drag coefficient at 10 m
+  from the wind, the fixed point of the loop of COARE 3.6, gustiness
+  included as the code writes it, and that of the roughness length of the
+  IFS, as implicit equations whose physical
+  domain keeps the root of a logarithmic profile above the roughness
+  length; the stability factors of Louis et al. (1982), as Beljaars
+  (1992) quotes them. New kinds `NeutralSurfaceDragCoefficientForMomentum`,
+  `NeutralSurfaceDragCoefficientForHeat`,
+  `NeutralSurfaceDragCoefficientForHumidity`,
+  `TransferStabilityFactorForMomentum` and
+  `TransferStabilityFactorForHeat`, siblings of the coefficients they
+  cannot replace. `Catalog.formulations_of`, `search(keyword="Louis")`.
+
+- The hat accent, `\hat`, in notations and in the rendering of
+  identifiers (`xhat` reads x̂), checked in the lists of MathJax, KaTeX
+  and mathtext: the coefficient of the background roughness of the wave
+  model of the IFS is written as its source writes it.
+
+- A formulation calling another may pass it an expression of its
+  inputs, coefficients and constants, as sources write a profile
+  function of z/L: `psi_H(zeta=z_t / L)`. The expression has exactly the
+  unit of the input it feeds, in fixed units too (a kilometre does not
+  feed a metre, nor a kelvin a degree Celsius), and the units of its
+  coefficients are inferred from it; the domains of the formulation
+  called apply to its value, a condition of that formulation may bound
+  it, and the display shows the call as written, ψ_H(z_t/L). An input
+  written in it feeds the scale of the input it is passed to; an input
+  on a scale other than the reference still takes an input of the
+  caller. A number alone, a condition or a call is refused as an
+  argument. `Part.arguments` holds the expressions passed. The guide
+  says when to compose and when to call ("Composing or calling").
+
+- The marks authors put on symbols, in notations and in the rendering of
+  identifiers: the bar of a mean and the overline of a mean of a
+  product, which sources of turbulence write to tell a mean from a
+  fluctuation, a calligraphic letter and the bold of a vector (`\bar`,
+  `\overline`, `\mathcal`, `\mathbf`, checked in the lists of MathJax,
+  KaTeX and mathtext; `ubar` reads ū, `Lcal` 𝓛). The drag coefficient of
+  Businger (1985) is written with his mean wind, (ū − u_s), the Obukhov
+  length of the IFS is 𝓛, the bulk Richardson number of Beljaars (1992)
+  has his |**U**₁|, and citations without a notation now carry that of
+  their source (the IFS CY50R1, Beljaars equations 71 and 98, the AMS
+  Glossary). The guide says how a note writes these marks in plain text.
+
+- The transfer coefficient for humidity of the IFS, C_Q (equation 3.18,
+  Ψ_Q being Ψ_H), and the kind `SurfaceDragCoefficientForHumidity`, the
+  Dalton number, beside those for momentum and heat.
+  `Catalog.formulations_of("SurfaceDragCoefficientForHumidity")`.
+
+- Flux-profile relations of the surface layer from two bulk algorithms,
+  as their sources print them. From the code of COARE 3.6: the friction
+  velocity, gustiness included, and the scales of potential temperature
+  and specific humidity from the air-sea differences, the Obukhov
+  length, the equivalent neutral wind at 10 m of its loop, and the wind,
+  temperature and humidity at a reference height; all checked against
+  the test data of COARE 3.6 (u*, t*, L, U10, T10, U10N), the profile
+  functions called at z/L. From Large and Yeager (2004): their profile
+  functions (Paulson, −5ζ), the stability parameter, the scales from the
+  transfer coefficients, the neutral wind at 10 m, the temperature and
+  humidity brought to the height of the wind, and the transfer
+  coefficients at that height and stability; their friction velocity is
+  that of the IFS from the drag, which now cites them.
+  `search(keyword="COARE")`, `search(keyword="CORE")`.
+
+- Flux-profile relations with the profile function as an input, for the
+  sources that leave it to others: the bulk method of Fairall et al.
+  (1978, equations 11 and 16: the wind, the potential temperature and
+  the mixing ratio at a height from their scales, and the scales from
+  the air-sea differences, with alpha = 1.35 and kappa = 0.35), the
+  scales of Frederickson et al. (1994, equation 1: friction velocity,
+  temperature, specific humidity), in the `evaporation-duct` family with
+  their other formulas; and the mean wind and potential temperature of
+  Businger (1985, equations 43 and 44), written ū and θ̄.
+
+- Surface fluxes, positive downward as their sources write them: the
+  magnitude of the stress, the flux of dry static energy and the flux of
+  water vapour of the IFS (equation 3.15), the last two also those of
+  Large and Yeager (2004, equations 4d and 4a, now cited), and their
+  sensible and latent heat fluxes (4c, 4b). New kinds
+  `SurfaceDownwardSensibleHeatFlux`, `SurfaceDownwardLatentHeatFlux`,
+  `SurfaceDownwardWaterVapourFlux` and `MagnitudeOfSurfaceDownwardStress`,
+  linked to the CF standard names of the downward fluxes; the frozen
+  subset of QUDT 3.5.3 gains `HeatFluxDensity`, `MassPerAreaTime` and
+  `Stress`, with their units W/m² and kg m⁻² s⁻¹ (`docs/rosetta.md`,
+  item 25).
+
+### Changed
+
+- The notation of Large and Yeager (2004) writes the wind difference as
+  they do, |ΔU⃗|, with the arrow of a vector, `\vec`, now admitted (in
+  the lists of MathJax, KaTeX and mathtext).
+
+- Loading the catalog and searching it are faster: unit inference builds
+  the text of a constraint only for a message, numerical functions are
+  cached, and so are the folded words of a search. Measured on
+  2026-11-08 for the bundled catalog: a first load from about 5.9 s to
+  4.7 s, a later one in the same process from 4.9 s to 1.9 s, and
+  searches twice as fast.
+
+- The formulations of the IFS that took a stability parameter per height
+  take the Obukhov length instead, and call the profile functions at
+  (z + z_0)/L and z_0/L, as the IFS writes them: the transfer
+  coefficients for momentum and heat (3.16, 3.17), the friction velocity
+  and the wind at 10 m from the blending height (3.108, 3.106), the dry
+  static energy and the specific humidity at 2 m (3.98 to 3.103). Their
+  inputs `zeta_n`, `zeta_0M`, `zeta_0H`, `zeta_0Q`, `zeta_2`, `zeta_10`,
+  `zeta_blend` and `zeta_0` give way to `L`; the notations write it 𝓛.
+
+- A symbol of a notation that adds or subtracts is written in
+  parentheses (`\left(\bar{u} - u_s\right)`): printed as given, it would
+  be misread in a product or under a power. The catalog refuses it
+  otherwise.
+
+- The log-linear gradient function 1 + 5 z/L of the IFS for stable
+  conditions, bounded by the range Beljaars (1992) states, 0 to 0.5, is
+  NaN beyond by default. The family `boundary-layer` now requires
+  `sea-water`, for the COARE 3.6 code it cites.
+- The prefilter of duplicates takes a value that is not real at its
+  probe points as NaN, instead of its real part, without a warning.
+- The unstable gradient functions of the IFS, now bounded by the domain
+  Dyer and Hicks (1970) state, are NaN by default for z/L below -1 or
+  above -0.01; `outside="ignore"` computes them there.
+- `basis`, `outside`, `scale` and `search`, options of `evaluate`, are
+  refused as identifiers of variables.
+
+- **A value beyond the bounds of its kind is NaN by default**, whatever
+  the domains selected, as a value outside a domain is (`outside="warn"`
+  or `"ignore"` computes it); the warning says so.
+- The three scales of specific humidity of the surface layer, signed,
+  now specialize `DimensionlessRatio`, with g/kg and kg/kg, not
+  `MassRatio`, whose values are never negative.
+- The dew and frost points of WMO-No. 8, Vaisala (2013) and Hardy (1998)
+  are bounded by the range their sources state for them, as those of
+  Sonntag (1994) are, where their notes kept it: NaN beyond by default
+  (`outside="ignore"` computes them there).
+- `UnitDefinition.iri` is `None` for a unit QUDT does not have, which
+  nomogram declares until QUDT does.
+- `ValidityDomain.bounds` may bound the output, and
+  `Formulation.outside_mask` takes the output's values among its
+  `values`, where every input is required: a missing or misspelt input
+  is a `KeyError`, whether a domain bounds it or not. A formulation
+  inverted in closed form now carries the domain
+  of the input it solves for onto its output, beside its image onto the
+  new input; a domain open on one side is no search interval for a
+  numerical inversion.
+
+### Fixed
+
+- The reference of Goff (1957), written from memory, now as Murphy and
+  Koop (2005) list it: "Saturation pressure of water on the new Kelvin
+  scale", Transactions of the American Society of Heating and
+  Air-Conditioning Engineers, 63, 347-354.
+- A condition comparing an input with 0, such as `Q_0v > 0` for a flux in
+  K m/s, no longer asks 0 for the unit of the input: 0 has every unit, as
+  a member 0 of an implicit equation does.
+- A quantity equation whose sum adds terms in two units of one
+  dimension is refused when the catalog loads: the numbers were added,
+  and 1500 Pa plus 15 hPa gave 1515 Pa. No formulation of the catalog
+  did so.
+- Likewise, a quantity equation whose function (exp, ln, log10, sin,
+  cos, atan, tanh) takes a pure number in units that leave a factor is
+  refused: the numeric function took the function of the numbers, and
+  ln(1000 hPa / 100000 Pa) gave −4.6, not 0. No formulation of the
+  catalog did so (297 arguments checked).
+- Equation numbers and pages read again on the sources: the evaporation
+  duct height of Paulus (1989) in unstable conditions is his equation
+  A-14, not A-15, with B from A-15 and ψ from A-16, and A-14 writes
+  4a/L′ where step 5, which nomogram follows, writes 4β/L′; equations
+  3.11, 3.15 and 3.23 to 3.25 of part VII of the IFS documentation
+  (CY50R1) are on pages 15, 16 and 19.
+- `docs/security-and-compliance.md`: the attestations PyPI shows are
+  those of version 0.6.0, checked after its publication.
+- The stable profile functions of the ECMWF IFS (equation 3.24) carry the
+  constants of Beljaars and Holtslag (1991), a = 1 and b = 2/3, where
+  Holtslag and De Bruin (1988), to whom the IFS attributes the form, have
+  0.7 and 0.75 (Andreas 2002, read): their labels, notes and citations say
+  so, and `search("Beljaars")` finds them. The smooth-surface roughness
+  lengths for heat and humidity over sea are labelled "before CY49R1".
+- The anonymity check (`scripts/check_anonymity.py`) no longer stops on a
+  PDF string where a backslash precedes 8 or 9, which is not an octal
+  escape.
+
 ## [0.6.0] - 2026-11-04
 
 ### Added
@@ -1483,7 +1835,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...develop
+[0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...v0.4.0

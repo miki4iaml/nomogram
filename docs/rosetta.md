@@ -18,8 +18,9 @@ correspondences checked in those versions.
 
 | nomogram term | QUDT | SI / VIM | pint | SymPy | CF / OM | MathModDB / Wikidata | Notes |
 |---|---|---|---|---|---|---|---|
-| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none (`Basic.kind`, such as `NumberKind`, is another concept) | CF standard name (narrower); OM `Quantity` subclasses | MathModDB class *quantity kind*; `QUDT quantity kind ID` (P1654, a string). Wikidata P8393 *QUDT quantity kind ID* | `nomogram.semantics.QuantityKind`, with nomogram's scale type and point/difference typing. Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
+| quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none (`Basic.kind`, such as `NumberKind`, is another concept) | CF standard name (narrower); OM `Quantity` subclasses | MathModDB class *quantity kind*; `QUDT quantity kind ID` (P1654, a string). Wikidata P8393 *QUDT quantity kind ID* | `nomogram.semantics.QuantityKind`, with nomogram's scale type, point/difference typing and the bounds its definition admits (`KindBounds`). Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
 | specialization | `qudt:specializationOf` | — | none | none | — | — (MathModDB's `specialized by` relates models and formulas, not kinds) | How nomogram defines kinds QUDT lacks, e.g. the saturation vapour pressure as a specialization of `VapourPressure`, and the one over water as a specialization of it. Such kinds have `origin = "nomogram"` and no IRI yet; their local names are stable, to become the end of persistent IRIs (w3id.org) once nomogram has documentation online. |
+| provisional kind | none yet: a pull request adding the kind to QUDT | — | none | none | — | — | A kind with no QUDT kind to specialize, admitted only while a pull request adding it to QUDT is open (`QuantityKind.pending`, origin `provisional`): `KinematicHeatFlux`, pending [qudt/qudt-public-repo#1612](https://github.com/qudt/qudt-public-repo/pull/1612). QUDT may adopt it under another name or definition: nomogram then takes QUDT's kind, and a personal catalog that names the provisional kind needs the new name, which the changelog gives. |
 | quantity | `qudt:Quantity` | quantity (VIM 1.1): a property of a phenomenon, body or substance | none | `sympy.physics.units.Quantity` (not used; a unit, a constant or a generic quantity) | OM `Quantity` | MathModDB class *quantity*; Wikidata *physical quantity* (Q107715) and its items | The property itself ("the temperature of this air"), not a number. Never a class name in nomogram, to avoid the clash with pint's `Quantity`. |
 | quantity value | `qudt:QuantityValue` (`numericValue` + `unit`) | quantity value (VIM 1.19) | `pint.Quantity` (`magnitude` + `units`) | `sympy.physics.units.Quantity` (not used) | OM `Measure` | MathModDB `numeric value` (rare); Wikidata P1181 *numeric value* | nomogram keeps pint's name `quantity` for parameters holding a pint object, and says "quantity value" in prose when the distinction matters. |
 | unit | `qudt:Unit` | measurement unit (VIM 1.9) | `pint.Unit` | `sympy.physics.units` (not used) | CF canonical units (UDUNITS strings) | MathModDB `recommended unit of measurement` (used once); Wikidata P8111 *recommended unit of measurement*, P2968 *QUDT unit ID* | pint is the only unit engine; QUDT units are mapped to pint strings and checked by dimension. |
@@ -38,12 +39,13 @@ correspondences checked in those versions.
 | rendering | — | — | — | printer settings (`mul_symbol`, `decimal_separator`, `symbol_names`, `ln_notation`), through a `LatexPrinter` subclass | — | — | `nomogram.display.Rendering`: one formulation displayed in one notation with given `DisplayOptions` (typography). The notation says *which* symbols; the options say *how* they are set (multiplication sign, upright subscripts...). An option set is a `DisplayOptions`, such as the presets `SYMPY` and `DOCUMENTATION`; it is not a matplotlib style sheet (`rcParams`), which sets the visual style of figures and which nomogram leaves alone. |
 | expression | `qudt:expression`, `qudt:latexDefinition`, `qudt:mathMLdefinition` | one side of a quantity equation (VIM 1.22) | — | an `Expr` (SymPy calls any `Basic` an expression); the conditions of a piecewise definition are `Relational` | — | MathModDB `defining formula` (P989, MathML); Wikidata P2534 *defining formula* | Written once in restricted Python syntax; LaTeX and MathML are derived, never stored. |
 | piecewise definition | none | — | — | `sympy.Piecewise` (subclassed, never evaluated: conditions kept as written, a power applied to the whole), made of `ExprCondPair`s; `simplify` and `piecewise_fold` return SymPy's class | — | — | `piecewise((expression, condition), ...)` in an expression: each condition an interval of one input, the same for every branch; NaN where none holds. Rendered on one line in a left brace (mathtext has no `cases` environment). Inverted branch by branch when each branch is strictly monotonic on its interval. A catalog entry with `branches` takes its pieces from other formulations (`nomogram.model.Branch`), whose domains apply where their conditions hold. |
+| implicit equation | none | measurement model, h(Y, X₁, …, Xₙ) = 0 (VIM 2.48, note 1); an explicit expression is a measurement function, Y = f(X₁, …, Xₙ), and so, "more generally", is an algorithm "yielding … a corresponding unique output quantity value" (VIM 2.49, note 1) | — | `Eq` (an equation object, which SymPy may evaluate to `true` or `false` when built); `solve`, `nsolve` (not used) | — | — | `expression = "left == right"`, the output in either member or both (`Formulation.implicit`, `equation_members`): solved numerically for its output, for each set of inputs, where the physical domains on the output and the bounds of its kind allow, narrowed by `search=`; NaN and a `RootWarning` without exactly one root there, so that the solving is a measurement function in the VIM's general sense. One output only, where the VIM's model may have several, one equation each (2.48, note 2). Explicit is not closed form: an explicit expression is written so by its source; a closed form is what SymPy finds when nomogram inverts a formulation. |
 | formulation | none | — | — | — | — | MathModDB class *formula*; on Wikidata, items of equations with a *defining formula* (P2534) | `nomogram.model.Formulation`: one author's way of computing a quantity kind (Magnus-Tetens, Sonntag 1990...). The alternative formulations of a kind are what nomogram compares; they are grouped by the kind they compute. |
 | fixed units | none | numerical value equation (VIM 1.25), as opposed to a quantity equation (VIM 1.22) | — | — | — | — | `Formulation.fixed_units`: the coefficients only hold in the declared units. They are never converted; inputs are converted to the declared unit and scale first (a Fahrenheit point becomes a Celsius point), since with offset scales a formula's result depends on the scale it is written in. The VIM terms are not widely used, hence the plainer name. Quantity equations have their dimensional homogeneity checked when the catalog is loaded. |
 | coefficient | none | — | — | — | — | — | Empirical parameter of one formulation (the A, B, C of the Magnus form). Not a physical constant: it has a source and a validity domain. Its unit is declared, or inferred by dimensional analysis (`nomogram.dimensions.infer_units`). |
 | physical constant | `qudt:PhysicalConstant`, `qudt:ConstantValue` | — | pint constants (`R`, `k`...) | `sympy.physics.units.quantities.PhysicalConstant` (not used) | — | MathModDB `QUDT constant ID` (P1693); Wikidata P1181 *numeric value* on the constant's item | Constants with a metrological status (specific gas constant of water vapour). nomogram keeps their source (IAPWS-95, CODATA) because values differ between sources. |
 | nature of a constant | `qudt:exactConstant` (a boolean); `qudt:standardUncertainty` | defining constant, whose numerical value has no uncertainty (SI Brochure, 2.2); conventional quantity value (VIM 2.12); measured quantity value (VIM 2.10) | none | `Rational` versus `Float` is the exactness of a number, another concept | — | — | `nomogram.model.ConstantNature`: `exact` (a defining constant of the SI, or one derived from them alone: CODATA "exact"), `conventional` (attributed by agreement: g_n, or a value a source adopts) or `measured`. QUDT's boolean says only whether a constant is exact; the VIM separates the two other cases. `PhysicalConstant.uncertainty` is the standard uncertainty the source gives. |
-| validity domain | none | — | — | assumptions describe a set of values, not bounds; `Interval`, `solveset(domain=...)`, `continuous_domain` (not used) | — | — | `nomogram.model.ValidityDomain`. Objective domains only: *physical* (where the physics holds) or *stated* by the author or the cited publication, each with its criterion (maximum deviation or uncertainty against a reference) and its source. A domain suited to an application is the user's business. Behaviour outside is a parameter of `evaluate` (NaN by default). No vocabulary covers it; nomogram defines it. |
+| validity domain | none | — | — | assumptions describe a set of values, not bounds; `Interval`, `solveset(domain=...)`, `continuous_domain` (not used) | — | — | `nomogram.model.ValidityDomain`. Objective domains only: *physical* (where the physics holds) or *stated* by the author or the cited publication, each with its criterion (maximum deviation or uncertainty against a reference) and its source. It bounds inputs and, where the source or physics does, the output (where the source vouches for its results); one end may be open (`[0, inf]`). A domain suited to an application is the user's business. Behaviour outside is a parameter of `evaluate` (NaN by default). No vocabulary covers it; nomogram defines it. |
 | reference | `qudt:Citation`; `qudt:informativeReference`, `qudt:isoNormativeReference` | — | — | — | — | Wikidata items of publications, by DOI (P356) | `nomogram.model.Reference`: bibliographic source of a formulation, constant, domain or notation, with a verification status (`verified` or `to-confirm`). The DOI takes precedence over any other identifier. |
 | derivation, inversion | none | — | — | `sympy.solve` (`check=False`, each candidate checked numerically); see also `solveset`, `invert_real`; `Derivative` is another concept | — | MathModDB `linearized by`, `discretized by`, `nondimensionalized by`: derivations of models, of other kinds | `nomogram.inversion.invert`: a formulation of one input, inverted. A closed form found by SymPy (after taking logarithms) becomes a formulation with its own expression and LaTeX, branch by branch for a piecewise definition whose branches are strictly monotonic on their intervals; otherwise the inverse is solved numerically. `Derivation` records the source and the method; validity domains are carried through the function, and temperatures return to ITS-90. |
 | definition, identity | `qudt:latexDefinition` (the definition of a quantity kind, as LaTeX text: `$x = m/m_d$`) | quantity equation (VIM 1.22), by which a quantity is defined (VIM 1.12, examples: v = dr/dt) | — | an identity in SymPy's sense is an equation true for all values (`Eq` may give `true`); `Id` is the identity function | — | MathModDB `defining formula` (P989) of a quantity; Wikidata P2534 *defining formula* | `FormulationNature`: a formulation true by definition, or an exact consequence of definitions, cited to a text that prints it; it has no empirical coefficient nor stated domain. Unlike the defining formulas of QUDT (text), MathModDB and Wikidata (MathML), it is evaluable, with units, and cited. A formulation derived by nomogram (`Formulation.derived`) is a composition, branches or calls without a citation of their own: its provenance is its `Derivation`. |
@@ -109,8 +111,12 @@ the objects themselves.
 
 SymPy's LaTeX printer reads a symbol's name (`split_super_sub`): a
 trailing number on the base name, or what follows `_`, becomes a
-subscript; what follows `__`, a superscript. Modifiers such as `bar` and
-`hat` (`translate`) are written upright as spelt by nomogram. So `e_s`
+subscript; what follows `__`, a superscript. A modifier (`translate`)
+gives its accent when its command is in `LATEX_COMMANDS`: `hat` (`xhat`
+reads x̂, the usual mark of an estimate), `bar` (`ubar` reads ū, the
+mark of a mean that sources of turbulence tell from a fluctuation u′),
+`cal` (`Lcal` reads 𝓛, the Obukhov length of the IFS); others, such as
+`bold` or `dot`, are written upright as spelt by nomogram. So `e_s`
 reads e_s, `T0` reads T₀, and `a__w` reads aʷ. nomogram keeps that
 reading for identifiers no notation covers, sets descriptive subscripts
 upright (`upright_symbol`), and writes upright, as spelt, a name SymPy
@@ -127,8 +133,11 @@ SymPy separates structural equality (`==`, the same tree), the equation
 (`Eq`, an object), and mathematical equality (`simplify(a - b) == 0`, or
 `equals`). nomogram uses the first to refuse duplicates (equal
 signatures) and the third to prove equivalences
-([relation-verdicts.md](relation-verdicts.md)); it does not build the
-second for a formulation.
+([relation-verdicts.md](relation-verdicts.md)). In the text of an
+expression, `==` writes the second, an implicit equation, never a
+structural equality; nomogram keeps its two members
+(`equation_members`) rather than building `Eq`, which would turn an
+equation true or false for every value into `true` or `false`.
 
 ## Reference case: humidity of air
 
@@ -172,6 +181,10 @@ defines one, a sibling of the look-alikes
 
 | drag coefficient | force on a body in a flow over the dynamic pressure and a reference area, F/(½ ρ v² A) | fluid dynamics, aerodynamics | `DragCoefficient` (QUDT) | 1 | QUDT 3.5.3 |
 | drag coefficient | transfer coefficient relating the surface stress to the square of the wind speed at a height, τ = ρ C_M U² | boundary-layer meteorology (CF, IFS) | `SurfaceDragCoefficientForMomentum`, a sibling under `DimensionlessRatio` | 1 | CF table 95; IFS CY49R1, Part IV, 3.15 and 3.16 |
+| bulk Richardson number | ratio of buoyancy to wind shear across a layer, g z Δθ_v / (θ_v U²) | numerical weather prediction (IFS) | `BulkRichardsonNumber` (local) | 1 | IFS CY49R1, Part IV, 3.26 |
+| bulk Richardson number | g ΔT z / (T u² Γ), with the profile coefficient Γ, about 0.1: about ten times the former | evaporation duct models (Jeske, Paulus-Jeske) | `BulkRichardsonNumberOverProfileCoefficient`, a sibling under `DimensionlessRatio` | 1 | NOSC TD 1596 (Paulus 1989), A-4 |
+| gradient function for heat (φ_h, φ_T) | dimensionless gradient of temperature, 1 in neutral conditions; the neutral ratio of eddy diffusivities, if any, sits in the profile equation (α_T = 1.35) or in the definition (the neutral Prandtl number b) | numerical weather prediction (IFS, GUST of the NMC), evaporation duct models (Fairall et al., Frederickson et al.), micrometeorology (Dyer and Hicks) | `GradientFunctionForHeat` (local) | 1 | IFS CY49R1, Part IV, 3.21; NPS61-78-005, equation 8 and appendix B; Dyer and Hicks (1970); Long (1984), equation 1.1b |
+| gradient function for heat (φ_h, φ_T) | (z/θ_*) ∂θ/∂z with θ_* = −w′θ′/(k u_*): about 0.74 in neutral conditions, the inverse of that ratio | micrometeorology (Kansas experiment) | not entered: it would be a sibling kind | 1 | Businger et al. (1971), equations 3 and 14 |
 
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
 versus dimensionless), so mixing them is not a small numerical error.
@@ -185,6 +198,18 @@ extrapolated to sea level) and for a height above ground in its equation
 17 (figure 12). nomogram keeps the identifiers apart (z, z_s, h, with
 distinct kinds) and gives each source its own symbols in the notation of
 its citation.
+
+Surface-layer scales collide by sign. The IFS defines s_* and q_* by
+the surface fluxes, taken positive for an upward flux as its equations
+3.10 and 3.20 need, although its equations 3.1 and 3.9 give them the
+opposite sign (Part IV, p. 46-48); Fairall
+et al. (1978, equation 8) and Frederickson et al. (1994, equation 1)
+define T_* and q_* by the profiles, positive when the quantity increases
+with height, so that q_* is "almost always negative" over the sea. They
+are distinct kinds (`SurfaceLayerScaleOfSpecificHumidity` and the
+`SurfaceLayerProfileScaleOf…` kinds), which never feed one another; so
+are the scales of temperature and of potential temperature, and of
+specific humidity and of mixing ratio.
 
 Vertical coordinates collide most: WMO calls "geopotential" in its
 upper-air observations what CF calls the geopotential height (in
@@ -355,9 +380,9 @@ here, not worked around silently.
     stability parameter, the bulk Richardson number, a kinematic flux
     (dimension Θ L T⁻¹, the virtual temperature flux of the Obukhov
     length). CF 95 names the first three. nomogram declares them under
-    `Length`, `Speed` and `DimensionlessRatio`, and writes the Obukhov
-    length from the surface-layer scales `u_*`, `s_*`, `q_*` rather than from a
-    flux. `quantitykind:RichardsonConstant` is the constant of
+    `Length`, `Speed` and `DimensionlessRatio`, the kinematic flux as the
+    provisional kind of point 25, and writes the Obukhov length from the
+    surface-layer scales `u_*`, `s_*`, `q_*` rather than from a flux. `quantitykind:RichardsonConstant` is the constant of
     thermionic emission (A m⁻² K⁻²), not a Richardson number; and
     `quantitykind:DragCoefficient` is the drag of a body in a flow, not
     the surface drag coefficient of CF (see the trade terms).
@@ -365,6 +390,34 @@ here, not worked around silently.
     QUDT 3.5.3: the reciprocal metre is its parent's,
     `AttenuationCoefficient`, which nomogram takes for the extinction
     coefficient of the visibility.
+22. `unit:KN`, the knot, is declared for `Velocity` and `LinearVelocity`,
+    not for `Speed` (QUDT 3.5.3), whose magnitude it measures as well:
+    nomogram adds it to `Speed`, for the wind of the evaporation duct
+    model of Paulus (1989).
+23. QUDT 3.5.3 has no unit of N-units per metre, the unit of the
+    vertical gradient of radio refractivity (−0.157 m⁻¹ of N, the
+    critical gradient for ducting, Fairall et al. 1978), nor a kind for
+    that gradient. nomogram declares the unit `PPM-PER-M`, written as
+    QUDT writes `PPM-PER-K` and `PERCENT-PER-M`, without an IRI
+    (`LOCAL_UNITS` of the extraction script), and the kind
+    `VerticalRadioRefractivityGradient` under `InverseLength`.
+24. QUDT states no bound on the values of a kind: `qudt:lowerBound` and
+    `qudt:upperBound` belong to its schema of datatypes (ranges of
+    integers), and none of the vocabularies uses them (checked on 3.5.3
+    and on `main`, November 2026); a sign is only told, in text, by four
+    kinds of their own: `NonNegativeLength`, `PositiveLength`,
+    `PositiveDimensionlessRatio`, `PositivePlaneAngle`. nomogram declares
+    the bounds a definition admits (`KindBounds`), with their criterion,
+    in the extraction script for QUDT's kinds.
+25. QUDT 3.5.3 labels `quantitykind:MassFluxDensity` in `en-US` only,
+    without the `en` label of its other kinds: nomogram takes its parent,
+    `MassPerAreaTime`, for the downward flux of water vapour at the
+    surface. It has no kind for a kinematic heat flux (K m s⁻¹, QUDT
+    issue #1601): nomogram declares the provisional kind
+    `KinematicHeatFlux`, pending QUDT pull request #1612, for the virtual
+    temperature fluxes of the IFS and of COARE 3.6 that the free
+    convection velocity and the gustiness take; the covariance of the
+    profiles of Beljaars 1992 is not entered yet.
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

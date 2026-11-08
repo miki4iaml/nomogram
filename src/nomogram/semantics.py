@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -36,7 +37,9 @@ __all__ = [
     "CF_NAMESPACE",
     "CFStandardName",
     "ExternalMatch",
+    "KindBounds",
     "MatchRelation",
+    "PendingPullRequest",
     "QuantityKind",
     "SemanticCatalog",
     "UnitDefinition",
@@ -120,19 +123,78 @@ def _dimensions(vector: str) -> Mapping[str, int]:
 
 
 @dataclass(frozen=True)
+class PendingPullRequest:
+    """The open pull request that adds a provisional kind to QUDT.
+
+    A kind with no QUDT kind to specialize is admitted only while such a
+    pull request is open (design goal 5); its state is checked before each
+    minor version. QUDT may adopt the kind under another name or definition:
+    nomogram then takes QUDT's kind, and says so in its changelog.
+
+    Attributes
+    ----------
+    pull_request : str
+        Address of the pull request.
+    opened : datetime.date
+        Date it was opened.
+    """
+
+    pull_request: str
+    opened: datetime.date
+
+
+@dataclass(frozen=True)
+class KindBounds:
+    """The values a quantity kind admits by its definition, with the reason.
+
+    nomogram's addition: QUDT declares no bound on its kinds. A kind
+    inherits the bounds of the nearest kind it specializes that has some,
+    and may narrow them, never widen them; a kind of differences
+    (``delta``) has none.
+
+    Attributes
+    ----------
+    low, high : float
+        Closed interval in ``unit``; an open end is infinite.
+    unit : str
+        QUDT local name of the unit of the bounds, one that applies to the
+        kind.
+    criterion : str
+        Why the kind admits no other value: its definition.
+    """
+
+    low: float
+    high: float
+    unit: str
+    criterion: str
+
+    def __post_init__(self) -> None:
+        both_open = math.isinf(self.low) and math.isinf(self.high)
+        if not self.low < self.high or both_open:
+            msg = (
+                "bounds of a kind: expected low < high, one of them finite, "
+                f"not [{self.low}, {self.high}]"
+            )
+            raise ValueError(msg)
+
+
+@dataclass(frozen=True)
 class QuantityKind:
     """A quantity kind, from QUDT or defined by nomogram, with its scale typing.
 
     Kinds defined by nomogram (absent from QUDT) specialize a QUDT kind
     and have no IRI yet: their local name is stable and will become the
-    end of a persistent IRI once nomogram has one.
+    end of a persistent IRI once nomogram has one. A provisional kind has
+    no QUDT kind to specialize: it is admitted only while a pull request
+    adding it to QUDT is open (:attr:`pending`).
 
     Attributes
     ----------
     name : str
         Local name, for example ``"CelsiusTemperature"``.
     origin : str
-        ``"qudt"`` or ``"nomogram"``.
+        ``"qudt"``, ``"nomogram"``, or ``"provisional"`` for a kind
+        pending in QUDT.
     iri : str or None
         QUDT IRI; ``None`` for a kind defined by nomogram.
     label : str
@@ -155,6 +217,12 @@ class QuantityKind:
         Links to external vocabularies: a Wikidata item, CF standard
         names (in :data:`CF_NAMESPACE`), each with its SKOS relation and
         the date it was checked.
+    bounds : KindBounds or None
+        The values the kind admits by its definition, when it declares
+        them itself (nomogram's addition); see :class:`KindBounds` for the
+        bounds it inherits.
+    pending : PendingPullRequest or None
+        For a provisional kind, the pull request that adds it to QUDT.
     """
 
     name: str
@@ -168,6 +236,8 @@ class QuantityKind:
     applicable_units: tuple[str, ...]
     added_units: tuple[str, ...]
     matches: tuple[ExternalMatch, ...]
+    bounds: KindBounds | None = None
+    pending: PendingPullRequest | None = None
 
     @property
     def cf_standard_names(self) -> tuple[str, ...]:
@@ -191,8 +261,10 @@ class UnitDefinition:
     ----------
     name : str
         QUDT local name, for example ``"DEG_C"``.
-    iri : str
-        QUDT IRI.
+    iri : str or None
+        QUDT IRI; None for a unit QUDT does not have, which nomogram
+        declares until QUDT does (``LOCAL_UNITS`` of
+        ``scripts/extract_semantics.py``).
     label : str
         QUDT English label.
     symbol : str or None
@@ -215,7 +287,7 @@ class UnitDefinition:
     """
 
     name: str
-    iri: str
+    iri: str | None
     label: str
     symbol: str | None
     dimension_vector: str
@@ -290,10 +362,38 @@ def _matches(items: list[dict[str, str]]) -> tuple[ExternalMatch, ...]:
     )
 
 
+def _bounds(data: dict[str, Any] | None) -> KindBounds | None:
+    """Bounds as the frozen subset writes them, an open end as null."""
+    if data is None:
+        return None
+    low = -math.inf if data["low"] is None else float(data["low"])
+    high = math.inf if data["high"] is None else float(data["high"])
+    return KindBounds(low, high, data["unit"], data["criterion"])
+
+
 def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
+    """A kind of the frozen subset: from QUDT, or provisional.
+
+    Raises
+    ------
+    ValueError
+        If a kind absent from QUDT records no pull request adding it there.
+    """
+    pending = None
+    if data.get("pending") is not None:
+        pending = PendingPullRequest(
+            pull_request=data["pending"]["pull_request"],
+            opened=datetime.date.fromisoformat(data["pending"]["opened"]),
+        )
+    if data["iri"] is None and pending is None:
+        msg = (
+            f"{name}: a kind absent from QUDT is admitted only while a pull "
+            "request adding it to QUDT is open, recorded with the kind"
+        )
+        raise ValueError(msg)
     return QuantityKind(
         name=name,
-        origin="qudt",
+        origin="qudt" if pending is None else "provisional",
         iri=data["iri"],
         label=data["label"],
         dimension_vector=data["dimension_vector"],
@@ -303,6 +403,8 @@ def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
         applicable_units=tuple(data["applicable_units"]),
         added_units=tuple(data["added_units"]),
         matches=_matches(data["matches"]),
+        bounds=_bounds(data.get("bounds")),
+        pending=pending,
     )
 
 

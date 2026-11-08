@@ -226,9 +226,22 @@ A violation fails the CI; a warning is counted in the report.
   releases of QUDT and CF; a kind or a unit that QUDT comes to define,
   often after a contribution of nomogram, then replaces the local one.
 - What nomogram adds to the sources (scale typing, added units, pint
-  expressions) is declared in that script, never hidden in the data.
+  expressions, bounds of kinds, units and provisional kinds QUDT does not
+  define yet) is declared in that script, never hidden in the data, and
+  listed in the data notice.
 - A kind of nomogram's own must specialize a QUDT kind: the loader
-  checks it.
+  checks it. A kind with no QUDT kind to specialize, such as the
+  kinematic heat flux in K m/s, enters only as a *provisional* kind,
+  while a pull request adding it to QUDT is open: the kind records that
+  pull request (`QuantityKind.pending`, origin `provisional`), and each
+  minor version checks its state.
+- **For the authors of personal catalogs**: QUDT may adopt a provisional
+  kind under another name or definition, as its reviewers improve the
+  proposal. nomogram then takes QUDT's kind, and the changelog of that
+  version names the old and the new one, under "Changed": a personal
+  catalog that names the provisional kind needs the new name. Prefer a
+  QUDT kind when one fits; the provisional kinds are marked as such in
+  [the Rosetta stone](rosetta.md).
 - Links to CF and Wikidata carry their relation (exact, close, broader,
   narrower) and the date they were checked.
 

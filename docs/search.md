@@ -69,6 +69,7 @@ each matching a word.
 | `nature` | the nature of a formulation: `definition` or `identity` |
 | `assumption` | an assumption of a formulation, stated by a source or noted with its status, or one of the parts it is built from |
 | `provenance` | where a formulation comes from: `cited` (a source gives it), `derived` (by nomogram, from cited formulations, with no citation of its own) or `uncited` (written by nomogram without a source: a usual approximation or a definition, as its note says) |
+| `implicit` | whether a formulation is an implicit equation, which nomogram solves for its output (`True`), or gives it explicitly (`False`); the words `true` and `false` are the same filter |
 
 `section=` keeps the entries of one section (a pattern too):
 `formulations`, `kinds`, `references`, `constants`, `notations`,
@@ -107,6 +108,22 @@ formulation's variables, which it takes from its parts. Results come in
 catalog order. A piecewise definition adds nothing to index or link: its
 conditions use the identifiers of its expression (an input, coefficients,
 constants), already found as variables, coefficients and constants.
+A quantity kind is found by its name, label, CF standard names and
+links, and by its origin: `search("provisional")` finds the provisional
+kinds, and the number of the pull request adding one to QUDT finds it
+(`search("pull", "1612")`); the pull request itself is read on the kind
+(`Catalog.kinds[name].pending`).
+Nor does an expression passed to a formulation called (`psi_H(zeta=z_t /
+L)`): `uses` links the caller to the formulation called, whose input
+does not become one of the caller's, so that `search(input=...)` does
+not find the caller by the kind of that input. An implicit equation that
+passes its unknown to a call (`phi_T(zeta=z_s / L)`) is linked the same
+way, and found by its output.
+Nor does a validity domain, whether it bounds an input or the output: it
+is read on the formulation (`domains`), criterion included, and the
+formulation is found by its variables, the output a domain bounds among
+them. Likewise the bounds of a kind are read on the kind
+(`Catalog.bounds_of`), which a search finds by its names.
 An entry is given by its reference `section.key`, as an entry a search
 found, or, for a formulation, as the formulation itself
 (`c.uses(c.formulations_of("RelativeHumidity")[0])`).
@@ -115,9 +132,12 @@ A formulation links to the units of its variables and constants, and to
 the units of its coefficients when they are declared (added when the
 entry was written, or stated by a source), never to units inferred from
 the expression. A constant links to its unit and to the constants its
-definition uses, a scale to the unit of its conversion:
+definition uses, a scale to the unit of its conversion, a kind of the
+catalog to the units it adds to its parent's (`units`):
 `used_by("units.DEG_C")` gives the formulations working in degrees
-Celsius and the temperature scales converted in them, and
+Celsius and the temperature scales converted in them,
+`search(unit="g/kg", section="kinds")` the scales of humidity of the
+surface layer, which take g/kg besides the number of their parent, and
 `used_by("constants.R_ecmwf_ifs")` the gas constants the IFS derives
 from R.
 
@@ -136,4 +156,17 @@ trade terms); see [vertical.md](vertical.md). The practices of a tool come the s
 MetPy's interpolations are formulations citing the code read, so that
 `search(source="metpy171*")` lists them, `search(keyword="isentropic")`
 finds its isentropic analysis, and the relative humidities composed from
-them are found with the others, by their kind.
+them are found with the others, by their kind. A model written step by
+step comes the same way: `search("evaporation duct")` finds the steps
+of the Paulus-Jeske model, `formulations_of("EvaporationDuctHeight")`
+its three branches beside the implicit heights of Fairall et al. (1978)
+and Frederickson et al. (1994), `used_by("references.paulus1989_td1596")` every
+formulation it gives, and `search("bulk Richardson number")` the trade
+term whose two meanings tell Jeske's number from that of the IFS. The
+explicit formulas of the model of Fairall et al. (1978) and Frederickson
+et al. (1994) join the alternatives of their kinds:
+`formulations_of("GradientFunctionForHeat")` sets their gradient
+functions beside those of the IFS, `formulations_of("ObukhovLength")`
+their lengths beside Jeske's and the IFS's, and
+`formulations_of("VerticalRadioRefractivityGradient")` the gradient
+whose critical value defines the duct height.

@@ -106,6 +106,14 @@ def test_outside_mask_refuses_a_misspelt_basis() -> None:
         SONNTAG.outside_mask({"t": 20.0}, "stat")  # type: ignore[arg-type]
 
 
+def test_outside_mask_needs_every_input_but_not_the_output() -> None:
+    # A misspelt input would otherwise be taken as inside every domain.
+    with pytest.raises(KeyError, match="no value given for the input"):
+        SONNTAG.outside_mask({"T": -300.0}, "all")
+    assert SONNTAG.outside_mask({"t": -300.0}, "all")
+    assert not SONNTAG.outside_mask({"t": 20.0, "e_w": 23.4}, "all")
+
+
 BOUNDED_SCALES = """
 [references.src]
 authors = "Author, A."

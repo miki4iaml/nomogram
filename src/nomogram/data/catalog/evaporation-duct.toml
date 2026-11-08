@@ -1,0 +1,836 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Evaporation duct over the sea: potential refractivity, the bulk
+# Richardson number and the Monin-Obukhov length of Jeske, and the
+# evaporation duct height of the Paulus-Jeske model (NOSC TD 1596, 1989),
+# one formulation per step of its algorithm; the explicit formulas of the
+# Monin-Obukhov model of the Naval Postgraduate School (Fairall et al.
+# 1978, Frederickson et al. 1994).
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "evaporation-duct"
+label = "Evaporation duct over the sea"
+format = 2
+requires = ["boundary-layer", "radio"]
+keywords = ["evaporation duct", "radio propagation", "surface layer", "sea"]
+
+# --- References -------------------------------------------------------
+
+[references.paulus1989_td1596]
+authors = "Paulus, R. A."
+year = 1989
+title = "Specification for evaporation duct height calculations"
+container = "Naval Ocean Systems Center, San Diego, Technical Document 1596, July 1989 (AD-A213 841)"
+url = "https://archive.org/details/DTIC_ADA213841"
+status = "verified"
+note = "Read in the copy of the Internet Archive (DTIC collection), approved for public release, distribution unlimited: section 1.0 (potential refractivity), Table 1 (inputs, outputs and limits), section 3.0 (the six steps of the model), Table 2 (37 test cases, to within 0.1 m), appendix A (development, after Jeske) and the FORTRAN listing of appendix D. No DOI. The model, proposed as a Navy standard of the Oceanographic and Atmospheric Master Library, is called Paulus-Jeske; it follows Jeske (1965, 1971, 1973) with the modifications of Paulus (1985), not read."
+
+[references.fairall1978_nps]
+authors = "Fairall, C. W., Davidson, K. L., Schacher, G. E. and Houlihan, T. M."
+year = 1978
+title = "Evaporation duct height measurements in the Mid-Atlantic: final report"
+container = "Naval Postgraduate School, Monterey, California, report NPS61-78-005, 15 August 1978"
+url = "https://hdl.handle.net/10945/29858"
+status = "verified"
+note = "Read in the copy of the NPS archive (Calhoun), approved for public release, distribution unlimited: section III (p. 19-23), the refractivity and its gradient (equations 1 to 4), the surface-layer equations of Monin-Obukhov similarity (8 to 13), the profile and bulk methods (14 to 21), the evaporation duct height (24 to 26) and the fit of xi on xi_0 (28a, 28b); appendix B, the stability functions."
+
+[references.frederickson1994_nps]
+authors = "Frederickson, P. A., Davidson, K. L. and Jones, F. K."
+year = 1994
+title = "The effect of infrared sea surface temperature measurements on evaporation duct height estimation"
+container = "Naval Postgraduate School, Monterey, California, report NPS-MR-94-003, November 1994"
+url = "https://hdl.handle.net/10945/28715"
+status = "verified"
+note = "Read in the copy of the NPS archive (Calhoun), approved for public release, distribution unlimited: the bulk method after Smith (1988), not read (p. 3-4, equations 1 and 2), the evaporation duct height after Fairall et al. (1978) (equation 3) and the scalar gradient function (equation 4)."
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.EvaporationDuctHeight]
+label = "Evaporation Duct Height"
+specialization_of = "Height"
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
+description = "Height above the sea surface at which the modified refractivity M reaches its minimum, dM/dz = 0, the gradient of potential refractivity reaching its critical value (Paulus 1989, NOSC TD 1596, section 1.0); for propagation, a measure of the strength of the duct rather than a height below which an antenna must be (section 2.4)."
+
+[kinds.PotentialRadioRefractivity]
+label = "Potential Radio Refractivity"
+specialization_of = "DimensionlessRatio"
+description = "N_p = 77.6 P_0 / theta + 3.73 x 10^5 e_p / theta^2, the radio refractivity written with the potential temperature theta = T (P_0/P)^0.286 and the potential vapour pressure e_p = e P_0/P, P_0 = 1000 hPa, in place of T, P and e (Paulus 1989, NOSC TD 1596, section 1.0); in N-units. Not a radio refractivity, which it does not feed."
+
+[kinds.PotentialRadioRefractivityDifference]
+label = "Potential Radio Refractivity Difference"
+specialization_of = "DimensionlessRatio"
+description = "Delta N_p = N_A - N_S, the potential refractivity of the air at a reference height minus that of the air in contact with the sea surface (Paulus 1989, NOSC TD 1596, step 6); a difference, which never feeds a potential refractivity."
+
+[kinds.SurfaceLayerProfileCoefficient]
+label = "Surface-Layer Profile Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "Gamma, the profile coefficient of Jeske's bulk Richardson number g Delta T z / (T u^2 Gamma): 1/ln((z + z_0)/z_0) in neutral conditions, about 0.1 over the sea; Gamma_e, read on measurements, in non-neutral ones (Paulus 1989, NOSC TD 1596, equations A-4 to A-7)."
+
+[kinds.BulkRichardsonNumberOverProfileCoefficient]
+label = "Bulk Richardson Number over the Profile Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "Jeske's bulk Richardson number, g Delta T z / (T u^2 Gamma), Delta T the air temperature minus the sea temperature and Gamma the surface-layer profile coefficient, about 0.1 (Paulus 1989, NOSC TD 1596, equation A-4): about ten times the bulk Richardson number of a layer, which it does not feed."
+
+# --- Potential refractivity -------------------------------------------
+
+[formulations.paulus1989_saturation_vapour_pressure]
+label = "Saturation vapour pressure over water (Paulus 1989, NOSC TD 1596)"
+expression = "C * exp(A * (T - T_0) / T - B * ln(T / T_0))"
+fixed_units = true
+note = "Step 3, for the air (at T_ak) and for the sea surface (at T_sk, e_0), the effect of salinity on vapour pressure neglected. The source states no origin for the formula, hence no conventional scale; T_0 = 273.2 K is also the offset of its conversion from Celsius (step 1), T_ak = T_a + 273.2."
+output = { identifier = "e_s", kind = "SaturationVapourPressureOverWater", unit = "HectoPA", description = "Saturation vapour pressure over water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature" },
+]
+coefficients = { C = 6.105, A = 25.22, B = 5.31, T_0 = 273.2 }
+assumptions = [
+  { text = "Over liquid water: the slope of ln e_s at 273.2 K, (A - B)/T_0 = 0.0729 K-1, gives with R_v = 461.5 J kg-1 K-1 a latent heat of 2.51 MJ/kg, that of vaporization (computed by nomogram).", status = "deduced" },
+]
+keywords = ["saturation vapour pressure", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_saturation_vapour_pressure.citations]]
+reference = "paulus1989_td1596"
+note = "Step 3, p. 5; the same formula in the FORTRAN listing (appendix D, p. D-3)."
+notation = { e_s = "e_s", T = "T_{ak}", T_0 = "273.2" }
+
+[[formulations.paulus1989_saturation_vapour_pressure.citations.domains]]
+bounds = { T = [253.2, 323.2] }
+criterion = "Limits of the inputs of the model (Table 1): air temperature from -20 to 50 degC, sea temperature from 0 to 40 degC, converted by T_ak = T_a + 273.2 (step 1)."
+
+[formulations.paulus1989_potential_refractivity]
+label = "Potential radio refractivity (Paulus 1989, NOSC TD 1596)"
+expression = "k_1 / T * (P_0 + k_2 * e / T)"
+fixed_units = true
+note = "Step 3, for the air at the reference height (N_A, from T_ak and e) and for the air in contact with the sea surface (N_S, from T_sk and e_0). k_2 = 4810 is about 3.73e5/77.6 = 4807 of the definition of section 1.0, N_p = 77.6 P_0/theta + 3.73e5 e_p/theta^2, which the model does not use."
+output = { identifier = "N_p", kind = "PotentialRadioRefractivity", unit = "PPM", description = "Potential radio refractivity" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Temperature, taken for the potential temperature" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure, taken for the potential vapour pressure" },
+]
+coefficients = { k_1 = 77.6, P_0 = 1000.0, k_2 = 4810.0 }
+keywords = ["potential refractivity", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_potential_refractivity.citations]]
+reference = "paulus1989_td1596"
+note = "Step 3, p. 5."
+notation = { N_p = "N_A", T = "T_{ak}", P_0 = "1000", k_1 = "77.6", k_2 = "4810" }
+units = { P_0 = "HectoPA" }
+assumptions = ["In the surface layer, T_ak = theta and e = e_p; the effect of salinity on vapour pressure is neglected (step 3)."]
+
+[[formulations.paulus1989_potential_refractivity.citations.domains]]
+bounds = { T = [253.2, 323.2] }
+criterion = "Limits of the inputs of the model (Table 1): air temperature from -20 to 50 degC, sea temperature from 0 to 40 degC, converted by T_ak = T_a + 273.2 (step 1)."
+
+[formulations.paulus1989_potential_refractivity_difference]
+label = "Potential radio refractivity difference between the air and the sea (Paulus 1989, NOSC TD 1596)"
+nature = "definition"
+expression = "N_A - N_S"
+fixed_units = false
+output = { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" }
+inputs = [
+  { identifier = "N_A", kind = "PotentialRadioRefractivity", unit = "PPM", description = "Potential refractivity of the air at the reference height" },
+  { identifier = "N_S", kind = "PotentialRadioRefractivity", unit = "PPM", description = "Potential refractivity of the air in contact with the sea surface" },
+]
+keywords = ["potential refractivity", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_potential_refractivity_difference.citations]]
+reference = "paulus1989_td1596"
+note = "Step 6, p. 7."
+notation = { Delta_N_p = '\Delta N_p' }
+
+# --- Stability: Jeske's bulk Richardson number and Monin-Obukhov length
+
+[formulations.paulus1989_bulk_richardson_number]
+label = "Bulk Richardson number of Jeske, wind in knots (Paulus 1989, NOSC TD 1596)"
+expression = "c * z_1 * (T_a - T_s) / (T_a * u ** 2)"
+fixed_units = true
+note = "Step 2, equation A-4 with g = 9.8 m s-2 and the profile coefficient Gamma of about 0.1 (A-5), the wind in knots: g/(Gamma (0.5144 m/s per knot)^2) = 370, against the 369 printed (computed by nomogram). The model restricts Ri_b to 1 at most (step 2), a step of the algorithm, not a validity domain. Below 0.01 knot, the model sets the evaporation duct height to 0 (step 1); its FORTRAN listing also raises the wind to 1 knot at least (appendix D, p. D-3), which the text does not say."
+output = { identifier = "Ri_b", kind = "BulkRichardsonNumberOverProfileCoefficient", unit = "UNITLESS", description = "Bulk Richardson number of Jeske" }
+inputs = [
+  { identifier = "T_a", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the reference height" },
+  { identifier = "T_s", kind = "ThermodynamicTemperature", unit = "K", description = "Sea surface temperature" },
+  { identifier = "u", kind = "Speed", unit = "KN", description = "Wind speed at the reference height" },
+]
+coefficients = { c = 369.0, z_1 = 6.0 }
+keywords = ["Richardson number", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_bulk_richardson_number.citations]]
+reference = "paulus1989_td1596"
+note = "Step 2, p. 5; z_1 = 6 m (step 6)."
+notation = { Ri_b = "Ri_b", T_a = "T_{ak}", T_s = "T_{sk}", c = "369" }
+units = { z_1 = "M" }
+assumptions = ["Gradients approximated by differences, and T = theta in the surface layer (appendix A, after equation A-4).", "Measurements at 6 m or more above the sea surface, whose height is then neglected (section 2.0)."]
+
+[[formulations.paulus1989_bulk_richardson_number.citations.domains]]
+bounds = { T_a = [253.2, 323.2], T_s = [273.2, 313.2], u = [0.0, 50.0] }
+criterion = "Limits of the inputs of the model (Table 1): wind speed from 0 to 50 knots, air temperature from -20 to 50 degC, sea temperature from 0 to 40 degC, converted by adding 273.2 (step 1)."
+
+[formulations.paulus1989_profile_coefficient]
+label = "Profile coefficient of Jeske, straight-line fit (Paulus 1989, NOSC TD 1596)"
+expression = "piecewise((G_0, Ri_b <= -3.75), (c_1 + d_1 * Ri_b, -3.75 < Ri_b <= -0.12), (c_2 + d_2 * Ri_b, -0.12 < Ri_b <= 0.14), (c_3 + d_3 * Ri_b, Ri_b > 0.14))"
+fixed_units = false
+note = "A straight-line-segment fit to the data of Jeske (figure A-1, Ri_b from -3 to 1)."
+output = { identifier = "Gamma_e", kind = "SurfaceLayerProfileCoefficient", unit = "UNITLESS", description = "Profile coefficient for non-neutral conditions" }
+inputs = [
+  { identifier = "Ri_b", kind = "BulkRichardsonNumberOverProfileCoefficient", unit = "UNITLESS", description = "Bulk Richardson number of Jeske" },
+]
+coefficients = { G_0 = 0.05, c_1 = 0.065, d_1 = 0.004, c_2 = 0.109, d_2 = 0.367, c_3 = 0.155, d_3 = 0.021 }
+keywords = ["profile coefficient", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_profile_coefficient.citations]]
+reference = "paulus1989_td1596"
+note = "Step 6, p. 7; appendix A, after equation A-7."
+notation = { Gamma_e = '\Gamma_e' }
+
+[formulations.paulus1989_obukhov_length_from_profile_coefficient]
+label = "Monin-Obukhov length from Jeske's bulk Richardson number and profile coefficient (Paulus 1989, NOSC TD 1596)"
+expression = "n * z_1 * Gamma_e / Ri_b"
+fixed_units = true
+note = "Equation A-7, 1/L' = Ri_b/(10 z_1 Gamma_e), from L' = T u^2 Gamma_e/(g Delta T) (A-6) and A-4, with 1/Gamma = 10 for Gamma of about 0.1. L' is the gradient form of the Monin-Obukhov scaling length corrected for stability (appendix A); infinite in neutral conditions, Ri_b = 0."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length" }
+inputs = [
+  { identifier = "Gamma_e", kind = "SurfaceLayerProfileCoefficient", unit = "UNITLESS", description = "Profile coefficient for non-neutral conditions" },
+  { identifier = "Ri_b", kind = "BulkRichardsonNumberOverProfileCoefficient", unit = "UNITLESS", description = "Bulk Richardson number of Jeske" },
+]
+coefficients = { n = 10.0, z_1 = 6.0 }
+keywords = ["Obukhov length", "Monin-Obukhov", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_obukhov_length_from_profile_coefficient.citations]]
+reference = "paulus1989_td1596"
+equation = "A-7"
+note = "Also step 6, p. 7; z_1 = 6 m."
+notation = { L = "L'", Gamma_e = '\Gamma_e', n = "10" }
+units = { z_1 = "M" }
+
+[formulations.paulus1989_obukhov_length]
+label = "Monin-Obukhov length from Jeske's bulk Richardson number (Paulus 1989, NOSC TD 1596)"
+composition = { outer = "paulus1989_obukhov_length_from_profile_coefficient", inner = { Gamma_e = "paulus1989_profile_coefficient" } }
+keywords = ["Obukhov length", "Monin-Obukhov", "stability", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_obukhov_length.citations]]
+reference = "paulus1989_td1596"
+note = "Step 6, p. 7: L' with the table of Gamma_e."
+notation = { L = "L'" }
+
+[formulations.paulus1989_profile_function]
+label = "Universal function of Jeske for unstable conditions, straight-line fit to the KEYPS profile (Paulus 1989, NOSC TD 1596)"
+expression = "piecewise((-c_0 * zeta, zeta >= -0.01), (10 ** (m_1 * log10(-zeta) + b_1), -0.026 <= zeta < -0.01), (10 ** (m_2 * log10(-zeta) + b_2), -0.1 <= zeta < -0.026), (10 ** (m_3 * log10(-zeta) + b_3), -1 <= zeta < -0.1), (10 ** (m_4 * log10(-zeta) + b_4), -2.2 <= zeta < -1), (psi_max, zeta < -2.2))"
+fixed_units = false
+note = "Step 5, a straight-line-segment fit to the KEYPS profile (Lumley and Panofsky 1964, figure A-2), quicker than the analytic form of Paulson (1970), equation A-16 of the source, which needs the KEYPS relation phi^4 - 4 alpha (z/L') phi^3 = 1, alpha = 4.5 (A-3), solved iteratively. The model uses it in unstable conditions only, Ri_b < 0; the first piece, as printed, holds for any zeta >= -0.01. Jeske takes it for any scalar, here potential refractivity (A-1)."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Universal function of a scalar" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z_1/L'" },
+]
+coefficients = { c_0 = 4.5, m_1 = 1.02, b_1 = 0.69, m_2 = 0.776, b_2 = 0.306, m_3 = 0.63, b_3 = 0.16, m_4 = 0.414, b_4 = 0.16, psi_max = 2.0 }
+keywords = ["profile function", "KEYPS", "unstable", "Jeske", "Paulus-Jeske", "evaporation duct"]
+
+[[formulations.paulus1989_profile_function.citations]]
+reference = "paulus1989_td1596"
+note = "Step 5, p. 6; the same pieces in the FORTRAN listing (appendix D, p. D-6)."
+notation = { Psi_H = '\psi', zeta = "z_1/L'" }
+
+# --- Evaporation duct height ------------------------------------------
+
+[formulations.paulus1989_evaporation_duct_height_stable]
+label = "Evaporation duct height, neutral and stable conditions (Paulus-Jeske, NOSC TD 1596)"
+expression = "piecewise((delta_0, Delta_N_p >= 0), (Delta_N_p / (b_1 * (ln(z_1 / z_0) + a * z_1 / L) - Delta_N_p * a / L), Delta_N_p < 0))"
+fixed_units = true
+note = "Step 4 (a) and (b), for 0 <= Ri_b <= 1, with B = ln(z_1/z_0) + a z_1/L' written out; from the log-linear stability function phi = 1 + a z/L', a = 5.2 (A-2), integrated (A-8 to A-13). Where (b) gives delta < 0 or delta/L' > 1, the model takes delta/L' = 1 (paulus1989_evaporation_duct_height_limited). The model limits the height to 40 m (step 6), and, when T_a - T_s > -1 degC, also computes it for T_a = T_s and T_a = T_s - 1 degC, the relative humidity unchanged, and keeps the second if the first is larger (p. 7): steps of the algorithm, which no formulation writes. A height above 40 m is outside the domain of its Table 1, where the model, comparing the heights of p. 7 first, gives 40 m."
+output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length L' of Jeske" },
+]
+coefficients = { a = 5.2, b_1 = -0.125, z_0 = 1.5e-4, z_1 = 6.0, delta_0 = { value = 0.0, unit = "M", unit_basis = "added", note = "The zero height of step 4 (a), in the unit of the height." } }
+keywords = ["evaporation duct height", "evaporation duct", "stable", "Paulus-Jeske", "Jeske"]
+
+[[formulations.paulus1989_evaporation_duct_height_stable.citations]]
+reference = "paulus1989_td1596"
+equation = "A-12"
+note = "Step 4 (a) and (b), p. 5-6; B from A-13. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", delta_0 = "0" }
+units = { z_0 = "M", z_1 = "M" }
+assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+[[formulations.paulus1989_evaporation_duct_height_stable.citations.domains]]
+bounds = { delta = [0, 40] }
+criterion = "Limits of the output of the model (Table 1): an evaporation duct height from 0 to 40 m; the model gives none above, limiting it to 40 m (step 6)."
+
+[formulations.paulus1989_evaporation_duct_height_limited]
+label = "Evaporation duct height at delta/L' = 1 (Paulus-Jeske, NOSC TD 1596)"
+expression = "(Delta_N_p * (1 + a) - b_1 * a * z_1) / (b_1 * ln(z_1 / z_0))"
+fixed_units = true
+note = "Step 4 (c): equation A-12 with delta = L', which Jeske recommends delta/L' not to exceed (appendix A, after A-13); the model takes it where step 4 (b) gives delta < 0 or delta/L' > 1."
+output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
+]
+coefficients = { a = 5.2, b_1 = -0.125, z_0 = 1.5e-4, z_1 = 6.0 }
+keywords = ["evaporation duct height", "evaporation duct", "stable", "Paulus-Jeske", "Jeske"]
+
+[[formulations.paulus1989_evaporation_duct_height_limited.citations]]
+reference = "paulus1989_td1596"
+note = "Step 4 (c), p. 6. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+notation = { delta = '\delta', Delta_N_p = '\Delta N_p' }
+units = { z_0 = "M", z_1 = "M" }
+
+[[formulations.paulus1989_evaporation_duct_height_limited.citations.domains]]
+bounds = { delta = [0, 40] }
+criterion = "Limits of the output of the model (Table 1): an evaporation duct height from 0 to 40 m; the model gives none above, limiting it to 40 m (step 6)."
+
+[formulations.paulus1989_evaporation_duct_height_unstable]
+label = "Evaporation duct height, unstable conditions (Paulus-Jeske, NOSC TD 1596)"
+expression = "((b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 4 - 4 * beta / L * (b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 3) ** (-1 / 4)"
+fixed_units = true
+note = "Step 5, for Ri_b < 0, with B = ln(z_1/z_0) - psi written out, psi the universal function at z_1/L' (paulus1989_profile_function); from the KEYPS relation with alpha = 4.5 (A-3). Its FORTRAN listing sets the height to 0 when the bracket is not positive and, as in stable conditions, when Delta N_p >= 0 (appendix D, p. D-5 to D-7: the default height on D-5, the test on Delta N_p on D-6, the bracket on D-7), which the text says for stable conditions only. The model limits the height to 40 m (step 6): above, a height is outside the domain of its Table 1."
+output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length L' of Jeske" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Universal function psi at z_1/L'" },
+]
+coefficients = { beta = 4.5, b_1 = -0.125, z_0 = 1.5e-4, z_1 = 6.0 }
+keywords = ["evaporation duct height", "evaporation duct", "unstable", "KEYPS", "Paulus-Jeske", "Jeske"]
+
+[[formulations.paulus1989_evaporation_duct_height_unstable.citations]]
+reference = "paulus1989_td1596"
+equation = "A-14"
+note = "Step 5, p. 6; B from A-15 and psi from A-16 (p. A-3); A-14 writes 4 a/L', step 5 writes 4 beta/L', which nomogram follows. The source gives b_1 = -0.125 m-1, the critical gradient of potential refractivity, counting the N-unit as a pure number; with potential refractivity in ppm, b_1 is in ppm/m (inferred by nomogram)."
+notation = { delta = '\delta', Delta_N_p = '\Delta N_p', L = "L'", Psi_H = '\psi', beta = '\beta' }
+units = { z_0 = "M", z_1 = "M" }
+assumptions = ["The flux of potential refractivity is constant with height between the sea surface and z_1 (appendix A, before equation A-8)."]
+
+[[formulations.paulus1989_evaporation_duct_height_unstable.citations.domains]]
+bounds = { delta = [0, 40] }
+criterion = "Limits of the output of the model (Table 1): an evaporation duct height from 0 to 40 m; the model gives none above, limiting it to 40 m (step 6)."
+
+# --- Fairall et al. (1978) and Frederickson et al. (1994) ---------------
+# The explicit formulas of the Monin-Obukhov model of the evaporation duct
+# of the Naval Postgraduate School. The duct height itself, an implicit
+# equation that both sources solve iteratively (Fairall et al. 1978,
+# equation 25; Frederickson et al. 1994, equation 3), is entered at the end
+# of this file (Implicit equations).
+
+[formulations.fairall1978_radio_refractivity]
+label = "Radio refractivity, two-term form (Fairall et al. 1978)"
+expression = "k_1 * P / T + k_2 * e / T ** 2"
+fixed_units = true
+note = "The source writes no unit: with P and e in hPa (mb) and T in kelvins, N comes out in N-units. ITU-R P.453 (equation 6) adds a term -5.6 e/T and writes 3.75e5 for k_2 (itu_r_p453_refractivity_total_pressure)."
+output = { identifier = "N", kind = "RadioRefractivity", unit = "PPM", description = "Radio refractivity" }
+inputs = [
+  { identifier = "P", kind = "Pressure", unit = "HectoPA", description = "Atmospheric pressure" },
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Partial pressure of water vapour" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute temperature" },
+]
+coefficients = { k_1 = 77.6, k_2 = 3.73e5 }
+keywords = ["radio refractivity", "evaporation duct", "Fairall"]
+
+[[formulations.fairall1978_radio_refractivity.citations]]
+reference = "fairall1978_nps"
+equation = "1"
+note = "p. 19."
+
+[formulations.fairall1978_mixing_ratio]
+label = "Water vapour mixing ratio from the vapour pressure, linear approximation (Fairall et al. 1978)"
+expression = "c * e"
+fixed_units = true
+note = "Given in passing, with the gradient of refractivity (equation 2): q = 0.625 e, q in g/kg. The source writes no unit for e: in hPa (mb)."
+output = { identifier = "q", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Water vapour mixing ratio" }
+inputs = [
+  { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Partial pressure of water vapour" },
+]
+coefficients = { c = 0.625 }
+assumptions = [
+  { text = "Near sea level: 0.625 e is the mixing ratio 622 e / (p - e), in g/kg, for a pressure of dry air p - e = 995 hPa (computed by nomogram); the source states no pressure.", status = "deduced" },
+]
+keywords = ["mixing ratio", "evaporation duct", "Fairall"]
+
+[[formulations.fairall1978_mixing_ratio.citations]]
+reference = "fairall1978_nps"
+equation = "2"
+note = "p. 19, in the text after equation 2."
+
+[formulations.fairall1978_gradient_function_momentum_unstable]
+label = "Gradient function for momentum, unstable conditions (Fairall et al. 1978, after Businger et al.)"
+expression = "(1 - 15 * zeta) ** (-1 / 4)"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "Fairall", "Businger"]
+
+[[formulations.fairall1978_gradient_function_momentum_unstable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1; with the diffusivity ratio alpha_u = 1 of equation 8 (p. 20)."
+notation = { Phi_M = '\phi_U', zeta = '\xi' }
+assumptions = ["Unstable conditions, xi = Z/L < 0 (appendix B)."]
+
+[[formulations.fairall1978_gradient_function_momentum_unstable.citations]]
+reference = "businger1971"
+equation = "8"
+note = "p. 184, the Businger-Dyer form with gamma_2 = 15, fitted with k = 0.35."
+notation = { Phi_M = '\phi_m', zeta = '\zeta' }
+
+[[formulations.fairall1978_gradient_function_momentum_unstable.citations]]
+reference = "long1984"
+equation = "1.2a"
+note = "p. 4, as Businger et al. (1971), with k = 0.35."
+notation = { Phi_M = '\varphi_m', zeta = 'z/L' }
+
+[formulations.fairall1978_gradient_function_momentum_stable]
+label = "Gradient function for momentum, stable conditions (Fairall et al. 1978, after Businger et al.)"
+expression = "1 + 4.7 * zeta"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Fairall", "Businger"]
+
+[[formulations.fairall1978_gradient_function_momentum_stable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1; with the diffusivity ratio alpha_u = 1 of equation 8 (p. 20)."
+notation = { Phi_M = '\phi_U', zeta = '\xi' }
+assumptions = ["Stable conditions, xi = Z/L > 0 (appendix B)."]
+
+[[formulations.fairall1978_gradient_function_momentum_stable.citations]]
+reference = "businger1971"
+equation = "10"
+note = "p. 184, with a slope between 4.5 and 5.0 allowed by the scatter of the data, fitted with k = 0.35."
+notation = { Phi_M = '\phi_m', zeta = '\zeta' }
+
+[[formulations.fairall1978_gradient_function_momentum_stable.citations]]
+reference = "businger1985"
+equation = "42"
+note = "p. 20, phi_u = phi_theta = 1 + beta zeta, beta about 4.7."
+notation = { Phi_M = '\phi_u', zeta = '\zeta' }
+
+[formulations.fairall1978_gradient_function_momentum]
+label = "Gradient function for momentum, unstable then stable conditions (Fairall et al. 1978)"
+branches = [
+  { formulation = "fairall1978_gradient_function_momentum_unstable", where = "zeta < 0" },
+  { formulation = "fairall1978_gradient_function_momentum_stable", where = "zeta >= 0" },
+]
+note = "The source writes xi < 0 and xi > 0; both forms give 1 at xi = 0, which nomogram gives to the stable branch."
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+keywords = ["gradient function", "Monin-Obukhov", "Fairall"]
+
+[formulations.fairall1978_gradient_function_heat_unstable]
+label = "Gradient function for heat and moisture, unstable conditions (Fairall et al. 1978)"
+expression = "(1 - 19 * zeta) ** (-1 / 3)"
+fixed_units = false
+note = "With the diffusivity ratio alpha_T = 1.35 of the profile equation dT/dZ = T_* phi_T/(alpha_T kappa Z) (equation 8, alpha_T and kappa = 0.35 from p. 23), the function is 1 in neutral conditions. Fairall et al. attribute their appendix B to Businger et al. (1971), whose unstable forms are phi_h/phi_h(0) = (1 + 4 |zeta|^(3/4))^(-2/3) (equation 11, after Elliott) and (1 - 9 zeta)^(-1/2) (equation 12, Businger-Dyer), with phi_h following zeta^(-1/2) rather than zeta^(-1/3) in very unstable conditions (p. 185)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "unstable", "Fairall"]
+
+[[formulations.fairall1978_gradient_function_heat_unstable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1."
+notation = { Phi_H = '\phi_T', zeta = '\xi' }
+assumptions = ["Unstable conditions, xi = Z/L < 0 (appendix B).", "The same function for the water vapour mixing ratio, phi_q = phi_T, with alpha_q = alpha_T (p. 23)."]
+
+[formulations.fairall1978_gradient_function_heat_stable]
+label = "Gradient function for heat and moisture, stable conditions (Fairall et al. 1978, after Businger et al.)"
+expression = "1 + 6.4 * zeta"
+fixed_units = false
+note = "With the diffusivity ratio alpha_T = 1.35 of the profile equation dT/dZ = T_* phi_T/(alpha_T kappa Z) (equation 8, alpha_T and kappa = 0.35 from p. 23), the function is 1 in neutral conditions. From Businger et al. (1971), phi_h = 0.74 + 4.7 zeta (equation 14, p. 185), 0.74 in neutral conditions: over phi_h(0) = 0.74, 1 + 6.35 zeta (computed by nomogram)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "stable", "Fairall", "Businger"]
+
+[[formulations.fairall1978_gradient_function_heat_stable.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1."
+notation = { Phi_H = '\phi_T', zeta = '\xi' }
+assumptions = ["Stable conditions, xi = Z/L > 0 (appendix B).", "The same function for the water vapour mixing ratio, phi_q = phi_T, with alpha_q = alpha_T (p. 23)."]
+
+[formulations.fairall1978_gradient_function_heat]
+label = "Gradient function for heat and moisture, unstable then stable conditions (Fairall et al. 1978)"
+branches = [
+  { formulation = "fairall1978_gradient_function_heat_unstable", where = "zeta < 0" },
+  { formulation = "fairall1978_gradient_function_heat_stable", where = "zeta >= 0" },
+]
+note = "The source writes xi < 0 and xi > 0; both forms give 1 at xi = 0, which nomogram gives to the stable branch."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+keywords = ["gradient function", "Monin-Obukhov", "Fairall"]
+
+[formulations.frederickson1994_gradient_function_scalar]
+label = "Scalar gradient function for temperature and humidity (Frederickson et al. 1994)"
+expression = "piecewise(((1 - 16 * zeta) ** (-1 / 2), zeta < 0), (1 + 7 * zeta, zeta >= 0))"
+fixed_units = false
+note = "Equation 4 writes three cases: the neutral one, 1 at z/L = 0, is the stable form at 0, hence two pieces here. The unstable form is that of the IFS, after Dyer and Hicks (ecmwf_ifs_gradient_function_heat_unstable)."
+output = { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat" }
+inputs = [
+  { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
+]
+keywords = ["gradient function", "Monin-Obukhov", "evaporation duct", "Frederickson"]
+
+[[formulations.frederickson1994_gradient_function_scalar.citations]]
+reference = "frederickson1994_nps"
+equation = "4"
+note = "p. 4."
+notation = { Phi_H = '\phi_s', zeta = 'z/L' }
+assumptions = ["The same function for temperature and humidity, an empirical scalar gradient function (p. 4)."]
+
+[formulations.fairall1978_obukhov_length]
+label = "Monin-Obukhov length from the profile scales, mixing ratio in g/kg (Fairall et al. 1978)"
+expression = "T * u_s ** 2 / (kappa * g * (T_s + c * q_s))"
+fixed_units = true
+note = "Equation 10, with kappa = 0.35 (p. 20 and 23); the source gives g no value, hence an input. The term 0.18 q_*, q_* in g/kg, carries the buoyancy of water vapour."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov stability length" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Mean temperature" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scaling parameter of potential temperature" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scaling parameter of the water vapour mixing ratio" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+]
+coefficients = { kappa = 0.35, c = 0.18 }
+assumptions = [
+  { text = "0.18 q_*, q_* in g/kg, is 0.61 T q_*, q_* in kg/kg, at T = 295 K (computed by nomogram): the virtual temperature correction of the buoyancy flux.", status = "deduced" },
+]
+keywords = ["Obukhov length", "Monin-Obukhov", "evaporation duct", "Fairall"]
+
+[[formulations.fairall1978_obukhov_length.citations]]
+reference = "fairall1978_nps"
+equation = "10"
+note = "p. 20."
+notation = { u_s = "U_*", T_s = "T_*", q_s = "q_*", kappa = '\kappa' }
+
+[formulations.frederickson1994_obukhov_length]
+label = "Monin-Obukhov length from the profile scales, specific humidity (Frederickson et al. 1994)"
+expression = "T * u_s ** 2 / (kappa * g * (T_s + c * T * q_s))"
+fixed_units = false
+note = "Equation 2, with k = 0.4 (p. 3) and g = 9.8 m/s2 (p. 4). With L, the scales u_*, T_* and q_* of equation 1 make 'a system of four equations and four unknowns', solved iteratively (p. 4). The report writes the temperature T; it takes its bulk formulas from Smith (1988), not read."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length scale" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Absolute air temperature" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scaling parameter of temperature" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scaling parameter of specific humidity" },
+]
+coefficients = { kappa = 0.4, g = 9.8, c = 0.61 }
+keywords = ["Obukhov length", "Monin-Obukhov", "evaporation duct", "Frederickson"]
+
+[[formulations.frederickson1994_obukhov_length.citations]]
+reference = "frederickson1994_nps"
+equation = "2"
+note = "p. 4."
+notation = { u_s = "u_*", T_s = "T_*", q_s = "q_*", kappa = "k" }
+units = { g = "M-PER-SEC2" }
+
+[formulations.fairall1978_vertical_refractivity_gradient]
+label = "Vertical gradient of radio refractivity in the surface layer, Monin-Obukhov form (Fairall et al. 1978)"
+expression = "c_0 + Phi_H / (alpha_T * kappa * z) * (c_q * q_s - c_T * T_s)"
+fixed_units = true
+note = "Equation 24: equation 2 with the hydrostatic term C_1 dP/dZ = -0.032 m-1 (equation 4) and the gradients of mixing ratio and potential temperature of equation 8; C_2 = 7.2 and C_3 = -1.3 are approximate (equation 2). The evaporation duct height Z_* is the height where it reaches the critical gradient, -0.157 m-1 (equation 3), which the source solves iteratively (equation 25)."
+output = { identifier = "dN_dz", kind = "VerticalRadioRefractivityGradient", unit = "PPM-PER-M", description = "Vertical gradient of radio refractivity" }
+inputs = [
+  { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat at Z/L" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height above the sea surface" },
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scaling parameter of the water vapour mixing ratio" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scaling parameter of potential temperature" },
+]
+coefficients = { c_0 = -0.032, c_q = 7.2, c_T = 1.3, alpha_T = 1.35, kappa = 0.35 }
+keywords = ["refractivity gradient", "evaporation duct", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_vertical_refractivity_gradient.citations]]
+reference = "fairall1978_nps"
+equation = "24"
+note = "p. 22; alpha_T and kappa from p. 23."
+notation = { dN_dz = "dN/dZ", Phi_H = '\phi_T', z = "Z", q_s = "q_*", T_s = "T_*", alpha_T = '\alpha_T', kappa = '\kappa' }
+units = { alpha_T = "UNITLESS", kappa = "UNITLESS" }
+assumptions = ["The fluxes are constant with height in the surface layer (Monin-Obukhov similarity).", "The same gradient function for the mixing ratio and the potential temperature, phi_q = phi_T (p. 23)."]
+
+# --- Trade terms ------------------------------------------------------
+
+[trade_terms.bulk_richardson_number]
+term = "bulk Richardson number"
+language = "en"
+
+[[trade_terms.bulk_richardson_number.meanings]]
+community = "numerical weather prediction (IFS)"
+kind = "BulkRichardsonNumber"
+definition = "The ratio of buoyancy to wind shear across the surface layer, g z_n (theta_vn - theta_vsurf) / (theta_v |U_n|^2), from virtual potential temperatures (IFS, equation 3.26)."
+sources = ["ecmwf_ifs_cy49r1"]
+
+[[trade_terms.bulk_richardson_number.meanings]]
+community = "evaporation duct models (Jeske, Paulus-Jeske)"
+kind = "BulkRichardsonNumberOverProfileCoefficient"
+definition = "g Delta T z / (T u^2 Gamma), from the air temperature minus the sea temperature and the profile coefficient Gamma, about 0.1: about ten times the former (NOSC TD 1596, equation A-4)."
+sources = ["paulus1989_td1596"]
+
+# --- Flux-profile relations of Fairall et al. (1978) and Frederickson et al. (1994) ---
+# The profile function is an input, the reports leaving it to their sources.
+
+[formulations.fairall1978_wind_profile]
+label = "Wind speed at a height from the friction velocity, the profile function as an input (Fairall et al. 1978)"
+expression = "U_0 + u_s / kappa * (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 11 for the wind, alpha_u = 1 and kappa = 0.35 (p. 23); U(0) = 0 relative to the sea (p. 12). The profile function at z/L only."
+output = { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" }
+inputs = [
+  { identifier = "U_0", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the roughness length, zero relative to the sea" },
+  { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { kappa = 0.35 }
+keywords = ["wind profile", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_wind_profile.citations]]
+reference = "fairall1978_nps"
+equation = "11"
+note = "p. 20."
+notation = { U = 'U(Z)', U_0 = 'U(Z_{0u})', u_s = 'U_*', kappa = '\kappa', z = 'Z', z_0M = 'Z_{0u}', Psi_M = '\psi_u(\xi)' }
+
+[formulations.fairall1978_potential_temperature_profile]
+label = "Potential temperature at a height from its scale, the profile function as an input (Fairall et al. 1978)"
+expression = "theta_0 + T_s / (alpha * kappa) * (ln(z / z_0H) - Psi_H)"
+fixed_units = false
+note = "Equation 11 for the potential temperature, the sea temperature at the roughness length (T(0), p. 12). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, divides the scale (X*/(alpha kappa))."
+output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the height" }
+inputs = [
+  { identifier = "theta_0", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the roughness length, that of the sea surface" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["temperature profile", "potential temperature", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_potential_temperature_profile.citations]]
+reference = "fairall1978_nps"
+equation = "11"
+note = "p. 20."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { theta = 'T(Z)', theta_0 = 'T(Z_{0T})', T_s = 'T_*', alpha = '\alpha_T', kappa = '\kappa', z = 'Z', z_0H = 'Z_{0T}', Psi_H = '\psi_T(\xi)' }
+
+[formulations.fairall1978_mixing_ratio_profile]
+label = "Water vapour mixing ratio at a height from its scale, the profile function as an input (Fairall et al. 1978)"
+expression = "r_0 + r_s / (alpha * kappa) * (ln(z / z_0Q) - Psi_H)"
+fixed_units = false
+note = "Equation 11 for the mixing ratio, in g/kg, that of saturation at the sea temperature at the roughness length (H(0) = 100 %, p. 12); phi_q = phi_T (p. 23). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, divides the scale (X*/(alpha kappa))."
+output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Water vapour mixing ratio at the height" }
+inputs = [
+  { identifier = "r_0", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio at the roughness length, saturated at the sea temperature" },
+  { identifier = "r_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scale of mixing ratio" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for humidity at z/L, that for heat" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["humidity profile", "mixing ratio", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_mixing_ratio_profile.citations]]
+reference = "fairall1978_nps"
+equation = "11"
+note = "p. 20."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { r = 'q(Z)', r_0 = 'q(Z_{0q})', r_s = 'q_*', alpha = '\alpha_q', kappa = '\kappa', z = 'Z', z_0Q = 'Z_{0q}', Psi_H = '\psi_q(\xi)' }
+
+[formulations.fairall1978_friction_velocity]
+label = "Friction velocity from the wind at a height, the profile function as an input (Fairall et al. 1978)"
+expression = "kappa * (U - U_0) / (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 16 for the wind, the bulk method, alpha_u = 1 and kappa = 0.35 (p. 23); U(0) = 0 relative to the sea (p. 12)."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" },
+  { identifier = "U_0", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the roughness length, zero relative to the sea" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { kappa = 0.35 }
+keywords = ["friction velocity", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_friction_velocity.citations]]
+reference = "fairall1978_nps"
+equation = "16"
+note = "p. 21."
+notation = { u_s = 'U_*', U = 'U(Z)', U_0 = 'U(0)', kappa = '\kappa', z = 'Z', z_0M = 'Z_{0u}', Psi_M = '\psi_u(\xi)' }
+
+[formulations.fairall1978_potential_temperature_scale]
+label = "Scale of potential temperature from the air-sea difference, the profile function as an input (Fairall et al. 1978)"
+expression = "alpha * kappa * (theta - theta_0) / (ln(z / z_0H) - Psi_H)"
+fixed_units = false
+note = "Equation 16 for the potential temperature, the bulk method. alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale. Positive when the air is warmer than the sea, L then positive (stable)."
+output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scale of potential temperature" }
+inputs = [
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the height" },
+  { identifier = "theta_0", kind = "PotentialTemperature", unit = "K", description = "Potential temperature of the sea surface" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["temperature scale", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_potential_temperature_scale.citations]]
+reference = "fairall1978_nps"
+equation = "16"
+note = "p. 21."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { T_s = 'T_*', theta = 'T(Z)', theta_0 = 'T(0)', alpha = '\alpha_T', kappa = '\kappa', z = 'Z', z_0H = 'Z_{0T}', Psi_H = '\psi_T(\xi)' }
+
+[formulations.fairall1978_mixing_ratio_scale]
+label = "Scale of mixing ratio from the air-sea difference, the profile function as an input (Fairall et al. 1978)"
+expression = "alpha * kappa * (r - r_0) / (ln(z / z_0Q) - Psi_H)"
+fixed_units = false
+note = "Equation 16 for the mixing ratio, in g/kg, the bulk method; phi_q = phi_T (p. 23). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale."
+output = { identifier = "r_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scale of mixing ratio" }
+inputs = [
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio at the height" },
+  { identifier = "r_0", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio saturated at the sea temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for humidity at z/L, that for heat" },
+]
+coefficients = { alpha = 1.35, kappa = 0.35 }
+keywords = ["humidity scale", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_mixing_ratio_scale.citations]]
+reference = "fairall1978_nps"
+equation = "16"
+note = "p. 21."
+units = { alpha = "UNITLESS", kappa = "UNITLESS" }
+notation = { r_s = 'q_*', r = 'q(Z)', r_0 = 'q(0)', alpha = '\alpha_q', kappa = '\kappa', z = 'Z', z_0Q = 'Z_{0q}', Psi_H = '\psi_q(\xi)' }
+
+[formulations.frederickson1994_friction_velocity]
+label = "Friction velocity from the wind at a height, the profile function as an input (Frederickson et al. 1994)"
+expression = "(U - U_0) * k / (ln(z / z_0M) - Psi_M)"
+fixed_units = false
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 4)."
+output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" },
+  { identifier = "U_0", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the surface, zero" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for momentum at z/L" },
+]
+coefficients = { k = 0.4 }
+keywords = ["friction velocity", "bulk method", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_friction_velocity.citations]]
+reference = "frederickson1994_nps"
+equation = "1"
+note = "p. 3."
+notation = { u_s = 'u_*', U = 'u_z', U_0 = 'u_o', k = 'k', z = 'z', z_0M = 'z_{ou}', Psi_M = '\psi_u(z/L)' }
+
+[formulations.frederickson1994_temperature_scale]
+label = "Scale of temperature from the air-sea difference, the profile function as an input (Frederickson et al. 1994)"
+expression = "(T - T_0) * k / (ln(z / z_0H) - Psi_H)"
+fixed_units = false
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 4). A temperature, not a potential temperature."
+output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scale of temperature" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height" },
+  { identifier = "T_0", kind = "ThermodynamicTemperature", unit = "K", description = "Sea surface temperature" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat at z/L" },
+]
+coefficients = { k = 0.4 }
+keywords = ["temperature scale", "bulk method", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_temperature_scale.citations]]
+reference = "frederickson1994_nps"
+equation = "1"
+note = "p. 3."
+notation = { T_s = 'T_*', T = 'T_z', T_0 = 'T_o', k = 'k', z = 'z', z_0H = 'z_{oT}', Psi_H = '\psi_T(z/L)' }
+
+[formulations.frederickson1994_humidity_scale]
+label = "Scale of specific humidity from the air-sea difference, the profile function as an input (Frederickson et al. 1994)"
+expression = "(q - q_0) * k / (ln(z / z_0Q) - Psi_H)"
+fixed_units = false
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 4). q_o is the saturation specific humidity at the sea temperature."
+output = { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity" }
+inputs = [
+  { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the height" },
+  { identifier = "q_0", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Saturation specific humidity at the sea surface" },
+  { identifier = "z", kind = "Height", unit = "M", description = "Height" },
+  { identifier = "z_0Q", kind = "RoughnessLengthForHumidity", unit = "M", description = "Roughness length for humidity" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for humidity at z/L, that for heat" },
+]
+coefficients = { k = 0.4 }
+keywords = ["humidity scale", "bulk method", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_humidity_scale.citations]]
+reference = "frederickson1994_nps"
+equation = "1"
+note = "p. 3."
+notation = { q_s = 'q_*', q = 'q_z', q_0 = 'q_o', k = 'k', z = 'z', z_0Q = 'z_{oq}', Psi_H = '\psi_q(z/L)' }
+
+# --- Evaporation duct height from the scales (Fairall et al. 1978, Frederickson et al. 1994) ---
+# Implicit equations: the height appears in the gradient function, at z*/L.
+
+[formulations.fairall1978_evaporation_duct_height]
+label = "Evaporation duct height from the scaling parameters, an implicit equation (Fairall et al. 1978)"
+expression = "z_s == -(c_q * q_s - c_T * T_s) / (alpha_T * kappa * c) * phi_T(zeta=z_s / L)"
+calls = { phi_T = "fairall1978_gradient_function_heat" }
+fixed_units = true
+note = "Equation 25: the height where the gradient of equation 24 (fairall1978_vertical_refractivity_gradient) reaches the critical gradient -0.157 m-1, hence 0.125 = 0.157 - 0.032 m-1; the source solves it iteratively. Without ducting, 7.2 q_* - 1.3 T_* >= 0 (equation 26), the equation has no positive root: NaN."
+output = { identifier = "z_s", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scaling parameter of the water vapour mixing ratio" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scaling parameter of potential temperature" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length" },
+]
+coefficients = { c_q = 7.2, c_T = 1.3, alpha_T = 1.35, kappa = 0.35, c = { value = 0.125, unit = "PPM-PER-M", unit_basis = "added", note = "The source writes the number alone: the difference of two gradients of N, in m-1 (equations 3 and 24)." } }
+assumptions = [
+  { text = "The critical gradient -0.157 m-1 is that of a modified refractivity constant with height: ITU-R P.453 writes M = N + 157 h, h in km (equation 17, itu_r_p453_modified_refractivity), 157 being about 10^6/a for an Earth of radius a of about 6370 km.", status = "deduced" },
+]
+keywords = ["evaporation duct height", "implicit equation", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_evaporation_duct_height.domains]]
+bounds = { z_s = [0, inf] }
+criterion = "A height above the sea surface."
+
+[[formulations.fairall1978_evaporation_duct_height.citations]]
+reference = "fairall1978_nps"
+equation = "25"
+note = "p. 22; alpha_T and kappa from p. 23."
+notation = { z_s = "Z_*", q_s = "q_*", T_s = "T_*", alpha_T = '\alpha_T', kappa = '\kappa' }
+units = { alpha_T = "UNITLESS", kappa = "UNITLESS" }
+assumptions = ["A horizontal wave is ducted when its refraction exceeds the curvature of the Earth (p. 11).", "Near sea level, the hydrostatic term of the gradient of N is -0.032 m-1 (equations 4 and 24).", "The fluxes are constant with height in the surface layer (Monin-Obukhov similarity)."]
+
+[formulations.frederickson1994_evaporation_duct_height]
+label = "Evaporation duct height from the scales, an implicit equation (Frederickson et al. 1994, after Fairall et al. 1978)"
+expression = "z_s == -(c_q * q_s - c_T * T_s) * phi_s(zeta=z_s / L) / (k * c)"
+calls = { phi_s = "frederickson1994_gradient_function_scalar" }
+fixed_units = true
+note = "Equation 3, that of Fairall et al. (1978, equation 25) without their diffusivity ratio alpha_T, with k = 0.4 (equation 1); the source solves it iteratively. The coefficient 7.2 of Fairall et al. holds for q_* in g/kg, which the report does not write; its q_* is a scale of specific humidity (equation 1), theirs of mixing ratio. Without ducting, 7.2 q_* - 1.3 T_* >= 0, the equation has no positive root: NaN."
+output = { identifier = "z_s", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "GM-PER-KiloGM", description = "Scale of specific humidity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scale of temperature" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length" },
+]
+coefficients = { c_q = 7.2, c_T = 1.3, k = { value = 0.4, unit = "UNITLESS", unit_basis = "added", note = "Von Karman's constant, a pure number." }, c = { value = 0.125, unit = "PPM-PER-M", unit_basis = "added", note = "The source writes the number alone: as in Fairall et al. (1978), the difference of two gradients of N, in m-1." } }
+assumptions = [
+  { text = "As in Fairall et al. (1978), 0.125 = 0.157 - 0.032 m-1: the critical gradient for ducting, that of a modified refractivity constant with height for an Earth of radius of about 6370 km (ITU-R P.453, equation 17), and the hydrostatic term of the gradient of N near sea level.", status = "deduced" },
+]
+keywords = ["evaporation duct height", "implicit equation", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_evaporation_duct_height.domains]]
+bounds = { z_s = [0, inf] }
+criterion = "A height above the sea surface."
+
+[[formulations.frederickson1994_evaporation_duct_height.citations]]
+reference = "frederickson1994_nps"
+equation = "3"
+note = "p. 4."
+notation = { z_s = "z_*", q_s = "q_*", T_s = "T_*", k = "k" }

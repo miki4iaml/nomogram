@@ -29,11 +29,12 @@ the result is NaN there. See ``docs/rosetta.md`` for the vocabulary.
 from __future__ import annotations
 
 import datetime
+import math
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import cached_property
+from functools import cached_property, lru_cache
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, get_args
 
@@ -42,13 +43,16 @@ import sympy
 
 from nomogram.expression import (
     MAX_SOURCE_LENGTH,
+    ExpressionError,
     _opaque_calls,
+    _opaque_members,
     _relations,
+    _split_equation,
     _variants,
     compile_numeric,
     parse_expression,
 )
-from nomogram.semantics import ExternalMatch, _cf_names, semantic_catalog
+from nomogram.semantics import ExternalMatch, KindBounds, _cf_names, semantic_catalog
 from nomogram.units import Q_, convert
 
 if TYPE_CHECKING:
@@ -79,6 +83,7 @@ __all__ = [
     "ReferenceStatus",
     "Relation",
     "RelationKind",
+    "RootWarning",
     "ScaleBasis",
     "ScaleConversionError",
     "TradeMeaning",
@@ -157,6 +162,24 @@ def _flag_beyond(
     warnings.warn(message, ValidityWarning, stacklevel=3)
 
 
+def _check_search(key: str, search: Any) -> tuple[float, float]:
+    """``search=`` as two numbers, ``low < high``, either end possibly infinite.
+
+    Raises
+    ------
+    ValueError
+        Otherwise: an interval reversed, empty or NaN, or not a pair.
+    """
+    try:
+        low, high = (float(end) for end in search)
+    except (TypeError, ValueError):
+        low = high = math.nan
+    if not low < high:
+        msg = f"{key}: search= takes two numbers, low < high, not {search!r}"
+        raise ValueError(msg)
+    return low, high
+
+
 def _check_given(key: str, variable: Variable, value: Any) -> None:
     """Refuse a value taken as given that is not written as its scale writes it.
 
@@ -216,6 +239,16 @@ class ValidityWarning(UserWarning):
 
 class OutOfDomainError(ValueError):
     """A formulation was evaluated outside its validity domain."""
+
+
+class RootWarning(UserWarning):
+    """An implicit equation has no root, or several, where it is solved.
+
+    The value is NaN there: no root in the interval searched (the domains
+    of the output and the bounds of its kind, or ``search=``), several
+    roots (a domain to narrow), or a residual undefined inside the bracket
+    of a root.
+    """
 
 
 @dataclass(frozen=True)
@@ -818,6 +851,12 @@ class Variable:
         unknown or not applicable.
     scale_basis : ScaleBasis or None
         How that scale is known.
+    kind_bounds : KindBounds or None
+        The bounds its quantity kind admits by definition, declared or
+        inherited (see :class:`~nomogram.semantics.KindBounds`), set when
+        the catalog is loaded; they apply to its values whatever the
+        domains selected, a value on a conventional scale other than the
+        reference one being carried to the reference scale first.
     """
 
     identifier: str
@@ -826,6 +865,201 @@ class Variable:
     description: str
     scale: ConventionalScale | None = None
     scale_basis: ScaleBasis | None = None
+    kind_bounds: KindBounds | None = None
+
+    def bounds_in_unit(self) -> tuple[float, float] | None:
+        """The bounds of its kind in its unit, or ``None`` when none apply.
+
+        None for a variable without bounds, or on a conventional scale
+        other than the reference one: a Practical Salinity of 35 is no
+        mass fraction, and the scale has its own bounds.
+        """
+        if self.kind_bounds is None:
+            return None
+        if self.scale is not None and not self.scale.is_reference:
+            return None
+        bounds = self.kind_bounds
+        return _converted_bounds(bounds.low, bounds.high, bounds.unit, self.unit)
+
+
+def _beyond(value: Any, low: float, high: float) -> Any:
+    """Where values lie beyond a closed interval, its finite ends rounded.
+
+    The tolerance :data:`BOUND_TOLERANCE` lets a value converted between
+    units through at a bound; NaN is never beyond.
+    """
+    finite = [abs(b) for b in (low, high) if math.isfinite(b)]
+    margin = BOUND_TOLERANCE * max([*finite, 1.0])
+    value = np.asarray(value, dtype=float)
+    return (value < low - margin) | (value > high + margin)
+
+
+def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
+    """Where values, in ``unit`` (the variable's by default), lie beyond its kind's bounds.
+
+    A value on a conventional scale other than the reference one is
+    carried to the reference scale first (a Knudsen salinity in per mille,
+    a temperature on IPTS-68, a Practical Salinity, which is a number);
+    where it cannot be, beyond the conversion, it is compared as it is,
+    which bounds that hold on every scale (0 K) do rightly.
+    """
+    value = np.asarray(values, dtype=float)
+    bounds = variable.kind_bounds
+    if bounds is None:
+        return np.zeros(value.shape, dtype=bool)
+    unit = unit or variable.unit
+    raw = _converted_bounds(bounds.low, bounds.high, bounds.unit, unit)
+    scale = variable.scale
+    if scale is None or scale.is_reference or not scale.convertible:
+        return _beyond(value, *raw)
+    units = semantic_catalog().units
+    table = unit if scale.unit is None else str(scale.unit)
+    on_scale = convert(Q_(value, units[unit].pint), units[table].pint)
+    with np.errstate(invalid="ignore"):
+        carried = np.asarray(
+            scale.to_reference(np.asarray(on_scale.magnitude, dtype=float)),
+            dtype=float,
+        )
+    reference = _converted_bounds(bounds.low, bounds.high, bounds.unit, table)
+    unconverted = np.isnan(carried) & ~np.isnan(value)
+    return _beyond(carried, *reference) | (unconverted & _beyond(value, *raw))
+
+
+@lru_cache(maxsize=256)
+def _converted_bounds(
+    low: float, high: float, unit: str, target: str
+) -> tuple[float, float]:
+    """Bounds converted between units, offsets included (0 K is -273.15 degC)."""
+    units = semantic_catalog().units
+    source, to = units[unit].pint, units[target].pint
+    ends = []
+    for end in (low, high):
+        if math.isinf(end):
+            ends.append(end)
+        else:
+            ends.append(float(Q_(end, source).to(to).magnitude))
+    return ends[0], ends[1]
+
+
+def _kind_bounds_on_scale(variable: Variable) -> tuple[float, float] | None:
+    """The bounds of a variable's kind in its unit, on its conventional scale.
+
+    On a scale other than the reference one, each finite end is carried
+    from the reference scale onto it; an end beyond the conversion is kept
+    as it is, as :meth:`Formulation._beyond_kinds` compares it, which
+    bounds holding on every scale (0 K) do rightly.
+    """
+    bounds = variable.kind_bounds
+    if bounds is None:
+        return None
+    raw = _converted_bounds(bounds.low, bounds.high, bounds.unit, variable.unit)
+    scale = variable.scale
+    if scale is None or scale.is_reference or not scale.convertible:
+        return raw
+    units = semantic_catalog().units
+    table = variable.unit if scale.unit is None else str(scale.unit)
+    reference = _converted_bounds(bounds.low, bounds.high, bounds.unit, table)
+    ends = []
+    for end, kept in zip(reference, raw, strict=True):
+        if not math.isfinite(end):
+            ends.append(kept)
+            continue
+        with np.errstate(invalid="ignore"):
+            on_scale, _ = scale.from_reference(np.asarray(end, dtype=float))
+        value = float(
+            convert(
+                Q_(float(on_scale), units[table].pint), units[variable.unit].pint
+            ).magnitude
+        )
+        ends.append(kept if math.isnan(value) else value)
+    return ends[0], ends[1]
+
+
+def _same_unit(unit: Any, other: Any) -> bool:
+    """Whether two units give one number to a value: same factor, no offset."""
+    from nomogram.units import is_offset_unit
+
+    if unit == other:
+        return True
+    if is_offset_unit(unit) or is_offset_unit(other):
+        return False
+    return bool(Q_(1.0, unit).to(other).magnitude == 1.0)
+
+
+def _coherent(unit: Any) -> bool:
+    """Whether a unit is coherent with the SI base units: factor 1, no offset (Pa, K)."""
+    return _same_unit(unit, Q_(1.0, unit).to_base_units().units)
+
+
+def _check_sums(key: str, expr: Any, unit_of: Callable[[Any], Any]) -> None:
+    """Refuse a sum whose terms are in two units of one dimension.
+
+    The numeric function adds the numbers: 1500 Pa + 15 hPa would give
+    1515 Pa. The terms of a sum share their unit; a unit with an offset
+    (degC) is shared only with itself.
+
+    Raises
+    ------
+    DimensionError
+        At the first such sum.
+    """
+    from nomogram.dimensions import DimensionError
+
+    for node in sympy.preorder_traversal(expr):
+        if not isinstance(node, sympy.Add):
+            continue
+        first, *others = (unit_of(term) for term in node.args)
+        for unit in others:
+            if not _same_unit(unit, first):
+                msg = (
+                    f"{key}: {node} adds {first:~P} and {unit:~P}: write the "
+                    "terms of a sum in one unit"
+                )
+                raise DimensionError(msg)
+
+
+#: Functions of a pure number: the catalog's exp, ln, log10, sin, cos,
+#: atan and tanh (log10 is a quotient of logarithms in SymPy).
+_FUNCTIONS_OF_PURE_NUMBERS = (
+    sympy.exp,
+    sympy.log,
+    sympy.sin,
+    sympy.cos,
+    sympy.atan,
+    sympy.tanh,
+)
+
+
+def _check_function_arguments(
+    key: str, expr: Any, unit_of: Callable[[Any], Any]
+) -> None:
+    """Refuse a function of a pure number whose units leave a factor.
+
+    p/p_0, with p in hPa and p_0 in Pa, is a pure number worth 100 times
+    the quotient of their numbers, which the numeric function takes the
+    logarithm of: ln(1000 hPa / 100000 Pa) would give -4.6, not 0. A
+    power keeps such a factor in the unit of its result, which the factor
+    of the output converts; a function loses it.
+
+    Raises
+    ------
+    DimensionError
+        At the first such argument.
+    """
+    from nomogram.dimensions import DimensionError
+
+    for node in sympy.preorder_traversal(expr):
+        if not isinstance(node, _FUNCTIONS_OF_PURE_NUMBERS):
+            continue
+        unit = unit_of(node.args[0])
+        factor = Q_(1.0, unit).to("dimensionless").magnitude
+        if factor != 1.0:
+            msg = (
+                f"{key}: {node} takes {node.args[0]} in {unit:~P}, worth "
+                f"{factor:g} times its numbers: write the quantities of the "
+                "argument in units whose ratio is 1"
+            )
+            raise DimensionError(msg)
 
 
 @dataclass(frozen=True)
@@ -960,7 +1194,9 @@ class ValidityDomain:
     basis : DomainBasis
         Physical, or stated by the author or the cited publication.
     bounds : mapping of str to (float, float)
-        Closed interval per input identifier, in the input's unit.
+        Closed interval per input identifier, in the input's unit, and of
+        the output when the domain bounds it, in the output's unit; one end
+        may be infinite (``(0, inf)``).
     criterion : str or None
         What the domain guarantees, for example a maximum deviation from
         a reference formulation.
@@ -1140,11 +1376,17 @@ class Part:
         by its own identifier: inputs bound (``bind``) or passed as
         arguments, and, for a formulation called, its coefficients and
         constants renamed.
+    arguments : mapping of str to str
+        For a formulation called, the expressions passed to its inputs, by
+        their identifiers (``{"zeta": "z_s / L"}``): expressions of the
+        inputs, coefficients and constants of the calling formulation,
+        substituted for those inputs.
     """
 
     formulation: Formulation
     computes: str | None
     rename: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    arguments: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)
@@ -1177,8 +1419,10 @@ class Call:
         The formulation called, with its own validity domains and sources.
     arguments : mapping of str to str
         For each of its inputs, by identifier and in the order of its
-        inputs, the input of the calling formulation passed to it
-        (``{"p": "p", "t": "t_d"}``).
+        inputs, what the calling formulation passes to it: one of its
+        inputs (``{"p": "p", "t": "t_d"}``), or an expression of its
+        inputs, coefficients and constants, as normalized text
+        (``{"zeta": "z_s / L"}``).
     """
 
     alias: str
@@ -1333,6 +1577,14 @@ class Formulation:
         )
 
     @property
+    def _argument_names(self) -> tuple[str, ...]:
+        """The names an argument of a call may use: :attr:`names`, and the
+        unknown of an implicit equation, last."""
+        if self.implicit:
+            return (*self.names, self.output.identifier)
+        return self.names
+
+    @property
     def _source_limit(self) -> int | None:
         """Bound on the length of the expression, for every parse of it.
 
@@ -1342,9 +1594,253 @@ class Formulation:
         return MAX_SOURCE_LENGTH if self.derivation is None else None
 
     @cached_property
+    def implicit(self) -> bool:
+        """Whether the expression is an implicit equation, ``left == right``.
+
+        The output is then the unknown the source solves for, which may
+        appear in both members or not be isolable (VIM 2.48, note 1: the
+        measurement model h(Y, X1, ..., Xn) = 0); :meth:`evaluate` finds
+        its root. See :attr:`equation_members`.
+        """
+        try:
+            return _split_equation(self.expression, self._source_limit) is not None
+        except ExpressionError:
+            return True  # an equation written wrong: equation_members says why
+
+    @cached_property
+    def equation_members(self) -> tuple[Any, Any]:
+        """The two members of an implicit equation, as SymPy expressions.
+
+        The output's identifier is among their symbols.
+
+        Raises
+        ------
+        ExpressionError
+            If the formulation is explicit, or a member is not valid.
+        """
+        found = _split_equation(self.expression, self._source_limit)
+        if found is None:
+            msg = f"{self.key}: an explicit formulation has no equation members"
+            raise ExpressionError(msg)
+        names = (*self.names, self.output.identifier)
+        left, right = (
+            parse_expression(member, names, limit=self._source_limit)
+            for member in found
+        )
+        return left, right
+
+    @cached_property
     def sympy_expression(self) -> Any:
-        """The expression as a SymPy expression."""
+        """The expression as a SymPy expression.
+
+        Raises
+        ------
+        ExpressionError
+            For an implicit equation, which has no explicit expression of
+            its output (see :attr:`equation_members`).
+        """
+        if self.implicit:
+            msg = (
+                f"{self.key}: an implicit equation has no explicit expression "
+                "of its output; see equation_members"
+            )
+            raise ExpressionError(msg)
         return parse_expression(self.expression, self.names, limit=self._source_limit)
+
+    @cached_property
+    def _members_functions(self) -> tuple[Callable[..., Any], Callable[..., Any]]:
+        """The two members as numeric functions of the output, then of :attr:`names`."""
+        names = (self.output.identifier, *self.names)
+        left, right = self.equation_members
+        return compile_numeric(left, names), compile_numeric(right, names)
+
+    @cached_property
+    def _member_factor(self) -> float:
+        """Factor bringing the right member into the unit of the left one.
+
+        1 for a fixed-units formulation, and where a member is 0 (h == 0),
+        which has every dimension. For a quantity equation, each member is
+        evaluated with pint quantities, once per branch of its piecewise
+        definitions (see :attr:`output_factor`): the branches of a member
+        give one unit, both members have the same dimension, and no sum
+        adds terms in two units.
+
+        Raises
+        ------
+        pint.errors.DimensionalityError
+            If the two members do not have the same dimension.
+        DimensionError
+            If the branches of a member give values in different units, a
+            sum adds terms in two units of one dimension, or the members
+            give values in units with an offset between them (K and degC).
+        """
+        if self.fixed_units:
+            return 1.0
+        from nomogram.dimensions import DimensionError
+
+        unit_of = self._unit_of()
+        units = []
+        for member in self.equation_members:
+            if member == 0:
+                continue
+            variants = _variants(member)
+            found = [unit_of(variant) for variant in variants]
+            if any(not _same_unit(unit, found[0]) for unit in found[1:]):
+                msg = (
+                    f"{self.key}: the branches of a piecewise definition in a "
+                    "member give values in different units"
+                )
+                raise DimensionError(msg)
+            if self._mixed_units:
+                for variant in variants:
+                    _check_sums(self.key, variant, unit_of)
+                    _check_function_arguments(self.key, variant, unit_of)
+            units.append(found[0])
+        if len(units) < 2:
+            return 1.0
+        from nomogram.units import is_offset_unit
+
+        if (is_offset_unit(units[0]) or is_offset_unit(units[1])) and not _same_unit(
+            units[0], units[1]
+        ):
+            # No factor brings degC into K: the members would differ by an
+            # offset, which an equation of two members cannot carry.
+            msg = (
+                f"{self.key}: the members give values in units with an offset "
+                f"between them ({units[0]:~P}, {units[1]:~P}); write both in one unit"
+            )
+            raise DimensionError(msg)
+        return float(Q_(1.0, units[1]).to(units[0]).magnitude)
+
+    def _unit_of(self) -> Callable[[Any], Any]:
+        """The unit of an expression of :attr:`names`, from probe values.
+
+        An implicit equation takes a probe of its output too. A probe may
+        leave the real domain of the expression (the square root of
+        1 - 16 zeta): the value is NaN, the unit holds.
+        """
+        names, values = self._probe_values
+
+        def unit_of(expr: Any) -> Any:
+            with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+                return Q_(compile_numeric(expr, names)(*values)).units
+
+        return unit_of
+
+    @cached_property
+    def _probe_values(self) -> tuple[tuple[str, ...], list[Any]]:
+        """The names a unit is computed from, and their probe values."""
+        values = self._probes()
+        names: tuple[str, ...] = self.names
+        if self.implicit:
+            names = (*names, self.output.identifier)
+            unit = semantic_catalog().units[self.output.unit].pint
+            values.append(Q_(1.05 ** (len(values) + 1), unit))
+        return names, values
+
+    @cached_property
+    def _mixed_units(self) -> bool:
+        """Whether a sum could add terms in two units of one dimension.
+
+        Not where every unit of its names is coherent, of factor 1 and
+        without offset: every product of them is then coherent too, and
+        the terms of a sum share their unit.
+        """
+        _, values = self._probe_values
+        return not all(_coherent(q.units) for q in values)
+
+    def _probes(self) -> list[Any]:
+        """Distinct values of the inputs, coefficients and constants, with units.
+
+        Only the unit of a result computed from them matters. They grow
+        slowly: a composition has dozens of names, and powers of them
+        overflow.
+        """
+        units = semantic_catalog().units
+        probe = iter(1.05 ** (i + 1) for i in range(len(self.names)))
+        values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
+        # A coefficient is a pure number unless declared otherwise.
+        values += [
+            Q_(next(probe), units[c.unit].pint if c.unit else "dimensionless")
+            for c in self.coefficients
+        ]
+        values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
+        return values
+
+    def _search_interval(
+        self, search: tuple[float, float] | None
+    ) -> tuple[float, float]:
+        """Where the root of an implicit equation is sought, in the output's unit.
+
+        Its physical domains on the output and the bounds of its kind,
+        narrowed by ``search``; domains stated by sources apply to the
+        root found, as to any result.
+        """
+        low, high = -math.inf, math.inf
+        output = self.output.identifier
+        for domain in self.physical_domains:
+            if output in domain.bounds:
+                low = max(low, domain.bounds[output][0])
+                high = min(high, domain.bounds[output][1])
+        bounds = _kind_bounds_on_scale(self.output)
+        if bounds is not None:
+            low, high = max(low, bounds[0]), min(high, bounds[1])
+        if search is not None:
+            low, high = max(low, float(search[0])), min(high, float(search[1]))
+        return low, high
+
+    def _solve(
+        self,
+        values: Mapping[str, Any],
+        search: tuple[float, float] | None,
+        skip: Any = None,
+    ) -> Any:
+        """The root of an implicit equation for each set of inputs, NaN without one.
+
+        Neither sought nor reported where an input is NaN, or where
+        ``skip`` holds (inputs outside a domain, their result NaN anyway).
+        """
+        from nomogram._roots import NONE, SEVERAL, UNDETERMINED, solve
+
+        low, high = self._search_interval(search)
+        left, right = self._members_functions
+        fixed = [c.value for c in self.coefficients]
+        fixed += [k.value for k in self.constants]
+        factor = self._member_factor
+
+        def members(y: Any, *inputs: Any) -> tuple[Any, Any]:
+            return left(y, *inputs, *fixed), factor * right(y, *inputs, *fixed)
+
+        arrays = [np.asarray(values[v.identifier], dtype=float) for v in self.inputs]
+        shape = np.broadcast_shapes(*(a.shape for a in arrays)) if arrays else ()
+        flat = [np.broadcast_to(a, shape).reshape(-1) for a in arrays]
+        sought = np.ones(math.prod(shape), dtype=bool)
+        for array in flat:
+            sought &= ~np.isnan(array)
+        if skip is not None:
+            sought &= ~np.broadcast_to(np.asarray(skip, dtype=bool), shape).reshape(-1)
+        flat_roots = np.full(sought.shape, np.nan)
+        flat_status = np.full(sought.shape, -1)  # not sought
+        if sought.any() and low <= high:
+            got, codes = solve(members, [a[sought] for a in flat], low, high)
+            flat_roots[sought], flat_status[sought] = got, codes
+        elif sought.any():
+            flat_status[sought] = NONE
+        roots, status = flat_roots.reshape(shape), flat_status.reshape(shape)
+        reasons = (
+            (NONE, "no root in the interval searched"),
+            (SEVERAL, "several roots: narrow the interval (a domain, or search=)"),
+            (UNDETERMINED, "a residual undefined inside the bracket of a root"),
+        )
+        found = [
+            f"{int(np.sum(status == code))} with {text}"
+            for code, text in reasons
+            if np.any(status == code)
+        ]
+        if found:
+            message = f"{self.key}: NaN for " + "; ".join(found)
+            warnings.warn(message, RootWarning, stacklevel=4)
+        return roots
 
     @cached_property
     def written_expression(self) -> Any:
@@ -1353,12 +1849,45 @@ class Formulation:
         The same as :attr:`sympy_expression` for a formulation without
         calls; with calls, an opaque function per call (``e_w(p, t_d)``),
         its arguments in the order of the called formulation's inputs.
+
+        Raises
+        ------
+        ExpressionError
+            For an implicit equation (see :attr:`written_members`).
         """
-        if not self.calls or self.written is None:
+        if not self.calls or self.written is None or self.implicit:
             return self.sympy_expression
         return _opaque_calls(
             self.written,
             self.names,
+            [
+                (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
+                for c in self.calls
+            ],
+        )
+
+    @cached_property
+    def written_members(self) -> tuple[Any, Any]:
+        """The two members of an implicit equation as written.
+
+        The same as :attr:`equation_members` without calls; with calls, an
+        opaque function per call (``phi_T(z_s/L)``), as
+        :attr:`written_expression` writes them. An argument may hold the
+        unknown.
+
+        Raises
+        ------
+        ExpressionError
+            If the formulation is explicit.
+        """
+        if not self.calls or self.written is None:
+            return self.equation_members
+        if not self.implicit:
+            msg = f"{self.key}: an explicit formulation has no equation members"
+            raise ExpressionError(msg)
+        return _opaque_members(
+            self.written,
+            self._argument_names,
             [
                 (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
                 for c in self.calls
@@ -1388,8 +1917,10 @@ class Formulation:
             a comparison joins two dimensions.
         DimensionError
             If the branches of a piecewise definition give values in
-            different units, or a comparison joins two units of one
-            dimension (a bound in Pa for an input in hPa).
+            different units, a comparison joins two units of one dimension
+            (a bound in Pa for an input in hPa), or a sum adds terms in two
+            units of one dimension: the numeric function adds the numbers,
+            and 1500 Pa + 15 hPa would give 1515 Pa.
         """
         if self.fixed_units:
             return 1.0
@@ -1397,24 +1928,22 @@ class Formulation:
 
         units = semantic_catalog().units
         # Distinct probe values, so that no difference such as p - e
-        # vanishes; only the unit of the result matters. They grow slowly:
-        # a composition has dozens of names, and powers of them overflow.
-        probe = iter(1.05 ** (i + 1) for i in range(len(self.names)))
-        values: list[Any] = [Q_(next(probe), units[v.unit].pint) for v in self.inputs]
-        # A coefficient is a pure number unless declared otherwise (a
-        # threshold T_0 in K, compared with T).
-        values += [
-            Q_(next(probe), units[c.unit].pint if c.unit else "dimensionless")
-            for c in self.coefficients
-        ]
-        values += [Q_(next(probe), units[k.unit].pint) for k in self.constants]
-
-        def unit_of(expr: Any) -> Any:
-            # A probe may leave the real domain of the expression (the
-            # square root of 1 - 16 zeta): the value is NaN, the unit holds.
-            with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
-                return Q_(compile_numeric(expr, self.names)(*values)).units
-
+        # vanishes; only the unit of the result matters (see _probes).
+        unit_of = self._unit_of()
+        if self.implicit:
+            # Both members of one dimension, each comparison of a condition
+            # in one unit; the unknown is in the output's unit.
+            left, right = self.equation_members
+            for relation in [*_relations(left), *_relations(right)]:
+                lhs, rhs = unit_of(relation.lhs), unit_of(relation.rhs)
+                if Q_(1.0, lhs).to(rhs).magnitude != 1.0:
+                    msg = (
+                        f"{self.key}: {relation} compares {lhs:~P} with {rhs:~P}: "
+                        "write a bound in the unit of its input"
+                    )
+                    raise DimensionError(msg)
+            _ = self._member_factor
+            return 1.0
         for relation in _relations(self.sympy_expression):
             left, right = unit_of(relation.lhs), unit_of(relation.rhs)
             if Q_(1.0, left).to(right).magnitude != 1.0:
@@ -1424,9 +1953,10 @@ class Formulation:
                 )
                 raise DimensionError(msg)
         target = units[self.output.unit].pint
+        variants = _variants(self.sympy_expression)
         factors = {
             float(Q_(1.0, unit_of(variant)).to(target).magnitude)
-            for variant in _variants(self.sympy_expression)
+            for variant in variants
         }
         if len(factors) > 1:
             msg = (
@@ -1434,6 +1964,10 @@ class Formulation:
                 "values in different units"
             )
             raise DimensionError(msg)
+        if self._mixed_units:
+            for variant in variants:
+                _check_sums(self.key, variant, unit_of)
+                _check_function_arguments(self.key, variant, unit_of)
         return factors.pop()
 
     def latex(self, notation: Notation | None = None, **options: Any) -> str:
@@ -1466,12 +2000,14 @@ class Formulation:
         return infer_units(self)
 
     def outside_mask(self, values: Mapping[str, Any], basis: Basis = "stated") -> Any:
-        """Where input values fall outside the selected validity domains.
+        """Where values fall outside the selected validity domains.
 
         Parameters
         ----------
         values : mapping of str to array_like
-            Input values, by identifier, in the inputs' units.
+            Input values, by identifier, in the inputs' units; and the
+            output's, by its identifier and in its unit, for the domains that
+            bound it (left aside when it is not given).
         basis : {"stated", "physical", "all"}
             Which domains apply.
 
@@ -1482,6 +2018,8 @@ class Formulation:
 
         Raises
         ------
+        KeyError
+            If an input is not given: only the output may be missing.
         ValueError
             If ``basis`` is not one of its values.
 
@@ -1489,60 +2027,117 @@ class Formulation:
         -----
         Physical domains all apply. Domains stated by sources combine by
         union between citations (inside if one source says so), and apply
-        together within a citation.
+        together within a citation. Bounds on the output are taken apart
+        from those on the inputs: the union runs on the inputs over the
+        citations that bound them, and on the output over the citations
+        that bound it, and a value is outside if either is. A citation that
+        only bounds the output thus never widens the inputs another states.
+
+        The bounds the kind of each variable admits by definition
+        (:attr:`Variable.kind_bounds`: no negative vapour pressure, no
+        temperature below 0 K) apply whatever ``basis``.
 
         Bounds are closed and tolerate a relative rounding of
-        :data:`BOUND_TOLERANCE`, so that a value converted between units
-        (0.01 degC is 273.15999999... K) is not rejected at a bound.
+        :data:`BOUND_TOLERANCE` of their finite ends, so that a value
+        converted between units (0.01 degC is 273.15999999... K) is not
+        rejected at a bound; an infinite end bounds nothing.
 
         A composed formulation is never more permissive than the chain of
         its parts: the domains of each part apply to the values it
-        receives, intermediate values included, unless a source of the
-        composed formulation states its own domain, which then replaces
-        the domains the sources of the parts state. Physical domains of
-        the parts always apply. In a formulation defined by branches, the
-        domains of each branch apply where its condition holds, under the
-        same rule.
+        receives and to the value it gives, intermediate values included,
+        unless a source of the composed formulation states its own domain
+        on its inputs, which then replaces the domains the sources of the
+        parts state. Physical domains of the parts always apply. In a
+        formulation defined by branches, the domains of each branch apply
+        where its condition holds, under the same rule.
         """
         _check_options("nan", basis, "convert")
+        missing = [v.identifier for v in self.inputs if v.identifier not in values]
+        if missing:
+            msg = f"{self.key}: no value given for the input(s) {', '.join(missing)}"
+            raise KeyError(msg)
+        return self._outside(values, basis)
+
+    def _outside(self, values: Mapping[str, Any], basis: Basis | None) -> Any:
+        """:meth:`outside_mask`; with ``basis=None``, the bounds of kinds only.
+
+        The bounds of the kinds of the parts and branches always apply,
+        even where a domain stated for the composition replaces their
+        domains.
+        """
         arrays = {k: np.asarray(v, dtype=float) for k, v in values.items()}
         shape = np.broadcast_shapes(*(a.shape for a in arrays.values()))
+        output = self.output.identifier
 
-        def outside_all(domains: tuple[ValidityDomain, ...]) -> Any:
+        def bounds_of(domain: ValidityDomain, of_output: bool) -> Any:
+            return [
+                (identifier, low, high)
+                for identifier, (low, high) in domain.bounds.items()
+                if (identifier == output) == of_output
+            ]
+
+        def outside_all(domains: tuple[ValidityDomain, ...], of_output: bool) -> Any:
             result = np.zeros(shape, dtype=bool)
             for domain in domains:
-                for identifier, (low, high) in domain.bounds.items():
-                    value = arrays[identifier]
-                    margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
-                    result = result | (value < low - margin) | (value > high + margin)
+                for identifier, low, high in bounds_of(domain, of_output):
+                    if identifier not in arrays:
+                        continue  # the output, not given (inputs are checked first)
+                    result = result | _beyond(arrays[identifier], low, high)
             return result
 
-        outside = np.zeros(shape, dtype=bool)
-        if basis in ("physical", "all"):
-            outside |= outside_all(self.physical_domains)
-        if basis in ("stated", "all"):
+        def outside_union(of_output: bool) -> Any:
             # Union between citations: inside if one source says so.
-            stating = [c.domains for c in self.citations if c.domains]
-            if stating:
-                inside = np.zeros(shape, dtype=bool)
-                for domains in stating:
-                    inside |= ~outside_all(domains)
-                outside |= ~inside
+            stating = [
+                c.domains
+                for c in self.citations
+                if any(bounds_of(d, of_output) for d in c.domains)
+            ]
+            if not stating:
+                return np.zeros(shape, dtype=bool)
+            inside = np.zeros(shape, dtype=bool)
+            for domains in stating:
+                inside |= ~outside_all(domains, of_output)
+            return ~inside
+
+        outside = self._beyond_kinds(arrays, shape)
+        if basis in ("physical", "all"):
+            outside |= outside_all(self.physical_domains, of_output=False)
+            outside |= outside_all(self.physical_domains, of_output=True)
+        if basis in ("stated", "all"):
+            outside |= outside_union(of_output=False)
+            outside |= outside_union(of_output=True)
         if self.parts or self.branches:
             part_basis: Basis | None = basis
-            # A domain stated for a composition replaces those of its parts;
-            # the domains of called formulations always apply to each call.
-            stated = any(c.domains for c in self.citations)
-            if basis != "physical" and stated and not self.calls:
+            # A domain stated for a composition on its inputs replaces those
+            # of its parts; the domains of called formulations always apply
+            # to each call. The bounds of the kinds of the parts always do.
+            stated = any(
+                bounds_of(d, of_output=False) for c in self.citations for d in c.domains
+            )
+            if basis not in (None, "physical") and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None
-            if part_basis is not None and self.parts:
+            if self.parts:
                 outside = outside | self._parts_outside(arrays, part_basis)
-            if part_basis is not None and self.branches:
+            if self.branches:
                 outside = outside | self._branches_outside(arrays, part_basis, shape)
         return outside
 
+    def _beyond_kinds(self, values: Mapping[str, Any], shape: tuple[int, ...]) -> Any:
+        """Where a value of a variable lies beyond the bounds of its kind.
+
+        Each value is compared on the reference scale, as
+        :func:`_beyond_kind` does; the output is left aside when it is not
+        given.
+        """
+        result = np.zeros(shape, dtype=bool)
+        for variable in (*self.inputs, self.output):
+            if variable.identifier not in values:
+                continue  # the output, not given (inputs are checked first)
+            result = result | _beyond_kind(variable, values[variable.identifier])
+        return result
+
     def _branches_outside(
-        self, values: Mapping[str, Any], basis: Basis, shape: tuple[int, ...]
+        self, values: Mapping[str, Any], basis: Basis | None, shape: tuple[int, ...]
     ) -> Any:
         """Where the branch whose condition holds is outside its domains."""
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
@@ -1557,14 +2152,21 @@ class Formulation:
             own = {
                 v.identifier: values[v.identifier] for v in branch.formulation.inputs
             }
-            mask = branch.formulation.outside_mask(own, basis)
+            own[branch.formulation.output.identifier] = branch.formulation._raw(own)
+            mask = branch.formulation._outside(own, basis)
             outside |= np.broadcast_to(np.asarray(active, dtype=bool), shape) & mask
         return outside
 
-    def _parts_outside(self, values: Mapping[str, Any], basis: Basis) -> Any:
-        """Where a part receives a value outside its domains."""
+    def _parts_outside(self, values: Mapping[str, Any], basis: Basis | None) -> Any:
+        """Where a part receives, or gives, a value outside its domains.
+
+        An implicit equation passes its unknown to a call: its parts are
+        checked once the root is known, among ``values``.
+        """
         computed: dict[str, Any] = {}
         outside: Any = False
+        if self.implicit and self.output.identifier not in values:
+            return outside
         for part in self.parts:
             formulation = part.formulation
             if part.computes is None:
@@ -1572,17 +2174,71 @@ class Formulation:
                     v.identifier: computed.get(v.identifier, values.get(v.identifier))
                     for v in formulation.inputs
                 }
+                result = formulation._raw(arguments)
             else:
                 arguments = {
-                    v.identifier: values[part.rename.get(v.identifier, v.identifier)]
+                    v.identifier: (
+                        self._argument(part.arguments[v.identifier], values)
+                        if v.identifier in part.arguments
+                        else values[part.rename.get(v.identifier, v.identifier)]
+                    )
                     for v in formulation.inputs
                 }
-                computed[part.computes] = formulation._raw(arguments)
-            outside = outside | formulation.outside_mask(arguments, basis)
+                result = computed[part.computes] = formulation._raw(arguments)
+            given = {**arguments, formulation.output.identifier: result}
+            outside = outside | formulation._outside(given, basis)
         return outside
 
-    def _raw(self, values: Mapping[str, Any]) -> Any:
-        """The result in the output unit, inputs in their units and scales."""
+    @cached_property
+    def _argument_functions(self) -> Mapping[str, Callable[..., Any]]:
+        """The numeric function of each expression passed to a call."""
+        texts = {text for part in self.parts for text in part.arguments.values()}
+        names = self._argument_names
+        return MappingProxyType(
+            {
+                text: compile_numeric(parse_expression(text, names), names)
+                for text in texts
+            }
+        )
+
+    def _argument(self, text: str, values: Mapping[str, Any]) -> Any:
+        """The value of an expression passed to a call, from the inputs.
+
+        And from the root, for an implicit equation (``values`` hold it).
+        """
+        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
+        arguments += [c.value for c in self.coefficients]
+        arguments += [k.value for k in self.constants]
+        if self.implicit:
+            arguments.append(values[self.output.identifier])
+        return np.asarray(self._argument_functions[text](*arguments), dtype=float)
+
+    def _outside_message(
+        self, mask: Any, given: Mapping[str, Any], basis: Basis
+    ) -> str:
+        """How many values lie outside the domains, and beyond the kinds' bounds."""
+        message = f"{self.key}: {int(mask.sum())} value(s) outside its {basis} domain"
+        of_kinds = np.broadcast_to(self._outside(given, None), mask.shape)
+        if of_kinds.any():
+            message += (
+                f", {int(of_kinds.sum())} beyond the bounds of the kinds of "
+                "its variables or of its parts"
+            )
+        return message
+
+    def _raw(
+        self,
+        values: Mapping[str, Any],
+        search: tuple[float, float] | None = None,
+        skip: Any = None,
+    ) -> Any:
+        """The result in the output unit, inputs in their units and scales.
+
+        For an implicit equation, its root, not sought where ``skip`` holds
+        (see :meth:`_solve` and :meth:`evaluate`).
+        """
+        if self.implicit:
+            return self._solve(values, search, skip)
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]
@@ -1596,12 +2252,18 @@ class Formulation:
         outside: Outside = "nan",
         basis: Basis = "stated",
         scale: ScaleConversion = "convert",
+        search: tuple[float, float] | None = None,
         **inputs: Any,
     ) -> Any:
         """Evaluate the formulation on pint quantities.
 
         Inputs are converted to the unit and scale of each input variable,
-        then the numeric function runs, vectorised with numpy.
+        then the numeric function runs, vectorised with numpy. An implicit
+        equation is solved for its output: the root is sought where its
+        physical domains on the output and the bounds of the output's kind
+        allow, narrowed by ``search``; its stated domains then apply to
+        the root as to any result. Without exactly one root, the value is
+        NaN and a :class:`RootWarning` says why.
 
         Parameters
         ----------
@@ -1621,6 +2283,15 @@ class Formulation:
             beyond the conversion table or the bounds of the conversion),
             and the result converted to the reference scale of its kind;
             ``"ignore"`` uses them as they are.
+        search : (float, float), optional
+            For an implicit equation, the interval of the output searched,
+            ``low < high``, in its unit and on its scale: it narrows the
+            interval its physical domains and the bounds of its kind allow,
+            or widens the sweep of an open end (beyond 10^12 times its
+            scale). Not a validity domain; refused for an explicit
+            formulation. Where its inputs lie outside the domains selected,
+            the root is not sought with ``outside="nan"`` (the value is NaN
+            anyway), and ``outside="raise"`` raises before any search.
         **inputs : pint.Quantity
             One quantity per input variable, by identifier.
 
@@ -1632,9 +2303,11 @@ class Formulation:
         Raises
         ------
         TypeError
-            If an input is missing or unexpected.
+            If an input is missing or unexpected, or ``search`` is given
+            for an explicit formulation.
         ValueError
-            If ``outside``, ``basis`` or ``scale`` is not one of its values.
+            If ``outside``, ``basis`` or ``scale`` is not one of its values,
+            or ``search`` is not two numbers, ``low < high``.
         OutOfDomainError
             With ``outside="raise"``, if a value is outside a domain, or
             beyond a scale conversion.
@@ -1646,6 +2319,11 @@ class Formulation:
             Salinity), bare on a scale in per mille (Knudsen salinity).
         """
         _check_options(outside, basis, scale)
+        if search is not None:
+            if not self.implicit:
+                msg = f"{self.key}: search= applies to an implicit equation only"
+                raise TypeError(msg)
+            search = _check_search(self.key, search)
         expected = {v.identifier for v in self.inputs}
         if set(inputs) != expected:
             missing = ", ".join(sorted(expected - set(inputs))) or "none"
@@ -1678,12 +2356,20 @@ class Formulation:
                     dtype=float,
                 )
             _flag_beyond(self.key, beyond, outside)
-        result = self._raw(values)
-        mask = self.outside_mask(values, basis)
+        skip = None
+        if self.implicit and outside in ("nan", "raise"):
+            # The inputs first: no root sought where the value is NaN anyway,
+            # nor before an error.
+            skip = self.outside_mask(values, basis)
+            if outside == "raise" and skip.any():
+                raise OutOfDomainError(self._outside_message(skip, values, basis))
+        result = self._raw(values, search, skip)
+        # The output's domains apply on the formulation's scale, before the
+        # result goes back to the reference scale.
+        given = {**values, self.output.identifier: result}
+        mask = self.outside_mask(given, basis)
         if mask.any() and outside != "ignore":
-            message = (
-                f"{self.key}: {int(mask.sum())} value(s) outside its {basis} domain"
-            )
+            message = self._outside_message(mask, given, basis)
             if outside == "raise":
                 raise OutOfDomainError(message)
             if outside == "warn":

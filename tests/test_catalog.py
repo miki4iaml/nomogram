@@ -77,6 +77,7 @@ def test_formulations_are_grouped_by_computed_kind() -> None:
         "vaisala2013_water",
         "hardy1998_water",
         "murphy_koop2005_water",
+        "paulus1989_saturation_vapour_pressure",
     }
 
 
@@ -315,6 +316,29 @@ def test_notation_symbols_stay_within_the_common_latex_subset() -> None:
         load_catalog([VALID + NOTATION.format(symbol=r"E_{\textrm{w}}")])
 
 
+@pytest.mark.parametrize(
+    ("symbol", "accepted"),
+    [
+        (r"\bar{u} - u_s", False),
+        (r"e + f", False),
+        (r"\left(\bar{u} - u_s\right)", True),
+        (r"-e", True),
+        (r"e^{-1}", True),
+        (r"e_{w+i}", True),
+    ],
+)
+def test_a_symbol_that_adds_is_written_in_parentheses(
+    symbol: str, accepted: bool
+) -> None:
+    # Printed as given, u-bar - u_s squared would read u-bar - u_s^2.
+    document = VALID + NOTATION.format(symbol=symbol)
+    if accepted:
+        assert load_catalog([document]).notations["n"].symbols["e"] == symbol
+    else:
+        with pytest.raises(CatalogError, match="write it in parentheses"):
+            load_catalog([document])
+
+
 KIND = """
 [kinds.{name}]
 label = "Local kind"
@@ -461,7 +485,11 @@ def test_declared_units_say_where_they_come_from(table: str, message: str) -> No
         load_catalog([document])
 
 
-def test_catalog_declares_only_units_inference_cannot_give() -> None:
+def test_every_declared_unit_is_listed_with_its_reason() -> None:
+    # A review list, not a property: on 2026-11-08, inference would give
+    # back every declared unit of 25 of the 50 formulations that declare
+    # some, units their source states and that the catalog keeps. A unit
+    # declared without need thus shows here, and its reason is written.
     origins = {
         (f.key, name): unit.origin
         for f in CATALOG.formulations.values()
@@ -574,6 +602,80 @@ def test_catalog_declares_only_units_inference_cannot_give() -> None:
         ("ecmwf_ifs_saturation_ice", "e_0"): "stated",
         ("ecmwf_ifs_saturation_ice", "A"): "added",
         ("ecmwf_ifs_saturation_ice", "B"): "stated",
+        ("paulus1989_potential_refractivity", "P_0"): "stated",
+        ("paulus1989_bulk_richardson_number", "z_1"): "stated",
+        ("paulus1989_obukhov_length_from_profile_coefficient", "z_1"): "stated",
+        ("paulus1989_obukhov_length", "z_1"): "stated",
+        **{
+            (f"paulus1989_evaporation_duct_height_{branch}", name): "stated"
+            for branch in ("stable", "limited", "unstable")
+            for name in ("z_0", "z_1")
+        },
+        ("paulus1989_evaporation_duct_height_stable", "delta_0"): "added",
+        ("frederickson1994_obukhov_length", "g"): "stated",
+        ("fairall1978_vertical_refractivity_gradient", "alpha_T"): "stated",
+        ("fairall1978_vertical_refractivity_gradient", "kappa"): "stated",
+        # c and k of Louis et al. (1982) appear only in their product c k^2.
+        **{
+            (f"louis1982_stability_factor_{quantity}", name): "stated"
+            for quantity in ("momentum", "heat")
+            for name in ("c", "k")
+        },
+        # 10 m in a logarithm, and the specific heat of air in the lapse rate
+        # of COARE 3.6, whose code writes no unit for it.
+        ("coare36_equivalent_neutral_wind_10m", "z_10"): "stated",
+        ("coare36_temperature_scale", "c_pa"): "added",
+        ("coare36_temperature_at_height", "c_pa"): "added",
+        # The specific heat and the latent heat of Large and Yeager (2004),
+        # given with their units, in a quantity equation.
+        ("large_yeager2004_sensible_heat_flux", "c_p"): "stated",
+        ("large_yeager2004_latent_heat_flux", "Lambda_v"): "stated",
+        # alpha and kappa of Fairall et al. (1978) appear only in their product.
+        **{
+            (f"fairall1978_{key}", name): "stated"
+            for key in (
+                "potential_temperature_profile",
+                "mixing_ratio_profile",
+                "potential_temperature_scale",
+                "mixing_ratio_scale",
+            )
+            for name in ("alpha", "kappa")
+        },
+        # The duct heights of Fairall et al. (1978) and Frederickson et al.
+        # (1994): 0.125 m-1, a difference of gradients of N written as a
+        # number, alone fixes the units of 7.2 and 1.3 with those of alpha_T
+        # and kappa, or of k, all in one product.
+        ("fairall1978_evaporation_duct_height", "alpha_T"): "stated",
+        ("fairall1978_evaporation_duct_height", "kappa"): "stated",
+        ("fairall1978_evaporation_duct_height", "c"): "added",
+        ("frederickson1994_evaporation_duct_height", "k"): "added",
+        ("frederickson1994_evaporation_duct_height", "c"): "added",
+        # z_i = 1000 m of the IFS, which the source writes in metres, under a
+        # cube root; and the gust of 0.2 m/s of the code of COARE.
+        ("ecmwf_ifs_free_convection_velocity_scale", "z_i"): "stated",
+        ("coare36_convective_gust", "u_0"): "added",
+        # Sonntag (1994) writes e in hPa in the logarithms of his inverses;
+        # Murphy and Koop (2005) give Goff (1957) over ice in K and Pa.
+        **dict.fromkeys(
+            (
+                ("sonntag1994_dew_point", "e_0"),
+                ("sonntag1994_frost_point", "e_0"),
+                ("sonntag1994_dew_point_magnus", "C"),
+                ("sonntag1994_frost_point_magnus", "C"),
+                ("goff1957_ice", "T_t"),
+                ("goff1957_ice", "p_t"),
+            ),
+            "stated",
+        ),
+        **{
+            (f"large_yeager2004_{key}", "z_10"): "stated"
+            for key in (
+                "neutral_wind_10m",
+                "drag_coefficient_at_height",
+                "transfer_coefficient_heat_at_height",
+                "transfer_coefficient_humidity_at_height",
+            )
+        },
     }
 
 
@@ -1141,11 +1243,16 @@ def test_stats_counts_the_indicators_of_the_design_goals() -> None:
         "  quantity kinds computed by several formulations: 1 of 2",
         "2. Validity, scale and sources stated, never invented",
         "  formulations with a validity domain: 1 of 3",
+        (
+            "  implicit equations with their unknown bounded by a physical domain"
+            " or its kind: 0 of 0"
+        ),
         "  inputs on a conventional scale with their scale recorded: 1 of 2",
         "  references checked against the source: 1 of 2",
         "  formulations derived by nomogram, which no source prints: 0 of 3",
         "5. Linked to shared vocabularies",
         "  quantity kinds used that are QUDT kinds or specialize one: 3 of 3",
+        "  quantity kinds used that are provisional, pending a QUDT pull request: 0 of 3",
         "  quantity kinds used with a CF standard name: 3 of 3",
         "  quantity kinds used with a Wikidata link: 2 of 3",
         "  formulations with a Wikidata link: 1 of 3",
@@ -1156,7 +1263,13 @@ def test_stats_counts_the_indicators_of_the_design_goals() -> None:
 def test_every_kind_of_the_bundled_catalog_is_tied_to_qudt(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    # QUDT kinds and their specializations, and the provisional kinds,
+    # admitted while a pull request adding them to QUDT is open.
     assert main(["stats"]) == 0
-    line = next(x for x in capsys.readouterr().out.splitlines() if "QUDT" in x)
-    count, total = line.rsplit(": ", 1)[1].split(" of ")
-    assert count == total
+    lines = [x for x in capsys.readouterr().out.splitlines() if "QUDT" in x]
+    (tied, total), (provisional, _) = (
+        line.rsplit(": ", 1)[1].split(" of ") for line in lines[:2]
+    )
+    assert int(tied) + int(provisional) == int(total)
+    for name in ("KinematicHeatFlux",):
+        assert CATALOG.kinds[name].pending is not None

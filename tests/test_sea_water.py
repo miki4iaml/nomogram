@@ -321,6 +321,26 @@ def test_practical_salinity_is_a_number() -> None:
     assert compare([coare, sverdrup], coare, {"SeaWaterSalinity": S_SO}).values
 
 
+def test_a_numerical_inverse_bounds_a_practical_salinity_on_its_scale() -> None:
+    # S_P = 35 is no mass fraction above 1: the bounds of the kind apply on
+    # the reference scale, as for the closed form.
+    salinity = Variable("S", "SeaWaterSalinity", "UNITLESS", "Salinity")
+    factor = Variable("f_s", "RelativeVapourPressureOfSeaWater", "UNITLESS", "f_s")
+    found = {
+        method: invert(
+            F["coare36_salinity_factor"],
+            "S",
+            output=salinity,
+            input=factor,
+            method=method,
+            search=(2.5, 40.0),
+        ).evaluate(f_s=Q_(0.98))
+        for method in ("auto", "numerical")
+    }
+    for value in found.values():
+        assert value.to("g/kg").magnitude == pytest.approx(35.165, abs=1e-3)
+
+
 def test_an_inverse_takes_practical_salinity_as_a_number() -> None:
     # No source output is on PSS-78 yet: an inverse of Knudsen's formula,
     # its input put on PSS-78, stands for one.

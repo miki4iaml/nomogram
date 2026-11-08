@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import math
 import re
 from collections.abc import Iterable, Iterator, Mapping
 from contextvars import ContextVar
@@ -396,8 +397,16 @@ class Rendering:
 
     @cached_property
     def latex(self) -> str:
-        """The equation in LaTeX, without dollar signs."""
+        """The equation in LaTeX, without dollar signs.
+
+        An implicit equation is written member by member, each on its own
+        side of the sign, its terms in the order SymPy prints them.
+        """
         formulation = self.formulation
+        if formulation.implicit:
+            members = formulation.written_members
+            left, right = (_tex(m, self._symbols, self.options) for m in members)
+            return f"{left} = {right}"
         left = _identifier(formulation.output.identifier, self._symbols, self.options)
         right = _tex(formulation.written_expression, self._symbols, self.options)
         return f"{left} = {right}"
@@ -762,9 +771,15 @@ class FormulaTable:
         for domain in formulation.domains:
             for identifier, (low, high) in domain.bounds.items():
                 label = _identifier(identifier, symbols, options)
-                bounds = (
-                    f"{_plain_number(low, options)} to {_plain_number(high, options)}"
-                )
+                if not math.isfinite(high):
+                    bounds = f"{_plain_number(low, options)} or more"
+                elif not math.isfinite(low):
+                    bounds = f"{_plain_number(high, options)} or less"
+                else:
+                    bounds = (
+                        f"{_plain_number(low, options)} to "
+                        f"{_plain_number(high, options)}"
+                    )
                 variable = variables.get(identifier)
                 text = _with_unit(bounds, variable.unit if variable else None)
                 parts.append(f"${label}$: {text} ({domain.basis.value})")

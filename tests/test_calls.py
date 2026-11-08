@@ -4,12 +4,11 @@
 """Tests for formulations that call others: syntax, checks, values, display."""
 
 import re
-from importlib.resources import files
-from importlib.resources.abc import Traversable
 
 import numpy as np
 import pytest
 import sympy
+from bundled_catalog import with_families
 from matplotlib.mathtext import MathTextParser
 
 from nomogram.catalog import Catalog, CatalogError, catalog, load_catalog
@@ -213,8 +212,13 @@ def test_inputs_take_the_scale_of_the_inputs_they_feed() -> None:
         ("100 * e_w(t_d) / e_w(t=t)", '{ e_w = "ew" }', "name its arguments"),
         ("100 * e_w(t=t_d, t=t) / e_w(t=t)", '{ e_w = "ew" }', "given twice"),
         ("100 * e_w(**k) / e_w(t=t)", '{ e_w = "ew" }', "name its arguments"),
-        ("100 * e_w(t=e_w(t=t)) / e_w(t=t)", '{ e_w = "ew" }', "is an input"),
-        ("100 * e_w(t=2) / e_w(t=t)", '{ e_w = "ew" }', "is an input"),
+        ("100 * e_w(t=e_w(t=t)) / e_w(t=t)", '{ e_w = "ew" }', "takes no call"),
+        ("100 * e_w(t=t_d + 1) / e_w(t=t)", '{ e_w = "ew" }', "different dimensions"),
+        (
+            "100 * e_w(t=t_x) / e_w(t=t)",
+            '{ e_w = "ew" }',
+            "an expression of the inputs",
+        ),
         ("100 * e_w(u=t_d) / e_w(t=t)", '{ e_w = "ew" }', "unknown u"),
         ("100 * e_w() / e_w(t=t)", '{ e_w = "ew" }', "missing t"),
         ("100 * e_w / e_w(t=t)", '{ e_w = "ew" }', "is called with its arguments"),
@@ -427,16 +431,13 @@ composition = { outer = "wmo_relative_humidity", inner = { e_ws = "wmo_es_water_
 
 
 def with_catalog(*documents: str) -> Catalog:
-    """The bundled catalog, with documents written for a test."""
-    bundled: list[Traversable] = sorted(
-        (
-            f
-            for f in files("nomogram.data.catalog").iterdir()
-            if f.name.endswith(".toml")
-        ),
-        key=lambda f: f.name,
-    )
-    return load_catalog([*(f.read_text(encoding="utf-8") for f in bundled), *documents])
+    """The moist-air family and those it requires, with documents for a test.
+
+    The formulations these tests call, compose or rename (the saturation
+    vapour pressures of WMO and Sonntag, the mixing ratio) and the scales
+    are there: the rest of the catalog would only lengthen each load.
+    """
+    return with_families(("moist-air",), *documents)
 
 
 # --- More paths -------------------------------------------------------------------
@@ -671,7 +672,8 @@ label = "gap"
 expression = "g(t=t_d) - e_w(t=t)"
 calls = { g = "g", e_w = "ew" }
 fixed_units = true
-output = { identifier = "d", kind = "VapourPressure", unit = "HectoPA", description = "d" }
+# A difference of vapour pressures, signed: no vapour pressure.
+output = { identifier = "d", kind = "Pressure", unit = "HectoPA", description = "d" }
 inputs = [{inputs}]
 
 [[formulations.gap.citations]]
@@ -803,9 +805,14 @@ def test_a_constant_declared_but_used_only_by_a_call_is_refused() -> None:
 
 
 def test_the_name_of_a_call_is_written_like_an_identifier() -> None:
+    # A bar reads as one (e-bar); a command outside the subset is spelt.
     f = rh(caller("100 * ebar(t=t_d) / ebar(t=t)", '{ ebar = "ew" }'))
     latex = f.render().latex
-    assert r"\mathrm{ebar}\left(t_{\mathrm{d}}\right)" in latex
+    assert r"\bar{e}\left(t_{\mathrm{d}}\right)" in latex
+    assert latex_commands(latex) <= LATEX_COMMANDS
+    f = rh(caller("100 * ebold(t=t_d) / ebold(t=t)", '{ ebold = "ew" }'))
+    latex = f.render().latex
+    assert r"\mathrm{ebold}\left(t_{\mathrm{d}}\right)" in latex
     assert latex_commands(latex) <= LATEX_COMMANDS
 
 

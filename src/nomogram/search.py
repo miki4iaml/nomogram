@@ -38,6 +38,7 @@ import unicodedata
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, overload
 
 from nomogram.model import Formulation, _origin
@@ -82,7 +83,8 @@ FIELDS: Mapping[str, str] = {
     ),
     "unit": (
         "a unit an entry works in (variables, constants and declared coefficients "
-        "of a formulation; a constant, a scale), or a unit itself: QUDT name, "
+        "of a formulation; a constant, a scale; the units a kind of the catalog "
+        "adds), or a unit itself: QUDT name, "
         "symbol, UCUM code, label or pint expression, compared whole"
     ),
     "output": "the output variable of a formulation: identifier, symbols, kind, description",
@@ -103,6 +105,10 @@ FIELDS: Mapping[str, str] = {
     "provenance": (
         "where a formulation comes from: cited (a source gives it), derived "
         "(by nomogram, from others) or uncited (written without a source)"
+    ),
+    "implicit": (
+        "whether a formulation is an implicit equation, solved for its output "
+        "(implicit=True), or an explicit expression of it (implicit=False)"
     ),
 }
 
@@ -151,11 +157,13 @@ _INNER = re.compile(r"[._:'\-]+")
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
+@lru_cache(maxsize=65536)
 def fold(text: str) -> str:
     """Text without case or accents, LaTeX commands and Greek letters by name.
 
     ``"Équation"`` gives ``"equation"``, ``"\\rho"`` and ``"ρ"`` give
-    ``"rho"``.
+    ``"rho"``. Cached: a search folds the same keys of notations and
+    references for every entry it reads.
     """
     text = unicodedata.normalize("NFKD", text)
     text = "".join(c for c in text if not unicodedata.combining(c)).casefold()
@@ -407,6 +415,7 @@ def _formulation(
             "nature": (words(f.nature.value),) if f.nature is not None else (),
             "assumption": tuple(words(a.text) for a in f.assumptions),
             "provenance": _provenance(f),
+            "implicit": (words("true" if f.implicit else "false"),),
         },
         kinds=(f.output.kind,),
         citations=citations,
@@ -451,6 +460,8 @@ def _records(catalog: Catalog) -> list[_Record]:
         )
         if kind.iri:
             text = _join(text, kind.iri.rsplit("/", 1)[-1])
+        if kind.pending is not None:
+            text = _join(text, kind.pending.pull_request)
         records.append(
             _Record(
                 Entry("kinds", name, kind.label, kind), words(text), {}, kinds=(name,)
@@ -637,8 +648,14 @@ def index(catalog: Catalog) -> _Index:
 _SYMBOLIC = frozenset({"output", "input", "variable"})
 
 
-def _terms(pattern: str, symbol: bool = False) -> list[str]:
-    return [symbol_form(t) if symbol else fold(t) for t in pattern.split()]
+@lru_cache(maxsize=4096)
+def _terms(pattern: str, symbol: bool = False) -> tuple[str, ...]:
+    """The terms of a pattern, folded or in the normal form of a symbol.
+
+    Cached: a search matches the same pattern against every entry, and
+    the normal form of a symbol parses its LaTeX.
+    """
+    return tuple(symbol_form(t) if symbol else fold(t) for t in pattern.split())
 
 
 def _notation_matches(key: str, pattern: str) -> bool:
@@ -653,11 +670,20 @@ def _notation_matches(key: str, pattern: str) -> bool:
     )
 
 
-def _all_match(terms: list[str], found: frozenset[str]) -> bool:
+#: The signs that make a term a pattern for :func:`fnmatch.fnmatchcase`.
+_WILDCARDS = frozenset("*?[")
+
+
+def _all_match(terms: Sequence[str], found: frozenset[str]) -> bool:
     # A word equal to a term matches it, wildcard signs included: an
-    # address holding [0] finds itself.
+    # address holding [0] finds itself. A term without them matches no
+    # other word, which spares comparing it with every word.
     return all(
-        term in found or any(fnmatchcase(word, term) for word in found)
+        term in found
+        or (
+            not _WILDCARDS.isdisjoint(term)
+            and any(fnmatchcase(word, term) for word in found)
+        )
         for term in terms
     )
 
@@ -734,10 +760,23 @@ def search(
     *,
     section: str | None = None,
     specializations: bool = True,
-    filters: Mapping[str, str],
+    filters: Mapping[str, str | bool],
 ) -> Selection:
     """See :meth:`nomogram.catalog.Catalog.search`."""
-    unknown = sorted(set(filters) - set(FIELDS))
+    # Checked at run time, whatever the caller passes.
+    given: Mapping[str, object] = filters
+    odd = sorted(
+        name for name, value in given.items() if not isinstance(value, str | bool)
+    )
+    if odd:
+        msg = f"search field(s) {', '.join(odd)}: expected a pattern, or True or False"
+        raise TypeError(msg)
+    # A flag (implicit=True) is matched as the word it reads.
+    patterns = {
+        name: str(value).lower() if isinstance(value, bool) else value
+        for name, value in filters.items()
+    }
+    unknown = sorted(set(patterns) - set(FIELDS))
     if unknown:
         msg = (
             f"unknown search field(s): {', '.join(unknown)}; known: {', '.join(FIELDS)}"
@@ -745,8 +784,8 @@ def search(
         raise TypeError(msg)
     built = catalog._search_index
     kinds = None
-    if "kind" in filters:
-        wanted = _terms(filters["kind"])
+    if "kind" in patterns:
+        wanted = _terms(patterns["kind"])
         matched = {
             name
             for name in catalog.kinds
@@ -755,12 +794,12 @@ def search(
         if specializations:
             matched = {d for name in matched for d in built.descendants[name]}
         kinds = frozenset(matched)
-    units = _units(built.unit_forms, filters["unit"]) if "unit" in filters else None
+    units = _units(built.unit_forms, patterns["unit"]) if "unit" in patterns else None
     folded = [t for term in terms for t in _terms(term)]
     chosen = tuple(
         r.entry
         for r in built.records
-        if _keep(r, folded, fold(section) if section else None, filters, kinds, units)
+        if _keep(r, folded, fold(section) if section else None, patterns, kinds, units)
     )
     return Selection(chosen, catalog)
 

@@ -159,17 +159,13 @@ bounds = { t = [-40.0, 50.0] }
 """
 
 
-def test_check_reports_on_a_new_file(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_check_reports_on_a_new_file(tmp_path: Path) -> None:
     path = tmp_path / "mylab.toml"
     path.write_text(PERSONAL, encoding="utf-8")
     text = check(path)
     assert "mylab:magnus (SaturationVapourPressureOverWater)" in text
     assert "same form, other coefficients:" in text
     assert "observed max deviation from sonntag1990_magnus: 0.001636 %" in text
-    assert main(["check", str(path)]) == 0
-    assert "mylab:magnus" in capsys.readouterr().out
 
 
 def test_check_refuses_a_duplicate(
@@ -177,19 +173,18 @@ def test_check_refuses_a_duplicate(
 ) -> None:
     path = tmp_path / "mylab.toml"
     path.write_text(PERSONAL.replace("C = 6.1121", "C = 6.112"), encoding="utf-8")
-    with pytest.raises(CatalogError, match="add a citation to sonntag1990_magnus"):
-        check(path)
+    # The command reports the CatalogError check raises, loading it once.
     assert main(["check", str(path)]) == 1
     assert "add a citation to sonntag1990_magnus" in capsys.readouterr().err
 
 
-def test_check_on_a_bundled_family() -> None:
+def test_check_on_a_bundled_family(capsys: pytest.CaptureFixture[str]) -> None:
+    # A short and stable family: the report compares each formulation with
+    # every other of its kind, in seconds for the larger ones.
     folder = Path(__file__).parents[1] / "src" / "nomogram" / "data" / "catalog"
-    text = check(folder / "moist-air.toml")
-    assert (
-        text.splitlines()[0]
-        == "mass_concentration_ideal_gas (MassConcentrationOfWaterVapour)"
-    )
+    assert main(["check", str(folder / "sea-water.toml")]) == 0
+    text = capsys.readouterr().out
+    assert text.splitlines()[0] == "knudsen1901_salinity (SeaWaterSalinity)"
 
 
 def test_numerically_identical_formulations_are_pointed_out() -> None:

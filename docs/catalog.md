@@ -84,7 +84,7 @@ keywords = ["humidity", "psychrometrics"]
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
 (`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`,
-`boundary-layer`), and **aggregates** holding no entry, only
+`boundary-layer`, `evaporation-duct`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -121,9 +121,9 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
-| `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions` |
+| `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions`, `assumptions` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
-| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension) |
+| `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension), `units` (units of the parent's dimension it takes besides the parent's), `bounds` (`{ low, high, unit, criterion }`, the values its definition admits) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
@@ -133,21 +133,29 @@ All sections are optional; a key may be defined in one file only.
 ### Formulations
 
 - **`output` and `inputs`** are variables: `identifier` (used in the
-  expression), `kind` (a quantity kind), `unit` (a QUDT unit name) and
-  `description`. The unit must apply to the kind.
+  expression), `kind` (a quantity kind), `unit` (a QUDT unit name, or
+  one of the few units QUDT lacks that the extraction script declares,
+  such as `PPM-PER-M`) and `description`. The unit must apply to the
+  kind.
 - **`fixed_units`**: `true` when the coefficients only hold in the
   declared units (most empirical fits, such as the Magnus form). Inputs
   are then converted to the declared unit and scale before evaluation;
   coefficients are never converted. `false` for a quantity equation,
-  whose dimensional homogeneity is checked at load.
+  whose dimensional homogeneity is checked at load; the terms of a sum
+  are in one unit, since the numbers are added (a pressure in Pa plus
+  one in hPa is refused).
 - **`coefficients`**: a number, or a table
   `{ value, unit, unit_basis, note }` when the unit or a remark matters.
   See [units of coefficients](#units-of-coefficients).
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
 - **`domains`**: physical domains only: `bounds` (closed intervals per
-  input identifier, in the input's unit), and optionally `criterion` and
-  `reference`. A domain stated by a source belongs to its citation.
+  input identifier, in the input's unit, and of the output by its
+  identifier, in its unit), and optionally `criterion` and `reference`.
+  One end may be open, written `inf` (`{ z = [0, inf] }` for z ≥ 0);
+  never both, a domain bounds at least one end. Bounds are closed: a
+  strict inequality is not written. A bound on the output states its
+  `criterion`. A domain stated by a source belongs to its citation.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales
@@ -195,6 +203,101 @@ expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_
   of a mixed-phase fraction, has no inverse. Otherwise the inverse is
   numerical (see
   [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
+
+### Implicit equations
+
+Some sources do not give their output explicitly: they write an equation
+it solves, the output in both members or impossible to isolate. The VIM
+calls it a measurement model, h(Y, X₁, …, Xₙ) = 0 (2.48, note 1). The
+KEYPS formula (Businger et al. 1971, equation 7) is one:
+
+```toml
+[formulations.businger1971_keyps]
+label = "Gradient function for momentum, KEYPS formula (Businger et al. 1971)"
+expression = "Phi_M**4 - gamma_1 * zeta * Phi_M**3 == 1"
+fixed_units = false
+output = { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for momentum" }
+inputs = [ { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" } ]
+coefficients = { gamma_1 = 9.0 }
+
+[[formulations.businger1971_keyps.domains]]
+bounds = { Phi_M = [0, inf] }
+criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind increasing with height, as in the observations the source fits."
+```
+
+- **The expression is an equation**: two members joined by one `==`,
+  never chained nor inside a piecewise definition. The output's
+  identifier is the unknown; it may appear in either member or both.
+  Loading refuses an unknown that the difference of the members does not
+  keep, and an unknown alone on one side, absent from the other: that is
+  an explicit expression, written as such. A member may be 0, as the VIM
+  writes the model (`h == 0`) and Long (1984) the GUST relations
+  (`long1984_gust_heat`).
+- **Units**: the members of a quantity equation have the same dimension,
+  checked at load, a member 0 having every dimension, and the right one
+  is converted to the unit of the left one; those of a numerical value
+  equation are in the declared units.
+- **The root is sought numerically**, for each set of inputs, where the
+  physical domains on the output and the bounds of its kind allow (an
+  open end is swept up to 10¹² times the scale of the other one; on a
+  conventional scale other than the reference one, the bounds of the
+  kind are carried onto it). The residual is sampled, each change of
+  sign bisected to adjacent floating point numbers, and a root kept only
+  where the residual has fallen to a millionth of its value at the ends
+  of the bracket: across a jump between pieces it stays as large, at a
+  pole it grows. One root gives the value; none, several, or a residual
+  undefined inside a bracket give NaN and a `RootWarning` that counts
+  each case. Domains stated by sources apply to the root found, as to
+  any result (`outside=`); where the inputs lie outside them, the root
+  is not sought with `outside="nan"`, and `"raise"` raises first.
+- **A physical domain on the output selects the root.** KEYPS has two
+  real roots for every ζ, one negative: φm ≥ 0, the wind shear of a wind
+  increasing with height, keeps the one the source means. Without such a
+  domain, the caller narrows the interval, in the output's unit, with
+  `search=` (`evaluate(zeta=..., search=(0, 10))`), which is not a
+  validity domain: it narrows what the domains and the kind allow, never
+  widens it, except the sweep of an open end. An explicit formulation
+  refuses it.
+- **Calls**: an implicit equation may call explicit formulations
+  (`calls`, see [Formulations calling others](#formulations-calling-others))
+  and pass its unknown in their arguments. Fairall et al. (1978) write
+  the evaporation duct height Z\* = −(7.2 q\* − 1.3 T\*) / (α_T κ 0.125)
+  φ_T(Z\*/L), the height inside the gradient function
+  (`fairall1978_evaporation_duct_height`):
+
+  ```toml
+  expression = "z_s == -(c_q * q_s - c_T * T_s) / (alpha_T * kappa * c) * phi_T(zeta=z_s / L)"
+  calls = { phi_T = "fairall1978_gradient_function_heat" }
+  ```
+
+  The root is sought on the equation where each call is replaced by the
+  expression called (`equation_members`); the domains of a formulation
+  called apply to the argument computed from the root, as for any call
+  (`outside=`).
+- **Rendering**: the two members joined by `=`, in the notation of each
+  citation, their terms in the order SymPy prints them, each call kept
+  as written (`written_members`).
+- **Duplicates**: two entries of one equation, members swapped or the
+  unknown named otherwise, are refused at load, as for explicit
+  formulations.
+- **Limits**: one unknown, the output. An implicit equation is solved
+  for its output, not inverted (`invert` refuses it); it is no part of
+  a composition, a call or a branch, and takes no part in a relation of
+  equivalence or proportionality.
+  `compare`, `partial` and `compose` pass no `search=`: an implicit
+  equation compared there needs its root selected by a physical domain
+  or its kind. Roots closer than the grid's step (a factor of 10^(1/16)
+  on the geometric grids, a 63rd of a finite interval on the linear one)
+  or a double root, without a change of sign, escape the search; a jump
+  smaller than a millionth of the residual's change across its bracket
+  is taken for a root. A root costs a few hundred evaluations of the
+  members: some 40 µs a point for KEYPS on a laptop, over a thousand
+  times an explicit form, which counts in a dense plot.
+- `Formulation.implicit` tells an implicit equation, `equation_members`
+  gives its two members, `written_members` the same with each call kept
+  as written; `search(implicit=True)` finds them, and the
+  indicators count those whose unknown a physical domain or its kind
+  bounds.
 
 ### Composed formulations
 
@@ -255,16 +358,20 @@ bounds = { t = [-40.0, 50.0] }
   fixes the units of the coefficients around it.
 - **Validity domains**: a composed formulation is never more permissive
   than the chain of its parts. At evaluation, the domains of each part
-  apply to the values it receives, intermediate values included: a bound
-  on the vapour pressure an inner part computes is a bound on that
-  part's inputs, whatever its shape. One exception: a domain stated by a
-  source of the composed formulation itself (ITU-R P.453 for its
-  equation 9) replaces the domains the sources of the parts state, since
-  that source speaks of the composed formula. Physical domains of the
-  parts always apply. `python -m nomogram.catalog check` points out
-  where such a stated domain goes beyond those stated for the parts:
-  the disagreement is shown, never smoothed. Physical domains on inputs
-  carried unchanged are also listed in `physical_domains`.
+  apply to the values it receives and to the value it gives,
+  intermediate values included: a bound on the vapour pressure an inner
+  part computes is a bound on that part's inputs, whatever its shape.
+  One exception: a domain stated by a source of the composed formulation
+  itself on its inputs (ITU-R P.453 for its equation 9) replaces the
+  domains the sources of the parts state, since that source speaks of
+  the composed formula; a bound it states on the output alone replaces
+  nothing. Physical domains of the parts always apply.
+  `python -m nomogram.catalog check` points out where such a stated
+  domain goes beyond those stated for the parts: the disagreement is
+  shown, never smoothed. Physical domains on inputs carried unchanged
+  are also listed in `physical_domains`, as is a physical bound on the
+  outer formulation's output, under the composed output's identifier; a
+  bound on an inner output, an intermediate value, is not.
 - **`output`** (optional) narrows the output to a specialization of the
   outer formulation's kind, in the same unit.
 - A composition may use another one; a cycle is refused. Parts come from
@@ -273,6 +380,37 @@ bounds = { t = [-40.0, 50.0] }
 - The formulation's `derivation` records the method `"composition"`, the
   outer formulation and the parts; the legend of a single formula says
   what it is composed of.
+
+### Composing or calling
+
+Both write a formula once and reuse it; they answer different needs.
+
+- A **composition** feeds the output of a formulation into an input of
+  another: ITU-R P.453 multiplies the Buck (1996) saturation vapour
+  pressure by its enhancement factor. Each inner formulation is
+  evaluated once, at the inputs of the composed formulation, and its
+  result takes the place of an input; the entry writes only the wiring
+  (`outer`, `inner`, `bind`). `nomogram.comparison.compose` does the same
+  at run time, for a chain the catalog does not hold.
+- A **call** evaluates a formulation inside the expression of another,
+  where the source writes it, as many times as the source does: WMO-No. 8
+  takes the saturation vapour pressure at the dew point and at the air
+  temperature, `e_w(t=t_d) / e_w(t=t)`. A composition evaluates each
+  inner formulation once, and cannot do this.
+- An **argument may be an expression** when the source evaluates a
+  formulation at a point it computes: the profiles of the surface layer
+  take their profile functions at a height over the Obukhov length,
+  ψ_H(z_t/L), and the IFS at (z + z_0)/L and z_0/L. Without it, each
+  such point would be an input of its own, a stability parameter per
+  height, which the user would compute and keep consistent with the
+  others, although the formula says how. With it, the dependence on L
+  stays in the catalog, where it is checked (the unit of z_t/L, the
+  domain of the profile function applied to its value) and shown as the
+  source writes it.
+
+Whatever an entry calls or composes, it is evaluated from its own
+inputs: `written_expression` shows the calls as written,
+`sympy_expression` the developed expression the computation uses.
 
 ### Formulations calling others
 
@@ -300,20 +438,40 @@ inputs = [
   identifier of the entry, and every formulation declared is called.
 - **A call names its arguments** by the identifiers of the inputs of the
   formulation called, even when it has only one: `e_w(t=t_d)`. Every
-  input is given once, and each argument is an input of the entry, not
-  a number, an expression nor another call. A call stands anywhere in the
-  expression but in a `piecewise` definition, where the domains of the
-  formulation called would hold in every branch: such an entry is defined
-  by branches.
-- **An argument has the kind of the input it feeds, or a specialization
-  of it**, in the same unit. A point at which a formula is evaluated is
-  the exception: a dew or frost point, a wet- or ice-bulb temperature
-  may feed a Celsius or a thermodynamic temperature, still in the same
-  unit. A temperature difference never
-  feeds a temperature.
+  input is given once. An argument is an input of the entry, or an
+  expression of its inputs, coefficients and constants, as a source
+  writes a profile function of z/L: `psi_H(zeta=z_t / L)`. It calls no
+  formulation, holds no condition nor piecewise definition, and is not a
+  number alone, which would be folded into the formulation called (a
+  value a source gives is a coefficient); it is kept as written,
+  normalized (`z_t / L`). A call
+  stands anywhere in the expression but in a `piecewise` definition,
+  where the domains of the formulation called would hold in every
+  branch: such an entry is defined by branches.
+- **An input passed as such has the kind of the input it feeds, or a
+  specialization of it**, in the same unit. A point at which a formula is
+  evaluated is the exception: a dew or frost point, a wet- or ice-bulb
+  temperature may feed a Celsius or a thermodynamic temperature, still in
+  the same unit. A temperature difference never feeds a temperature.
+- **An expression passed has exactly the unit of the input it feeds**:
+  the same dimension, a factor of 1 and the same scale, in fixed units as
+  in a quantity equation, since its value is passed as a number. A
+  kilometre does not feed a metre, nor a kelvin a degree Celsius, and an
+  expression computing with degrees Celsius is refused: it is written in
+  kelvins, or the temperature is passed as an input. The units of the
+  coefficients it uses are inferred from it. It takes the kind of the
+  input it feeds, without an algebra of kinds. The
+  expression is substituted for the input, with its parentheses, and a
+  condition of the formulation called may then bound it (`z_t / L < 0`):
+  the pieces of a formulation called are checked on it, before it is
+  substituted.
 - **An input takes the conventional scale of the inputs it feeds**. One
   that feeds inputs on two scales is refused, and so is one that states
-  a scale other than that of the input it feeds.
+  a scale other than that of the input it feeds. An input written in an
+  expression feeds the scale of the input the expression is passed to,
+  under the same rules. An input on a scale other than the reference
+  takes an input of the entry, never an expression, which could not take
+  that scale.
 - **A result on another scale than the reference** (a dew point on
   IPTS-68) makes the entry state that scale for its own output, in its
   citation, so that evaluation converts the result back.
@@ -336,14 +494,16 @@ inputs = [
   not use it in its own identifiers. Elsewhere it marks a superscript, as
   SymPy reads it (`a__w` is written aʷ).
 - **Validity domains**: those of each formulation called apply to the
-  values each call receives (t_d and t above, each against −45 to 60 °C).
-  Those the entry states apply as well; they never replace them.
+  values each call receives (t_d and t above, each against −45 to 60 °C),
+  the value of an expression passed included (z_t/L against the domain
+  stated for the profile function). Those the entry states apply as
+  well; they never replace them.
 - **Nothing is removed.** A factor common to two calls (the enhancement
   factor above, the coefficient C of the Magnus form) may simplify away
   from the computation; the inputs written stay inputs (p above), and the
   coefficients stay listed.
 - The expression shown is the one written, with its calls,
-  `e_w(p, t_d)`; `Formulation.written_expression` holds it, with each call
+  `e_w(p, t_d)` or ψ_H(z_t/L); `Formulation.written_expression` holds it, with each call
   kept as an opaque function, and `sympy_expression` the developed one,
   for the computation. The `derivation` records the method `"calls"`,
   the first formulation called as its `source`, and each call with its
@@ -355,7 +515,9 @@ inputs = [
 - A formulation calling others takes part in `uses` and `used_by`, its
   inputs in `search(input=...)` (a search for a dew point input finds
   it), and the coefficients it calls in `search(symbol=...)`, by the name
-  they are written with.
+  they are written with. An input fed by an expression is not one of its
+  inputs: a search for a stability parameter input does not find an entry
+  that passes z_t/L, but `uses` links it to the profile function.
 
 ### Definitions, identities and derived formulations
 
@@ -469,9 +631,10 @@ output = { identifier = "p_ws", kind = "VapourPressure", unit = "PA", descriptio
   Coefficients and constants are gathered; one formulation may serve two
   branches, but two formulations may not give a coefficient the same name.
 - **Validity domains**: those of each branch apply where its condition
-  holds. A domain stated by a source of the formulation replaces those
-  the sources of the branches state, as for a composition; physical
-  domains of the branches always apply.
+  holds, to its inputs and to its output. A domain stated by a source of
+  the formulation on its inputs replaces those the sources of the
+  branches state, as for a composition; physical domains of the branches
+  always apply.
 - The formulation's `derivation` records the method `"branches"` and the
   formulation used under each condition; the legend of a single formula
   lists them. `uses` and `used_by` link the formulation and its branches.
@@ -486,7 +649,14 @@ states:
 - `equation`: the equation number in the source, as printed;
 - `notation`: the symbols the source uses, coefficients included, as a
   table identifier to LaTeX (`{ C = "a", A = "b" }`), or the key of a
-  `[notations]` convention (`"wmo"`);
+  `[notations]` convention (`"wmo"`). The marks a source puts on a symbol
+  are kept: the bar of a mean and the overline of a mean of a product,
+  which sources of turbulence write to tell a mean from a fluctuation,
+  the hat of an estimate, a calligraphic letter (`L = '\mathcal{L}'`). A
+  symbol is printed as given: one that adds or subtracts is written in
+  parentheses, so that a product or a power keeps it whole
+  (`U = '\left(\bar{u} - u_s\right)'`). A note, in plain text, writes the
+  marks `u-bar` and `overline(w'theta')`;
 - `units`: units the source states for coefficients
   (`{ T_c = "K", p_c = "PA" }`);
 - `scales`: conventional scales the source states for inputs
@@ -503,7 +673,20 @@ A source cited for a domain or a unit must be one of the citations: the
 link is never implicit. **By default, domains of different citations
 combine by union** (a value is inside if one source says so); the
 domains of one citation apply together, and physical domains always
-apply.
+apply. Bounds on the output combine apart from those on the inputs: the
+union runs on the inputs over the citations that bound them, and on the
+output over those that bound it, and a value is outside if either
+places it there. A source that only bounds the output thus never widens
+the inputs another bounds.
+
+**A bound on the output says where the source vouches for its results,
+never what to do beyond.** Paulus (1989, NOSC TD 1596) bounds the
+evaporation duct height from 0 to 40 m (Table 1): a height of 52 m is
+outside, NaN by default, computed with `outside="warn"` or `"ignore"`,
+and the step of its algorithm that limits the height to 40 m stays a
+step, which no domain performs. A formulation inverted carries the
+domain of the input it solves for onto its output (see
+[the approach](approach.md)).
 
 ### Conventional scales
 
@@ -606,7 +789,49 @@ ratio-scale parent; it is then never a difference). Its CF standard
 names, when CF has an equivalent, come from the frozen CF subset, where
 the extraction script keeps them (`LOCAL_KIND_CF_NAMES`); a search by a
 CF name finds the kind and the formulations that compute it, and
-`input=` those that take it as input.
+`input=` those that take it as input. A kind of the catalog takes the
+units of its parent, and those its `units` add, of the same dimension:
+the scales of specific humidity of the surface layer, signed, sit under
+`DimensionlessRatio` and take g/kg and kg/kg, which a mass ratio, never
+negative, would refuse them. The kind links to the units it adds, so that
+`search(unit="g/kg", section="kinds")` and `used_by("units.GM-PER-KiloGM")`
+find it.
+
+**The values a kind admits by its definition** bound every variable of
+that kind, by default: no temperature below 0 K, no negative vapour
+pressure, no mass fraction above 1. QUDT states none; nomogram declares
+them, each with its criterion, in the extraction script for the kinds of
+QUDT and in `bounds` for its own:
+
+```toml
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
+```
+
+- A kind takes the bounds of the nearest kind it specializes that has
+  some (`Catalog.bounds_of`), and may narrow them, never widen them (a
+  specific humidity, from 0 to 1, under a mass ratio, never negative);
+  a kind of differences takes none: a temperature difference
+  specializes the temperature in QUDT.
+- They are converted to the unit of each variable (0 K is −273.15 °C,
+  1 is 1000 g/kg, ±90° is ±π/2 rad), and apply to inputs and output
+  whatever `basis`, as an evaluation outside its domains does: NaN by
+  default, computed with `outside="warn"` or `"ignore"`. They apply to
+  the values each part of a composition or branch receives and gives,
+  even where a domain stated for the composition replaces the domains
+  of its parts. A value on a conventional scale other than the reference
+  one is carried to the reference scale before it is compared (a
+  Practical Salinity of 35 is no mass fraction, its Reference Salinity
+  is); beyond the conversion, it is compared as it is, which bounds
+  holding on every scale (0 K) do rightly. A numerical inverse applies
+  the bounds of its own variables, as a closed form does.
+- A signed quantity has none (a component of the wind, a gradient, an
+  Obukhov length, a scale of the surface layer), nor a general kind
+  whose values may be negative in some medium: the pressure (a liquid
+  under tension), the latent heat of fusion (helium 3 below 0.3 K), the
+  height and the altitude (below their reference), a plane angle (which
+  counts turns), where only the geodetic latitude, from −90 to 90
+  degrees, is bounded. 100 % is no bound of a relative humidity:
+  supersaturation exists; a model without it bounds its own formulations.
 
 CF standard names are links to an external vocabulary, like Wikidata
 items: each carries its SKOS relation and the date it was checked, and

@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+import sympy
 
 matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
@@ -124,28 +125,58 @@ def test_missing_extra_gives_an_explicit_message(
         plot_deviations(comparison)
 
 
+def _structure(formulation: Any) -> str:
+    """The structure of a formulation, for the choice of the strings to parse."""
+    if formulation.implicit:
+        return "implicit"
+    derivation = formulation.derivation
+    if derivation is not None:
+        return str(derivation.method)
+    return "pieces" if formulation.sympy_expression.has(sympy.Piecewise) else "written"
+
+
+def _tried_with_every_option() -> list[Any]:
+    """The formulations the other option sets are tried on.
+
+    Those change the typography alike in every family, so a stable family,
+    water vapour, stands for the written formulas, with the first
+    formulation of each rarer structure (pieces, calls, branches, implicit
+    equations), where their output differs most. The whole catalog parsed
+    with every option set took 27 s of mathtext (about 20 ms a string,
+    1229 strings) on 2026-11-08.
+    """
+    chosen = [f for f in FORMULATIONS.values() if f.family == "water-vapour"]
+    for structure in ("pieces", "calls", "branches", "implicit"):
+        chosen.append(
+            next(
+                FORMULATIONS[key]
+                for key in sorted(FORMULATIONS)
+                if _structure(FORMULATIONS[key]) == structure
+            )
+        )
+    return chosen
+
+
 def test_every_formulation_renders_in_mathtext() -> None:
-    # Each distinct string is parsed once: a notation changes only the
-    # formulations it covers, so most strings repeat from one to the next.
-    # A composition nests the expressions of its parts, each parsed with
-    # every option set: it is parsed in every notation with the default
-    # options only, its long strings costing most of the test.
-    options = {
-        "default": DisplayOptions(),
-        "sympy": DisplayOptions.SYMPY,
-        "values": DisplayOptions(mul_symbol="dot", values=True),
-    }
+    # Each distinct string is parsed once. Every formulation is parsed with
+    # the default options, in every notation of the catalog (a notation
+    # changes only the formulations it covers, so most strings repeat); the
+    # other option sets, which change operators rather than symbols, on the
+    # formulations _tried_with_every_option selects, without a notation.
     strings: dict[str, str] = {}
     for notation in [None, *sorted(CATALOG.notations)]:
         chosen = CATALOG.notations[notation] if notation else None
-        for name, option in options.items():
-            for formulation in FORMULATIONS.values():
-                derivation = formulation.derivation
-                composed = derivation is not None and derivation.method == "composition"
-                if composed and name != "default":
-                    continue
-                text = formulation.render(chosen, options=option).mathtext
-                strings.setdefault(text, f"{formulation.key}, {notation}, {name}")
+        for formulation in FORMULATIONS.values():
+            text = formulation.render(chosen, options=DisplayOptions()).mathtext
+            strings.setdefault(text, f"{formulation.key}, {notation}, default")
+    others = {
+        "sympy": DisplayOptions.SYMPY,
+        "values": DisplayOptions(mul_symbol="dot", values=True),
+    }
+    for formulation in _tried_with_every_option():
+        for name, option in others.items():
+            text = formulation.render(options=option).mathtext
+            strings.setdefault(text, f"{formulation.key}, {name}")
     parser = MathTextParser("path")
     for text, where in strings.items():
         try:
@@ -545,7 +576,12 @@ def test_curves_far_above_the_others_go_off_scale() -> None:
     assert -3.0 < low < -2.5
     assert 4.3 < high < 4.6
     # Still drawn, beyond the axis.
-    assert np.nanmax(ax.lines[0].get_ydata()) > 26
+    (bechtold,) = (
+        line
+        for line in ax.lines
+        if str(line.get_label()).startswith("Clausius-Clapeyron with a constant")
+    )
+    assert np.nanmax(bechtold.get_ydata()) > 26
     assert plot_deviations(table, off_scale=False).get_ylim()[1] > 26
 
 

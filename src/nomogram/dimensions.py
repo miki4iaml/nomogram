@@ -59,7 +59,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sympy
 
-from nomogram.expression import _relations
+from nomogram.expression import _relations, parse_expression
 from nomogram.semantics import semantic_catalog
 from nomogram.units import ureg
 
@@ -164,7 +164,7 @@ class _Context:
     units: dict[str, Any]
     unknown: frozenset[str]
     coefficients: frozenset[str]
-    reasons: dict[str, str]
+    reasons: dict[str, Any]
 
     def involves(self, node: Any, names: frozenset[str]) -> bool:
         """Whether the dimension of a node involves one of ``names``.
@@ -235,7 +235,7 @@ class _Context:
         msg = f"unsupported node: {type(node).__name__}"  # pragma: no cover
         raise TypeError(msg)  # pragma: no cover
 
-    def solve(self, node: Any, target: Any, reason: str) -> bool:
+    def solve(self, node: Any, target: Any, reason: Any) -> bool:
         """Give the unknowns of a node the units that make it ``target``.
 
         Called on nodes of unknown unit only. Returns whether something was
@@ -274,11 +274,21 @@ class _Context:
 
 @dataclass(frozen=True)
 class _Constraint:
-    """Nodes that must share a dimension, or be pure numbers."""
+    """Nodes that must share a dimension, or be pure numbers.
+
+    ``parts`` say where the constraint comes from, joined by ``=`` into
+    :attr:`where` only when a message or a reason needs it: printing SymPy
+    expressions is costly, and a catalog sets thousands of constraints.
+    """
 
     kind: Literal["equal", "pure"]
     nodes: tuple[Any, ...]
-    where: str
+    parts: tuple[Any, ...]
+
+    @property
+    def where(self) -> str:
+        """The part of the expression the constraint comes from."""
+        return " = ".join(str(part) for part in self.parts)
 
 
 def _constraints(expr: Any) -> Iterator[_Constraint]:
@@ -291,9 +301,9 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
     if isinstance(expr, sympy.Piecewise):
         branches = tuple(e for e, _ in expr.args)
         if len(branches) > 1:
-            yield _Constraint("equal", branches, str(expr))
+            yield _Constraint("equal", branches, (expr,))
         for relation in _relations(expr):
-            yield _Constraint("equal", (relation.lhs, relation.rhs), str(relation))
+            yield _Constraint("equal", (relation.lhs, relation.rhs), (relation,))
         for branch in branches:
             yield from _constraints(branch)
         return
@@ -303,9 +313,9 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
     elif expr.is_Pow and not expr.exp.is_Number:
         pure = [expr.base, expr.exp]
     elif expr.is_Add:
-        yield _Constraint("equal", tuple(expr.args), str(expr))
+        yield _Constraint("equal", tuple(expr.args), (expr,))
     for node in pure:
-        yield _Constraint("pure", (node,), str(expr))
+        yield _Constraint("pure", (node,), (expr,))
     for arg in expr.args:
         yield from _constraints(arg)
 
@@ -329,7 +339,7 @@ def _propagate(context: _Context, constraints: list[_Constraint]) -> None:
             if target is None:
                 continue
             for node, unit in zip(constraint.nodes, units, strict=True):
-                if unit is None and context.solve(node, target, constraint.where):
+                if unit is None and context.solve(node, target, constraint):
                     changed = True
 
 
@@ -354,32 +364,49 @@ def _check(context: _Context, constraints: list[_Constraint]) -> None:
 
 
 def _intermediates(
-    formulation: Formulation, rename: Mapping[str, str], path: str
+    formulation: Formulation, into: Mapping[str, Any], path: str
 ) -> Iterator[tuple[Any, Any, Any]]:
     """Each intermediate quantity of a formulation made of others.
 
     Yields a marker, the unit of the part's output and the part's
-    expression, renamed into the outermost formulation (``rename`` maps the
-    identifiers of ``formulation`` to it), for the parts and, recursively,
-    the parts of the parts.
+    expression, taken into the outermost formulation (``into`` maps the
+    identifiers of ``formulation`` to expressions of the outermost one),
+    for the parts and, recursively, the parts of the parts; and for each
+    expression passed to an input of a called formulation, the unit of
+    that input and the expression.
     """
     for part in formulation.parts:
         inner = part.formulation
-        into = {
-            name: rename.get(part.rename.get(name, name), part.rename.get(name, name))
-            for name in inner.names
-        }
+        local: dict[str, Any] = {}
+        for name in inner.names:
+            if name in part.arguments:
+                passed = parse_expression(
+                    part.arguments[name], formulation._argument_names
+                )
+                local[name] = passed.xreplace(
+                    {sympy.Symbol(k, real=True): v for k, v in into.items()}
+                )
+            else:
+                target = part.rename.get(name, name)
+                local[name] = into.get(target, sympy.Symbol(target, real=True))
         if part.computes is not None:
             piece = inner.sympy_expression.xreplace(
                 {
-                    sympy.Symbol(old, real=True): sympy.Symbol(new, real=True)
-                    for old, new in into.items()
-                    if old != new
+                    sympy.Symbol(old, real=True): new
+                    for old, new in local.items()
+                    if new != sympy.Symbol(old, real=True)
                 }
             )
             marker = sympy.Symbol(f"{path}{part.computes} ({inner.key})", real=True)
             yield marker, _pint(inner.output.unit), piece
-        yield from _intermediates(inner, into, f"{path}{part.computes or inner.key}/")
+            for v in inner.inputs:
+                if v.identifier in part.arguments:
+                    passed_marker = sympy.Symbol(
+                        f"{path}{part.computes} ({inner.key}).{v.identifier}",
+                        real=True,
+                    )
+                    yield passed_marker, _pint(v.unit), local[v.identifier]
+        yield from _intermediates(inner, local, f"{path}{part.computes or inner.key}/")
 
 
 def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
@@ -402,17 +429,32 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     pieces = []
     for marker, unit, piece in _intermediates(formulation, {}, ""):
         units[marker.name] = unit
-        pieces.append(_Constraint("equal", (marker, piece), f"{marker} = {piece}"))
+        pieces.append(_Constraint("equal", (marker, piece), (marker, piece)))
         pieces.extend(_constraints(piece))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
         formulation.fixed_units, units, frozenset(unknown), coefficients, {}
     )
+    if formulation.implicit:
+        # An implicit equation: its two members, the unknown in the
+        # output's unit, have one unit; a member 0 (h == 0) has every unit.
+        left, right = formulation.equation_members
+        _angles_in_radians(left, units)
+        _angles_in_radians(right, units)
+        equal = [] if left == 0 or right == 0 else [(left, right)]
+        candidates = [
+            *(_Constraint("equal", pair, pair) for pair in equal),
+            *_constraints(left),
+            *_constraints(right),
+            *pieces,
+        ]
+        constraints = [c for c in candidates if not context.numerical(c)]
+        return context, constraints, left - right
     expr = formulation.sympy_expression
     _angles_in_radians(expr, units)
     output = sympy.Symbol(formulation.output.identifier, real=True)
     candidates = [
-        _Constraint("equal", (output, expr), f"{output} = {expr}"),
+        _Constraint("equal", (output, expr), (output, expr)),
         *_constraints(expr),
         *pieces,
     ]
@@ -592,6 +634,11 @@ def _solved_together(
     return found
 
 
+def _reason(reason: Any) -> str | None:
+    """The reason of an inferred unit as text: a constraint's, or a phrase."""
+    return reason.where if isinstance(reason, _Constraint) else reason
+
+
 def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
     """The unit of each coefficient of a formulation, declared or inferred.
 
@@ -644,7 +691,7 @@ def infer_units(formulation: Formulation) -> Mapping[str, CoefficientUnit]:
             name,
             context.units.get(name),
             origin,
-            context.reasons.get(name),
+            _reason(context.reasons.get(name)),
             citation if origin == "stated" else None,
         )
     return MappingProxyType(result)

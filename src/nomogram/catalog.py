@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import dataclasses
 import datetime
 import math
@@ -51,6 +52,7 @@ from nomogram.expression import (
     ExpressionError,
     _call_sites,
     _pieces,
+    _split_equation,
     compile_numeric,
     latex_commands,
     parse_expression,
@@ -101,6 +103,7 @@ from nomogram.relations import (
 from nomogram.semantics import (
     CF_NAMESPACE,
     ExternalMatch,
+    KindBounds,
     MatchRelation,
     QuantityKind,
     semantic_catalog,
@@ -246,6 +249,15 @@ class Catalog:
         """The alternative formulations computing a quantity kind."""
         return tuple(f for f in self.formulations.values() if f.output.kind == kind)
 
+    def bounds_of(self, kind: str) -> KindBounds | None:
+        """The values a quantity kind admits by its definition.
+
+        Its own bounds, or those of the nearest kind it specializes that
+        has some; ``None`` for a kind of differences, or one without
+        bounds (a signed quantity).
+        """
+        return _kind_bounds(self.kinds, kind)
+
     @cached_property
     def _search_index(self) -> Any:
         from nomogram.search import index
@@ -257,7 +269,7 @@ class Catalog:
         *terms: str,
         section: str | None = None,
         specializations: bool = True,
-        **fields: str,
+        **fields: str | bool,
     ) -> Selection:
         """Find entries of the catalog by words, wildcards and fields.
 
@@ -273,11 +285,12 @@ class Catalog:
         specializations : bool
             With ``kind=``, also the kinds that specialize the matched ones
             (default).
-        **fields : str
+        **fields : str or bool
             Field filters, patterns as well (:data:`nomogram.search.FIELDS`):
             ``kind``, ``unit``, ``output``, ``input``, ``variable``,
             ``symbol`` with ``notation``, ``source`` with ``equation``,
-            ``family``, ``keyword``, ``key``.
+            ``family``, ``keyword``, ``key``...; a flag, such as
+            ``implicit``, takes ``True`` or ``False``.
 
         Returns
         -------
@@ -410,18 +423,106 @@ def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
     return found, value
 
 
+def _written_names(formulation: Formulation) -> set[str]:
+    """The names an expression uses as written, its calls kept opaque."""
+    if formulation.implicit:
+        left, right = formulation.written_members
+        return {s.name for s in left.free_symbols | right.free_symbols}
+    return {s.name for s in formulation.written_expression.free_symbols}
+
+
+def _check_passed_units(where: str, formulation: Formulation) -> None:
+    """An expression passed to a call has the unit of the input it feeds.
+
+    Exactly: the same dimension, a factor of 1 and the same scale (a
+    kelvin is no degree Celsius, a kilometre no metre), in fixed units as
+    in a quantity equation, since the value of the expression is passed as
+    a number. The unit of a coefficient the expression uses is declared,
+    or inferred from the expressions passed.
+    """
+    parts = [p for p in formulation.parts if p.arguments]
+    if not parts:
+        return
+    import numpy as np
+
+    units = semantic_catalog().units
+    known = {v.identifier: units[v.unit].pint for v in formulation.inputs}
+    known |= {k.identifier: units[k.unit].pint for k in formulation.constants}
+    known |= {
+        c.identifier: units[c.unit].pint for c in formulation.coefficients if c.unit
+    }
+    if formulation.implicit:
+        known[formulation.output.identifier] = units[formulation.output.unit].pint
+    for part in parts:
+        called = part.formulation
+        for v in called.inputs:
+            text = part.arguments.get(v.identifier)
+            if text is None:
+                continue
+            expr = parse_expression(text, formulation._argument_names)
+            names = sorted(s.name for s in expr.free_symbols)
+            if any(name not in known for name in names):
+                try:
+                    inferred = formulation.coefficient_units
+                except DimensionError:
+                    return  # the check of the formulation reports it
+                for name in names:
+                    if name not in known and name in inferred:
+                        known[name] = inferred[name].unit
+            expected = ureg.Unit(units[v.unit].pint)
+            w = f"{where}.expression: the argument {v.identifier}={text} of {called.key}"
+            values = [
+                Q_(1.05 ** (i + 1), known.get(n, "dimensionless"))
+                for i, n in enumerate(names)
+            ]
+            try:
+                with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+                    unit = Q_(compile_numeric(expr, tuple(names))(*values)).units
+            except pint.errors.OffsetUnitCalculusError:
+                msg = (
+                    f"{w} computes with temperatures on an interval scale: "
+                    "pass an input, or write it in kelvins"
+                )
+                raise CatalogError(msg) from None
+            except pint.errors.DimensionalityError:
+                msg = f"{w} adds or compares quantities of different dimensions"
+                raise CatalogError(msg) from None
+            try:
+                same = Q_(1.0, unit).to(expected).magnitude == 1.0
+            except pint.errors.DimensionalityError:
+                same = False
+            same = same and is_offset_unit(unit) == is_offset_unit(expected)
+            if not same:
+                msg = f"{w} is in {unit:~P}, but {called.key} takes it in {v.unit}"
+                raise CatalogError(msg)
+
+
 def _check_pieces(where: str, formulation: Formulation) -> None:
     """A piecewise definition cuts the range of one input into intervals.
 
     Every condition is an interval of the same input, bounded by numbers,
     coefficients or constants, and the intervals do not overlap; where none
-    holds, the formulation gives NaN.
+    holds, the formulation gives NaN. The pieces of a formulation called
+    are checked on it, before it is taken into the caller, where a
+    condition may bound an expression passed to its input (``z_s / L < 0``);
+    likewise, a formulation defined by branches is checked on the
+    conditions of its branches only.
     """
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {sympy.Symbol(name, real=True): value for name, value in pairs}
     inputs = [v.identifier for v in formulation.inputs]
-    for node in sympy.preorder_traversal(formulation.sympy_expression):
+    expressions = []
+    if not formulation.implicit:
+        expressions = [formulation.written_expression]
+    else:
+        # The unknown of an implicit equation may be bounded as an input.
+        expressions = list(formulation.written_members)
+        inputs.append(formulation.output.identifier)
+    nodes = [n for e in expressions for n in sympy.preorder_traversal(e)]
+    if formulation.branches:
+        nodes = [formulation.sympy_expression]
+    for node in nodes:
         if not isinstance(node, sympy.Piecewise):
             continue
         try:
@@ -449,6 +550,40 @@ def _check_pieces(where: str, formulation: Formulation) -> None:
                 raise CatalogError(msg)
 
 
+#: Identifiers a variable cannot take: options of ``Formulation.evaluate``.
+_RESERVED_IDENTIFIERS = ("basis", "outside", "scale", "search")
+
+
+def _check_implicit(where: str, formulation: Formulation) -> set[str]:
+    """The checks of an implicit equation; the names its members use.
+
+    Its members parse, the unknown remains in their difference, and the
+    equation is not an explicit one written with ==, which would escape
+    the detection of duplicates and inversion.
+    """
+    try:
+        left, right = formulation.equation_members
+    except ExpressionError as exc:
+        msg = f"{where}.expression: {exc}"
+        raise CatalogError(msg) from None
+    unknown = sympy.Symbol(formulation.output.identifier, real=True)
+    if unknown not in (left - right).free_symbols:
+        msg = (
+            f"{where}.expression: the output {unknown} vanishes from the "
+            "equation; it is the unknown the equation is solved for"
+        )
+        raise CatalogError(msg)
+    for alone, other in ((left, right), (right, left)):
+        if alone == unknown and unknown not in other.free_symbols:
+            msg = (
+                f"{where}.expression: {unknown} is alone on one side: write "
+                f"the explicit expression of {unknown}"
+            )
+            raise CatalogError(msg)
+    names = left.free_symbols | right.free_symbols
+    return {s.name for s in names} - {formulation.output.identifier}
+
+
 def _exact(constant: PhysicalConstant) -> Any:
     """The value of a constant as an exact rational, as it is printed."""
     text = constant.printed or repr(constant.value)
@@ -459,6 +594,36 @@ def _rational(text: str) -> Any:
     """A decimal text as an exact SymPy rational (``6.02214076e+23`` too)."""
     fraction = Fraction(Decimal(text))
     return sympy.Rational(fraction.numerator, fraction.denominator)
+
+
+def _bound(where: str, value: Any) -> float:
+    """An end of a validity domain: a finite number, or inf for an open end."""
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or math.isnan(value)
+    ):
+        msg = f"{where}: expected a finite number or inf, not {value!r}"
+        raise CatalogError(msg)
+    return float(value)
+
+
+def _kind_bounds(kinds: Mapping[str, QuantityKind], name: str) -> KindBounds | None:
+    """The bounds of a kind: its own, or the nearest it inherits.
+
+    None for a kind of differences (``delta``): the temperature difference
+    specializes the temperature in QUDT, and takes none of its bounds.
+    """
+    kind = kinds.get(name)
+    while kind is not None:
+        # Nor for a kind under one of differences, whatever its own typing.
+        if kind.delta:
+            return None
+        if kind.bounds is not None:
+            return kind.bounds
+        parent = kind.specialization_of
+        kind = kinds.get(parent) if parent is not None else None
+    return None
 
 
 def _pair(where: str, value: Any, expected: str) -> tuple[float, float]:
@@ -590,6 +755,31 @@ def _check_symbols(where: str, symbols: Any) -> None:
                 f"{', '.join(sorted(unknown))}"
             )
             raise CatalogError(msg)
+        if _top_level_sum(tex):
+            # A symbol is printed as given: in a product or under a power,
+            # u-bar - u_s squared would read u-bar - u_s^2.
+            msg = (
+                f"{where}.{identifier}: {tex!r} writes a sum or a difference; "
+                r"write it in parentheses, \left(...\right)"
+            )
+            raise CatalogError(msg)
+
+
+def _top_level_sum(tex: str) -> bool:
+    """Whether a LaTeX symbol adds or subtracts outside braces and parentheses.
+
+    A leading sign is no difference (``-x``).
+    """
+    depth = 0
+    text = tex.replace(r"\left(", "(").replace(r"\right)", ")")
+    for i, char in enumerate(text):
+        if char in "({[":
+            depth += 1
+        elif char in ")}]":
+            depth -= 1
+        elif char in "+-" and depth == 0 and text[:i].strip():
+            return True
+    return False
 
 
 #: What a composed formulation takes from its parts, never written.
@@ -698,27 +888,49 @@ def _qualified(formulation: Formulation, identifier: str) -> str:
     return f"{written}__{definer}"
 
 
+class _Into(ast.NodeTransformer):
+    """A called expression taken into the caller: names renamed, or replaced.
+
+    An input passed an expression is replaced by a copy of its tree, which
+    ``ast.unparse`` parenthesizes as needed; the copy is not renamed.
+    """
+
+    def __init__(self, rename: Mapping[str, str], passed: Mapping[str, str]) -> None:
+        self.rename = rename
+        self.subtrees = {
+            name: ast.parse(argument, mode="eval").body
+            for name, argument in passed.items()
+        }
+
+    def visit_Name(self, node: ast.Name) -> ast.expr:
+        if node.id in self.subtrees:
+            return copy.deepcopy(self.subtrees[node.id])
+        node.id = self.rename.get(node.id, node.id)
+        return node
+
+
 def _developed(
     written: str,
     calls: Iterable[Call],
     renames: Iterable[Mapping[str, str]],
+    expressions: Iterable[Mapping[str, str]],
     fixed: bool,
 ) -> str:
     """The expression with each call replaced by the expression it calls.
 
-    Each called expression takes the arguments of its call and the renamed
-    coefficients and constants; in a fixed-units formulation, a quantity
-    equation keeps its value in its output unit through its factor.
+    Each called expression takes the arguments of its call, an input
+    renamed or an expression substituted as a whole (its parentheses
+    kept), and the renamed coefficients and constants; in a fixed-units
+    formulation, a quantity equation keeps its value in its output unit
+    through its factor.
     """
-    pairs = list(zip(calls, renames, strict=True))
-    text, _ = _call_sites(written, {call.alias for call, _ in pairs})
+    triples = list(zip(calls, renames, expressions, strict=True))
+    text, _ = _call_sites(written, {call.alias for call, _, _ in triples})
     bodies: dict[str, ast.expr] = {}
-    for i, (call, rename) in enumerate(pairs):
+    for i, (call, rename, passed) in enumerate(triples):
         part = call.formulation
-        tree = ast.parse(part.expression, mode="eval").body
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name):
-                node.id = rename.get(node.id, node.id)
+        into = _Into(rename, passed)
+        tree = into.visit(ast.parse(part.expression, mode="eval").body)
         if fixed and not part.fixed_units and part.output_factor != 1.0:
             tree = ast.BinOp(ast.Constant(part.output_factor), ast.Mult(), tree)
         bodies[f"_call_{i}"] = tree
@@ -788,7 +1000,14 @@ class _Builder:
             where,
             table,
             ("label", "specialization_of"),
-            ("description", "matches", "scale_type", "cf_standard_names"),
+            (
+                "description",
+                "matches",
+                "scale_type",
+                "cf_standard_names",
+                "units",
+                "bounds",
+            ),
         )
         if name in self.kinds:
             msg = f"{where}: already a QUDT kind"
@@ -797,12 +1016,45 @@ class _Builder:
         if parent is None:
             msg = f"{where}.specialization_of: unknown kind {f['specialization_of']!r}"
             raise CatalogError(msg)
+        # Units the parent does not take: a scale of the surface layer
+        # (q_*), signed, under DimensionlessRatio, written in g/kg.
+        added = []
+        if f["units"] is not None and not isinstance(f["units"], list):
+            msg = f"{where}.units: expected a list of unit names"
+            raise CatalogError(msg)
+        for i, unit_name in enumerate(f["units"] or ()):
+            unit = self.unit(f"{where}.units[{i}]", unit_name)
+            if self.semantics.units[unit].dimension_vector != parent.dimension_vector:
+                msg = (
+                    f"{where}.units[{i}]: {unit} is not of the dimension of "
+                    f"{parent.name}"
+                )
+                raise CatalogError(msg)
+            if unit not in parent.applicable_units and unit not in added:
+                added.append(unit)
         # A kind may be on an interval scale under a ratio-scale parent:
         # the modified refractivity M has a conventional origin.
         scale_type = parent.scale_type
         if f["scale_type"] is not None:
             scale_type = _enum(f"{where}.scale_type", ScaleType, f["scale_type"])
         cf = self.cf_links(f"{where}.cf_standard_names", f["cf_standard_names"], parent)
+        applicable = (*parent.applicable_units, *added)
+        bounds = None
+        if f["bounds"] is not None:
+            w = f"{where}.bounds"
+            b = _fields(w, f["bounds"], ("low", "high", "unit", "criterion"))
+            unit = self.unit(f"{w}.unit", b["unit"])
+            if unit not in applicable:
+                msg = f"{w}.unit: {unit} does not apply to {name}"
+                raise CatalogError(msg)
+            low, high = _bound(f"{w}.low", b["low"]), _bound(f"{w}.high", b["high"])
+            if not low < high or (math.isinf(low) and math.isinf(high)):
+                msg = f"{w}: expected low < high, one of them finite"
+                raise CatalogError(msg)
+            if not isinstance(b["criterion"], str) or not b["criterion"]:
+                msg = f"{w}.criterion: expected the reason, as text"
+                raise CatalogError(msg)
+            bounds = KindBounds(low, high, unit, b["criterion"])
         self.kinds[name] = QuantityKind(
             name=name,
             origin="nomogram",
@@ -812,10 +1064,34 @@ class _Builder:
             specialization_of=parent.name,
             scale_type=scale_type,
             delta=parent.delta and scale_type is ScaleType.RATIO,
-            applicable_units=parent.applicable_units,
-            added_units=(),
+            applicable_units=applicable,
+            added_units=tuple(added),
             matches=_matches(where, f["matches"]) + cf,
+            bounds=bounds,
         )
+
+    def check_kind_bounds(self) -> None:
+        """A kind narrows the bounds it inherits, never widens them."""
+        units = self.semantics.units
+        for name, kind in self.kinds.items():
+            if kind.bounds is None or kind.specialization_of is None:
+                continue
+            inherited = _kind_bounds(self.kinds, kind.specialization_of)
+            if inherited is None:
+                continue
+            source, target = units[inherited.unit].pint, units[kind.bounds.unit].pint
+            low, high = (
+                end if math.isinf(end) else float(Q_(end, source).to(target).magnitude)
+                for end in (inherited.low, inherited.high)
+            )
+            margin = 1e-9 * max(abs(e) for e in (low, high, 1.0) if math.isfinite(e))
+            if kind.bounds.low < low - margin or kind.bounds.high > high + margin:
+                msg = (
+                    f"kinds.{name}.bounds: [{kind.bounds.low:g}, {kind.bounds.high:g}] "
+                    f"{kind.bounds.unit} widens those it inherits, [{low:g}, "
+                    f"{high:g}]"
+                )
+                raise CatalogError(msg)
 
     def cf_links(
         self, where: str, items: Any, kind: QuantityKind | None = None
@@ -1353,6 +1629,12 @@ class _Builder:
             ("identifier", "kind", "unit", "description"),
             ("scale", "scale_basis"),
         )
+        if f["identifier"] in _RESERVED_IDENTIFIERS:
+            msg = (
+                f"{where}.identifier: {f['identifier']} names an option of "
+                f"evaluate ({', '.join(_RESERVED_IDENTIFIERS)})"
+            )
+            raise CatalogError(msg)
         kind = self.kind(f"{where}.kind", f["kind"])
         unit = self.unit(f"{where}.unit", f["unit"])
         if unit not in kind.applicable_units:
@@ -1379,8 +1661,15 @@ class _Builder:
                 f["description"],
                 found,
                 basis,
+                kind_bounds=_kind_bounds(self.kinds, kind.name),
             )
-        return Variable(f["identifier"], kind.name, unit, f["description"])
+        return Variable(
+            f["identifier"],
+            kind.name,
+            unit,
+            f["description"],
+            kind_bounds=_kind_bounds(self.kinds, kind.name),
+        )
 
     def coefficients(self, where: str, table: Any) -> tuple[Coefficient, ...]:
         result = []
@@ -1427,20 +1716,40 @@ class _Builder:
 
     @staticmethod
     def bounds(
-        where: str, table: Any, inputs: tuple[Variable, ...]
+        where: str,
+        table: Any,
+        inputs: tuple[Variable, ...],
+        output: Variable | None = None,
     ) -> Mapping[str, tuple[float, float]]:
+        """Closed intervals of the inputs, and of the output when given.
+
+        A validity domain (``output`` given) may leave one end open with
+        ``inf`` (``[0, inf]``), never both; the bounds of a relation, which
+        it samples, are finite.
+        """
         names = {v.identifier for v in inputs}
+        if output is not None:
+            names.add(output.identifier)
         bounds = {}
         if not isinstance(table, dict):
             msg = f"{where}: expected a table of input identifier to [low, high]"
             raise CatalogError(msg)
         for identifier, interval in table.items():
             if identifier not in names:
-                msg = f"{where}: {identifier!r} is not an input"
+                what = "an input" if output is None else "an input nor the output"
+                msg = f"{where}: {identifier!r} is not {what}"
                 raise CatalogError(msg)
-            low, high = _pair(
-                f"{where}.{identifier}", interval, "[low, high], two finite numbers"
-            )
+            w = f"{where}.{identifier}"
+            if output is None:
+                low, high = _pair(w, interval, "[low, high], two finite numbers")
+            else:
+                if not isinstance(interval, list) or len(interval) != 2:
+                    msg = f"{w}: expected [low, high], not {interval!r}"
+                    raise CatalogError(msg)
+                low, high = (_bound(f"{w}[{i}]", v) for i, v in enumerate(interval))
+                if math.isinf(low) and math.isinf(high):
+                    msg = f"{w}: a domain bounds at least one end; leave it out"
+                    raise CatalogError(msg)
             if not low < high:
                 msg = f"{where}.{identifier}: empty interval"
                 raise CatalogError(msg)
@@ -1453,8 +1762,13 @@ class _Builder:
         items: Any,
         inputs: tuple[Variable, ...],
         reference: str | None,
+        output: Variable | None = None,
     ) -> tuple[ValidityDomain, ...]:
-        """Physical domains (``reference`` None), or those a citation states."""
+        """Physical domains (``reference`` None), or those a citation states.
+
+        A domain may bound the output too; such a bound states its
+        criterion, what makes the source or physics exclude the rest.
+        """
         result = []
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
@@ -1462,12 +1776,20 @@ class _Builder:
                 ("criterion", "reference") if reference is None else ("criterion",)
             )
             f = _fields(w, item, ("bounds",), optional)
+            bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
+            if (
+                output is not None
+                and output.identifier in bounds
+                and not f["criterion"]
+            ):
+                msg = f"{w}: a bound on the output {output.identifier} states its criterion"
+                raise CatalogError(msg)
             result.append(
                 ValidityDomain(
                     basis=DomainBasis.PHYSICAL
                     if reference is None
                     else DomainBasis.STATED,
-                    bounds=self.bounds(f"{w}.bounds", f["bounds"], inputs),
+                    bounds=bounds,
                     criterion=f["criterion"],
                     reference=(
                         reference
@@ -1537,7 +1859,11 @@ class _Builder:
                         f"{w}.notation", f["notation"], formulation, reference, names
                     ),
                     domains=self.domains(
-                        f"{w}.domains", f["domains"], inputs, reference
+                        f"{w}.domains",
+                        f["domains"],
+                        inputs,
+                        reference,
+                        outputs[0] if outputs else None,
                     ),
                     units=MappingProxyType(units),
                     scales=MappingProxyType(scales),
@@ -1675,7 +2001,7 @@ class _Builder:
             expression=f["expression"],
             fixed_units=bool(f["fixed_units"]),
             physical_domains=self.domains(
-                f"{where}.domains", f["domains"], inputs, None
+                f"{where}.domains", f["domains"], inputs, None, output
             ),
             citations=citations,
             note=f["note"],
@@ -1709,12 +2035,28 @@ class _Builder:
 
     @staticmethod
     def part(
-        where: str, name: Any, formulations: Mapping[str, Formulation]
+        where: str,
+        name: Any,
+        formulations: Mapping[str, Formulation],
+        *,
+        explicit: bool = False,
     ) -> Formulation:
+        """A formulation of the catalog, by key; ``explicit`` refuses an implicit one.
+
+        A composition, a call or a branch substitutes the expression of
+        its parts, which an implicit equation does not have.
+        """
         if not isinstance(name, str) or name not in formulations:
             msg = f"{where}: unknown formulation {name!r}"
             raise CatalogError(msg)
-        return formulations[name]
+        found = formulations[name]
+        if explicit and found.implicit:
+            msg = (
+                f"{where}: {name} is an implicit equation, which a composition, "
+                "a call or a branch cannot substitute"
+            )
+            raise CatalogError(msg)
+        return found
 
     @staticmethod
     def bindings(
@@ -1797,21 +2139,26 @@ class _Builder:
         )
         place = f"{where}.composition"
         c = _fields(place, f["composition"], ("outer", "inner"), ("bind",))
-        outer = self.part(f"{place}.outer", c["outer"], formulations)
+        outer = self.part(f"{place}.outer", c["outer"], formulations, explicit=True)
         if not isinstance(c["inner"], dict) or not c["inner"]:
             msg = f"{place}.inner: expected a table of input identifier to formulation"
             raise CatalogError(msg)
         outer_inputs = {v.identifier: v for v in outer.inputs}
+        # Every input a condition reads, alone or in an expression passed to
+        # a formulation called (z / L < 0), the pieces having been checked
+        # on the formulations that hold them.
         bounded = {
-            _pieces(node, outer_inputs)[0].variable.name
+            symbol.name
             for node in sympy.preorder_traversal(outer.sympy_expression)
             if isinstance(node, sympy.Piecewise)
+            for _, condition in node.args
+            for symbol in condition.free_symbols
         }
         inner: dict[str, Formulation] = {}
         scaled: dict[str, Variable] = {}
         for identifier, name in c["inner"].items():
             w = f"{place}.inner.{identifier}"
-            part = self.part(w, name, formulations)
+            part = self.part(w, name, formulations, explicit=True)
             target = outer_inputs.get(identifier)
             if target is None:
                 msg = f"{w}: {outer.key} has no input {identifier!r}"
@@ -1984,19 +2331,31 @@ class _Builder:
                 scale_basis=outer.output.scale_basis,
             )
 
-        # Physical domains travel with the inputs they bound.
-        domains = [d for d in outer.physical_domains if not set(d.bounds) & set(inner)]
+        # Physical domains travel with the inputs they bound. A bound on the
+        # outer formulation's output bounds the composed output; one on an
+        # inner formulation's output bounds an intermediate value, checked on
+        # that part (Formulation.outside_mask), not on the composed one.
+        domains = []
+        for d in outer.physical_domains:
+            if set(d.bounds) & set(inner):
+                continue
+            renamed = {
+                (output.identifier if k == outer.output.identifier else k): b
+                for k, b in d.bounds.items()
+            }
+            domains.append(dataclasses.replace(d, bounds=MappingProxyType(renamed)))
         for identifier, part in inner.items():
             rename = renames[identifier]
-            domains += [
-                dataclasses.replace(
-                    d,
-                    bounds=MappingProxyType(
-                        {rename.get(k, k): b for k, b in d.bounds.items()}
-                    ),
-                )
-                for d in part.physical_domains
-            ]
+            for d in part.physical_domains:
+                on_inputs = {
+                    rename.get(k, k): b
+                    for k, b in d.bounds.items()
+                    if k != part.output.identifier
+                }
+                if on_inputs:
+                    domains.append(
+                        dataclasses.replace(d, bounds=MappingProxyType(on_inputs))
+                    )
 
         fixed = any(p.fixed_units for p in (outer, *inner.values()))
         names = {output.identifier} | set(inputs) | set(owner) | set(constants)
@@ -2064,6 +2423,7 @@ class _Builder:
                 "matches",
                 "keywords",
                 "conditions",
+                "assumptions",
             ),
         )
         if f["conditions"] is not None and not isinstance(f["conditions"], str):
@@ -2103,8 +2463,22 @@ class _Builder:
             if not alias.isidentifier() or reserved or alias in own:
                 msg = f"{w}: {alias!r} cannot name a call: reserved or already used"
                 raise CatalogError(msg)
-            aliases[alias] = self.part(w, name, formulations)
-        calls = self.calls_written(where, f["expression"], aliases, inputs)
+            aliases[alias] = self.part(w, name, formulations, explicit=True)
+        try:
+            equation = isinstance(f["expression"], str) and _split_equation(
+                f["expression"]
+            )
+        except ExpressionError as exc:
+            msg = f"{where}.expression: {exc}"
+            raise CatalogError(msg) from None
+        # The arguments of an implicit equation may hold its unknown.
+        calls = self.calls_written(
+            where,
+            f["expression"],
+            aliases,
+            inputs,
+            own if equation else own - {output.identifier},
+        )
         fixed = bool(f["fixed_units"])
         loose = [c.formulation.key for c in calls if c.formulation.fixed_units]
         if loose and not fixed:
@@ -2115,17 +2489,25 @@ class _Builder:
             raise CatalogError(msg)
 
         # Each input takes the scale of the inputs it feeds, when that scale
-        # applies to its own kind.
+        # applies to its own kind; an input written in an expression feeds
+        # the input the expression is passed to (on the reference scale,
+        # the only one an expression may reach).
         fed: dict[str, dict[Any, tuple[str, Any]]] = {}
         own_kinds = {v.identifier: v.kind for v in inputs}
         for call in calls:
             for v in call.formulation.inputs:
+                if v.scale is None:
+                    continue
                 argument = call.arguments[v.identifier]
-                if v.scale is not None and v.scale.applies_to(
-                    own_kinds[argument], self.kinds
-                ):
-                    target = fed.setdefault(argument, {})
-                    target[v.scale.key] = (call.formulation.key, v)
+                named = {
+                    n.id
+                    for n in ast.walk(ast.parse(argument, mode="eval"))
+                    if isinstance(n, ast.Name) and n.id in own_kinds
+                }
+                for name in sorted(named):
+                    if v.scale.applies_to(own_kinds[name], self.kinds):
+                        target = fed.setdefault(name, {})
+                        target[v.scale.key] = (call.formulation.key, v)
         inherited: dict[str, str] = {}
         typed = []
         for variable in inputs:
@@ -2158,9 +2540,15 @@ class _Builder:
         known = {c.identifier for c in coefficients}
         constants = dict(own_constants)
         renames: list[dict[str, str]] = []
+        expressions: list[dict[str, str]] = []
         for call in calls:
             part = call.formulation
-            rename = dict(call.arguments)
+            # Inputs passed as such rename the inputs called; expressions
+            # are substituted for them.
+            rename = {k: a for k, a in call.arguments.items() if a in own_kinds}
+            expressions.append(
+                {k: a for k, a in call.arguments.items() if a not in own_kinds}
+            )
             for coefficient in part.coefficients:
                 name = _qualified(part, coefficient.identifier)
                 rename[coefficient.identifier] = name
@@ -2199,7 +2587,7 @@ class _Builder:
         )
         stated = f"{where}.citations"
         parts: dict[str, Part] = {}
-        for call, rename in zip(calls, renames, strict=True):
+        for call, rename, passed in zip(calls, renames, expressions, strict=True):
             written = ", ".join(f"{k}={v}" for k, v in call.arguments.items())
             parts.setdefault(
                 f"{call.alias}({written})",
@@ -2207,6 +2595,7 @@ class _Builder:
                     call.formulation,
                     f"{call.alias}({written})",
                     MappingProxyType(rename),
+                    MappingProxyType(passed),
                 ),
             )
         own_names = {c.identifier for c in own_coefficients}
@@ -2233,10 +2622,10 @@ class _Builder:
                 *(c for c in coefficients if c.identifier not in own_names),
             ),
             constants=tuple(constants.values()),
-            expression=_developed(f["expression"], calls, renames, fixed),
+            expression=_developed(f["expression"], calls, renames, expressions, fixed),
             fixed_units=fixed,
             physical_domains=self.domains(
-                f"{where}.domains", f["domains"], tuple(typed), None
+                f"{where}.domains", f["domains"], tuple(typed), None, output
             ),
             citations=citations,
             note=f["note"],
@@ -2254,13 +2643,15 @@ class _Builder:
             parts=tuple(parts.values()),
             calls=tuple(calls),
             written=f["expression"],
+            noted_assumptions=self.assumptions(
+                f"{where}.assumptions", f["assumptions"]
+            ),
         )
+        _check_passed_units(where, formulation)
         self.check(where, formulation)
         # What the entry declares is used as written, not only by a call.
         declared = set(own_constants) | own_names
-        unused = sorted(
-            declared - {s.name for s in formulation.written_expression.free_symbols}
-        )
+        unused = sorted(declared - _written_names(formulation))
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
             raise CatalogError(msg)
@@ -2272,8 +2663,14 @@ class _Builder:
         expression: Any,
         aliases: Mapping[str, Formulation],
         inputs: tuple[Variable, ...],
+        names: Iterable[str],
     ) -> list[Call]:
-        """The calls of an expression, checked against what they call."""
+        """The calls of an expression, checked against what they call.
+
+        An argument is an input of the calling formulation, or an
+        expression of its inputs, coefficients and constants (``names``),
+        kept as normalized text (``zeta=z_s / L``).
+        """
         if not isinstance(expression, str):
             msg = f"{where}.expression: expected a string"
             raise CatalogError(msg)
@@ -2326,13 +2723,9 @@ class _Builder:
                 if keyword.arg in arguments:
                     msg = f"{w}: {keyword.arg} is given twice"
                     raise CatalogError(msg)
-                if (
-                    not isinstance(keyword.value, ast.Name)
-                    or keyword.value.id not in by_name
-                ):
-                    msg = f"{w}: the argument {keyword.arg} is an input of the formulation"
-                    raise CatalogError(msg)
-                arguments[keyword.arg] = keyword.value.id
+                arguments[keyword.arg] = self.call_argument(
+                    f"{w}: the argument {keyword.arg}", keyword.value, aliases, names
+                )
             expected = [v.identifier for v in part.inputs]
             unknown = sorted(set(arguments) - set(expected))
             missing = [n for n in expected if n not in arguments]
@@ -2344,7 +2737,17 @@ class _Builder:
                 )
                 raise CatalogError(msg)
             for v in part.inputs:
-                self.argument(w, part, v, by_name[arguments[v.identifier]])
+                argument = arguments[v.identifier]
+                if argument in by_name:
+                    self.argument(w, part, v, by_name[argument])
+                elif v.scale is not None and not v.scale.is_reference:
+                    # Only an input takes the scale of the input it feeds,
+                    # so that evaluation converts it.
+                    msg = (
+                        f"{w}: {v.identifier} is on {v.scale.key}; pass it an "
+                        "input of the formulation, not an expression"
+                    )
+                    raise CatalogError(msg)
             calls.append(
                 Call(alias, part, MappingProxyType({n: arguments[n] for n in expected}))
             )
@@ -2353,6 +2756,54 @@ class _Builder:
             msg = f"{where}.calls: declared but not called: {', '.join(unused)}"
             raise CatalogError(msg)
         return calls
+
+    def call_argument(
+        self,
+        where: str,
+        value: ast.expr,
+        aliases: Mapping[str, Formulation],
+        names: Iterable[str],
+    ) -> str:
+        """An argument of a call, as normalized text.
+
+        A name of the calling formulation, or an expression of its inputs,
+        coefficients and constants. It may not call a formulation, hold a
+        condition or a piecewise definition, nor be a number alone, which
+        SymPy would fold into the expression called: a value a source
+        gives is a coefficient.
+        """
+        inner = sorted(
+            {
+                cast("ast.Name", n.func).id  # found by name
+                for n in ast.walk(value)
+                if _named_call(n, aliases)
+            }
+        )
+        if inner:
+            msg = f"{where} calls {', '.join(inner)}: a call takes no call as argument"
+            raise CatalogError(msg)
+        if any(
+            isinstance(n, ast.Compare | ast.BoolOp) or _named_call(n, {PIECEWISE})
+            for n in ast.walk(value)
+        ):
+            msg = (
+                f"{where} holds a condition: define the formulation called by "
+                "pieces, or the caller by branches"
+            )
+            raise CatalogError(msg)
+        text = ast.unparse(value)
+        try:
+            parsed = parse_expression(text, names)
+        except ExpressionError as exc:
+            msg = (
+                f"{where} is an expression of the inputs, coefficients and "
+                f"constants of the formulation: {exc}"
+            )
+            raise CatalogError(msg) from None
+        if not parsed.free_symbols:
+            msg = f"{where} is a number: declare it as a coefficient, with its source"
+            raise CatalogError(msg)
+        return text
 
     def argument(
         self, where: str, part: Formulation, inner: Variable, outer: Variable
@@ -2401,7 +2852,9 @@ class _Builder:
         for index, item in enumerate(f["branches"]):
             w = f"{where}.branches[{index}]"
             b = _fields(w, item, ("formulation", "where"), ())
-            part = self.part(f"{w}.formulation", b["formulation"], formulations)
+            part = self.part(
+                f"{w}.formulation", b["formulation"], formulations, explicit=True
+            )
             if not self.feeds(part.output.kind, output.kind):
                 msg = (
                     f"{w}: {part.key} computes {part.output.kind}, which is not "
@@ -2583,6 +3036,13 @@ class _Builder:
                 raise CatalogError(msg)
             ends.append(formulations[f[role]])
         subject, other = ends
+        implicit = [e.key for e in ends if e.implicit]
+        if implicit and kind is not RelationKind.APPROXIMATES:
+            msg = (
+                f"{where}: nomogram proves an equivalence or a proportionality on "
+                f"explicit expressions; {', '.join(implicit)} is an implicit equation"
+            )
+            raise CatalogError(msg)
         if subject.output.kind != other.output.kind:
             msg = (
                 f"{where}: {subject.key} computes {subject.output.kind}, "
@@ -2805,17 +3265,20 @@ class _Builder:
         if duplicates:
             msg = f"{where}: identifiers declared twice: {', '.join(duplicates)}"
             raise CatalogError(msg)
-        try:
-            expr = formulation.sympy_expression
-        except ExpressionError as exc:
-            msg = f"{where}.expression: {exc}"
-            raise CatalogError(msg) from None
-        used = {s.name for s in expr.free_symbols}
+        if formulation.implicit:
+            used = _check_implicit(where, formulation)
+        else:
+            try:
+                expr = formulation.sympy_expression
+            except ExpressionError as exc:
+                msg = f"{where}.expression: {exc}"
+                raise CatalogError(msg) from None
+            used = {s.name for s in expr.free_symbols}
         if formulation.calls:
             # Checked on the expression as written: what a call brings needs
             # no use, and what the development simplifies stays declared.
             inputs = {v.identifier for v in formulation.inputs}
-            used = {s.name for s in formulation.written_expression.free_symbols}
+            used = _written_names(formulation)
             used |= {
                 name
                 for part in formulation.parts
@@ -2860,6 +3323,7 @@ class _Builder:
 
     def build(self) -> Catalog:
         self.build_kinds()
+        self.check_kind_bounds()
         self.build_references()
         self.build_constants()
         self.build_scales()
@@ -3224,7 +3688,8 @@ def _links(
     variables and to its constants as built: a composition writes none, it
     takes them from its parts. It refers to the units of its constants and
     to the declared units of its coefficients (added or stated, never
-    inferred); a constant or a scale to its unit. Units were checked
+    inferred); a constant or a scale to its unit; a kind of the catalog to
+    the units it adds to its parent's (``units``). Units were checked
     against the semantic catalog when built. The family check reads the
     written tables only (:func:`_references`): units belong to no family.
     """
@@ -3250,6 +3715,9 @@ def _links(
             scale_unit = built.scales[key].unit
             if scale_unit is not None:
                 references.add(("units", scale_unit))
+        elif section == "kinds":
+            for unit in data[section][key].get("units") or ():
+                references.add(("units", unit))
         targets = sorted(references)
         found = tuple(
             f"{s}.{k}"
@@ -3424,6 +3892,7 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
     specializes, is one a scale of the catalog applies to.
     """
     formulations = list(loaded.formulations.values())
+    implicit = [f for f in formulations if f.implicit]
     computed = Counter(f.output.kind for f in formulations)
     used = {f.output.kind for f in formulations}
     used |= {v.kind for f in formulations for v in f.inputs}
@@ -3464,6 +3933,12 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
         ),
         (
             stated,
+            "implicit equations with their unknown bounded by a physical domain or its kind",
+            sum(_bounded_unknown(f) for f in implicit),
+            len(implicit),
+        ),
+        (
+            stated,
             "inputs on a conventional scale with their scale recorded",
             sum(v.scale is not None for v in on_scale),
             len(on_scale),
@@ -3484,6 +3959,12 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
             shared,
             "quantity kinds used that are QUDT kinds or specialize one",
             sum(any(q.origin == "qudt" for q in lineage(k)) for k in used),
+            len(used),
+        ),
+        (
+            shared,
+            "quantity kinds used that are provisional, pending a QUDT pull request",
+            sum(any(q.origin == "provisional" for q in lineage(k)) for k in used),
             len(used),
         ),
         (
@@ -3513,6 +3994,16 @@ def _indicators(loaded: Catalog) -> list[tuple[str, str, int, int]]:
     ]
 
 
+def _bounded_unknown(formulation: Formulation) -> bool:
+    """Whether objective bounds choose the root of an implicit equation.
+
+    A physical domain on its output, or the bounds of the output's kind.
+    """
+    output = formulation.output.identifier
+    bounded = any(output in d.bounds for d in formulation.physical_domains)
+    return bounded or formulation.output.kind_bounds is not None
+
+
 def _reaches_domain(formulation: Formulation) -> bool:
     """Whether a validity domain applies to a formulation, its own or a part's.
 
@@ -3521,7 +4012,11 @@ def _reaches_domain(formulation: Formulation) -> bool:
     """
     pieces = [p.formulation for p in formulation.parts]
     pieces += [b.formulation for b in formulation.branches]
-    return bool(formulation.domains) or any(_reaches_domain(p) for p in pieces)
+    # A domain counts when it bounds an input: a bound on the output alone
+    # says where results stop, not where the formulation may be used.
+    inputs = {v.identifier for v in formulation.inputs}
+    own = any(set(d.bounds) & inputs for d in formulation.domains)
+    return own or any(_reaches_domain(p) for p in pieces)
 
 
 def stats(loaded: Catalog | None = None) -> str:

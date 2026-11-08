@@ -154,16 +154,19 @@ each saturation vapour pressure formulation e_s = f(T) gives the dew
 point t_d = f⁻¹(e):
 
 - **when SymPy finds a closed form**, it becomes a formulation of its
-  own, with an expression, its LaTeX, the validity domain carried
-  through the function, and a record of its origin. The Magnus form
+  own, with an expression, its LaTeX, the validity domains carried over,
+  and a record of its origin: the interval of the temperature becomes
+  that of the dew point, the inverse's output, and its image through
+  the function that of the vapour pressure, its input. The Magnus form
   gives back the classical dew point formula,
   t_d = B ln(e/C) / (A − ln(e/C)), with no hand-written formula;
 - **when there is none** (the IAPWS equation, Goff-Gratch...), the
   inverse is solved numerically, and says so. It searches the validity
-  domain a source states; when none does, nomogram does not choose the
-  interval, the caller gives it (`search=`). This is not meant for
-  production: it makes the comparison between a production
-  approximation and the exact inverse of the reference possible.
+  domain a source states; when none does, or the domain is open on one
+  side, nomogram does not choose the interval, the caller gives it
+  (`search=`). This is not meant for production: it makes the
+  comparison between a production approximation and the exact inverse
+  of the reference possible.
 
 Inverting a formulation over ice gives the frost point the same way.
 
@@ -192,6 +195,22 @@ frost point (f⁻¹(f(t)) = t):
 The numerical inverse of IAPWS also reproduces its published table:
 101 325 Pa gives back 373.1243 K.
 
+Some sources give no explicit formula at all, only an equation its
+output solves (VIM 2.48, note 1: h(Y, X₁, …, Xₙ) = 0). The KEYPS formula
+of Businger et al. (1971), φm⁴ − γ₁ ζ φm³ = 1, is written as printed,
+`==` between its members, and solved for φm, never rearranged by hand.
+nomogram does not choose between roots: it seeks the root where the
+physical domains on the output and the bounds of its kind allow (φm ≥ 0,
+the shear of a wind increasing with height, rules out the negative
+root), and returns it only if it is the one root there. Otherwise, no
+root, several, or a residual undefined around one, the value is NaN and
+a warning says which. A root is kept where the residual falls, from the
+ends of the interval bisected, to a millionth of its size there: across
+a jump between pieces it does not fall, at a pole it grows. Solved this way, KEYPS is tested against its form
+explicit in ζ, ζ = (φm⁴ − 1)/(γ₁ φm³), to 10⁻¹², against the slope
+γ₁/4 = 2.25 at neutral the source gives (p. 184), and against the
+explicit formula it compares with (equation 8).
+
 ## 7. What the tests guarantee, and what they do not
 
 They guarantee that:
@@ -202,6 +221,8 @@ They guarantee that:
   every coefficient, consistent with the expression);
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
+- the root of an implicit equation is the one root in the interval
+  searched, or NaN with a warning;
 - the Python examples of the README and of the guides run (those of the
   sea water guide give the values their comments state), and the README
   code is the code that drew its plot.
@@ -212,7 +233,11 @@ They do not guarantee that:
 - a secondary source quoted its original correctly;
 - a formulation is physically meaningful outside its domain;
 - a numerical inverse is unique: the source is assumed monotonic over
-  the interval searched.
+  the interval searched;
+- every root of an implicit equation is seen: two roots closer than the
+  step of the search grid, or a double root, where the residual does not
+  change sign, escape it; and a jump between pieces smaller than a
+  millionth of the residual's change around it is taken for a root.
 
 ## Contributing to this effort
 

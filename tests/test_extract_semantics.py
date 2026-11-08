@@ -49,6 +49,8 @@ def small_selection(monkeypatch: pytest.MonkeyPatch) -> None:
         "UNITS",
         {"K": "K", "DEG_C": "degC", "HectoPA": "hPa", "PA": "Pa"},
     )
+    monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {})
+    monkeypatch.setattr(extract_semantics, "LOCAL_KINDS", {})
 
 
 def run() -> dict[str, object]:
@@ -101,6 +103,59 @@ def test_links_read_after_the_extraction_date_keep_their_own(
         "2026-11-04"
     }
     assert {m["verified"] for m in found["VapourPressure"]["matches"]} == {"2026-10-14"}
+
+
+def test_the_bounds_of_a_kind_are_written_with_an_open_end_as_null(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    kinds = dict(extract_semantics.KINDS)
+    kinds["ThermodynamicTemperature"] = KindSpec(
+        "ratio", delta=False, bounds=(0.0, None, "K", "Never below 0 K.")
+    )
+    monkeypatch.setattr(extract_semantics, "KINDS", kinds)
+    found = run()["quantity_kinds"]
+    assert isinstance(found, dict)
+    assert found["ThermodynamicTemperature"]["bounds"] == {
+        "low": 0.0,
+        "high": None,
+        "unit": "K",
+        "criterion": "Never below 0 K.",
+    }
+    assert found["CelsiusTemperature"]["bounds"] is None
+    kinds["ThermodynamicTemperature"] = KindSpec(
+        "ratio", delta=False, bounds=(0.0, None, "DEG_C", "In the wrong unit.")
+    )
+    with pytest.raises(ValueError, match="DEG_C does not apply to it"):
+        run()
+
+
+def test_a_unit_qudt_lacks_is_declared_by_nomogram(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    local = extract_semantics.LocalUnit(
+        label="Millibar",
+        symbol="mbar",
+        dimension_vector="A0E0L-1I0M1H0T-2D0",
+        multiplier=100.0,
+        ucum="mbar",
+        pint="mbar",
+        kinds=("Pressure",),
+    )
+    monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {"MilliBAR": local})
+    data = run()
+    units, kinds = data["units"], data["quantity_kinds"]
+    assert isinstance(units, dict)
+    assert isinstance(kinds, dict)
+    assert units["MilliBAR"]["iri"] is None
+    assert units["MilliBAR"]["multiplier"] == 100.0
+    assert units["MilliBAR"]["matches"] == []
+    # Declared for Pressure, it reaches VapourPressure, as QUDT units do.
+    assert "MilliBAR" in kinds["VapourPressure"]["applicable_units"]
+    assert "MilliBAR" not in kinds["VapourPressure"]["added_units"]
+    # Once QUDT has the unit, the local declaration is refused.
+    monkeypatch.setattr(extract_semantics, "LOCAL_UNITS", {"PA": local})
+    with pytest.raises(ValueError, match="PA is now in QUDT"):
+        run()
 
 
 def test_symbols_declared_by_nomogram_replace_qudt_ones(
@@ -291,3 +346,55 @@ def test_cf_names_of_local_kinds_are_extracted(monkeypatch: pytest.MonkeyPatch) 
     names = run()["cf_standard_names"]
     assert isinstance(names, dict)
     assert "air_temperature" in names
+
+
+def provisional(**changes: object) -> object:
+    fields: dict[str, object] = {
+        "label": "Kinematic Heat Flux",
+        "dimension_vector": "A0E0L1I0M0H1T-1D0",
+        "scale_type": "ratio",
+        "delta": False,
+        "units": ("K",),
+        "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612",
+        "opened": "2026-11-08",
+    }
+    fields.update(changes)
+    return extract_semantics.LocalKind(**fields)
+
+
+def test_a_provisional_kind_records_its_pull_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        extract_semantics.LOCAL_KINDS, "KinematicHeatFlux", provisional()
+    )
+    kind = run()["quantity_kinds"]["KinematicHeatFlux"]  # type: ignore[index]
+    assert kind["iri"] is None
+    assert kind["specialization_of"] is None
+    assert kind["applicable_units"] == ["K"]
+    assert kind["pending"] == {
+        "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612",
+        "opened": "2026-11-08",
+    }
+
+
+def test_a_provisional_kind_gives_way_to_the_kind_of_qudt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        extract_semantics.LOCAL_KINDS, "ThermodynamicTemperature", provisional()
+    )
+    with pytest.raises(ValueError, match="QUDT defines it now"):
+        run()
+
+
+def test_a_provisional_kind_takes_extracted_units(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        extract_semantics.LOCAL_KINDS,
+        "KinematicHeatFlux",
+        provisional(units=("K-M-PER-SEC",)),
+    )
+    with pytest.raises(ValueError, match="units not extracted: K-M-PER-SEC"):
+        run()

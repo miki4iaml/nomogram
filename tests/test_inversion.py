@@ -478,10 +478,14 @@ def test_its90_back_conversion_is_the_identity() -> None:
 
 
 def test_only_domains_bounding_the_unknown_are_carried() -> None:
+    # The interval of the solved input becomes that of the output, and its
+    # image that of the new input.
     inverse = invert(TESTS["down"], "t", output=TEMPERATURE, input=PRESSURE)
     assert isinstance(inverse, Formulation)
     assert inverse.expression == "(a - p)/b"
-    assert [d.bounds for d in inverse.domains] == [{"p": (500.0, 1000.0)}]
+    assert [dict(d.bounds) for d in inverse.domains] == [
+        {"t": (0.0, 50.0), "p": (500.0, 1000.0)}
+    ]
 
 
 @pytest.mark.parametrize("formulation", SATURATION, ids=lambda f: f.key)

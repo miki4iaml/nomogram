@@ -67,6 +67,10 @@ def test_terms_are_wildcards_matched_against_words() -> None:
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
+    # A provisional kind, by its origin and the pull request adding it to QUDT.
+    provisional = CATALOG.search("provisional", section="kinds")
+    assert "kinds.KinematicHeatFlux" in provisional.refs
+    assert refs(CATALOG.search("pull", "1612")) == {"kinds.KinematicHeatFlux"}
 
 
 def test_every_section_is_searchable() -> None:
@@ -109,24 +113,17 @@ def test_a_cf_name_finds_a_kind_defined_by_nomogram() -> None:
 
 
 def test_variables_whatever_their_notation() -> None:
+    # Within a family of standards, which new formulations seldom join: a
+    # density appears in most families.
     expected = {
-        "formulations.mass_concentration_ideal_gas",
-        "formulations.itu_r_p453_vapour_pressure_from_density",
-        "formulations.wmo_vapour_concentration_definition",
-        "formulations.bechtold2015_virtual_temperature_definition",
         "formulations.itu_r_p835_water_vapour_density",
         "formulations.itu_r_p835_water_vapour_density_upper",
-        "formulations.bechtold2015_density",
-        "formulations.metpy171_density_virtual_temperature",
-        "formulations.metpy171_density",
-        "formulations.ecmwf_ifs_density",
-        "formulations.ecmwf_ifs_density_specific_humidity",
-        "formulations.vaisala2013_absolute_humidity",
         "formulations.iso2533_air_density",
         "formulations.iso2533_kinematic_viscosity",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
-        assert refs(CATALOG.search(variable=pattern)) == expected, pattern
+        found = CATALOG.search(variable=pattern, family="atmosphere")
+        assert refs(found) == expected, pattern
     assert refs(CATALOG.search(variable=r"\rho_{\mathrm{v}}")) == {
         "formulations.mass_concentration_ideal_gas",
         "formulations.wmo_vapour_concentration_definition",
@@ -162,6 +159,9 @@ def test_symbols_in_a_given_notation() -> None:
 
 
 def test_every_symbol_finds_itself_as_its_notation_writes_it() -> None:
+    # Each symbol is searched once, for all the formulations that write it.
+    by_notation: dict[tuple[str, str], set[str]] = {}
+    by_symbol: dict[str, set[str]] = {}
     for key, formulation in CATALOG.formulations.items():
         notations = [c.notation for c in formulation.citations if c.notation]
         notations += CATALOG.notations.values()
@@ -174,12 +174,16 @@ def test_every_symbol_finds_itself_as_its_notation_writes_it() -> None:
         for notation in notations:
             for identifier in identifiers:
                 tex = notation.symbols.get(identifier)
-                if tex is None:
-                    continue
-                ref = f"formulations.{key}"
-                found = CATALOG.search(symbol=tex, notation=notation.key)
-                assert ref in found.refs, (notation.key, tex)
-                assert ref in CATALOG.search(variable=tex).refs, (notation.key, tex)
+                if tex is not None:
+                    ref = f"formulations.{key}"
+                    by_notation.setdefault((notation.key, tex), set()).add(ref)
+                    by_symbol.setdefault(tex, set()).add(ref)
+    for (notation_key, tex), expected in by_notation.items():
+        found = refs(CATALOG.search(symbol=tex, notation=notation_key))
+        assert not expected - found, (notation_key, tex, expected - found)
+    for tex, expected in by_symbol.items():
+        found = refs(CATALOG.search(variable=tex))
+        assert not expected - found, (tex, expected - found)
 
 
 def test_a_symbol_with_a_space_is_found_whole_or_by_its_parts() -> None:
@@ -409,6 +413,16 @@ def test_constants_and_scales_link_to_their_unit() -> None:
     assert "scales.cox1967" in CATALOG.used_by("units.PERMILLE").refs
     assert "scales.pss78" in CATALOG.used_by("units.UNITLESS").refs
     assert not CATALOG.uses("scales.its90").search(section="units")
+
+
+def test_kinds_of_the_catalog_link_to_the_units_they_add() -> None:
+    scale = "kinds.SurfaceLayerScaleOfSpecificHumidity"
+    assert {"units.GM-PER-KiloGM", "units.KiloGM-PER-KiloGM"} <= refs(
+        CATALOG.uses(scale)
+    )
+    assert scale in CATALOG.search(unit="g/kg", section="kinds").refs
+    # A kind that adds none links to no unit.
+    assert not CATALOG.uses("kinds.ObukhovLength").search(section="units")
 
 
 # --- Selections ----------------------------------------------------------

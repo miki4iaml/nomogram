@@ -11,7 +11,9 @@ reference use case.
 :func:`compose` feeds the output of formulations into the inputs of
 another, for instance a saturation vapour pressure formulation into the
 ideal gas mass concentration of water vapour, to compare HA = f(T, RH)
-across vapour pressure formulations.
+across vapour pressure formulations. A formula that evaluates another at
+points it computes is written in the catalog with calls
+(``docs/catalog.md``, "Composing or calling"), not with :func:`compose`.
 
 :func:`partial` fixes some inputs of a formulation, as
 :func:`functools.partial` fixes arguments: the two levels of an

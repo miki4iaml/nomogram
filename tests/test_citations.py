@@ -243,6 +243,7 @@ def test_inversion_carries_citations_and_their_domains() -> None:
     assert isinstance(inverse, Formulation)
     assert inverse.references == source.references
     (domain_carried,) = inverse.citations[0].domains
-    assert set(domain_carried.bounds) == {"e"}
+    # The image of the temperature range, and the range itself on the output.
+    assert set(domain_carried.bounds) == {"e", "t_d"}
     assert domain_carried.reference == "alduchov_eskridge1996"
     assert all(not c.scales for c in inverse.citations)

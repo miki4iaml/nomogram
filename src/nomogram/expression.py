@@ -196,6 +196,24 @@ LATEX_COMMANDS: frozenset[str] = frozenset(
         # Partial derivatives in notations (in the lists of MathJax and
         # KaTeX on 2026-11-01; parsed by mathtext).
         r"\partial",
+        # The hat accent of estimated or derived quantities (in the lists of
+        # MathJax, base package, and KaTeX on 2026-11-07; parsed by
+        # mathtext): an identifier xhat reads \hat{x}.
+        r"\hat",
+        # The bar of a mean and the overline of a mean of a product, which
+        # sources of turbulence write to tell a mean from a fluctuation
+        # (u-bar, the overline of w'theta'); the calligraphic letter of the
+        # Obukhov length of the IFS; the bold of a vector (in the lists of
+        # MathJax, base package, and KaTeX on 2026-11-08; parsed by
+        # mathtext): an identifier ubar reads \bar{u}, Lcal \mathcal{L}.
+        r"\bar",
+        r"\overline",
+        r"\mathcal",
+        r"\mathbf",
+        # The arrow of a vector, as Large and Yeager (2004) write the wind
+        # difference |Delta U-arrow| (in the lists of MathJax, base package,
+        # and KaTeX, accents, on 2026-11-08; parsed by mathtext).
+        r"\vec",
     }
     | {"\\" + letter for letter in _GREEK}
 )
@@ -358,6 +376,39 @@ def parse_expression(
     except RecursionError:
         msg = "expression nested too deeply"
         raise ExpressionError(msg) from None
+
+
+def _split_equation(
+    source: str, limit: int | None = MAX_SOURCE_LENGTH
+) -> tuple[str, str] | None:
+    """The two members of an implicit equation, ``left == right``; None otherwise.
+
+    One ``==`` at the top of the expression, between its two members
+    (VIM 2.48, note 1: h(Y, X1, ..., Xn) = 0); neither chained nor inside a
+    member, where :func:`parse_expression` refuses any comparison but
+    those of a piecewise condition, and no ``==`` there. A source longer
+    than ``limit``, or not valid, is not read here: :func:`parse_expression`
+    says why.
+
+    Raises
+    ------
+    ExpressionError
+        If the ``==`` is chained.
+    """
+    if limit is not None and len(source) > limit:
+        return None
+    try:
+        node = ast.parse(source.strip(), mode="eval").body
+    except (SyntaxError, RecursionError):
+        return None
+    if not isinstance(node, ast.Compare) or not any(
+        isinstance(op, ast.Eq) for op in node.ops
+    ):
+        return None
+    if len(node.ops) != 1:
+        msg = "an implicit equation has one ==, between its two members"
+        raise ExpressionError(msg)
+    return ast.unparse(node.left), ast.unparse(node.comparators[0])
 
 
 def _build(node: ast.AST, symbols: Mapping[str, Any], number: Any) -> Any:
@@ -526,20 +577,50 @@ def _opaque_calls(
     """An expression whose calls of formulations stay opaque functions.
 
     ``calls`` gives, in order of appearance, the alias of each call and its
-    arguments in the order of the called formulation's inputs.
+    arguments in the order of the called formulation's inputs: inputs of
+    the calling formulation, or expressions of its names.
     """
+    text, names, opaque = _opaque(source, names, calls)
+    return parse_expression(text, names).xreplace(opaque)
+
+
+def _opaque_members(
+    source: str, names: Iterable[str], calls: Iterable[tuple[str, Iterable[str]]]
+) -> tuple[Any, Any]:
+    """The two members of an implicit equation, its calls kept opaque.
+
+    As :func:`_opaque_calls`, for ``left == right``; ``names`` include the
+    unknown, which an argument may hold.
+
+    Raises
+    ------
+    ExpressionError
+        If ``source`` is not an implicit equation.
+    """
+    text, names, opaque = _opaque(source, names, calls)
+    members = _split_equation(text, limit=None)
+    if members is None:
+        msg = "expected an implicit equation, left == right"
+        raise ExpressionError(msg)
+    left, right = (parse_expression(m, names).xreplace(opaque) for m in members)
+    return left, right
+
+
+def _opaque(
+    source: str, names: Iterable[str], calls: Iterable[tuple[str, Iterable[str]]]
+) -> tuple[str, list[str], dict[Any, Any]]:
+    """The source with placeholders, the names to parse it, their functions."""
+    known = list(names)
     pairs = [(alias, tuple(arguments)) for alias, arguments in calls]
     text, found = _call_sites(source, {alias for alias, _ in pairs})
     placeholders = [f"_call_{i}" for i in range(len(found))]
-    expr = parse_expression(text, [*names, *placeholders])
-    return expr.xreplace(
-        {
-            sympy.Symbol(name, real=True): sympy.Function(alias)(
-                *(sympy.Symbol(a, real=True) for a in arguments)
-            )
-            for name, (alias, arguments) in zip(placeholders, pairs, strict=True)
-        }
-    )
+    opaque = {
+        sympy.Symbol(name, real=True): sympy.Function(alias)(
+            *(parse_expression(a, known) for a in arguments)
+        )
+        for name, (alias, arguments) in zip(placeholders, pairs, strict=True)
+    }
+    return text, [*known, *placeholders], opaque
 
 
 def _variants(expr: Any) -> list[Any]:
@@ -558,14 +639,19 @@ def _variants(expr: Any) -> list[Any]:
 
 
 def _relations(expr: Any) -> list[Any]:
-    """The comparisons of the conditions of the piecewise definitions."""
+    """The comparisons of the conditions of the piecewise definitions.
+
+    Those with 0 are left out: 0 has every dimension, so that ``Q_0v > 0``
+    compares a flux with no unit to match, as a member 0 of an implicit
+    equation has every unit.
+    """
     found = []
     for node in sympy.preorder_traversal(expr):
         if isinstance(node, sympy.Piecewise):
             for _, condition in node.args:
                 is_chain = isinstance(condition, sympy.And)
                 found += list(condition.args) if is_chain else [condition]
-    return found
+    return [r for r in found if not (r.lhs.is_zero or r.rhs.is_zero)]
 
 
 def _condition(node: ast.expr, symbols: Mapping[str, Any], number: Any) -> Any:
@@ -672,8 +758,9 @@ def upright_symbol(identifier: str) -> str:
     abbreviation (``RH`` gives ``\\mathrm{RH}``, never a product R H). A
     running index (x_i) needs a notation. The result stays within
     :data:`LATEX_COMMANDS`: a name SymPy would write with another command
-    (``Tbar`` as ``\\bar{T}``, ``hbar``, ``ell``) is written upright as
-    it is spelt (``\\mathrm{Tbar}``).
+    (``hbar``, ``ell``, ``ubold``) is written upright as it is spelt
+    (``\\mathrm{hbar}``), while ``xhat`` reads ``\\hat{x}`` and ``Tbar``
+    ``\\bar{T}``.
 
     Parameters
     ----------
@@ -729,7 +816,7 @@ def to_latex(
         the symbols of its notations against :data:`LATEX_COMMANDS`).
         Identifiers not listed keep SymPy's default rendering, or
         :func:`upright_symbol` if ``upright``; a default rendering that
-        would use another command (``Tbar`` as ``\\bar{T}``) is replaced
+        would use another command (``hbar`` as ``\\hbar``) is replaced
         by :func:`upright_symbol`.
     mul_symbol : {None, "times", "dot", "ldot"}, optional
         Multiplication sign, passed to SymPy's printer: ``None`` writes
@@ -805,7 +892,9 @@ def compile_numeric(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]
     return _lambdify(expr, arguments)
 
 
-@lru_cache(maxsize=256)
+# A catalog compiles some 1600 expressions as it loads: a smaller cache
+# would evict them before a second catalog, or a second check, asks again.
+@lru_cache(maxsize=8192)
 def _lambdify(expr: Any, arguments: tuple[str, ...]) -> Callable[..., Any]:
     named = {s.name: s for s in expr.free_symbols}
     symbols = [named.get(name, sympy.Symbol(name, real=True)) for name in arguments]

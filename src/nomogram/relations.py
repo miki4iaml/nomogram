@@ -200,21 +200,36 @@ def _canonical(formulation: Formulation, *, keep_coefficients: bool) -> str:
     does not depend on the identifiers chosen by the source.
     """
     expr = _numbers(formulation, keep_coefficients=keep_coefficients)
+    # The residual of an implicit equation, of either sign: a == b and
+    # b == a are one equation. Its unknown is named alike in every entry.
+    writings = [expr]
+    base: dict[Any, Any] = {}
+    if formulation.implicit:
+        writings.append(sympy.expand(-expr))
+        base[sympy.Symbol(formulation.output.identifier, real=True)] = sympy.Symbol("y")
     groups = _input_groups(formulation)
     texts: list[str] = []
     for orders in itertools.product(
         *(itertools.permutations(groups[k]) for k in sorted(groups))
     ):
-        renaming = {}
+        renaming = dict(base)
         for index, name in enumerate(n for order in orders for n in order):
             renaming[sympy.Symbol(name, real=True)] = sympy.Symbol(f"x{index}")
-        texts.append(str(sympy.srepr(expr.xreplace(renaming))))
+        texts += [str(sympy.srepr(w.xreplace(renaming))) for w in writings]
     return _head(formulation, keep_coefficients=keep_coefficients) + "|" + min(texts)
+
+
+def _expression(formulation: Formulation) -> Any:
+    """The expression, or the residual left - right of an implicit equation."""
+    if not formulation.implicit:
+        return formulation.sympy_expression
+    left, right = formulation.equation_members
+    return sympy.expand(left - right)
 
 
 def _numbers(formulation: Formulation, *, keep_coefficients: bool) -> Any:
     """The expression, its coefficients and constants as exact rationals or ``c``."""
-    expr = formulation.sympy_expression
+    expr = _expression(formulation)
     if keep_coefficients:
         pairs = [(c.identifier, c.value) for c in formulation.coefficients]
         pairs += [(k.identifier, k.value) for k in formulation.constants]
@@ -241,9 +256,15 @@ def _shape(formulation: Formulation) -> Any:
     compared.
     """
     groups = _input_groups(formulation)
-    function = compile_numeric(formulation.sympy_expression, formulation.names)
+    names = formulation.names
     fixed = [c.value for c in formulation.coefficients]
     fixed += [float(k.value) for k in formulation.constants]
+    if formulation.implicit:
+        # The residual at a probe value of the unknown, whose sign depends
+        # on the order of the members.
+        names = (*names, formulation.output.identifier)
+        fixed.append(1.37)
+    function = compile_numeric(_expression(formulation), names)
     position = {v.identifier: i for i, v in enumerate(formulation.inputs)}
     values = []
     with np.errstate(all="ignore"):
@@ -255,10 +276,12 @@ def _shape(formulation: Formulation) -> Any:
                 for rank, name in enumerate(order):
                     arguments[position[name]] = 250.0 + 10.0 * (rank + 1) + 3.0 * index
             try:
-                value = float(function(*arguments, *fixed))
+                raw = complex(function(*arguments, *fixed))
             except (ArithmeticError, TypeError, ValueError):
-                value = float("nan")
-            values.append(value)
+                raw = complex("nan")
+            # Not real at the probe values (a root of a negative number): NaN.
+            value = raw.real if raw.imag == 0 else float("nan")
+            values.append(abs(value) if formulation.implicit else value)
     return np.sort(np.array(values))
 
 
@@ -300,6 +323,10 @@ def _head(formulation: Formulation, *, keep_coefficients: bool = True) -> str:
         formulation.output.unit,
         str(formulation.fixed_units),
     ]
+    if formulation.implicit:
+        # Marked on implicit equations only: explicit signatures, which the
+        # registry of verdicts is keyed by, stay as they were.
+        parts.append("implicit")
     parts += [
         f"{kind} {unit} x{len(groups[(kind, unit)])}" for kind, unit in sorted(groups)
     ]
@@ -1214,8 +1241,11 @@ def _valid_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
     a side nothing bounds.
     """
     extent = dict(_stated_extent(formulation))
+    inputs = {v.identifier for v in formulation.inputs}
     for domain in formulation.physical_domains:
         for name, (low, high) in domain.bounds.items():
+            if name not in inputs:
+                continue  # a bound on the output
             old_low, old_high = extent.get(name, (-math.inf, math.inf))
             extent[name] = (max(old_low, low), min(old_high, high))
     return extent
@@ -1294,18 +1324,21 @@ def _stated_extent(formulation: Formulation) -> dict[str, tuple[float, float]]:
 
     Domains of one citation apply together, citations combine by union: the
     extent is the smallest interval holding that union, infinite on a side
-    a citation leaves open.
+    a citation leaves open. Bounds on the output are left aside, and a
+    citation that bounds only the output does not take part.
     """
+    inputs = {v.identifier for v in formulation.inputs}
     boxes = []
     for citation in formulation.citations:
-        if not citation.domains:
-            continue
         box: dict[str, tuple[float, float]] = {}
         for domain in citation.domains:
             for name, (low, high) in domain.bounds.items():
+                if name not in inputs:
+                    continue
                 old_low, old_high = box.get(name, (-math.inf, math.inf))
                 box[name] = (max(old_low, low), min(old_high, high))
-        boxes.append(box)
+        if box:
+            boxes.append(box)
     names = {name for box in boxes for name in box}
     whole = (-math.inf, math.inf)
     return {
@@ -1333,6 +1366,8 @@ def _beyond_parts(formulation: Formulation) -> list[str]:
     for part in formulation.parts:
         key = part.formulation.key
         for name, (low, high) in _stated_extent(part.formulation).items():
+            if name in part.arguments:
+                continue  # applied to the value of the expression passed
             identifier = part.rename.get(name, name)
             if identifier not in inputs:
                 lines.append(
