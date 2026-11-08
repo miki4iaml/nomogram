@@ -998,6 +998,50 @@ def _check_sums(key: str, expr: Any, unit_of: Callable[[Any], Any]) -> None:
                 raise DimensionError(msg)
 
 
+#: Functions of a pure number: the catalog's exp, ln, log10, sin, cos,
+#: atan and tanh (log10 is a quotient of logarithms in SymPy).
+_FUNCTIONS_OF_PURE_NUMBERS = (
+    sympy.exp,
+    sympy.log,
+    sympy.sin,
+    sympy.cos,
+    sympy.atan,
+    sympy.tanh,
+)
+
+
+def _check_function_arguments(
+    key: str, expr: Any, unit_of: Callable[[Any], Any]
+) -> None:
+    """Refuse a function of a pure number whose units leave a factor.
+
+    p/p_0, with p in hPa and p_0 in Pa, is a pure number worth 100 times
+    the quotient of their numbers, which the numeric function takes the
+    logarithm of: ln(1000 hPa / 100000 Pa) would give -4.6, not 0. A
+    power keeps such a factor in the unit of its result, which the factor
+    of the output converts; a function loses it.
+
+    Raises
+    ------
+    DimensionError
+        At the first such argument.
+    """
+    from nomogram.dimensions import DimensionError
+
+    for node in sympy.preorder_traversal(expr):
+        if not isinstance(node, _FUNCTIONS_OF_PURE_NUMBERS):
+            continue
+        unit = unit_of(node.args[0])
+        factor = Q_(1.0, unit).to("dimensionless").magnitude
+        if factor != 1.0:
+            msg = (
+                f"{key}: {node} takes {node.args[0]} in {unit:~P}, worth "
+                f"{factor:g} times its numbers: write the quantities of the "
+                "argument in units whose ratio is 1"
+            )
+            raise DimensionError(msg)
+
+
 @dataclass(frozen=True)
 class Coefficient:
     """An empirical coefficient of a formulation (the A, B, C of Magnus).
@@ -1621,6 +1665,7 @@ class Formulation:
             if self._mixed_units:
                 for variant in variants:
                     _check_sums(self.key, variant, unit_of)
+                    _check_function_arguments(self.key, variant, unit_of)
             units.append(found[0])
         if len(units) < 2:
             return 1.0
@@ -1848,6 +1893,7 @@ class Formulation:
         if self._mixed_units:
             for variant in variants:
                 _check_sums(self.key, variant, unit_of)
+                _check_function_arguments(self.key, variant, unit_of)
         return factors.pop()
 
     def latex(self, notation: Notation | None = None, **options: Any) -> str:

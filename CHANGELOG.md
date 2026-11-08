@@ -158,7 +158,24 @@ and this project adheres to
   argument. `Part.arguments` holds the expressions passed. The guide
   says when to compose and when to call ("Composing or calling").
 
+- The marks authors put on symbols, in notations and in the rendering of
+  identifiers: the bar of a mean and the overline of a mean of a
+  product, which sources of turbulence write to tell a mean from a
+  fluctuation, a calligraphic letter and the bold of a vector (`\bar`,
+  `\overline`, `\mathcal`, `\mathbf`, checked in the lists of MathJax,
+  KaTeX and mathtext; `ubar` reads ū, `Lcal` 𝓛). The drag coefficient of
+  Businger (1985) is written with his mean wind, (ū − u_s), the Obukhov
+  length of the IFS is 𝓛, the bulk Richardson number of Beljaars (1992)
+  has his |**U**₁|, and citations without a notation now carry that of
+  their source (the IFS CY50R1, Beljaars equations 71 and 98, the AMS
+  Glossary). The guide says how a note writes these marks in plain text.
+
 ### Changed
+
+- A symbol of a notation that adds or subtracts is written in
+  parentheses (`\left(\bar{u} - u_s\right)`): printed as given, it would
+  be misread in a product or under a power. The catalog refuses it
+  otherwise.
 
 - The log-linear gradient function 1 + 5 z/L of the IFS for stable
   conditions, bounded by the range Beljaars (1992) states, 0 to 0.5, is
@@ -193,6 +210,17 @@ and this project adheres to
   dimension is refused when the catalog loads: the numbers were added,
   and 1500 Pa plus 15 hPa gave 1515 Pa. No formulation of the catalog
   did so.
+- Likewise, a quantity equation whose function (exp, ln, log10, sin,
+  cos, atan, tanh) takes a pure number in units that leave a factor is
+  refused: the numeric function took the function of the numbers, and
+  ln(1000 hPa / 100000 Pa) gave −4.6, not 0. No formulation of the
+  catalog did so (297 arguments checked).
+- Equation numbers and pages read again on the sources: the evaporation
+  duct height of Paulus (1989) in unstable conditions is his equation
+  A-14, not A-15, with B from A-15 and ψ from A-16, and A-14 writes
+  4a/L′ where step 5, which nomogram follows, writes 4β/L′; equations
+  3.11, 3.15 and 3.23 to 3.25 of part VII of the IFS documentation
+  (CY50R1) are on pages 15, 16 and 19.
 - `docs/security-and-compliance.md`: the attestations PyPI shows are
   those of version 0.6.0, checked after its publication.
 - The stable profile functions of the ECMWF IFS (equation 3.24) carry the

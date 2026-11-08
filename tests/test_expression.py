@@ -301,6 +301,10 @@ def test_latex_power_of_a_decimal_logarithm() -> None:
         ("x__max", r"x^{\mathrm{max}}"),
         ("xhat", r"\hat{x}"),
         ("alphahat", r"\hat{\alpha}"),
+        # The bar of a mean, the calligraphic letter of the IFS.
+        ("Tbar", r"\bar{T}"),
+        ("thetabar", r"\bar{\theta}"),
+        ("Lcal", r"\mathcal{L}"),
     ],
 )
 def test_upright_symbol_follows_iso_80000_2(identifier: str, expected: str) -> None:
@@ -319,10 +323,10 @@ def test_to_latex_passes_typography_to_sympy() -> None:
     ("source", "names", "default", "upright"),
     [
         (
-            "C * exp(Tbar)",
-            ["C", "Tbar"],
-            r"C \exp\left(\mathrm{Tbar}\right)",
-            r"C \exp\left(\mathrm{Tbar}\right)",
+            "C * exp(ubold)",
+            ["C", "ubold"],
+            r"C \exp\left(\mathrm{ubold}\right)",
+            r"C \exp\left(\mathrm{ubold}\right)",
         ),
         ("k * ell", ["k", "ell"], r"\mathrm{ell} k", r"\mathrm{ell} k"),
         ("k * hbar", ["k", "hbar"], r"\mathrm{hbar} k", r"\mathrm{hbar} k"),

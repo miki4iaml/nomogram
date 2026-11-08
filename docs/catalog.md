@@ -631,7 +631,14 @@ states:
 - `equation`: the equation number in the source, as printed;
 - `notation`: the symbols the source uses, coefficients included, as a
   table identifier to LaTeX (`{ C = "a", A = "b" }`), or the key of a
-  `[notations]` convention (`"wmo"`);
+  `[notations]` convention (`"wmo"`). The marks a source puts on a symbol
+  are kept: the bar of a mean and the overline of a mean of a product,
+  which sources of turbulence write to tell a mean from a fluctuation,
+  the hat of an estimate, a calligraphic letter (`L = '\mathcal{L}'`). A
+  symbol is printed as given: one that adds or subtracts is written in
+  parentheses, so that a product or a power keeps it whole
+  (`U = '\left(\bar{u} - u_s\right)'`). A note, in plain text, writes the
+  marks `u-bar` and `overline(w'theta')`;
 - `units`: units the source states for coefficients
   (`{ T_c = "K", p_c = "PA" }`);
 - `scales`: conventional scales the source states for inputs

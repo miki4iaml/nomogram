@@ -741,6 +741,31 @@ def _check_symbols(where: str, symbols: Any) -> None:
                 f"{', '.join(sorted(unknown))}"
             )
             raise CatalogError(msg)
+        if _top_level_sum(tex):
+            # A symbol is printed as given: in a product or under a power,
+            # u-bar - u_s squared would read u-bar - u_s^2.
+            msg = (
+                f"{where}.{identifier}: {tex!r} writes a sum or a difference; "
+                r"write it in parentheses, \left(...\right)"
+            )
+            raise CatalogError(msg)
+
+
+def _top_level_sum(tex: str) -> bool:
+    """Whether a LaTeX symbol adds or subtracts outside braces and parentheses.
+
+    A leading sign is no difference (``-x``).
+    """
+    depth = 0
+    text = tex.replace(r"\left(", "(").replace(r"\right)", ")")
+    for i, char in enumerate(text):
+        if char in "({[":
+            depth += 1
+        elif char in ")}]":
+            depth -= 1
+        elif char in "+-" and depth == 0 and text[:i].strip():
+            return True
+    return False
 
 
 #: What a composed formulation takes from its parts, never written.
