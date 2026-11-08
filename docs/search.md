@@ -108,6 +108,11 @@ formulation's variables, which it takes from its parts. Results come in
 catalog order. A piecewise definition adds nothing to index or link: its
 conditions use the identifiers of its expression (an input, coefficients,
 constants), already found as variables, coefficients and constants.
+A quantity kind is found by its name, label, CF standard names and
+links, and by its origin: `search("provisional")` finds the provisional
+kinds, and the number of the pull request adding one to QUDT finds it
+(`search("pull", "1612")`); the pull request itself is read on the kind
+(`Catalog.kinds[name].pending`).
 Nor does an expression passed to a formulation called (`psi_H(zeta=z_t /
 L)`): `uses` links the caller to the formulation called, whose input
 does not become one of the caller's, so that `search(input=...)` does

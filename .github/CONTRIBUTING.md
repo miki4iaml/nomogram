@@ -225,7 +225,11 @@ For the maintainer, in this order:
    (`scripts/extract_semantics.py`), each recorded with its version;
    patch versions keep the extract. A kind or a unit that a new QUDT
    release defines replaces the local one in the same pull request,
-   with a CHANGELOG entry.
+   with a CHANGELOG entry. The same pull request checks the pull request
+   of each provisional kind (`LOCAL_KINDS`): merged and released, QUDT's
+   kind replaces it, under QUDT's name and definition, with a "Changed"
+   entry naming both; closed without merge, the kind is removed or
+   reworked; still open, it stays.
 2. Pull request against `develop` (squash): version bump in
    `pyproject.toml` and `CITATION.cff`, `[Unreleased]` section of
    `CHANGELOG.md` turned into `[x.y.z] - date`, titled

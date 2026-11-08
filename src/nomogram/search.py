@@ -459,6 +459,8 @@ def _records(catalog: Catalog) -> list[_Record]:
         )
         if kind.iri:
             text = _join(text, kind.iri.rsplit("/", 1)[-1])
+        if kind.pending is not None:
+            text = _join(text, kind.pending.pull_request)
         records.append(
             _Record(
                 Entry("kinds", name, kind.label, kind), words(text), {}, kinds=(name,)

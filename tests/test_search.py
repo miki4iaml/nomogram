@@ -67,6 +67,10 @@ def test_terms_are_wildcards_matched_against_words() -> None:
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
+    # A provisional kind, by its origin and the pull request adding it to QUDT.
+    provisional = CATALOG.search("provisional", section="kinds")
+    assert "kinds.KinematicHeatFlux" in provisional.refs
+    assert refs(CATALOG.search("pull", "1612")) == {"kinds.KinematicHeatFlux"}
 
 
 def test_every_section_is_searchable() -> None:

@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **Provisional quantity kinds**: a kind with no QUDT kind to specialize
+  is admitted only while a pull request adding it to QUDT is open, and
+  records it (`QuantityKind.pending`, `PendingPullRequest`, origin
+  `provisional`); each minor version checks its state. The first is
+  `KinematicHeatFlux` (K m/s), pending qudt/qudt-public-repo#1612. QUDT
+  may adopt such a kind under another name: a personal catalog naming it
+  then needs the new name, which the changelog gives. The search finds
+  them by their origin and the number of their pull request, and the
+  indicators of the design goals count them.
+
 - Guide [The evaporation duct](docs/evaporation-duct.md): the catalog
   chained from shipboard measurements (the test data of COARE 3.6, an
   extract under its MIT licence) to the height of the duct, through the

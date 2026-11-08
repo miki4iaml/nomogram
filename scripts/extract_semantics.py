@@ -81,6 +81,27 @@ class KindSpec(NamedTuple):
     bounds: tuple[float | None, float | None, str, str] | None = None
 
 
+class LocalKind(NamedTuple):
+    """A quantity kind absent from QUDT, with no QUDT kind to specialize.
+
+    Provisional (AGENTS.md, design goal 5): admitted only while a pull
+    request adding it to QUDT is open, written as that pull request writes
+    it. Each extraction before a minor version checks its state
+    (CONTRIBUTING, Releasing): merged and released, QUDT's kind replaces it;
+    closed without merge, it is removed or reworked.
+    """
+
+    label: str
+    dimension_vector: str
+    scale_type: str
+    delta: bool
+    #: QUDT local names of its units.
+    units: tuple[str, ...]
+    #: The pull request adding it to QUDT, and the date it was opened.
+    pull_request: str
+    opened: str
+
+
 #: The criterion of bounds that only exclude negative values.
 _NEVER_NEGATIVE = "A {what}, never negative by its definition."
 
@@ -475,6 +496,25 @@ class LocalUnit(NamedTuple):
     kinds: tuple[str, ...]
 
 
+#: Provisional quantity kinds, by the local name the pull request adding
+#: them to QUDT gives them, with the reason.
+LOCAL_KINDS: dict[str, LocalKind] = {
+    # A heat flux density over rho c_p, in K m/s: the flux of the Obukhov
+    # length and of the convective velocity scale w* of the IFS (CY49R1,
+    # Part IV, equations 3.10, 3.19 and 3.20). No QUDT kind has its
+    # dimension; QUDT 3.5.3 files unit:K-M-PER-SEC under
+    # quantitykind:Unknown (qudt/qudt-public-repo#1601, #1091).
+    "KinematicHeatFlux": LocalKind(
+        label="Kinematic Heat Flux",
+        dimension_vector="A0E0L1I0M0H1T-1D0",
+        scale_type="ratio",
+        delta=False,
+        units=("K-M-PER-SEC",),
+        pull_request="https://github.com/qudt/qudt-public-repo/pull/1612",
+        opened="2026-11-08",
+    ),
+}
+
 #: Units absent from QUDT, declared by nomogram, with the reason; written
 #: as QUDT writes its neighbours (PPM-PER-K, PERCENT-PER-M).
 LOCAL_UNITS: dict[str, LocalUnit] = {
@@ -558,6 +598,8 @@ UNITS: dict[str, str] = {
     # Paulus (1989), NOSC TD 1596: the wind speed of the evaporation duct
     # height, in knots.
     "KN": "knot",
+    # The kinematic heat flux, a provisional kind (LOCAL_KINDS).
+    "K-M-PER-SEC": "K*m/s",
 }
 
 #: Date the links of a unit added after the extraction date of the
@@ -852,6 +894,39 @@ def extract_kinds(
     return kinds
 
 
+def provisional_kinds(
+    graph: Graph, units: dict[str, dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """The provisional kinds of :data:`LOCAL_KINDS`, with their pull request.
+
+    Refused once QUDT defines one: its kind then replaces the provisional
+    one, with a CHANGELOG entry (CONTRIBUTING, Releasing).
+    """
+    kinds: dict[str, dict[str, Any]] = {}
+    for name, spec in LOCAL_KINDS.items():
+        if (QK[name], None, None) in graph:
+            msg = f"{name}: QUDT defines it now; replace the provisional kind"
+            raise ValueError(msg)
+        missing = sorted(set(spec.units) - set(units))
+        if missing:
+            msg = f"{name}: units not extracted: {', '.join(missing)}"
+            raise ValueError(msg)
+        kinds[name] = {
+            "bounds": None,
+            "iri": None,
+            "label": spec.label,
+            "dimension_vector": spec.dimension_vector,
+            "specialization_of": None,
+            "scale_type": spec.scale_type,
+            "delta": spec.delta,
+            "applicable_units": sorted(spec.units),
+            "added_units": sorted(spec.units),
+            "matches": [],
+            "pending": {"pull_request": spec.pull_request, "opened": spec.opened},
+        }
+    return kinds
+
+
 def extract_cf(path: Path, names: set[str]) -> tuple[str, dict[str, dict[str, str]]]:
     """Extract the selected standard names and the version of a CF table."""
     root = ET.parse(path).getroot()
@@ -889,6 +964,7 @@ def extract(
     kinds_graph.parse(kinds_path, format="turtle")
     units = extract_units(units_graph, date)
     kinds = extract_kinds(kinds_graph, units, unit_kinds(units_graph), date)
+    kinds.update(provisional_kinds(kinds_graph, units))
     cf_names = {n for spec in KINDS.values() for n, _ in spec.cf_standard_names}
     cf_names |= set(SCALE_CF_NAMES) | set(LOCAL_KIND_CF_NAMES)
     cf_version, cf = extract_cf(cf_path, cf_names)

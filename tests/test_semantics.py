@@ -243,3 +243,36 @@ def test_invalid_dimension_vector_is_rejected() -> None:
     assert isinstance(kind, QuantityKind)
     with pytest.raises(ValueError, match="invalid QUDT dimension vector"):
         _ = kind.dimensions
+
+
+def test_a_provisional_kind_waits_for_its_pull_request_in_qudt() -> None:
+    kind = CATALOG.quantity_kinds["KinematicHeatFlux"]
+    assert kind.origin == "provisional"
+    assert kind.iri is None
+    assert kind.specialization_of is None
+    assert kind.pending is not None
+    assert kind.pending.pull_request.endswith("/qudt-public-repo/pull/1612")
+    assert kind.pending.opened == datetime.date(2026, 11, 8)
+    assert kind.applicable_units == ("K-M-PER-SEC",)
+    assert Q_(1.0, CATALOG.units["K-M-PER-SEC"].pint).to("K*m/s").magnitude == 1.0
+    assert all(
+        k.pending is None for k in CATALOG.quantity_kinds.values() if k.iri is not None
+    )
+
+
+def test_a_kind_absent_from_qudt_without_pull_request_is_refused() -> None:
+    from nomogram.semantics import _kind
+
+    data: dict[str, object] = {
+        "iri": None,
+        "label": "Nameless",
+        "dimension_vector": "A0E0L0I0M0H0T0D1",
+        "specialization_of": None,
+        "scale_type": "ratio",
+        "delta": False,
+        "applicable_units": [],
+        "added_units": [],
+        "matches": [],
+    }
+    with pytest.raises(ValueError, match="pull request adding it to QUDT is open"):
+        _kind("Nameless", data)
