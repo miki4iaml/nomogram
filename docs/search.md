@@ -108,6 +108,10 @@ formulation's variables, which it takes from its parts. Results come in
 catalog order. A piecewise definition adds nothing to index or link: its
 conditions use the identifiers of its expression (an input, coefficients,
 constants), already found as variables, coefficients and constants.
+Nor does an expression passed to a formulation called (`psi_H(zeta=z_t /
+L)`): `uses` links the caller to the formulation called, whose input
+does not become one of the caller's, so that `search(input=...)` does
+not find the caller by the kind of that input.
 Nor does a validity domain, whether it bounds an input or the output: it
 is read on the formulation (`domains`), criterion included, and the
 formulation is found by its variables, the output a domain bounds among

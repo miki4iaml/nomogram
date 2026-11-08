@@ -563,16 +563,18 @@ def _opaque_calls(
     """An expression whose calls of formulations stay opaque functions.
 
     ``calls`` gives, in order of appearance, the alias of each call and its
-    arguments in the order of the called formulation's inputs.
+    arguments in the order of the called formulation's inputs: inputs of
+    the calling formulation, or expressions of its names.
     """
+    known = list(names)
     pairs = [(alias, tuple(arguments)) for alias, arguments in calls]
     text, found = _call_sites(source, {alias for alias, _ in pairs})
     placeholders = [f"_call_{i}" for i in range(len(found))]
-    expr = parse_expression(text, [*names, *placeholders])
+    expr = parse_expression(text, [*known, *placeholders])
     return expr.xreplace(
         {
             sympy.Symbol(name, real=True): sympy.Function(alias)(
-                *(sympy.Symbol(a, real=True) for a in arguments)
+                *(parse_expression(a, known) for a in arguments)
             )
             for name, (alias, arguments) in zip(placeholders, pairs, strict=True)
         }

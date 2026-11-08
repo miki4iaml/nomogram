@@ -1312,11 +1312,17 @@ class Part:
         by its own identifier: inputs bound (``bind``) or passed as
         arguments, and, for a formulation called, its coefficients and
         constants renamed.
+    arguments : mapping of str to str
+        For a formulation called, the expressions passed to its inputs, by
+        their identifiers (``{"zeta": "z_s / L"}``): expressions of the
+        inputs, coefficients and constants of the calling formulation,
+        substituted for those inputs.
     """
 
     formulation: Formulation
     computes: str | None
     rename: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    arguments: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)
@@ -1349,8 +1355,10 @@ class Call:
         The formulation called, with its own validity domains and sources.
     arguments : mapping of str to str
         For each of its inputs, by identifier and in the order of its
-        inputs, the input of the calling formulation passed to it
-        (``{"p": "p", "t": "t_d"}``).
+        inputs, what the calling formulation passes to it: one of its
+        inputs (``{"p": "p", "t": "t_d"}``), or an expression of its
+        inputs, coefficients and constants, as normalized text
+        (``{"zeta": "z_s / L"}``).
     """
 
     alias: str
@@ -2060,13 +2068,35 @@ class Formulation:
                 result = formulation._raw(arguments)
             else:
                 arguments = {
-                    v.identifier: values[part.rename.get(v.identifier, v.identifier)]
+                    v.identifier: (
+                        self._argument(part.arguments[v.identifier], values)
+                        if v.identifier in part.arguments
+                        else values[part.rename.get(v.identifier, v.identifier)]
+                    )
                     for v in formulation.inputs
                 }
                 result = computed[part.computes] = formulation._raw(arguments)
             given = {**arguments, formulation.output.identifier: result}
             outside = outside | formulation._outside(given, basis)
         return outside
+
+    @cached_property
+    def _argument_functions(self) -> Mapping[str, Callable[..., Any]]:
+        """The numeric function of each expression passed to a call."""
+        texts = {text for part in self.parts for text in part.arguments.values()}
+        return MappingProxyType(
+            {
+                text: compile_numeric(parse_expression(text, self.names), self.names)
+                for text in texts
+            }
+        )
+
+    def _argument(self, text: str, values: Mapping[str, Any]) -> Any:
+        """The value of an expression passed to a call, from the inputs."""
+        arguments: list[Any] = [values[v.identifier] for v in self.inputs]
+        arguments += [c.value for c in self.coefficients]
+        arguments += [k.value for k in self.constants]
+        return np.asarray(self._argument_functions[text](*arguments), dtype=float)
 
     def _outside_message(
         self, mask: Any, given: Mapping[str, Any], basis: Basis

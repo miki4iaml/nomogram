@@ -42,6 +42,7 @@ import numpy as np
 
 from nomogram.expression import (
     PIECEWISE,
+    ExpressionError,
     _pieces,
     compile_numeric,
     parse_expression,
@@ -325,8 +326,12 @@ def _closed_form_of_pieces(
     ]
     if len(nodes) != 1:
         return None
-    # The catalog checked that every condition bounds the input alone.
-    pieces = _pieces(nodes[0], [solve_for])
+    # The catalog checked that every condition bounds an input alone, but
+    # a formulation called may bound an expression passed to it.
+    try:
+        pieces = _pieces(nodes[0], [solve_for])
+    except ExpressionError:
+        return None
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {sympy.Symbol(name, real=True): value for name, value in pairs}
