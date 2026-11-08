@@ -1667,6 +1667,27 @@ equation = "3.27"
 notation = { Ri_b = 'Ri_{\mathrm{bulk}}', g_n = "g", U_n = "|U_n|", s_surf = 's_{\mathrm{surf}}', q_surf = 'q_{\mathrm{surf}}' }
 assumptions = ["Equation 3.26 expressed in terms of dry static energy (text above 3.27), with epsilon = R_vap/R_dry - 1."]
 
+[formulations.ecmwf_ifs_obukhov_length_from_bulk_richardson_number]
+label = "Obukhov length from the bulk Richardson number of the lowest model level, an implicit equation (IFS)"
+expression = "Ri_b == z_n / L * (ln((z_n + z_0M) / z_0H) - Psi_H(zeta=(z_n + z_0M) / L) + Psi_H(zeta=z_0H / L)) / (ln((z_n + z_0M) / z_0M) - Psi_M(zeta=(z_n + z_0M) / L) + Psi_M(zeta=z_0M / L))**2"
+calls = { Psi_M = "ecmwf_ifs_profile_function_momentum", Psi_H = "ecmwf_ifs_profile_function_heat" }
+fixed_units = false
+note = "Equation 3.25, which the IFS solves for zeta by Newton iterations from a first guess of the previous time step; solved here for the Obukhov length, which the arguments of the profile functions hold. The source writes the factor zeta without defining it there: z_n/L, the bulk Richardson number of equation 3.26 being taken at z_n, as Beljaars (1992) writes z_1/L (equation 99, beljaars1992_bulk_richardson_number_lowest_level). Neutral conditions, Ri_b = 0, have no finite root: NaN."
+output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" }
+inputs = [
+  { identifier = "Ri_b", kind = "BulkRichardsonNumber", unit = "UNITLESS", description = "Bulk Richardson number of the lowest model level" },
+  { identifier = "z_n", kind = "Height", unit = "M", description = "Height of the lowest model level" },
+  { identifier = "z_0M", kind = "RoughnessLengthForMomentum", unit = "M", description = "Roughness length for momentum" },
+  { identifier = "z_0H", kind = "RoughnessLengthForHeat", unit = "M", description = "Roughness length for heat" },
+]
+keywords = ["Obukhov length", "Richardson number", "implicit equation", "Monin-Obukhov", "IFS"]
+
+[[formulations.ecmwf_ifs_obukhov_length_from_bulk_richardson_number.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.25"
+note = "p. 49."
+notation = { L = '\mathcal{L}', Ri_b = 'Ri_{\mathrm{bulk}}', z_0M = 'z_{0\mathrm{M}}', z_0H = 'z_{0\mathrm{H}}' }
+
 # --- Roughness lengths ------------------------------------------------
 
 [formulations.ecmwf_ifs_roughness_length_momentum_sea]

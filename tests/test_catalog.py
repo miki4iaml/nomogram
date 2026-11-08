@@ -641,6 +641,15 @@ def test_every_declared_unit_is_listed_with_its_reason() -> None:
             )
             for name in ("alpha", "kappa")
         },
+        # The duct heights of Fairall et al. (1978) and Frederickson et al.
+        # (1994): 0.125 m-1, a difference of gradients of N written as a
+        # number, alone fixes the units of 7.2 and 1.3 with those of alpha_T
+        # and kappa, or of k, all in one product.
+        ("fairall1978_evaporation_duct_height", "alpha_T"): "stated",
+        ("fairall1978_evaporation_duct_height", "kappa"): "stated",
+        ("fairall1978_evaporation_duct_height", "c"): "added",
+        ("frederickson1994_evaporation_duct_height", "k"): "added",
+        ("frederickson1994_evaporation_duct_height", "c"): "added",
         **{
             (f"large_yeager2004_{key}", "z_10"): "stated"
             for key in (

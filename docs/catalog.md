@@ -258,15 +258,32 @@ criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind
   validity domain: it narrows what the domains and the kind allow, never
   widens it, except the sweep of an open end. An explicit formulation
   refuses it.
+- **Calls**: an implicit equation may call explicit formulations
+  (`calls`, see [Formulations calling others](#formulations-calling-others))
+  and pass its unknown in their arguments. Fairall et al. (1978) write
+  the evaporation duct height Z\* = −(7.2 q\* − 1.3 T\*) / (α_T κ 0.125)
+  φ_T(Z\*/L), the height inside the gradient function
+  (`fairall1978_evaporation_duct_height`):
+
+  ```toml
+  expression = "z_s == -(c_q * q_s - c_T * T_s) / (alpha_T * kappa * c) * phi_T(zeta=z_s / L)"
+  calls = { phi_T = "fairall1978_gradient_function_heat" }
+  ```
+
+  The root is sought on the equation where each call is replaced by the
+  expression called (`equation_members`); the domains of a formulation
+  called apply to the argument computed from the root, as for any call
+  (`outside=`).
 - **Rendering**: the two members joined by `=`, in the notation of each
-  citation, their terms in the order SymPy prints them.
+  citation, their terms in the order SymPy prints them, each call kept
+  as written (`written_members`).
 - **Duplicates**: two entries of one equation, members swapped or the
   unknown named otherwise, are refused at load, as for explicit
   formulations.
 - **Limits**: one unknown, the output. An implicit equation is solved
-  for its output, not inverted (`invert` refuses it); it calls no
-  formulation, is no part of a composition, a call or a branch, and
-  takes no part in a relation of equivalence or proportionality.
+  for its output, not inverted (`invert` refuses it); it is no part of
+  a composition, a call or a branch, and takes no part in a relation of
+  equivalence or proportionality.
   `compare`, `partial` and `compose` pass no `search=`: an implicit
   equation compared there needs its root selected by a physical domain
   or its kind. Roots closer than the grid's step (a factor of 10^(1/16)
@@ -277,7 +294,8 @@ criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind
   members: some 40 µs a point for KEYPS on a laptop, over a thousand
   times an explicit form, which counts in a dense plot.
 - `Formulation.implicit` tells an implicit equation, `equation_members`
-  gives its two members; `search(implicit=True)` finds them, and the
+  gives its two members, `written_members` the same with each call kept
+  as written; `search(implicit=True)` finds them, and the
   indicators count those whose unknown a physical domain or its kind
   bounds.
 

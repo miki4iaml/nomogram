@@ -16,7 +16,7 @@ import pytest
 
 from nomogram import _roots
 from nomogram.catalog import Catalog, CatalogError, catalog, load_catalog
-from nomogram.expression import ExpressionError, _split_equation
+from nomogram.expression import ExpressionError, _opaque_members, _split_equation
 from nomogram.inversion import InversionError, invert
 from nomogram.model import OutOfDomainError, RootWarning, Variable
 from nomogram.units import Q_
@@ -375,28 +375,76 @@ def test_an_explicit_formulation_has_no_members_and_an_implicit_one_no_expressio
         _ = KEYPS.sympy_expression
 
 
-def test_an_implicit_equation_calls_no_formulation() -> None:
-    called = """
+CALLED = """
 [formulations.g]
 label = "g"
 expression = "b * u"
 fixed_units = true
-citations = [{ reference = "src" }]
 output = { identifier = "v", kind = "DimensionlessRatio", unit = "UNITLESS", description = "v" }
 inputs = [{ identifier = "u", kind = "DimensionlessRatio", unit = "UNITLESS", description = "u" }]
 coefficients = { b = 3.0 }
 
+[[formulations.g.citations]]
+reference = "src"
+
+[[formulations.g.citations.domains]]
+bounds = { u = [0.0, 1.0] }
+
 [formulations.k]
 label = "k"
-expression = "y + d(x) == x"
+expression = "EXPRESSION"
 calls = { d = "g" }
 fixed_units = true
 citations = [{ reference = "src" }]
 output = { identifier = "y", kind = "DimensionlessRatio", unit = "UNITLESS", description = "y" }
 inputs = [{ identifier = "x", kind = "DimensionlessRatio", unit = "UNITLESS", description = "x" }]
 """
-    with pytest.raises(CatalogError, match="an implicit equation calls no formulation"):
-        load_catalog([SOURCE + called])
+
+
+def calling(expression: str) -> Catalog:
+    """g, and k written with ``expression``, which calls g as d."""
+    return load_catalog([SOURCE + CALLED.replace("EXPRESSION", expression)])
+
+
+def test_an_implicit_equation_passes_its_unknown_to_a_call() -> None:
+    # y = x - 3 y, hence y = x / 4: the unknown reaches g through u.
+    loaded = calling("y == x - d(u=y)")
+    k = loaded.formulations["k"]
+    assert k.implicit
+    assert k.evaluate(x=Q_(2.0, ONE)).magnitude == pytest.approx(0.5, rel=1e-14)
+    left, right = k.written_members
+    assert str(left) == "y"
+    assert str(right) == "x - d(y)"
+    assert k.render().latex == r"y = x - d\left(y\right)"
+    assert "formulations.k" in loaded.used_by("formulations.g").refs
+    # Developed, the equation is the one solved: y == x - b*y.
+    assert str(k.equation_members[1]) == "-b__g*y + x"
+
+
+def test_members_as_written_belong_to_an_implicit_equation() -> None:
+    explicit = calling("x - d(u=x)").formulations["k"]
+    with pytest.raises(ExpressionError, match="an explicit formulation has no"):
+        _ = explicit.written_members
+    implicit = calling("y == x - d(u=y)").formulations["k"]
+    with pytest.raises(ExpressionError, match="no explicit expression of its output"):
+        _ = implicit.written_expression
+    with pytest.raises(ExpressionError, match="expected an implicit equation"):
+        _opaque_members("x + 1", ["x"], [])
+
+
+def test_the_domains_of_a_formulation_called_apply_at_the_root() -> None:
+    # x = 8 gives y = 2, which g receives outside its domain, [0, 1].
+    k = calling("y == x - d(u=y)").formulations["k"]
+    assert math.isnan(k.evaluate(x=Q_(8.0, ONE)).magnitude)
+    with pytest.warns(match="1 value\\(s\\) outside its stated domain"):
+        warned = k.evaluate(x=Q_(8.0, ONE), outside="warn")
+    assert warned.magnitude == pytest.approx(2.0, rel=1e-14)
+    assert k.evaluate(x=Q_(4.0, ONE)).magnitude == pytest.approx(1.0, rel=1e-14)
+
+
+def test_only_an_implicit_equation_passes_its_output_to_a_call() -> None:
+    with pytest.raises(CatalogError, match="the argument u is an expression of"):
+        calling("x - d(u=y)")
 
 
 def test_search_never_widens_the_physical_domains_and_inputs_keep_theirs() -> None:
@@ -720,19 +768,24 @@ inputs = [{ identifier = "x", kind = "DimensionlessRatio", unit = "UNITLESS", de
 
 
 def test_the_output_names_no_option_and_the_indicator_counts_keyps() -> None:
-    from nomogram.catalog import stats
+    from nomogram.catalog import _bounded_unknown, stats
 
     named = EQUATION.format(expression="search**3 + a * search == x").replace(
         'identifier = "y"', 'identifier = "search"'
     )
     with pytest.raises(CatalogError, match="search names an option of evaluate"):
         load_catalog([SOURCE + named])
-    count = sum(f.implicit for f in F.values())
+    implicit = [f for f in F.values() if f.implicit]
+    bounded = [f.key for f in implicit if _bounded_unknown(f)]
     line = (
         "  implicit equations with their unknown bounded by a physical domain"
-        f" or its kind: {count} of {count}"
+        f" or its kind: {len(bounded)} of {len(implicit)}"
     )
     assert line in stats(CATALOG).splitlines()
+    assert "businger1971_keyps" in bounded
+    # The Obukhov length of IFS 3.25 is bounded by neither: its root is
+    # unique, Ri_b(L) monotonic on either side of neutral.
+    assert "ecmwf_ifs_obukhov_length_from_bulk_richardson_number" not in bounded
 
 
 def test_an_approximation_of_an_implicit_equation_is_verified() -> None:

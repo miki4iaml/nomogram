@@ -404,7 +404,7 @@ class Rendering:
         """
         formulation = self.formulation
         if formulation.implicit:
-            members = formulation.equation_members
+            members = formulation.written_members
             left, right = (_tex(m, self._symbols, self.options) for m in members)
             return f"{left} = {right}"
         left = _identifier(formulation.output.identifier, self._symbols, self.options)
