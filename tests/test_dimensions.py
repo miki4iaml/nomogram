@@ -62,6 +62,13 @@ NEEDED = {
     # numbers, or 7.2 and 1.3 must carry the units.
     ("fairall1978_vertical_refractivity_gradient", "alpha_T"),
     ("fairall1978_vertical_refractivity_gradient", "kappa"),
+    # -(7.2 q_* - 1.3 T_*)/(alpha_T kappa 0.125) phi: the same product, and
+    # 0.125 m-1 or the numbers 7.2 and 1.3 must carry the units of N.
+    ("fairall1978_evaporation_duct_height", "alpha_T"),
+    ("fairall1978_evaporation_duct_height", "kappa"),
+    ("fairall1978_evaporation_duct_height", "c"),
+    ("frederickson1994_evaporation_duct_height", "k"),
+    ("frederickson1994_evaporation_duct_height", "c"),
 }
 
 
