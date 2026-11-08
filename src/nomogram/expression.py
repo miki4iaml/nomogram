@@ -576,19 +576,47 @@ def _opaque_calls(
     arguments in the order of the called formulation's inputs: inputs of
     the calling formulation, or expressions of its names.
     """
+    text, names, opaque = _opaque(source, names, calls)
+    return parse_expression(text, names).xreplace(opaque)
+
+
+def _opaque_members(
+    source: str, names: Iterable[str], calls: Iterable[tuple[str, Iterable[str]]]
+) -> tuple[Any, Any]:
+    """The two members of an implicit equation, its calls kept opaque.
+
+    As :func:`_opaque_calls`, for ``left == right``; ``names`` include the
+    unknown, which an argument may hold.
+
+    Raises
+    ------
+    ExpressionError
+        If ``source`` is not an implicit equation.
+    """
+    text, names, opaque = _opaque(source, names, calls)
+    members = _split_equation(text, limit=None)
+    if members is None:
+        msg = "expected an implicit equation, left == right"
+        raise ExpressionError(msg)
+    left, right = (parse_expression(m, names).xreplace(opaque) for m in members)
+    return left, right
+
+
+def _opaque(
+    source: str, names: Iterable[str], calls: Iterable[tuple[str, Iterable[str]]]
+) -> tuple[str, list[str], dict[Any, Any]]:
+    """The source with placeholders, the names to parse it, their functions."""
     known = list(names)
     pairs = [(alias, tuple(arguments)) for alias, arguments in calls]
     text, found = _call_sites(source, {alias for alias, _ in pairs})
     placeholders = [f"_call_{i}" for i in range(len(found))]
-    expr = parse_expression(text, [*known, *placeholders])
-    return expr.xreplace(
-        {
-            sympy.Symbol(name, real=True): sympy.Function(alias)(
-                *(parse_expression(a, known) for a in arguments)
-            )
-            for name, (alias, arguments) in zip(placeholders, pairs, strict=True)
-        }
-    )
+    opaque = {
+        sympy.Symbol(name, real=True): sympy.Function(alias)(
+            *(parse_expression(a, known) for a in arguments)
+        )
+        for name, (alias, arguments) in zip(placeholders, pairs, strict=True)
+    }
+    return text, [*known, *placeholders], opaque
 
 
 def _variants(expr: Any) -> list[Any]:

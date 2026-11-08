@@ -6,6 +6,7 @@ Holtslag and De Bruin, Beljaars and Holtslag, Webb, Businger (1985),
 COARE 3.6, and the relations between z/L and the Richardson numbers."""
 
 import math
+from typing import Any
 
 import numpy as np
 import pytest
@@ -13,7 +14,7 @@ import sympy
 
 from nomogram.catalog import catalog
 from nomogram.expression import compile_numeric
-from nomogram.model import Formulation
+from nomogram.model import Formulation, RootWarning
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -270,6 +271,43 @@ def test_the_bulk_richardson_number_from_z_over_l() -> None:
             z_0H=Q_(z_0h, "m"),
         )
         assert result.magnitude == pytest.approx(expected, rel=1e-12)
+
+
+def test_the_obukhov_length_from_the_bulk_richardson_number_of_the_ifs() -> None:
+    # Equation 3.25 written from L, then solved back for it, on either side
+    # of neutral and up to z/L = 100, one root each: no physical domain
+    # selects it. Ri_b = 0 has no finite root.
+    z_n, z_0m, z_0h = 10.0, 1e-4, 1e-5
+    lengths = np.array(
+        [-5.0, -50.0, -500.0, -5000.0, 5000.0, 500.0, 50.0, 10.0, 1.0, 0.1]
+    )
+    heat, momentum = (
+        "ecmwf_ifs_profile_function_heat",
+        "ecmwf_ifs_profile_function_momentum",
+    )
+    top = (z_n + z_0m) / lengths
+    numerator = (
+        np.log((z_n + z_0m) / z_0h)
+        - value(heat, zeta=top)
+        + value(heat, zeta=z_0h / lengths)
+    )
+    denominator = (
+        np.log((z_n + z_0m) / z_0m)
+        - value(momentum, zeta=top)
+        + value(momentum, zeta=z_0m / lengths)
+    )
+    richardson = z_n / lengths * numerator / denominator**2
+    implicit = F["ecmwf_ifs_obukhov_length_from_bulk_richardson_number"]
+    heights: dict[str, Any] = {
+        "z_n": Q_(z_n, "m"),
+        "z_0M": Q_(z_0m, "m"),
+        "z_0H": Q_(z_0h, "m"),
+    }
+    found = implicit.evaluate(Ri_b=Q_(richardson, ONE), **heights)
+    np.testing.assert_allclose(found.to("m").magnitude, lengths, rtol=1e-12)
+    with pytest.warns(RootWarning, match="1 with no root"):
+        neutral = implicit.evaluate(Ri_b=Q_(0.0, ONE), **heights)
+    assert math.isnan(neutral.magnitude)
 
 
 # --- Search ----------------------------------------------------------------------

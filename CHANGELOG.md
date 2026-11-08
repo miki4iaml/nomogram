@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **An implicit equation may call formulations**, and pass its unknown
+  in their arguments: the root is sought on the equation with each call
+  developed, and the domains of a formulation called apply to the
+  argument computed from the root. `Formulation.written_members` gives
+  the two members with each call kept as written, as rendered. A
+  formulation calling others may note assumptions (`assumptions`).
+- The evaporation duct heights of Fairall et al. (1978, equation 25) and
+  Frederickson et al. (1994, equation 3), implicit equations in z\*/L,
+  checked against 26 rows of table II-C of Fairall et al.; and the
+  Obukhov length from the bulk Richardson number of the lowest model
+  level of the IFS (equation 3.25), solved for L.
+
 - `evaporation-duct` family: the evaporation duct height of the
   Paulus-Jeske model (NOSC TD 1596, Paulus 1989), one formulation per
   step of its algorithm: the saturation vapour pressure and the potential

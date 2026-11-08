@@ -45,6 +45,7 @@ from nomogram.expression import (
     MAX_SOURCE_LENGTH,
     ExpressionError,
     _opaque_calls,
+    _opaque_members,
     _relations,
     _split_equation,
     _variants,
@@ -1557,6 +1558,14 @@ class Formulation:
         )
 
     @property
+    def _argument_names(self) -> tuple[str, ...]:
+        """The names an argument of a call may use: :attr:`names`, and the
+        unknown of an implicit equation, last."""
+        if self.implicit:
+            return (*self.names, self.output.identifier)
+        return self.names
+
+    @property
     def _source_limit(self) -> int | None:
         """Bound on the length of the expression, for every parse of it.
 
@@ -1808,12 +1817,45 @@ class Formulation:
         The same as :attr:`sympy_expression` for a formulation without
         calls; with calls, an opaque function per call (``e_w(p, t_d)``),
         its arguments in the order of the called formulation's inputs.
+
+        Raises
+        ------
+        ExpressionError
+            For an implicit equation (see :attr:`written_members`).
         """
-        if not self.calls or self.written is None:
+        if not self.calls or self.written is None or self.implicit:
             return self.sympy_expression
         return _opaque_calls(
             self.written,
             self.names,
+            [
+                (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
+                for c in self.calls
+            ],
+        )
+
+    @cached_property
+    def written_members(self) -> tuple[Any, Any]:
+        """The two members of an implicit equation as written.
+
+        The same as :attr:`equation_members` without calls; with calls, an
+        opaque function per call (``phi_T(z_s/L)``), as
+        :attr:`written_expression` writes them. An argument may hold the
+        unknown.
+
+        Raises
+        ------
+        ExpressionError
+            If the formulation is explicit.
+        """
+        if not self.calls or self.written is None:
+            return self.equation_members
+        if not self.implicit:
+            msg = f"{self.key}: an explicit formulation has no equation members"
+            raise ExpressionError(msg)
+        return _opaque_members(
+            self.written,
+            self._argument_names,
             [
                 (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
                 for c in self.calls
@@ -2101,9 +2143,15 @@ class Formulation:
         return outside
 
     def _parts_outside(self, values: Mapping[str, Any], basis: Basis | None) -> Any:
-        """Where a part receives, or gives, a value outside its domains."""
+        """Where a part receives, or gives, a value outside its domains.
+
+        An implicit equation passes its unknown to a call: its parts are
+        checked once the root is known, among ``values``.
+        """
         computed: dict[str, Any] = {}
         outside: Any = False
+        if self.implicit and self.output.identifier not in values:
+            return outside
         for part in self.parts:
             formulation = part.formulation
             if part.computes is None:
@@ -2130,18 +2178,24 @@ class Formulation:
     def _argument_functions(self) -> Mapping[str, Callable[..., Any]]:
         """The numeric function of each expression passed to a call."""
         texts = {text for part in self.parts for text in part.arguments.values()}
+        names = self._argument_names
         return MappingProxyType(
             {
-                text: compile_numeric(parse_expression(text, self.names), self.names)
+                text: compile_numeric(parse_expression(text, names), names)
                 for text in texts
             }
         )
 
     def _argument(self, text: str, values: Mapping[str, Any]) -> Any:
-        """The value of an expression passed to a call, from the inputs."""
+        """The value of an expression passed to a call, from the inputs.
+
+        And from the root, for an implicit equation (``values`` hold it).
+        """
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]
+        if self.implicit:
+            arguments.append(values[self.output.identifier])
         return np.asarray(self._argument_functions[text](*arguments), dtype=float)
 
     def _outside_message(

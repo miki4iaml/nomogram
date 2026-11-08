@@ -423,6 +423,14 @@ def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
     return found, value
 
 
+def _written_names(formulation: Formulation) -> set[str]:
+    """The names an expression uses as written, its calls kept opaque."""
+    if formulation.implicit:
+        left, right = formulation.written_members
+        return {s.name for s in left.free_symbols | right.free_symbols}
+    return {s.name for s in formulation.written_expression.free_symbols}
+
+
 def _check_passed_units(where: str, formulation: Formulation) -> None:
     """An expression passed to a call has the unit of the input it feeds.
 
@@ -443,13 +451,15 @@ def _check_passed_units(where: str, formulation: Formulation) -> None:
     known |= {
         c.identifier: units[c.unit].pint for c in formulation.coefficients if c.unit
     }
+    if formulation.implicit:
+        known[formulation.output.identifier] = units[formulation.output.unit].pint
     for part in parts:
         called = part.formulation
         for v in called.inputs:
             text = part.arguments.get(v.identifier)
             if text is None:
                 continue
-            expr = parse_expression(text, formulation.names)
+            expr = parse_expression(text, formulation._argument_names)
             names = sorted(s.name for s in expr.free_symbols)
             if any(name not in known for name in names):
                 try:
@@ -500,12 +510,12 @@ def _check_pieces(where: str, formulation: Formulation) -> None:
     pairs += [(k.identifier, k.value) for k in formulation.constants]
     values = {sympy.Symbol(name, real=True): value for name, value in pairs}
     inputs = [v.identifier for v in formulation.inputs]
-    expressions = [formulation.sympy_expression] if not formulation.implicit else []
-    if formulation.calls:
+    expressions = []
+    if not formulation.implicit:
         expressions = [formulation.written_expression]
-    if formulation.implicit:
+    else:
         # The unknown of an implicit equation may be bounded as an input.
-        expressions = list(formulation.equation_members)
+        expressions = list(formulation.written_members)
         inputs.append(formulation.output.identifier)
     nodes = [n for e in expressions for n in sympy.preorder_traversal(e)]
     for node in nodes:
@@ -2404,6 +2414,7 @@ class _Builder:
                 "matches",
                 "keywords",
                 "conditions",
+                "assumptions",
             ),
         )
         if f["conditions"] is not None and not isinstance(f["conditions"], str):
@@ -2451,11 +2462,13 @@ class _Builder:
         except ExpressionError as exc:
             msg = f"{where}.expression: {exc}"
             raise CatalogError(msg) from None
-        if equation:
-            msg = f"{where}.expression: an implicit equation calls no formulation"
-            raise CatalogError(msg)
+        # The arguments of an implicit equation may hold its unknown.
         calls = self.calls_written(
-            where, f["expression"], aliases, inputs, own - {output.identifier}
+            where,
+            f["expression"],
+            aliases,
+            inputs,
+            own if equation else own - {output.identifier},
         )
         fixed = bool(f["fixed_units"])
         loose = [c.formulation.key for c in calls if c.formulation.fixed_units]
@@ -2621,14 +2634,15 @@ class _Builder:
             parts=tuple(parts.values()),
             calls=tuple(calls),
             written=f["expression"],
+            noted_assumptions=self.assumptions(
+                f"{where}.assumptions", f["assumptions"]
+            ),
         )
         _check_passed_units(where, formulation)
         self.check(where, formulation)
         # What the entry declares is used as written, not only by a call.
         declared = set(own_constants) | own_names
-        unused = sorted(
-            declared - {s.name for s in formulation.written_expression.free_symbols}
-        )
+        unused = sorted(declared - _written_names(formulation))
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
             raise CatalogError(msg)
@@ -3255,7 +3269,7 @@ class _Builder:
             # Checked on the expression as written: what a call brings needs
             # no use, and what the development simplifies stays declared.
             inputs = {v.identifier for v in formulation.inputs}
-            used = {s.name for s in formulation.written_expression.free_symbols}
+            used = _written_names(formulation)
             used |= {
                 name
                 for part in formulation.parts

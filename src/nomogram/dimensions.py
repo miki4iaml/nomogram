@@ -380,7 +380,9 @@ def _intermediates(
         local: dict[str, Any] = {}
         for name in inner.names:
             if name in part.arguments:
-                passed = parse_expression(part.arguments[name], formulation.names)
+                passed = parse_expression(
+                    part.arguments[name], formulation._argument_names
+                )
                 local[name] = passed.xreplace(
                     {sympy.Symbol(k, real=True): v for k, v in into.items()}
                 )

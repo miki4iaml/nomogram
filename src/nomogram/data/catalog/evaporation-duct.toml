@@ -772,3 +772,64 @@ reference = "frederickson1994_nps"
 equation = "1"
 note = "p. 3."
 notation = { q_s = 'q_*', q = 'q_z', q_0 = 'q_o', k = 'k', z = 'z', z_0Q = 'z_{oq}', Psi_H = '\psi_q(z/L)' }
+
+# --- Evaporation duct height from the scales (Fairall et al. 1978, Frederickson et al. 1994) ---
+# Implicit equations: the height appears in the gradient function, at z*/L.
+
+[formulations.fairall1978_evaporation_duct_height]
+label = "Evaporation duct height from the scaling parameters, an implicit equation (Fairall et al. 1978)"
+expression = "z_s == -(c_q * q_s - c_T * T_s) / (alpha_T * kappa * c) * phi_T(zeta=z_s / L)"
+calls = { phi_T = "fairall1978_gradient_function_heat" }
+fixed_units = true
+note = "Equation 25: the height where the gradient of equation 24 (fairall1978_vertical_refractivity_gradient) reaches the critical gradient -0.157 m-1, hence 0.125 = 0.157 - 0.032 m-1; the source solves it iteratively. Without ducting, 7.2 q_* - 1.3 T_* >= 0 (equation 26), the equation has no positive root: NaN."
+output = { identifier = "z_s", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfMixingRatio", unit = "GM-PER-KiloGM", description = "Scaling parameter of the water vapour mixing ratio" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfPotentialTemperature", unit = "K", description = "Scaling parameter of potential temperature" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length" },
+]
+coefficients = { c_q = 7.2, c_T = 1.3, alpha_T = 1.35, kappa = 0.35, c = { value = 0.125, unit = "PPM-PER-M", unit_basis = "added", note = "The source writes the number alone: the difference of two gradients of N, in m-1 (equations 3 and 24)." } }
+assumptions = [
+  { text = "The critical gradient -0.157 m-1 is that of a modified refractivity constant with height: ITU-R P.453 writes M = N + 157 h, h in km (equation 17, itu_r_p453_modified_refractivity), 157 being about 10^6/a for an Earth of radius a of about 6370 km.", status = "deduced" },
+]
+keywords = ["evaporation duct height", "implicit equation", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_evaporation_duct_height.domains]]
+bounds = { z_s = [0, inf] }
+criterion = "A height above the sea surface."
+
+[[formulations.fairall1978_evaporation_duct_height.citations]]
+reference = "fairall1978_nps"
+equation = "25"
+note = "p. 22; alpha_T and kappa from p. 23."
+notation = { z_s = "Z_*", q_s = "q_*", T_s = "T_*", alpha_T = '\alpha_T', kappa = '\kappa' }
+units = { alpha_T = "UNITLESS", kappa = "UNITLESS" }
+assumptions = ["A horizontal wave is ducted when its refraction exceeds the curvature of the Earth (p. 11).", "Near sea level, the hydrostatic term of the gradient of N is -0.032 m-1 (equations 4 and 24).", "The fluxes are constant with height in the surface layer (Monin-Obukhov similarity)."]
+
+[formulations.frederickson1994_evaporation_duct_height]
+label = "Evaporation duct height from the scales, an implicit equation (Frederickson et al. 1994, after Fairall et al. 1978)"
+expression = "z_s == -(c_q * q_s - c_T * T_s) * phi_s(zeta=z_s / L) / (k * c)"
+calls = { phi_s = "frederickson1994_gradient_function_scalar" }
+fixed_units = true
+note = "Equation 3, that of Fairall et al. (1978, equation 25) without their diffusivity ratio alpha_T, with k = 0.4 (equation 1); the source solves it iteratively. The coefficient 7.2 of Fairall et al. holds for q_* in g/kg, which the report does not write; its q_* is a scale of specific humidity (equation 1), theirs of mixing ratio. Without ducting, 7.2 q_* - 1.3 T_* >= 0, the equation has no positive root: NaN."
+output = { identifier = "z_s", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
+inputs = [
+  { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "GM-PER-KiloGM", description = "Scale of specific humidity" },
+  { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scale of temperature" },
+  { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Monin-Obukhov length" },
+]
+coefficients = { c_q = 7.2, c_T = 1.3, k = { value = 0.4, unit = "UNITLESS", unit_basis = "added", note = "Von Karman's constant, a pure number." }, c = { value = 0.125, unit = "PPM-PER-M", unit_basis = "added", note = "The source writes the number alone: as in Fairall et al. (1978), the difference of two gradients of N, in m-1." } }
+assumptions = [
+  { text = "As in Fairall et al. (1978), 0.125 = 0.157 - 0.032 m-1: the critical gradient for ducting, that of a modified refractivity constant with height for an Earth of radius of about 6370 km (ITU-R P.453, equation 17), and the hydrostatic term of the gradient of N near sea level.", status = "deduced" },
+]
+keywords = ["evaporation duct height", "implicit equation", "Monin-Obukhov", "Frederickson", "NPS"]
+
+[[formulations.frederickson1994_evaporation_duct_height.domains]]
+bounds = { z_s = [0, inf] }
+criterion = "A height above the sea surface."
+
+[[formulations.frederickson1994_evaporation_duct_height.citations]]
+reference = "frederickson1994_nps"
+equation = "3"
+note = "p. 4."
+notation = { z_s = "z_*", q_s = "q_*", T_s = "T_*", k = "k" }
