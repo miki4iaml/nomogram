@@ -83,7 +83,8 @@ FIELDS: Mapping[str, str] = {
     ),
     "unit": (
         "a unit an entry works in (variables, constants and declared coefficients "
-        "of a formulation; a constant, a scale), or a unit itself: QUDT name, "
+        "of a formulation; a constant, a scale; the units a kind of the catalog "
+        "adds), or a unit itself: QUDT name, "
         "symbol, UCUM code, label or pint expression, compared whole"
     ),
     "output": "the output variable of a formulation: identifier, symbols, kind, description",

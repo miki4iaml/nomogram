@@ -428,6 +428,15 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
     assert median(by_ifs["L"] / by_coare["L"]) == 20
     assert median(by_ifs["T_s"] / by_coare["T_s"]) == -6
     assert median(by_ifs["q_s"] / by_coare["q_s"]) == -3
+    # The Charnock coefficients the comparison states.
+    from nomogram.catalog import catalog
+    from nomogram.units import Q_
+
+    formulations = catalog().formulations
+    edson = formulations["edson2013_charnock_coefficient"]
+    assert round(float(edson.evaluate(U_10N=Q_(10.0, "m/s")).magnitude), 3) == 0.012
+    roughness = formulations["ecmwf_ifs_roughness_length_momentum_sea"]
+    assert {c.identifier: c.value for c in roughness.coefficients}["alpha_Ch"] == 0.018
 
     heights = duct_results["heights"]
     lowest = heights["minimum of M, COARE 3.6"]

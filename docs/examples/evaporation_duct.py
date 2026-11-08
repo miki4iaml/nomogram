@@ -486,7 +486,9 @@ def main(output: str) -> None:
     m, by_coare, profiles = results["m"], results["coare"], results["profiles"]
     heights = results["heights"]
 
-    # Formatting only: the panels, their labels, the size and the signature.
+    # Formatting only: the panels, their labels, the size and the signature;
+    # the labels and the grid follow the preset of the documentation.
+    documentation = nomo.display.DisplayOptions.DOCUMENTATION
     figure, (left, right) = plt.subplots(1, 2, gridspec_kw={"width_ratios": [1, 2]})
     case = 0
     left.plot(profiles[case], HEIGHTS, color="black")
@@ -498,13 +500,17 @@ def main(output: str) -> None:
         left.axhline(h[case], color=color, linestyle=style, linewidth=1, label=label)
         right.plot(m["jd"], h, color=color, linestyle=style, marker=".", label=label)
     left.set_yscale("log")
-    left.set_xlabel("Modified refractivity M (M-units)")
-    left.set_ylabel("Height (m)")
+    label = nomo.display.axis_label
+    left.set_xlabel(label("Modified refractivity", "M", "ppm", options=documentation))
+    left.set_ylabel(label("Height", "z", "m", options=documentation))
     left.set_title(f"Day {m['jd'][case]:.2f}, L = {by_coare['L'][case]:.0f} m")
-    right.set_xlabel("Day of the year (test data of COARE 3.6)")
-    right.set_ylabel("Evaporation duct height (m)")
-    right.set_title("Duct height along the series")
+    right.set_xlabel(label("Day of the year", None, "", options=documentation))
+    right.set_ylabel(label("Evaporation duct height", None, "m", options=documentation))
+    right.set_title("Duct height along the test data of COARE 3.6")
     right.legend(fontsize="small")
+    if documentation.grid:
+        for axes in (left, right):
+            axes.grid(alpha=0.3)
     figure.set_size_inches(14, 6)
     figure.tight_layout()
     nomo.plot.sign(figure, axes=right)

@@ -200,7 +200,9 @@ distinct kinds) and gives each source its own symbols in the notation of
 its citation.
 
 Surface-layer scales collide by sign. The IFS defines s_* and q_* by
-the surface fluxes, positive for an upward flux (Part IV, 3.10); Fairall
+the surface fluxes, taken positive for an upward flux as its equations
+3.10 and 3.20 need, although its equations 3.1 and 3.9 give them the
+opposite sign (Part IV, p. 46-48); Fairall
 et al. (1978, equation 8) and Frederickson et al. (1994, equation 1)
 define T_* and q_* by the profiles, positive when the quantity increases
 with height, so that q_* is "almost always negative" over the sea. They
@@ -378,9 +380,9 @@ here, not worked around silently.
     stability parameter, the bulk Richardson number, a kinematic flux
     (dimension Θ L T⁻¹, the virtual temperature flux of the Obukhov
     length). CF 95 names the first three. nomogram declares them under
-    `Length`, `Speed` and `DimensionlessRatio`, and writes the Obukhov
-    length from the surface-layer scales `u_*`, `s_*`, `q_*` rather than from a
-    flux. `quantitykind:RichardsonConstant` is the constant of
+    `Length`, `Speed` and `DimensionlessRatio`, the kinematic flux as the
+    provisional kind of point 25, and writes the Obukhov length from the
+    surface-layer scales `u_*`, `s_*`, `q_*` rather than from a flux. `quantitykind:RichardsonConstant` is the constant of
     thermionic emission (A m⁻² K⁻²), not a Richardson number; and
     `quantitykind:DragCoefficient` is the drag of a body in a flow, not
     the surface drag coefficient of CF (see the trade terms).
@@ -410,10 +412,12 @@ here, not worked around silently.
 25. QUDT 3.5.3 labels `quantitykind:MassFluxDensity` in `en-US` only,
     without the `en` label of its other kinds: nomogram takes its parent,
     `MassPerAreaTime`, for the downward flux of water vapour at the
-    surface. It has no kind for a kinematic heat flux (K m s⁻¹, the
-    flux of buoyancy of the free convection velocity of the IFS and the
-    covariance of the profiles of Beljaars 1992): those wait for one
-    (QUDT issue #1601).
+    surface. It has no kind for a kinematic heat flux (K m s⁻¹, QUDT
+    issue #1601): nomogram declares the provisional kind
+    `KinematicHeatFlux`, pending QUDT pull request #1612, for the virtual
+    temperature fluxes of the IFS and of COARE 3.6 that the free
+    convection velocity and the gustiness take; the covariance of the
+    profiles of Beljaars 1992 is not entered yet.
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

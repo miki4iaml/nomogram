@@ -132,17 +132,44 @@ def coare_roughness(
 @pytest.mark.filterwarnings("error")
 def test_coare36_fixed_point_is_the_root_of_the_implicit_equation() -> None:
     winds = (2.0, 5.0, 10.0, 18.0, 25.0)
+    # Without gustiness, S = U.
     c = evaluate(
         "coare36_neutral_drag_coefficient_from_wind",
         U_10N=speed(*winds),
         nu=Q_(1.47e-5, "m**2/s"),
         g=Q_(9.81, "m/s**2"),
+        U=speed(10.0),
+        S=speed(10.0),
     )
     expected = [fixed_point(u, coare_roughness) for u in winds]
     np.testing.assert_allclose(c, expected, rtol=1e-9)
     # Bonino et al. (2022, figure 1) plot 0.97e-3, 1.32e-3 and about 2.76e-3 for
     # COARE at 2, 10 and 25 m/s.
     np.testing.assert_allclose(c[[0, 2, 4]], [0.97e-3, 1.32e-3, 2.76e-3], rtol=0.02)
+
+
+@pytest.mark.filterwarnings("error")
+def test_coare36_fixed_point_with_gustiness_is_the_drag_coefficient_of_the_code() -> (
+    None
+):
+    # First row of the outputs of the COARE 3.6 test data (jd 9.826): u = 12.10149
+    # m/s at 18 m, ta = 25.83341 degC, lat = 14.59344 deg, gust = 0.89740801095
+    # m/s, U10N = 11.631689936 m/s and Cdn_10 = 1.4831754882e-3; visa and grav as
+    # the code computes them.
+    u, t_a, x = 12.10149, 25.83341, math.sin(math.radians(14.59344))
+    visa = 1.326e-5 * (1 + 6.542e-3 * t_a + 8.301e-6 * t_a**2 - 4.84e-9 * t_a**3)
+    grav = 9.7803267715 * (
+        1 + 0.0052790414 * x**2 + 0.0000232718 * x**4 + 0.0000001262 * x**6
+    )
+    c = evaluate(
+        "coare36_neutral_drag_coefficient_from_wind",
+        U_10N=speed(11.631689936),
+        nu=Q_(visa, "m**2/s"),
+        g=Q_(grav, "m/s**2"),
+        U=speed(u),
+        S=speed(math.hypot(u, 0.89740801095)),
+    )
+    np.testing.assert_allclose(c, [1.4831754882e-3], rtol=1e-8)
 
 
 @pytest.mark.filterwarnings("error")

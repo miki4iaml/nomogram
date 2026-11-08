@@ -250,6 +250,25 @@ coefficients = { k = 0.5 }
     assert q.evaluate(x=Q_(1500.0, "Pa")).to("hPa").magnitude == pytest.approx(10.0)
 
 
+def test_members_in_units_with_an_offset_between_them_are_refused() -> None:
+    # No factor brings degC into K: 1 degC is 274.15 K, not a factor.
+    document = (
+        SOURCE
+        + """
+[formulations.q]
+label = "q"
+expression = "T - a == t"
+fixed_units = false
+citations = [{ reference = "src", units = { a = "K" } }]
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "T" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "t" }]
+coefficients = { a = 273.15 }
+"""
+    )
+    with pytest.raises(CatalogError, match="an offset between them"):
+        load_catalog([document])
+
+
 # --- Evaluation ---------------------------------------------------------------
 
 

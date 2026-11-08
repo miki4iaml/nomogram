@@ -24,6 +24,14 @@ PER-MOL, `K⁻¹` for PER-K). Links from QUDT's `wikidataMatch` are recorded
 as SKOS close matches; every link takes the extraction date as its
 verification date.
 
+nomogram also adds what QUDT does not state, and these entries do not come
+from QUDT: the bounds some kinds admit by definition, each with its
+criterion (`bounds`, such as a mass never negative); units QUDT does not
+define yet (`LOCAL_UNITS`, such as PPM-PER-M), written with `"iri": null`;
+and provisional kinds absent from QUDT (`LOCAL_KINDS`, such as
+KinematicHeatFlux), written with `"iri": null` and the pull request that
+proposes each to QUDT (`pending`).
+
 ## UCUM codes
 
 The `ucum` value of a unit is its code in the Unified Code for Units of

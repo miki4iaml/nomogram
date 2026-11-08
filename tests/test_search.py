@@ -415,6 +415,16 @@ def test_constants_and_scales_link_to_their_unit() -> None:
     assert not CATALOG.uses("scales.its90").search(section="units")
 
 
+def test_kinds_of_the_catalog_link_to_the_units_they_add() -> None:
+    scale = "kinds.SurfaceLayerScaleOfSpecificHumidity"
+    assert {"units.GM-PER-KiloGM", "units.KiloGM-PER-KiloGM"} <= refs(
+        CATALOG.uses(scale)
+    )
+    assert scale in CATALOG.search(unit="g/kg", section="kinds").refs
+    # A kind that adds none links to no unit.
+    assert not CATALOG.uses("kinds.ObukhovLength").search(section="units")
+
+
 # --- Selections ----------------------------------------------------------
 
 
