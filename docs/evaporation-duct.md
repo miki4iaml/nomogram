@@ -4,7 +4,7 @@
   outputs, Python version (NOAA-PSL/COARE-algorithm, commit `bd1cac8` of
   2026-03-17, MIT licence). Thanks to the NOAA Physical Sciences
   Laboratory for publishing the algorithm with the data that test it.
-- Computed with nomogram 0.7.0, in development, on 2026-11-08; the tests
+- Computed with nomogram 0.7.0 on 2026-11-08; the tests
   compute every value of this page again for each later version, and fail
   if one changes.
 

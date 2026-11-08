@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-08
+
 ### Added
 
 - The inverses of Sonntag (1994): the dew point and the frost point from
@@ -1833,7 +1835,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...develop
+[0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/miki4iaml/nomogram/compare/v0.3.0...v0.4.0
