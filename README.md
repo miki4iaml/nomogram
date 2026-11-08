@@ -135,7 +135,10 @@ scales and the vapour pressure of sea water, and what its 2 % lowering
 changes at the sea surface. [Humidity aloft](docs/humidity-aloft.md)
 sets the formula of a radiosonde's producer against its users' along a
 vertical profile, through the dew point, over water or over ice, and
-against WMO's requirements.
+against WMO's requirements. [The evaporation duct](docs/evaporation-duct.md)
+chains the catalog from the measurements of a ship to the height of the
+duct, through the surface layer of COARE 3.6 and of the IFS, and compares
+four ways to that height.
 [Security and compliance](docs/security-and-compliance.md) gathers, for
 those who approve its use on a laboratory network, how nomogram is
 developed, checked and published, what remains to do, and a checklist.

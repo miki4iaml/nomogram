@@ -142,7 +142,11 @@ son abaissement de 2 % change à la surface de la mer. [Humidity
 aloft](docs/humidity-aloft.md) (en anglais) confronte la formule du
 fabricant d'une radiosonde à celles de ses utilisateurs, le long d'un
 profil vertical, au travers du point de rosée, sur l'eau ou sur la
-glace, et face aux exigences de l'OMM. [Security and compliance](docs/security-and-compliance.md) (en
+glace, et face aux exigences de l'OMM. [The evaporation
+duct](docs/evaporation-duct.md) (en anglais) enchaîne le catalogue, des
+mesures d'un navire à la hauteur du conduit d'évaporation, par la couche
+de surface de COARE 3.6 et de l'IFS, et compare quatre manières
+d'obtenir cette hauteur. [Security and compliance](docs/security-and-compliance.md) (en
 anglais) rassemble, pour ceux qui autorisent son usage sur le réseau
 d'un laboratoire, la manière dont nomogram est développé, vérifié et
 publié, ce qui reste à faire, et une liste de contrôle. [Le
