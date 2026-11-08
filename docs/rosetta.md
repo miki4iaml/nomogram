@@ -406,6 +406,13 @@ here, not worked around silently.
     `PositiveDimensionlessRatio`, `PositivePlaneAngle`. nomogram declares
     the bounds a definition admits (`KindBounds`), with their criterion,
     in the extraction script for QUDT's kinds.
+25. QUDT 3.5.3 labels `quantitykind:MassFluxDensity` in `en-US` only,
+    without the `en` label of its other kinds: nomogram takes its parent,
+    `MassPerAreaTime`, for the downward flux of water vapour at the
+    surface. It has no kind for a kinematic heat flux (K m s⁻¹, the
+    flux of buoyancy of the free convection velocity of the IFS and the
+    covariance of the profiles of Beljaars 1992): those wait for one
+    (QUDT issue #1601).
 
 CF table 95 names salinities by their scale: `sea_water_knudsen_salinity`,
 `sea_water_cox_salinity`, `sea_water_practical_salinity`,

@@ -450,6 +450,15 @@ KINDS: dict[str, KindSpec] = {
     # The parent of the vertical gradient of radio refractivity (catalog),
     # in N-units per metre (Fairall et al. 1978).
     "InverseLength": KindSpec("ratio", delta=False, checked="2026-11-07"),
+    # Surface fluxes of the IFS and of Large and Yeager (2004), signed as
+    # their sources write them: the parent of the sensible heat flux
+    # (catalog), in W/m2; of the flux of water vapour (catalog), in
+    # kg m-2 s-1 (MassPerAreaTime, since QUDT 3.5.3 labels its
+    # MassFluxDensity in en-US only); of the magnitude of the surface
+    # stress (catalog), in Pa.
+    "HeatFluxDensity": KindSpec("ratio", delta=False, checked="2026-11-08"),
+    "MassPerAreaTime": KindSpec("ratio", delta=False, checked="2026-11-08"),
+    "Stress": KindSpec("ratio", delta=False, checked="2026-11-08"),
 }
 
 
@@ -492,6 +501,9 @@ UNITS: dict[str, str] = {
     "PA": "Pa",
     "HectoPA": "hPa",
     "KiloPA": "kPa",
+    # Surface fluxes (boundary-layer family).
+    "W-PER-M2": "W/m^2",
+    "KiloGM-PER-M2-SEC": "kg/m^2/s",
     "GM-PER-M3": "g/m^3",
     "KiloGM-PER-M3": "kg/m^3",
     "GM-PER-KiloGM": "g/kg",
@@ -599,6 +611,11 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "surface_drag_coefficient_for_heat_in_air",
     "sea_ice_area_fraction",
     "visibility_in_air",
+    # Surface fluxes, positive downward as the IFS and Large and Yeager
+    # (2004) write them.
+    "surface_downward_sensible_heat_flux",
+    "surface_downward_latent_heat_flux",
+    "magnitude_of_surface_downward_stress",
 )
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.

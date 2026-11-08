@@ -124,6 +124,11 @@ def test_variables_whatever_their_notation() -> None:
         "formulations.vaisala2013_absolute_humidity",
         "formulations.iso2533_air_density",
         "formulations.iso2533_kinematic_viscosity",
+        # The density of the air in the surface fluxes.
+        "formulations.ecmwf_ifs_surface_stress",
+        "formulations.ecmwf_ifs_sensible_heat_flux",
+        "formulations.ecmwf_ifs_moisture_flux",
+        "formulations.large_yeager2004_sensible_heat_flux",
     }
     for pattern in ("rho*", "ρ*", r"\rho*", "rhô*"):
         assert refs(CATALOG.search(variable=pattern)) == expected, pattern

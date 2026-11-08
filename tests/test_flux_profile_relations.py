@@ -610,3 +610,87 @@ def test_coare_in_stable_conditions() -> None:
         z_0M=Q_(expected["zo"], "m"),
     )
     np.testing.assert_allclose(neutral, expected["U10N"], rtol=1e-7)
+
+
+# --- Surface fluxes --------------------------------------------------------------
+
+
+def test_the_surface_stress_is_rho_u_star_squared() -> None:
+    rho, c_m, wind = Q_(1.2, "kg/m**3"), Q_(1.3e-3, ""), Q_(8.0, "m/s")
+    stress = value("ecmwf_ifs_surface_stress", rho=rho, C_M=c_m, U_n=wind)
+    u_star = value("ecmwf_ifs_friction_velocity", C_M=c_m, U_n=wind)
+    assert float(stress) == pytest.approx(1.2 * float(u_star) ** 2, rel=1e-12)
+    cited = {c.reference for c in F["ecmwf_ifs_surface_stress"].citations}
+    assert cited == {"ecmwf_ifs_cy49r1", "large_yeager2004"}
+
+
+def test_heat_fluxes_close_on_the_scales_and_keep_their_sign() -> None:
+    rho, c_d, c_h = Q_(1.2, "kg/m**3"), Q_(1.3e-3, ""), Q_(1.2e-3, "")
+    wind, theta, sst = Q_(8.0, "m/s"), Q_(288.0, "K"), Q_(290.0, "K")
+    flux = value(
+        "large_yeager2004_sensible_heat_flux",
+        rho=rho,
+        C_H=c_h,
+        theta=theta,
+        T_surf=sst,
+        U=wind,
+    )
+    u_star = value("ecmwf_ifs_friction_velocity", C_M=c_d, U_n=wind)
+    t_star = value(
+        "large_yeager2004_temperature_scale", C_H=c_h, C_D=c_d, theta=theta, T_surf=sst
+    )
+    # Q_H = rho c_p u* t*, negative: the warmer sea heats the air.
+    assert float(flux) == pytest.approx(
+        1.2 * 1000.5 * float(u_star * t_star), rel=1e-12
+    )
+    assert float(flux) < 0
+    dry_static = value(
+        "ecmwf_ifs_sensible_heat_flux",
+        rho=rho,
+        C_H=c_h,
+        U_n=wind,
+        s_n=Q_(288000.0, "J/kg"),
+        s_surf=Q_(290000.0, "J/kg"),
+    )
+    assert float(dry_static) == pytest.approx(1.2 * 1.2e-3 * 8.0 * -2000.0, rel=1e-12)
+
+
+def test_the_evaporation_and_its_latent_heat() -> None:
+    evaporation = value(
+        "ecmwf_ifs_moisture_flux",
+        rho=Q_(1.2, "kg/m**3"),
+        C_Q=Q_(1.2e-3, ""),
+        U_n=Q_(8.0, "m/s"),
+        q_n=Q_(0.015, "kg/kg"),
+        q_surf=Q_(0.020, "kg/kg"),
+    )
+    # Negative over an evaporating sea, as written: the flux into it.
+    assert float(evaporation) == pytest.approx(1.2 * 1.2e-3 * 8.0 * -0.005, rel=1e-12)
+    latent = value(
+        "large_yeager2004_latent_heat_flux", E=Q_(float(evaporation), "kg/m**2/s")
+    )
+    assert float(latent) == pytest.approx(2.5e6 * float(evaporation), rel=1e-12)
+
+
+def test_the_flux_kinds_are_linked_to_cf() -> None:
+    names = {
+        name
+        for kind in (
+            "SurfaceDownwardSensibleHeatFlux",
+            "SurfaceDownwardLatentHeatFlux",
+            "MagnitudeOfSurfaceDownwardStress",
+        )
+        for name in CATALOG.kinds[kind].cf_standard_names
+    }
+    assert {
+        "surface_downward_sensible_heat_flux",
+        "surface_downward_latent_heat_flux",
+        "magnitude_of_surface_downward_stress",
+    } <= names
+    sensible = {
+        f.key for f in CATALOG.formulations_of("SurfaceDownwardSensibleHeatFlux")
+    }
+    assert sensible == {
+        "ecmwf_ifs_sensible_heat_flux",
+        "large_yeager2004_sensible_heat_flux",
+    }

@@ -80,6 +80,10 @@
       "canonical_units": "degree_north",
       "pint": "degree"
     },
+    "magnitude_of_surface_downward_stress": {
+      "canonical_units": "Pa",
+      "pint": "Pa"
+    },
     "magnitude_of_surface_friction_velocity_in_air": {
       "canonical_units": "m s-1",
       "pint": "m * s ** -1"
@@ -147,6 +151,14 @@
     "surface_altitude": {
       "canonical_units": "m",
       "pint": "m"
+    },
+    "surface_downward_latent_heat_flux": {
+      "canonical_units": "W m-2",
+      "pint": "W * m ** -2"
+    },
+    "surface_downward_sensible_heat_flux": {
+      "canonical_units": "W m-2",
+      "pint": "W * m ** -2"
     },
     "surface_drag_coefficient_for_heat_in_air": {
       "canonical_units": "1",
@@ -429,6 +441,20 @@
       "scale_type": "ratio",
       "specialization_of": null
     },
+    "HeatFluxDensity": {
+      "added_units": [],
+      "applicable_units": [
+        "W-PER-M2"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L0I0M1H0T-3D0",
+      "iri": "http://qudt.org/vocab/quantitykind/HeatFluxDensity",
+      "label": "Heat Flux Density",
+      "matches": [],
+      "scale_type": "ratio",
+      "specialization_of": "PowerPerArea"
+    },
     "Height": {
       "added_units": [],
       "applicable_units": [
@@ -646,6 +672,20 @@
           "verified": "2026-11-04"
         }
       ],
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "MassPerAreaTime": {
+      "added_units": [],
+      "applicable_units": [
+        "KiloGM-PER-M2-SEC"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-2I0M1H0T-1D0",
+      "iri": "http://qudt.org/vocab/quantitykind/MassPerAreaTime",
+      "label": "Mass per Area Time",
+      "matches": [],
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1055,6 +1095,30 @@
       ],
       "scale_type": "ratio",
       "specialization_of": "Speed"
+    },
+    "Stress": {
+      "added_units": [],
+      "applicable_units": [
+        "ATM",
+        "HectoPA",
+        "KiloPA",
+        "MilliM_HG",
+        "PA"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M1H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Stress",
+      "label": "Stress",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q206175",
+          "verified": "2026-11-08"
+        }
+      ],
+      "scale_type": "ratio",
+      "specialization_of": "ForcePerArea"
     },
     "Temperature": {
       "added_units": [],
@@ -1620,6 +1684,18 @@
       "ucum": "kg.kg-1",
       "udunits": null
     },
+    "KiloGM-PER-M2-SEC": {
+      "dimension_vector": "A0E0L-2I0M1H0T-1D0",
+      "iri": "http://qudt.org/vocab/unit/KiloGM-PER-M2-SEC",
+      "label": "Kilogram per Square Metre Second",
+      "matches": [],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "kg/m^2/s",
+      "symbol": "kg/(m\u00b2\u00b7s)",
+      "ucum": "kg.m-2.s-1",
+      "udunits": null
+    },
     "KiloGM-PER-M3": {
       "dimension_vector": "A0E0L-3I0M1H0T0D0",
       "iri": "http://qudt.org/vocab/unit/KiloGM-PER-M3",
@@ -2146,6 +2222,24 @@
       "pint": "W/(m*K)",
       "symbol": "W/(m\u00b7K)",
       "ucum": "W.m-1.K-1",
+      "udunits": null
+    },
+    "W-PER-M2": {
+      "dimension_vector": "A0E0L0I0M1H0T-3D0",
+      "iri": "http://qudt.org/vocab/unit/W-PER-M2",
+      "label": "Watt per Square Metre",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q3566737",
+          "verified": "2026-11-04"
+        }
+      ],
+      "multiplier": 1.0,
+      "offset": 0.0,
+      "pint": "W/m^2",
+      "symbol": "W/m\u00b2",
+      "ucum": "W.m-2",
       "udunits": null
     },
     "W-PER-M2-K4": {
