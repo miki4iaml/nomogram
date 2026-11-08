@@ -179,10 +179,10 @@ note = "Cited by Vömel for the Goff-Gratch equation (after Goff and Gratch, 194
 [references.goff1957]
 authors = "Goff, J. A."
 year = 1957
-title = "Saturation pressure of water on the new Kelvin temperature scale"
-container = "Transactions of the American Society of Heating and Ventilating Engineers"
+title = "Saturation pressure of water on the new Kelvin scale"
+container = "Transactions of the American Society of Heating and Air-Conditioning Engineers, 63, 347-354"
 status = "to-confirm"
-note = "Title and container from memory, not checked; cited by Vömel with WMO (2012)."
+note = "As Murphy and Koop (2005) list it, the original not read; cited by Vömel with WMO (2012)."
 
 [references.gibbins1990]
 authors = "Gibbins, C. J."
@@ -319,6 +319,15 @@ criterion = "Uncertainty up to 0.6 % (k = 2), attributed by the source to WMO-No
 
 [[formulations.sonntag1990_magnus.citations]]
 reference = "alduchov_eskridge1996"
+
+[[formulations.sonntag1990_magnus.citations]]
+reference = "sonntag1994"
+equation = "14"
+note = "p. 53."
+
+[[formulations.sonntag1990_magnus.citations.domains]]
+bounds = { t = [-45.0, 60.0] }
+criterion = "Relative standard deviation under 0.3 %."
 
 [formulations.iapws_sr1_86]
 label = "IAPWS SR1-86(1992), Wagner and Pruß equation"
@@ -708,6 +717,44 @@ assumptions = [
   { text = "0 degC is taken as 273.16 K and the steam point as 373.16 K, a Kelvin temperature of before 1954; the triple point being 273.16 K since 1954, 0 degC is now 273.15 K.", status = "deduced" },
 ]
 
+[formulations.goff1957_ice]
+label = "Goff (1957) equation over ice, triple point form"
+expression = "p_t * 10 ** (a1 * (T_t / T - 1) + a2 * log10(T_t / T) + a3 * (1 - T / T_t))"
+fixed_units = false
+note = "As Murphy and Koop (2005, appendix A) give Goff (1957), its units converted from atmospheres to Pa. WMO-No. 49 (2012, Appendix A, 13 (b)) gives the same form with -9.096 85, -3.566 54 and 0.876 82 and the constant 0.786 14 in hPa, but prints the third term 0.876 82 (1 - T1/T) and names the triple point T_d: written so, it gives 0.50 times this vapour pressure at 230 K and 0.18 times at 180 K; written (1 - T/T1), its rounded coefficients agree with these within 1e-5."
+output = { identifier = "e_i", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature" },
+]
+keywords = ["saturation vapour pressure", "ice", "Goff", "WMO"]
+
+[formulations.goff1957_ice.coefficients]
+a1 = -9.096853
+a2 = -3.566506
+a3 = 0.876812
+T_t = { value = 273.16, note = "Triple point of water" }
+p_t = 611.14
+
+[[formulations.goff1957_ice.citations]]
+reference = "goff1957"
+
+[[formulations.goff1957_ice.citations]]
+reference = "murphy_koop2005"
+note = "Appendix A."
+units = { T_t = "K", p_t = "PA" }
+
+[[formulations.goff1957_ice.citations.domains]]
+bounds = { T = [180.0, 273.16] }
+criterion = "The range Goff (1957) states for ice, as Murphy and Koop (2005) quote it: 180 < T < 273.16 K."
+
+[[formulations.goff1957_ice.citations]]
+reference = "wmo49_vol1_2012"
+note = "Appendix A, 13 (b), printed with (1 - T1/T) in the third term: see the note."
+
+[[formulations.goff1957_ice.citations.domains]]
+bounds = { T = [173.15, 273.15] }
+criterion = "0 to -100 degC (Appendix A, 13 (b))."
+
 [formulations.goff_gratch1946_ice.coefficients]
 c1 = -9.09718
 c2 = -3.56654
@@ -806,6 +853,15 @@ reference = "wmo_etqtc2025"
 [[formulations.wmo2008_ice.citations.domains]]
 bounds = { t = [-65.0, 0.0] }
 criterion = "Uncertainty up to 1 % (k = 2), attributed by the source to WMO-No. 8 (2023), Annex 4.B; not in the 2024 text."
+
+[[formulations.wmo2008_ice.citations]]
+reference = "sonntag1994"
+equation = "16"
+note = "p. 53."
+
+[[formulations.wmo2008_ice.citations.domains]]
+bounds = { t = [-65.0, 0.01] }
+criterion = "Relative standard deviation under 0.5 %."
 
 [formulations.murray1967_ice]
 label = "Magnus-Tetens form over ice, Murray (1967)"

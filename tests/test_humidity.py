@@ -455,3 +455,82 @@ def test_wmo_relative_humidity_is_the_ratio_to_saturation_in_percent() -> None:
 def test_the_wmo_dew_point_is_found_by_its_kind() -> None:
     found = {f.key for f in CATALOG.search(kind="DewPointTemperature").formulations}
     assert {"wmo_dew_point", "wmo_dew_point_moist_air"} <= found
+
+
+# --- Sonntag (1994) and Goff (1957) over ice ---------------------------------
+
+
+def _degc(key: str, **inputs: object) -> np.ndarray:
+    result = FORMULATIONS[key].evaluate(outside="ignore", **inputs)  # type: ignore[arg-type]
+    return np.asarray(result.to("degC").magnitude)
+
+
+@pytest.mark.parametrize(
+    ("low", "high", "within"),
+    [
+        (0.0, 100.0, 0.0115),
+        (-75.0, 0.0, 0.0145),
+        (-80.0, -75.0, 0.019),
+        (-100.0, -80.0, 0.0651),
+    ],
+)
+def test_the_dew_point_of_sonntag_gives_back_his_formulation_over_water(
+    low: float, high: float, within: float
+) -> None:
+    # Equations 10 and 11 against equation 7, as printed: 0.0114, 0.0144,
+    # 0.0185 and 0.0650 K at most, where the source states 0.01, 0.01, 0.02
+    # and 0.06 K (see the note of the entry).
+    t = np.linspace(low, high, 801)
+    e = FORMULATIONS["sonntag1990"].evaluate(T=Q_(t + 273.15, "K"))
+    found = _degc("sonntag1994_dew_point", e=e)
+    assert np.max(np.abs(found - t)) < within
+
+
+@pytest.mark.parametrize(
+    ("low", "high", "within"), [(-80.0, 0.01, 0.0106), (-100.0, -80.0, 0.0366)]
+)
+def test_the_frost_point_of_sonntag_gives_back_his_formulation_over_ice(
+    low: float, high: float, within: float
+) -> None:
+    t = np.linspace(low, high, 801)
+    e = FORMULATIONS["sonntag1990_ice"].evaluate(T=Q_(t + 273.15, "K"))
+    found = _degc("sonntag1994_frost_point", e=e)
+    assert np.max(np.abs(found - t)) < within
+
+
+@pytest.mark.parametrize(
+    ("direct", "inverse", "low", "high"),
+    [
+        ("sonntag1990_magnus", "sonntag1994_dew_point_magnus", -45.0, 60.0),
+        ("wmo2008_ice", "sonntag1994_frost_point_magnus", -65.0, 0.01),
+    ],
+)
+def test_the_inverses_of_the_magnus_forms_are_exact(
+    direct: str, inverse: str, low: float, high: float
+) -> None:
+    t = np.linspace(low, high, 201)
+    e = FORMULATIONS[direct].evaluate(t=Q_(t, "degC"))
+    np.testing.assert_allclose(_degc(inverse, e=e), t, atol=1e-11)
+
+
+def test_goff_1957_over_ice_and_the_form_printed_by_wmo_in_2012() -> None:
+    # Murphy and Koop (2005) give Goff (1957) over ice; WMO-No. 49 (2012)
+    # prints its third term (1 - T1/T), which halves it at 230 K, where
+    # (1 - T/T1) agrees with Goff within 1e-5 (the note of the entry).
+    temperature = np.array([180.0, 230.0])
+    goff = (
+        FORMULATIONS["goff1957_ice"].evaluate(T=Q_(temperature, "K")).to("Pa").magnitude
+    )
+    t_1 = 273.16
+
+    def wmo(third: np.ndarray) -> np.ndarray:
+        exponent = (
+            -9.09685 * (t_1 / temperature - 1)
+            - 3.56654 * np.log10(t_1 / temperature)
+            + 0.87682 * third
+            + 0.78614
+        )
+        return np.asarray(100 * 10**exponent)
+
+    np.testing.assert_allclose(wmo(1 - temperature / t_1), goff, rtol=1e-5)
+    assert np.round(wmo(1 - t_1 / temperature) / goff, 2).tolist() == [0.18, 0.5]
