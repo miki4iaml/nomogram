@@ -534,3 +534,26 @@ def test_goff_1957_over_ice_and_the_form_printed_by_wmo_in_2012() -> None:
 
     np.testing.assert_allclose(wmo(1 - temperature / t_1), goff, rtol=1e-5)
     assert np.round(wmo(1 - t_1 / temperature) / goff, 2).tolist() == [0.18, 0.5]
+
+
+def test_where_the_humidity_forms_meet() -> None:
+    # The two pieces of the dew point of Sonntag meet at e_0, his formulation
+    # over water at 0 degC, at 0 degC; his forms over water and ice meet at
+    # the triple point, as do those of Goff (1957), and so do his inverses.
+    e_0 = Q_(6.11213, "hPa")
+    assert float(_degc("sonntag1994_dew_point", e=e_0)) == 0.0
+    near = _degc("sonntag1994_dew_point", e=e_0 * np.array([1 - 1e-7, 1 + 1e-7]))
+    assert np.all(np.abs(near) < 2e-6)
+    at_0 = FORMULATIONS["sonntag1990"].evaluate(T=Q_(273.15, "K"))
+    assert at_0.to("hPa").magnitude == pytest.approx(6.11213, abs=1e-5)
+    triple = Q_(273.16, "K")
+    for water, ice, rtol in (
+        ("sonntag1990", "sonntag1990_ice", 1e-7),
+        ("goff1957", "goff1957_ice", 2e-6),
+    ):
+        w = FORMULATIONS[water].evaluate(T=triple).to("Pa").magnitude
+        i = FORMULATIONS[ice].evaluate(T=triple).to("Pa").magnitude
+        assert w == pytest.approx(i, rel=rtol)
+    e_t = Q_(611.657, "Pa")
+    for inverse in ("sonntag1994_dew_point", "sonntag1994_frost_point"):
+        assert float(_degc(inverse, e=e_t)) == pytest.approx(0.01, abs=1e-4)
