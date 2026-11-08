@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- Guide [The evaporation duct](docs/evaporation-duct.md): the catalog
+  chained from shipboard measurements (the test data of COARE 3.6, an
+  extract under its MIT licence) to the height of the duct, through the
+  surface layer of COARE 3.6, which the chain gives back, and of the IFS,
+  with equation 3.25 solved at each iteration; the duct height as the
+  minimum of M of ITU-R P.453, by Fairall et al. (1978), Frederickson et
+  al. (1994) and Paulus-Jeske, compared.
+
 - **An implicit equation may call formulations**, and pass its unknown
   in their arguments: the root is sought on the equation with each call
   developed, and the domains of a formulation called apply to the
