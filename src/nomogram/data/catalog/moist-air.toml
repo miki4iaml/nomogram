@@ -1032,7 +1032,7 @@ note = "The definition: 100 times the vapour mole fraction over that of moist ai
 label = "Dew point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
 expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
 fixed_units = true
-note = "The guide states the range -45 to 60 degC for the dew point over water, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_dew_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the dew point, 4.A.13, with the Magnus form 4.B.1."
+note = "The guide states the range -45 to 60 degC for the dew point over water, the output, which the domain of the citation bounds. Here the enhancement factor is an input; wmo_dew_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the dew point, 4.A.13, with the Magnus form 4.B.1."
 output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
@@ -1044,6 +1044,10 @@ coefficients = { A = 17.62, B = 243.12, C = 6.112 }
 reference = "wmo2024"
 equation = "4.B.6"
 notation = { e = "e'" }
+
+[[formulations.wmo_dew_point.citations.domains]]
+bounds = { t_d = [-45.0, 60.0] }
+criterion = "The range the guide states for the dew point over water, that of the Magnus form 4.B.1 it inverts."
 
 [formulations.wmo_dew_point_moist_air]
 label = "Dew point from the vapour pressure and the pressure of moist air, WMO Guide (CIMO)"
@@ -1076,7 +1080,7 @@ notation = { RH = "U" }
 label = "Frost point from the vapour pressure and the enhancement factor, WMO Guide (CIMO)"
 expression = "B * ln(e / (C * f)) / (A - ln(e / (C * f)))"
 fixed_units = true
-note = "The guide states the range -65 to 0 degC for the frost point, the output: domains in nomogram bound inputs, so the range stays in this note. Here the enhancement factor is an input; wmo_frost_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the frost point, 4.A.14, with the Magnus form over ice 4.B.3."
+note = "The guide states the range -65 to 0 degC for the frost point, the output, which the domain of the citation bounds. Here the enhancement factor is an input; wmo_frost_point_moist_air takes it from 4.B.5. It is the explicit inverse of the definition of the frost point, 4.A.14, with the Magnus form over ice 4.B.3."
 output = { identifier = "t_f", kind = "FrostPointTemperature", unit = "DEG_C", description = "Frost point temperature", scale = "its90", scale_basis = "inferred-from-date" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure of moist air" },
@@ -1088,6 +1092,10 @@ coefficients = { A = 22.46, B = 272.62, C = 6.112 }
 reference = "wmo2024"
 equation = "4.B.7"
 notation = { e = "e'" }
+
+[[formulations.wmo_frost_point.citations.domains]]
+bounds = { t_f = [-65.0, 0.0] }
+criterion = "The range the guide states for the frost point, that of the Magnus form over ice 4.B.3 it inverts."
 
 [formulations.wmo_frost_point_moist_air]
 label = "Frost point from the vapour pressure and the pressure of moist air, WMO Guide (CIMO)"
@@ -1119,7 +1127,7 @@ inputs = [
 label = "Dew point from the vapour pressure, inverse of Vaisala's simplified form (2013)"
 expression = "B / (A / log10(e / C) - 1)"
 fixed_units = true
-note = "Equation 7, the explicit inverse of equation 6 (vaisala2013_water) with the same constants, those of Table 1 from -20 to +50 degC: the range of the dew point, an output, stays in this note. The source's example (p. 8): 36.88 hPa gives 27.6 degC; it prints 36.88 hPa for half of Pws(40 degC), where equation 6 gives 36.91 hPa and equation 3 36.93 hPa."
+note = "Equation 7, the explicit inverse of equation 6 (vaisala2013_water) with the same constants, those of Table 1 from -20 to +50 degC, the range of the dew point, which the domain of the citation bounds. The source's example (p. 8): 36.88 hPa gives 27.6 degC; it prints 36.88 hPa for half of Pws(40 degC), where equation 6 gives 36.91 hPa and equation 3 36.93 hPa."
 output = { identifier = "t_d", kind = "DewPointTemperature", unit = "DEG_C", description = "Dew point temperature", scale = "its90", scale_basis = "inferred-from-date" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "HectoPA", description = "Vapour pressure" },
@@ -1132,11 +1140,15 @@ reference = "vaisala2013"
 equation = "7"
 notation = { t_d = 'T_d', e = 'P_w', C = "A", A = "m", B = 'T_n' }
 
+[[formulations.vaisala2013_dew_point.citations.domains]]
+bounds = { t_d = [-20.0, 50.0] }
+criterion = "The range of the constants of Table 1 that equation 7 takes, those of equation 6 it inverts."
+
 [formulations.hardy1998_dew_point]
 label = "Dew point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation on ITS-90"
 expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2 + c3 * ln(e) ** 3) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
 fixed_units = true
-note = "Equation 4, fitted to equation 2 (hardy1998_water) from -100 to 100 degC, which it reproduces within 0.3 mK: the range of the dew point, an output, stays in this note. The vapour pressure in Pa, the dew point in K."
+note = "Equation 4, fitted to equation 2 (hardy1998_water) from -100 to 100 degC, which it reproduces within 0.3 mK, the range of the dew point, which the domain of the citation bounds. The vapour pressure in Pa, the dew point in K."
 output = { identifier = "T_d", kind = "DewPointTemperature", unit = "K", description = "Dew point temperature" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
@@ -1159,16 +1171,39 @@ equation = "4"
 notation = { e = 'e_s' }
 scales = { T_d = "its90" }
 
+[[formulations.hardy1998_dew_point.citations.domains]]
+bounds = { T_d = [173.15, 373.15] }
+criterion = "The range of the fit to equation 2, -100 to 100 degC, within 0.3 mK."
+
 [formulations.hardy1998_frost_point]
 label = "Frost point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation over ice on ITS-90"
 expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
 fixed_units = true
-note = "Equation 5, fitted to equation 3 (hardy1998_ice) from -150 to 0.01 degC, which it reproduces within 0.1 mK: the range of the frost point, an output, stays in this note. The vapour pressure in Pa, the frost point in K."
+note = "Equation 5, fitted to equation 3 (hardy1998_ice) from -150 to 0.01 degC, which it reproduces within 0.1 mK, the range of the frost point, which the domain of the citation bounds. The vapour pressure in Pa, the frost point in K."
 output = { identifier = "T_f", kind = "FrostPointTemperature", unit = "K", description = "Frost point temperature" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
 ]
 keywords = ["frost point", "radiosonde"]
+
+[formulations.hardy1998_frost_point.coefficients]
+c0 = { value = 2.1257969e2, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+c1 = { value = -1.0264612e1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+c2 = { value = 1.4354796e-1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
+d0 = { value = 1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d1 = { value = -8.2871619e-2, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d2 = { value = 2.3540411e-3, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+d3 = { value = -2.4363951e-5, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
+
+[[formulations.hardy1998_frost_point.citations]]
+reference = "hardy1998"
+equation = "5"
+notation = { e = 'e_s' }
+scales = { T_f = "its90" }
+
+[[formulations.hardy1998_frost_point.citations.domains]]
+bounds = { T_f = [123.15, 273.16] }
+criterion = "The range of the fit to equation 3, -150 to 0.01 degC, within 0.1 mK."
 
 [formulations.sonntag1994_dew_point]
 label = "Dew point from the vapour pressure, Sonntag (1994) inverse of his formulation over water on ITS-90"
@@ -1279,21 +1314,6 @@ units = { C = "HectoPA" }
 [[formulations.sonntag1994_frost_point_magnus.citations.domains]]
 bounds = { t_f = [-65.0, 0.01] }
 criterion = "The range of equation 16, which it inverts, within 0.004 K."
-
-[formulations.hardy1998_frost_point.coefficients]
-c0 = { value = 2.1257969e2, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
-c1 = { value = -1.0264612e1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
-c2 = { value = 1.4354796e-1, unit = "K", unit_basis = "added", note = "implied by the frost point in K over a dimensionless denominator: the source prints it without unit" }
-d0 = { value = 1, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
-d1 = { value = -8.2871619e-2, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
-d2 = { value = 2.3540411e-3, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
-d3 = { value = -2.4363951e-5, unit = "UNITLESS", unit_basis = "added", note = "a coefficient of the dimensionless denominator, printed without unit" }
-
-[[formulations.hardy1998_frost_point.citations]]
-reference = "hardy1998"
-equation = "5"
-notation = { e = 'e_s' }
-scales = { T_f = "its90" }
 
 [formulations.vaisala2013_absolute_humidity]
 label = "Absolute humidity of an ideal gas from the vapour pressure, Vaisala (2013)"

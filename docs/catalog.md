@@ -121,7 +121,7 @@ All sections are optional; a key may be defined in one file only.
 | `[references.<key>]` | `authors`, `title`, `status` (`verified`, `to-confirm`) | `year`, `container`, `doi`, `url`, `note`, `matches` |
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
-| `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions` |
+| `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions`, `assumptions` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension), `units` (units of the parent's dimension it takes besides the parent's), `bounds` (`{ low, high, unit, criterion }`, the values its definition admits) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
@@ -793,7 +793,9 @@ CF name finds the kind and the formulations that compute it, and
 units of its parent, and those its `units` add, of the same dimension:
 the scales of specific humidity of the surface layer, signed, sit under
 `DimensionlessRatio` and take g/kg and kg/kg, which a mass ratio, never
-negative, would refuse them.
+negative, would refuse them. The kind links to the units it adds, so that
+`search(unit="g/kg", section="kinds")` and `used_by("units.GM-PER-KiloGM")`
+find it.
 
 **The values a kind admits by its definition** bound every variable of
 that kind, by default: no temperature below 0 K, no negative vapour

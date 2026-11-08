@@ -53,8 +53,12 @@ called by its key:
 Both add a gustiness to the wind in free convection, from the virtual
 temperature flux at the surface: COARE 1.2 w\* with a boundary layer of
 600 m, the IFS w\* with 1000 m; these fluxes are of the provisional kind
-`KinematicHeatFlux`, pending a QUDT pull request. The gravity is the
-normal gravity of WGS 84 at the latitude (`wmo_normal_gravity_wgs84`).
+`KinematicHeatFlux`, pending a QUDT pull request. COARE takes the normal
+gravity of WGS 84 at the latitude (`wmo_normal_gravity_wgs84`), the IFS
+its standard gravity g_n. Without a wave model, the IFS chain takes the
+roughness lengths for heat and humidity of a smooth surface, which the
+IFS kept until CY49R1, when it added a dependency on the sea state
+(3.30 to 3.34).
 
 Two steps show how the catalog keeps a formula within its bounds:
 
@@ -92,7 +96,7 @@ and the skin temperature fixed at its final value.
 
 On the same measurements, the IFS departs from COARE: its roughness
 length is twice COARE's (a Charnock coefficient of 0.018, where the line
-of Edson et al. gives about 0.011 at 10 m/s), u\* +6 %, L +20 % (less
+of Edson et al. gives about 0.012 at 10 m/s), u\* +6 %, L +20 % (less
 unstable), θ\* -6 % and q\* -3 %, in medians.
 
 ## From the profiles to the duct

@@ -4,6 +4,7 @@
 """Tests for expressions passed as arguments of the formulations called."""
 
 import math
+from typing import Any
 
 import numpy as np
 import pytest
@@ -466,6 +467,62 @@ def test_a_composition_of_a_formulation_passing_an_expression() -> None:
     values = evaluate(f, z=Z, z_0=Z_0, L=[-50.0, 5.0])
     assert values[0] == pytest.approx(2 * (math.log(Z / Z_0) - psi(-0.2)))
     assert math.isnan(values[1])
+
+
+TWICE = """
+[formulations.twice]
+label = "twice"
+expression = "2 * h"
+fixed_units = false
+output = { identifier = "z_0", kind = "Length", unit = "M", description = "z_0" }
+inputs = [{ identifier = "h", kind = "Length", unit = "M", description = "h" }]
+
+[[formulations.twice.citations]]
+reference = "src"
+"""
+
+
+def test_a_composition_into_a_formulation_passing_an_expression() -> None:
+    # z_0 enters no condition of prof: the composition stands.
+    composed = """
+[formulations.both]
+label = "both"
+composition = { outer = "prof", inner = { z_0 = "twice" } }
+output = { identifier = "F", kind = "DimensionlessRatio", unit = "UNITLESS", description = "F" }
+"""
+    f = load(profile(), TWICE, composed).formulations["both"]
+    values = evaluate(f, z=Z, h=Z_0, L=-50.0)
+    assert values == pytest.approx(math.log(Z / (2 * Z_0)) - psi(Z / -50.0))
+    # z enters the condition on z / L: a computed z would be refused.
+    refused = composed.replace("z_0 = ", "z = ").replace('"z_0", kind', '"z", kind')
+    twice_z = TWICE.replace('identifier = "z_0"', 'identifier = "z"')
+    with pytest.raises(CatalogError, match="bounds z, which twice computes"):
+        load(profile(), twice_z, refused)
+
+
+def test_branches_of_formulations_passing_an_expression() -> None:
+    # The pieces of psi are checked on psi; the branches on their conditions.
+    x = '{ identifier = "x", kind = "DimensionlessRatio", unit = "UNITLESS", description = "x" }'
+    flat = profile(
+        "ln(z / z_0) + z / L + x", inputs=f"{LENGTHS}, {x}", key="flat"
+    ).replace('calls = { psi = "psi" }', "")
+    curved = profile("ln(z / z_0) - psi(zeta=z/L) + x", inputs=f"{LENGTHS}, {x}")
+    branches = """
+[formulations.both]
+label = "both"
+branches = [{ formulation = "flat", where = "x < 1" }, { formulation = "prof", where = "x >= 1" }]
+output = { identifier = "F", kind = "DimensionlessRatio", unit = "UNITLESS", description = "F" }
+"""
+    f = load(flat, curved, branches).formulations["both"]
+    lengths: dict[str, Any] = {
+        "z": Q_(Z, "m"),
+        "z_0": Q_(Z_0, "m"),
+        "L": Q_(-50.0, "m"),
+    }
+    found = [f.evaluate(x=Q_(x_value), **lengths).magnitude for x_value in (0.0, 2.0)]
+    assert found == pytest.approx(
+        [math.log(Z / Z_0) + Z / -50.0, math.log(Z / Z_0) - psi(Z / -50.0) + 2.0]
+    )
 
 
 def test_a_domain_stated_on_an_input_fed_by_an_expression_is_not_compared() -> None:

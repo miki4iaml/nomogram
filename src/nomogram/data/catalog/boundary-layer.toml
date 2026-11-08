@@ -366,18 +366,18 @@ description = "Velocity scale of the large eddies of free convection, w_* = (z_i
 [kinds.SurfaceLayerScaleOfDryStaticEnergy]
 label = "Surface-Layer Scale of Dry Static Energy"
 specialization_of = "SpecificEnergy"
-description = "Scale of the dry static energy in the surface layer, its surface flux over the density of air and the friction velocity (IFS, s_*): a scale, not a dry static energy."
+description = "Scale of the dry static energy in the surface layer, its surface flux over the density of air and the friction velocity (IFS, s_*): a scale, not a dry static energy, positive for an upward flux as SurfaceLayerScaleOfSpecificHumidity says."
 
 [kinds.SurfaceLayerScaleOfSpecificHumidity]
 label = "Surface-Layer Scale of Specific Humidity"
 specialization_of = "DimensionlessRatio"
 units = ["GM-PER-KiloGM", "KiloGM-PER-KiloGM"]
-description = "Scale of the specific humidity in the surface layer, its surface flux over the density of air and the friction velocity (IFS, q_*): a scale, not a humidity, positive for an upward flux; of the opposite sign to the scales defined by the profile (SurfaceLayerProfileScaleOfSpecificHumidity)."
+description = "Scale of the specific humidity in the surface layer, its surface flux over the density of air and the friction velocity (IFS, q_*): a scale, not a humidity, positive for an upward flux; of the opposite sign to the scales defined by the profile (SurfaceLayerProfileScaleOfSpecificHumidity). The IFS gives both signs: its equations 3.10 and 3.20 need an upward flux positive (L < 0 and a real w_* in free convection), while 3.1 defines the flux J positive downward and 3.9 writes rho u_* q_* = J_q (Part IV, p. 46-48); nomogram follows 3.10 and 3.20."
 
 [kinds.SurfaceLayerProfileScaleOfPotentialTemperature]
 label = "Surface-Layer Profile Scale of Potential Temperature"
 specialization_of = "TemperatureDifference"
-description = "Scaling parameter T_* of the profile of potential temperature in the surface layer, dtheta/dz = T_* phi_T / (alpha_T kappa z), the potential temperature theta written T (Fairall et al. 1978, equation 8): a scale, not a temperature, positive when the potential temperature increases with height (stable conditions); of the opposite sign to the scales the IFS defines by surface fluxes."
+description = "Scaling parameter T_* of the profile of potential temperature in the surface layer, dtheta/dz = T_* phi_T / (alpha_T kappa z), the potential temperature theta written T (Fairall et al. 1978, equation 8): a scale, not a temperature, positive when the potential temperature increases with height (stable conditions); of the opposite sign to the scales the IFS defines by surface fluxes, taken positive upward (SurfaceLayerScaleOfSpecificHumidity)."
 
 [kinds.SurfaceLayerProfileScaleOfTemperature]
 label = "Surface-Layer Profile Scale of Temperature"
@@ -394,7 +394,7 @@ description = "Scaling parameter q_* of the profile of the water vapour mixing r
 label = "Surface-Layer Profile Scale of Specific Humidity"
 specialization_of = "DimensionlessRatio"
 units = ["GM-PER-KiloGM", "KiloGM-PER-KiloGM"]
-description = "Scaling parameter q_* of the profile of specific humidity in the surface layer, from the humidity difference between a height and the surface over ln(z/z_0q) - psi_q (Frederickson et al. 1994, equation 1): a scale, not a humidity, almost always negative over the sea (p. 4); of the opposite sign to the IFS's scale defined by the surface flux (SurfaceLayerScaleOfSpecificHumidity)."
+description = "Scaling parameter q_* of the profile of specific humidity in the surface layer, from the humidity difference between a height and the surface over ln(z/z_0q) - psi_q (Frederickson et al. 1994, equation 1): a scale, not a humidity, almost always negative over the sea (p. 4); of the opposite sign to the IFS's scale defined by the surface flux, taken positive upward (SurfaceLayerScaleOfSpecificHumidity)."
 
 [kinds.RoughnessLengthForMomentum]
 label = "Roughness Length for Momentum"
@@ -610,7 +610,7 @@ note = "A constant, where ISO 2533 gives the kinematic viscosity of air as a fun
 label = "Obukhov length from the surface-layer scales (IFS)"
 expression = "-u_s**3 / (kappa * g_n / T_n * (u_s * s_s / c_pd + (R_v / R_d - 1) * T_n * u_s * q_s))"
 fixed_units = false
-note = "Equation 3.10, with the virtual temperature flux Q_0v = u_* s_*/c_p + epsilon T_n u_* q_* written out, epsilon = R_vap/R_dry - 1. T_n is the temperature of the lowest model level, a reference near the surface."
+note = "Equation 3.10, with the virtual temperature flux Q_0v = u_* s_*/c_p + epsilon T_n u_* q_* written out, epsilon = R_vap/R_dry - 1. T_n is the temperature of the lowest model level, a reference near the surface. The scales are taken positive for an upward flux, as 3.10 needs (L < 0 in free convection); 3.1 and 3.9 give them the opposite sign (SurfaceLayerScaleOfSpecificHumidity)."
 output = { identifier = "L", kind = "ObukhovLength", unit = "M", description = "Obukhov length" }
 inputs = [
   { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
@@ -631,7 +631,7 @@ assumptions = ["The turbulent fluxes are constant with height in the surface lay
 label = "Virtual temperature flux of the surface layer (IFS)"
 expression = "u_s * s_s / c_pd + (R_v / R_d - 1) * T_n * u_s * q_s"
 fixed_units = false
-note = "Equation 3.10, Q_0v = u_* s_*/c_p + epsilon T_n u_* q_*, epsilon = R_vap/R_dry - 1, positive upward, written out in ecmwf_ifs_obukhov_length; a kinematic heat flux, of the provisional kind KinematicHeatFlux."
+note = "Equation 3.10, Q_0v = u_* s_*/c_p + epsilon T_n u_* q_*, epsilon = R_vap/R_dry - 1, positive upward as 3.10 and 3.20 need (SurfaceLayerScaleOfSpecificHumidity), written out in ecmwf_ifs_obukhov_length; a kinematic heat flux, of the provisional kind KinematicHeatFlux."
 output = { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux in the surface layer" }
 inputs = [
   { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
@@ -1314,7 +1314,7 @@ keywords = ["profile function", "Monin-Obukhov", "unstable", "COARE", "free conv
 
 [[formulations.coare36_profile_function_momentum_unstable.citations]]
 reference = "coare36"
-note = "psiu_26, zeta < 0 (lines 769 to 776)."
+note = "psiu_26, zeta < 0 (lines 770 to 776)."
 notation = { Psi_M = '\psi_u', zeta = '\zeta' }
 assumptions = ["Unstable conditions, zeta < 0."]
 
@@ -1332,7 +1332,7 @@ keywords = ["profile function", "Monin-Obukhov", "stable", "COARE", "Holtslag"]
 
 [[formulations.coare36_profile_function_momentum_stable.citations]]
 reference = "coare36"
-note = "psiu_26, zeta >= 0 (lines 764 to 768)."
+note = "psiu_26, zeta >= 0 (lines 764 to 769)."
 notation = { Psi_M = '\psi_u', zeta = '\zeta' }
 assumptions = ["Stable conditions, zeta >= 0."]
 
@@ -1357,7 +1357,7 @@ assumptions = ["Unstable conditions, zeta < 0."]
 label = "Profile function for heat and humidity, stable conditions (COARE 3.6)"
 expression = "-((1 + 0.6667 * zeta) ** 1.5 + 0.6667 * (zeta - 14.28) * exp(-0.35 * zeta) + 8.525)"
 fixed_units = false
-note = "The form of Beljaars and Holtslag with rounded constants (ecmwf_ifs_profile_function_heat_stable): it gives -0.0045 at zeta = 0, a step from the unstable branch, and departs from the IFS's by 0.0045 at most; the code bounds the argument of exp to 50, a numerical step left out here."
+note = "The form of Beljaars and Holtslag with rounded constants (ecmwf_ifs_profile_function_heat_stable): it gives -0.0045 at zeta = 0, a step from the unstable branch, and departs from the IFS's by 0.0045 at most up to zeta = 18, the gap then growing with zeta (0.016 at zeta = 50, 0.04 at 100), since the code writes 0.6667 for 2/3; the code bounds the argument of exp to 50, a numerical step left out here."
 output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for heat" }
 inputs = [
   { identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter z/L" },
@@ -2310,14 +2310,16 @@ notation = { C_EN = 'C_{en,10}', k = '\mathrm{von}', z_0M = 'z_o', z_0Q = 'z_{oq
 
 [formulations.coare36_neutral_drag_coefficient_from_wind]
 label = "Neutral drag coefficient at 10 m from the equivalent neutral wind, the fixed point of COARE 3.6"
-expression = "k / sqrt(C_DN) == ln(10 / (piecewise((a_1 * U_10N + a_2, U_10N <= U_max), (a_1 * U_max + a_2, U_10N > U_max)) * U_10N**2 * C_DN / g + gamma * nu / (U_10N * sqrt(C_DN))))"
+expression = "k / sqrt(C_DN) == ln(10 / (piecewise((a_1 * U_10N + a_2, U_10N <= U_max), (a_1 * U_max + a_2, U_10N > U_max)) * (S / U * U_10N)**2 * C_DN / g + gamma * nu / (S / U * U_10N * sqrt(C_DN))))"
 fixed_units = true
-note = "The equation the loop of the code converges to: the neutral logarithmic profile at 10 m, U_10N = u_*/k ln(10/z_0), with u_* = U_10N C_DN^(1/2) and the roughness length of Edson et al. (2013, equation 11; coare36_charnock_coefficient, edson2013_roughness_length_momentum). The physical domain keeps the root of a logarithmic profile above the roughness length; the other root puts z_0 near 10 m."
+note = "The equation the loop of the code converges to: the neutral logarithmic profile at 10 m as coded, U_10N = u_*/(k gf) ln(10/z_0) with the gustiness factor gf = S/U (line 587), so that u_* = (S/U) U_10N C_DN^(1/2), and the roughness length of Edson et al. (2013, equation 11; coare36_charnock_coefficient, edson2013_roughness_length_momentum), which takes that u_*, gustiness included. With S = U, the neutral relation without gustiness; on the first row of the test data, gf = 1.0027 and C_DN agrees with the Cdn_10 of the code to 1e-9, against -0.13 % with S = U. The physical domain keeps the root of a logarithmic profile above the roughness length; the other root puts z_0 near 10 m."
 output = { identifier = "C_DN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient at 10 m" }
 inputs = [
   { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" },
   { identifier = "nu", kind = "KinematicViscosity", unit = "M2-PER-SEC", description = "Kinematic viscosity of the air" },
   { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u" },
+  { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface at z_u, gustiness included, S = (U^2 + U_g^2)^(1/2)" },
 ]
 coefficients = { k = 0.4, gamma = 0.11, a_1 = 0.0017, a_2 = -0.005, U_max = 19 }
 keywords = ["drag coefficient", "neutral", "sea surface", "COARE", "Charnock", "implicit equation"]
@@ -2330,7 +2332,7 @@ reference = "businger1985"
 [[formulations.coare36_neutral_drag_coefficient_from_wind.citations]]
 reference = "coare36"
 note = "Lines 480 to 590: the loop on zo, u10N and charnC, and line 634, Cdn_10 = von**2/log(10/zo)**2."
-notation = { C_DN = 'C_{dn,10}', k = '\mathrm{von}', U_10N = 'u_{10N}', nu = '\mathrm{visa}', g = '\mathrm{grav}' }
+notation = { C_DN = 'C_{dn,10}', k = '\mathrm{von}', U_10N = 'u_{10N}', nu = '\mathrm{visa}', g = '\mathrm{grav}', U = 'U', S = 'u_t' }
 
 [formulations.ecmwf_ifs_neutral_drag_coefficient_from_wind]
 label = "Neutral drag coefficient at 10 m from the equivalent neutral wind, after the IFS"
@@ -2944,7 +2946,7 @@ note = "Lines 514 and 516."
 label = "Convective gustiness from the virtual temperature flux (COARE 3.6 code)"
 expression = "piecewise((beta * (z_i * g / T * Q_0v) ** 0.333, Q_0v > 0), (u_0, Q_0v <= 0))"
 fixed_units = true
-note = "Lines 517 to 535 of the code: gust = Beta (Bf zi)^0.333 where the buoyancy flux Bf = g Q_0v/ta is positive, Beta = 1.2 (line 318), else 0.2 m/s. The exponent as the code writes it, 0.333 and not 1/3, makes it a numerical value equation, in the units of the code; with 1/3, the gust of the test data would be about 0.06 % larger. It is added to the wind, S = sqrt(U^2 + gust^2), the wind speed the scales take (coare36_friction_velocity); the test data take zi = 600 m."
+note = "Lines 517 to 535 of the code: gust = Beta (Bf zi)^0.333 where the buoyancy flux Bf = g Q_0v/ta is positive, Beta = 1.2 (line 318), else 0.2 m/s. The exponent as the code writes it, 0.333 and not 1/3, makes it a numerical value equation, in the units of the code; with 1/3, the gust of the test data would be up to 0.06 % smaller (Bf zi below 1 m^3 s^-3 on most rows). It is added to the wind, S = sqrt(U^2 + gust^2), the wind speed the scales take (coare36_friction_velocity); the test data take zi = 600 m."
 output = { identifier = "u_g", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Gustiness" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height of measurement" },
@@ -3313,15 +3315,15 @@ inputs = [
 keywords = ["friction velocity", "IFS"]
 
 [[formulations.ecmwf_ifs_friction_velocity.citations]]
+reference = "ecmwf_ifs_cy49r1"
+equation = "3.29"
+notation = { u_s = "u_*", C_M = 'C_{\mathrm{M}}', U_n = "|U_n|" }
+
+[[formulations.ecmwf_ifs_friction_velocity.citations]]
 reference = "large_yeager2004"
 equation = "7a"
 note = "p. 9, with the drag coefficient at the height of the wind and the stability (10a) from the second iteration on."
 notation = { u_s = 'u^*', C_M = 'C_D', U_n = '|\Delta \vec{U}|' }
-
-[[formulations.ecmwf_ifs_friction_velocity.citations]]
-reference = "ecmwf_ifs_cy49r1"
-equation = "3.29"
-notation = { u_s = "u_*", C_M = 'C_{\mathrm{M}}', U_n = "|U_n|" }
 
 # --- Free convection velocity (IFS) ----------------------------------
 
@@ -3339,15 +3341,16 @@ coefficients = { z_i = 1000.0 }
 constants = ["g_n_cgpm1901"]
 keywords = ["free convection", "convective velocity", "gustiness", "IFS"]
 
+[[formulations.ecmwf_ifs_free_convection_velocity_scale.domains]]
+bounds = { Q_0v = [0, inf] }
+criterion = "The cube root of an upward virtual temperature flux, the free convection of a heated surface: the source applies the term 'when the surface is heated' (p. 48)."
+
 [[formulations.ecmwf_ifs_free_convection_velocity_scale.citations]]
 reference = "ecmwf_ifs_cy49r1"
 equation = "3.20"
 note = "p. 48."
 notation = { w_s = "w_*", z_i = 'z_{\mathrm{i}}', g_n = "g", Q_0v = 'Q_{0\mathrm{v}}' }
 units = { z_i = "M" }
-
-[[formulations.ecmwf_ifs_free_convection_velocity_scale.citations.domains]]
-bounds = { Q_0v = [0, inf] }
 
 [formulations.ecmwf_ifs_wind_speed_free_convection]
 label = "Wind speed of the lowest model level with the free convection velocity (IFS)"
@@ -3449,7 +3452,7 @@ label = "Wind speed at 10 m, from the blending height with the profile functions
 expression = "F_blend * (ln((z_10 + z_0) / z_0) - Psi_M(zeta=(z_10 + z_0) / L) + Psi_M(zeta=z_0 / L)) / (ln((z_blend + z_0) / z_0) - Psi_M(zeta=(z_blend + z_0) / L) + Psi_M(zeta=z_0 / L))"
 calls = { Psi_M = "ecmwf_ifs_profile_function_momentum" }
 fixed_units = false
-note = "Equation 3.106. The blending height and the roughness length follow the rule of 3.105, which chooses the inputs rather than computing them: over rough terrain, z_0M > 0.03 m, z_blend = 40 m with the wind interpolated there from the model levels, and z_0MWMO = 0.03 m, a grassland's, for the exposure of WMO stations in open terrain; otherwise the lowest model level and z_0M itself. The 10-metre equivalent-neutral wind (3.107) is not entered: not a speed of the air, it would need a kind of its own."
+note = "Equation 3.106. The blending height and the roughness length follow the rule of 3.105, which chooses the inputs rather than computing them: over rough terrain, z_0M > 0.03 m, z_blend = 40 m with the wind interpolated there from the model levels, and z_0MWMO = 0.03 m, a grassland's, for the exposure of WMO stations in open terrain; otherwise the lowest model level and z_0M itself. The 10-metre equivalent-neutral wind (3.107) is not entered yet."
 output = { identifier = "F_10", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at 10 m" }
 inputs = [
   { identifier = "F_blend", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the blending height" },

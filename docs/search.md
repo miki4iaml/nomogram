@@ -132,9 +132,12 @@ A formulation links to the units of its variables and constants, and to
 the units of its coefficients when they are declared (added when the
 entry was written, or stated by a source), never to units inferred from
 the expression. A constant links to its unit and to the constants its
-definition uses, a scale to the unit of its conversion:
+definition uses, a scale to the unit of its conversion, a kind of the
+catalog to the units it adds to its parent's (`units`):
 `used_by("units.DEG_C")` gives the formulations working in degrees
-Celsius and the temperature scales converted in them, and
+Celsius and the temperature scales converted in them,
+`search(unit="g/kg", section="kinds")` the scales of humidity of the
+surface layer, which take g/kg besides the number of their parent, and
 `used_by("constants.R_ecmwf_ifs")` the gas constants the IFS derives
 from R.
 
@@ -156,7 +159,8 @@ finds its isentropic analysis, and the relative humidities composed from
 them are found with the others, by their kind. A model written step by
 step comes the same way: `search("evaporation duct")` finds the steps
 of the Paulus-Jeske model, `formulations_of("EvaporationDuctHeight")`
-its three branches, `used_by("references.paulus1989_td1596")` every
+its three branches beside the implicit heights of Fairall et al. (1978)
+and Frederickson et al. (1994), `used_by("references.paulus1989_td1596")` every
 formulation it gives, and `search("bulk Richardson number")` the trade
 term whose two meanings tell Jeske's number from that of the IFS. The
 explicit formulas of the model of Fairall et al. (1978) and Frederickson

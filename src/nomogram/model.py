@@ -895,15 +895,34 @@ def _beyond(value: Any, low: float, high: float) -> Any:
 
 
 def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
-    """Where values, in ``unit`` (the variable's by default), lie beyond its kind's bounds."""
+    """Where values, in ``unit`` (the variable's by default), lie beyond its kind's bounds.
+
+    A value on a conventional scale other than the reference one is
+    carried to the reference scale first (a Knudsen salinity in per mille,
+    a temperature on IPTS-68, a Practical Salinity, which is a number);
+    where it cannot be, beyond the conversion, it is compared as it is,
+    which bounds that hold on every scale (0 K) do rightly.
+    """
     value = np.asarray(values, dtype=float)
     bounds = variable.kind_bounds
     if bounds is None:
         return np.zeros(value.shape, dtype=bool)
-    low, high = _converted_bounds(
-        bounds.low, bounds.high, bounds.unit, unit or variable.unit
-    )
-    return _beyond(value, low, high)
+    unit = unit or variable.unit
+    raw = _converted_bounds(bounds.low, bounds.high, bounds.unit, unit)
+    scale = variable.scale
+    if scale is None or scale.is_reference or not scale.convertible:
+        return _beyond(value, *raw)
+    units = semantic_catalog().units
+    table = unit if scale.unit is None else str(scale.unit)
+    on_scale = convert(Q_(value, units[unit].pint), units[table].pint)
+    with np.errstate(invalid="ignore"):
+        carried = np.asarray(
+            scale.to_reference(np.asarray(on_scale.magnitude, dtype=float)),
+            dtype=float,
+        )
+    reference = _converted_bounds(bounds.low, bounds.high, bounds.unit, table)
+    unconverted = np.isnan(carried) & ~np.isnan(value)
+    return _beyond(carried, *reference) | (unconverted & _beyond(value, *raw))
 
 
 @lru_cache(maxsize=256)
@@ -1651,8 +1670,9 @@ class Formulation:
         pint.errors.DimensionalityError
             If the two members do not have the same dimension.
         DimensionError
-            If the branches of a member give values in different units, or
-            a sum adds terms in two units of one dimension.
+            If the branches of a member give values in different units, a
+            sum adds terms in two units of one dimension, or the members
+            give values in units with an offset between them (K and degC).
         """
         if self.fixed_units:
             return 1.0
@@ -1678,6 +1698,18 @@ class Formulation:
             units.append(found[0])
         if len(units) < 2:
             return 1.0
+        from nomogram.units import is_offset_unit
+
+        if (is_offset_unit(units[0]) or is_offset_unit(units[1])) and not _same_unit(
+            units[0], units[1]
+        ):
+            # No factor brings degC into K: the members would differ by an
+            # offset, which an equation of two members cannot carry.
+            msg = (
+                f"{self.key}: the members give values in units with an offset "
+                f"between them ({units[0]:~P}, {units[1]:~P}); write both in one unit"
+            )
+            raise DimensionError(msg)
         return float(Q_(1.0, units[1]).to(units[0]).magnitude)
 
     def _unit_of(self) -> Callable[[Any], Any]:
@@ -1986,6 +2018,8 @@ class Formulation:
 
         Raises
         ------
+        KeyError
+            If an input is not given: only the output may be missing.
         ValueError
             If ``basis`` is not one of its values.
 
@@ -2018,6 +2052,10 @@ class Formulation:
         where its condition holds, under the same rule.
         """
         _check_options("nan", basis, "convert")
+        missing = [v.identifier for v in self.inputs if v.identifier not in values]
+        if missing:
+            msg = f"{self.key}: no value given for the input(s) {', '.join(missing)}"
+            raise KeyError(msg)
         return self._outside(values, basis)
 
     def _outside(self, values: Mapping[str, Any], basis: Basis | None) -> Any:
@@ -2043,7 +2081,7 @@ class Formulation:
             for domain in domains:
                 for identifier, low, high in bounds_of(domain, of_output):
                     if identifier not in arrays:
-                        continue  # the output, not given
+                        continue  # the output, not given (inputs are checked first)
                     result = result | _beyond(arrays[identifier], low, high)
             return result
 
@@ -2087,38 +2125,15 @@ class Formulation:
     def _beyond_kinds(self, values: Mapping[str, Any], shape: tuple[int, ...]) -> Any:
         """Where a value of a variable lies beyond the bounds of its kind.
 
-        A value on a conventional scale other than the reference one is
-        carried to the reference scale first (a Knudsen salinity in per
-        mille, a temperature on IPTS-68, a Practical Salinity, which is a
-        number); where it cannot be, beyond the conversion, it is compared
-        as it is, which bounds that hold on every scale (0 K) do rightly.
+        Each value is compared on the reference scale, as
+        :func:`_beyond_kind` does; the output is left aside when it is not
+        given.
         """
-        units = semantic_catalog().units
         result = np.zeros(shape, dtype=bool)
         for variable in (*self.inputs, self.output):
-            bounds = variable.kind_bounds
-            if bounds is None or variable.identifier not in values:
-                continue
-            value = np.asarray(values[variable.identifier], dtype=float)
-            raw = _converted_bounds(bounds.low, bounds.high, bounds.unit, variable.unit)
-            scale = variable.scale
-            if scale is None or scale.is_reference or not scale.convertible:
-                result = result | _beyond(value, *raw)
-                continue
-            table = variable.unit if scale.unit is None else str(scale.unit)
-            on_scale = convert(Q_(value, units[variable.unit].pint), units[table].pint)
-            with np.errstate(invalid="ignore"):
-                carried = np.asarray(
-                    scale.to_reference(np.asarray(on_scale.magnitude, dtype=float)),
-                    dtype=float,
-                )
-            reference = _converted_bounds(bounds.low, bounds.high, bounds.unit, table)
-            unconverted = np.isnan(carried) & ~np.isnan(value)
-            result = (
-                result
-                | _beyond(carried, *reference)
-                | (unconverted & _beyond(value, *raw))
-            )
+            if variable.identifier not in values:
+                continue  # the output, not given (inputs are checked first)
+            result = result | _beyond_kind(variable, values[variable.identifier])
         return result
 
     def _branches_outside(

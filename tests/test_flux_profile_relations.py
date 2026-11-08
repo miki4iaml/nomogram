@@ -238,7 +238,7 @@ def test_coare_humidity_at_its_own_height_and_its_scale() -> None:
         L=L,
     )
     np.testing.assert_allclose(same, 0.016, rtol=1e-12)
-    # Over an evaporating sea, the air is drier below 10 m... than at 17 m:
+    # Over an evaporating sea, the air is moister at 10 m than at 17 m:
     # q decreases with height when q_* < 0.
     lower = value(
         "coare36_specific_humidity_at_height",

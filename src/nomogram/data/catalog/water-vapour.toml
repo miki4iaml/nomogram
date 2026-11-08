@@ -717,6 +717,26 @@ assumptions = [
   { text = "0 degC is taken as 273.16 K and the steam point as 373.16 K, a Kelvin temperature of before 1954; the triple point being 273.16 K since 1954, 0 degC is now 273.15 K.", status = "deduced" },
 ]
 
+[formulations.goff_gratch1946_ice.coefficients]
+c1 = -9.09718
+c2 = -3.56654
+c3 = 0.876793
+T_0 = 273.16
+e_i0 = { value = 6.1071, unit = "HectoPA", unit_basis = "added", note = "Saturation pressure over ice at T_0 = 273.16 K, 0 degC on the scale of the formula, not the triple point. Unit added: Vömel gives the bare number, and inside log10 the expression cannot tell a pressure in hPa from a pure number." }
+
+[[formulations.goff_gratch1946_ice.citations]]
+reference = "goff_gratch1946"
+
+[[formulations.goff_gratch1946_ice.citations]]
+reference = "smithsonian1984"
+
+[[formulations.goff_gratch1946_ice.citations]]
+reference = "voemel_vp"
+
+[[formulations.goff_gratch1946_ice.citations.domains]]
+bounds = { T = [173.15, 273.15] }
+criterion = "-100 to 0 degC, range of the equation over ice as stated by Vömel."
+
 [formulations.goff1957_ice]
 label = "Goff (1957) equation over ice, triple point form"
 expression = "p_t * 10 ** (a1 * (T_t / T - 1) + a2 * log10(T_t / T) + a3 * (1 - T / T_t))"
@@ -754,26 +774,6 @@ note = "Appendix A, 13 (b), printed with (1 - T1/T) in the third term: see the n
 [[formulations.goff1957_ice.citations.domains]]
 bounds = { T = [173.15, 273.15] }
 criterion = "0 to -100 degC (Appendix A, 13 (b))."
-
-[formulations.goff_gratch1946_ice.coefficients]
-c1 = -9.09718
-c2 = -3.56654
-c3 = 0.876793
-T_0 = 273.16
-e_i0 = { value = 6.1071, unit = "HectoPA", unit_basis = "added", note = "Saturation pressure over ice at T_0 = 273.16 K, 0 degC on the scale of the formula, not the triple point. Unit added: Vömel gives the bare number, and inside log10 the expression cannot tell a pressure in hPa from a pure number." }
-
-[[formulations.goff_gratch1946_ice.citations]]
-reference = "goff_gratch1946"
-
-[[formulations.goff_gratch1946_ice.citations]]
-reference = "smithsonian1984"
-
-[[formulations.goff_gratch1946_ice.citations]]
-reference = "voemel_vp"
-
-[[formulations.goff_gratch1946_ice.citations.domains]]
-bounds = { T = [173.15, 273.15] }
-criterion = "-100 to 0 degC, range of the equation over ice as stated by Vömel."
 
 [formulations.hyland_wexler1983_ice]
 label = "Hyland and Wexler (1983) formulation over ice"

@@ -504,7 +504,9 @@ def _check_pieces(where: str, formulation: Formulation) -> None:
     coefficients or constants, and the intervals do not overlap; where none
     holds, the formulation gives NaN. The pieces of a formulation called
     are checked on it, before it is taken into the caller, where a
-    condition may bound an expression passed to its input (``z_s / L < 0``).
+    condition may bound an expression passed to its input (``z_s / L < 0``);
+    likewise, a formulation defined by branches is checked on the
+    conditions of its branches only.
     """
     pairs = [(c.identifier, c.value) for c in formulation.coefficients]
     pairs += [(k.identifier, k.value) for k in formulation.constants]
@@ -518,6 +520,8 @@ def _check_pieces(where: str, formulation: Formulation) -> None:
         expressions = list(formulation.written_members)
         inputs.append(formulation.output.identifier)
     nodes = [n for e in expressions for n in sympy.preorder_traversal(e)]
+    if formulation.branches:
+        nodes = [formulation.sympy_expression]
     for node in nodes:
         if not isinstance(node, sympy.Piecewise):
             continue
@@ -2140,10 +2144,15 @@ class _Builder:
             msg = f"{place}.inner: expected a table of input identifier to formulation"
             raise CatalogError(msg)
         outer_inputs = {v.identifier: v for v in outer.inputs}
+        # Every input a condition reads, alone or in an expression passed to
+        # a formulation called (z / L < 0), the pieces having been checked
+        # on the formulations that hold them.
         bounded = {
-            _pieces(node, outer_inputs)[0].variable.name
+            symbol.name
             for node in sympy.preorder_traversal(outer.sympy_expression)
             if isinstance(node, sympy.Piecewise)
+            for _, condition in node.args
+            for symbol in condition.free_symbols
         }
         inner: dict[str, Formulation] = {}
         scaled: dict[str, Variable] = {}
@@ -3679,7 +3688,8 @@ def _links(
     variables and to its constants as built: a composition writes none, it
     takes them from its parts. It refers to the units of its constants and
     to the declared units of its coefficients (added or stated, never
-    inferred); a constant or a scale to its unit. Units were checked
+    inferred); a constant or a scale to its unit; a kind of the catalog to
+    the units it adds to its parent's (``units``). Units were checked
     against the semantic catalog when built. The family check reads the
     written tables only (:func:`_references`): units belong to no family.
     """
@@ -3705,6 +3715,9 @@ def _links(
             scale_unit = built.scales[key].unit
             if scale_unit is not None:
                 references.add(("units", scale_unit))
+        elif section == "kinds":
+            for unit in data[section][key].get("units") or ():
+                references.add(("units", unit))
         targets = sorted(references)
         found = tuple(
             f"{s}.{k}"

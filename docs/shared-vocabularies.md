@@ -226,7 +226,9 @@ A violation fails the CI; a warning is counted in the report.
   releases of QUDT and CF; a kind or a unit that QUDT comes to define,
   often after a contribution of nomogram, then replaces the local one.
 - What nomogram adds to the sources (scale typing, added units, pint
-  expressions) is declared in that script, never hidden in the data.
+  expressions, bounds of kinds, units and provisional kinds QUDT does not
+  define yet) is declared in that script, never hidden in the data, and
+  listed in the data notice.
 - A kind of nomogram's own must specialize a QUDT kind: the loader
   checks it. A kind with no QUDT kind to specialize, such as the
   kinematic heat flux in K m/s, enters only as a *provisional* kind,

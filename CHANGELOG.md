@@ -104,7 +104,8 @@ and this project adheres to
   own; inherited, narrowed never widened, never by a kind of
   differences, and converted to the unit of each variable
   (`Variable.kind_bounds`, `Variable.bounds_in_unit`). A kind of the
-  catalog may take units besides those of its parent (`units`).
+  catalog may take units besides those of its parent (`units`), and links
+  to them: `search(unit="g/kg", section="kinds")` finds it.
 
 - Implicit equations, the measurement model h(Y, X) = 0 of the VIM
   (2.48): an expression may be an equation, `left == right`, which
@@ -113,7 +114,8 @@ and this project adheres to
   narrowed by `evaluate(search=...)`. Without exactly one root there,
   the value is NaN and a `RootWarning` says why
   (`Formulation.implicit`, `Formulation.equation_members`). A member may
-  be 0. An implicit equation is not inverted and is no part of a
+  be 0; members in units with an offset between them (K and degC) are
+  refused. An implicit equation is not inverted and is no part of a
   composition, a call or a branch; two entries of one equation are
   refused as duplicates. The KEYPS formula of Businger et al. (1971,
   equation 7) is the first, for unstable conditions, its root chosen by
@@ -175,8 +177,9 @@ and this project adheres to
   those of Edson et al. (2013) for a fully rough sea, above 8.5 m/s, and
   of Hersbach (2011), as Edson et al. quote it; the drag coefficient by
   its definition (Businger 1985); the neutral drag coefficient at 10 m
-  from the wind, the fixed point of the loop of COARE 3.6 and that of the
-  roughness length of the IFS, as implicit equations whose physical
+  from the wind, the fixed point of the loop of COARE 3.6, gustiness
+  included as the code writes it, and that of the roughness length of the
+  IFS, as implicit equations whose physical
   domain keeps the root of a logarithmic profile above the roughness
   length; the stability factors of Louis et al. (1982), as Beljaars
   (1992) quotes them. New kinds `NeutralSurfaceDragCoefficientForMomentum`,
@@ -304,11 +307,17 @@ and this project adheres to
 - The three scales of specific humidity of the surface layer, signed,
   now specialize `DimensionlessRatio`, with g/kg and kg/kg, not
   `MassRatio`, whose values are never negative.
+- The dew and frost points of WMO-No. 8, Vaisala (2013) and Hardy (1998)
+  are bounded by the range their sources state for them, as those of
+  Sonntag (1994) are, where their notes kept it: NaN beyond by default
+  (`outside="ignore"` computes them there).
 - `UnitDefinition.iri` is `None` for a unit QUDT does not have, which
   nomogram declares until QUDT does.
 - `ValidityDomain.bounds` may bound the output, and
   `Formulation.outside_mask` takes the output's values among its
-  `values`. A formulation inverted in closed form now carries the domain
+  `values`, where every input is required: a missing or misspelt input
+  is a `KeyError`, whether a domain bounds it or not. A formulation
+  inverted in closed form now carries the domain
   of the input it solves for onto its output, beside its image onto the
   new input; a domain open on one side is no search interval for a
   numerical inversion.

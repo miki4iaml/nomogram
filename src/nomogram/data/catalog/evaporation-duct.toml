@@ -285,7 +285,7 @@ criterion = "Limits of the output of the model (Table 1): an evaporation duct he
 label = "Evaporation duct height, unstable conditions (Paulus-Jeske, NOSC TD 1596)"
 expression = "((b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 4 - 4 * beta / L * (b_1 * (ln(z_1 / z_0) - Psi_H) / Delta_N_p) ** 3) ** (-1 / 4)"
 fixed_units = true
-note = "Step 5, for Ri_b < 0, with B = ln(z_1/z_0) - psi written out, psi the universal function at z_1/L' (paulus1989_profile_function); from the KEYPS relation with alpha = 4.5 (A-3). Its FORTRAN listing sets the height to 0 when the bracket is not positive and, as in stable conditions, when Delta N_p >= 0 (appendix D, p. D-5 and D-7), which the text says for stable conditions only. The model limits the height to 40 m (step 6): above, a height is outside the domain of its Table 1."
+note = "Step 5, for Ri_b < 0, with B = ln(z_1/z_0) - psi written out, psi the universal function at z_1/L' (paulus1989_profile_function); from the KEYPS relation with alpha = 4.5 (A-3). Its FORTRAN listing sets the height to 0 when the bracket is not positive and, as in stable conditions, when Delta N_p >= 0 (appendix D, p. D-5 to D-7: the default height on D-5, the test on Delta N_p on D-6, the bracket on D-7), which the text says for stable conditions only. The model limits the height to 40 m (step 6): above, a height is outside the domain of its Table 1."
 output = { identifier = "delta", kind = "EvaporationDuctHeight", unit = "M", description = "Evaporation duct height" }
 inputs = [
   { identifier = "Delta_N_p", kind = "PotentialRadioRefractivityDifference", unit = "PPM", description = "Potential refractivity of the air minus that at the sea surface" },
@@ -311,7 +311,8 @@ criterion = "Limits of the output of the model (Table 1): an evaporation duct he
 # The explicit formulas of the Monin-Obukhov model of the evaporation duct
 # of the Naval Postgraduate School. The duct height itself, an implicit
 # equation that both sources solve iteratively (Fairall et al. 1978,
-# equation 25; Frederickson et al. 1994, equation 3), is not entered.
+# equation 25; Frederickson et al. 1994, equation 3), is entered at the end
+# of this file (Implicit equations).
 
 [formulations.fairall1978_radio_refractivity]
 label = "Radio refractivity, two-term form (Fairall et al. 1978)"
@@ -597,7 +598,7 @@ notation = { U = 'U(Z)', U_0 = 'U(Z_{0u})', u_s = 'U_*', kappa = '\kappa', z = '
 label = "Potential temperature at a height from its scale, the profile function as an input (Fairall et al. 1978)"
 expression = "theta_0 + T_s / (alpha * kappa) * (ln(z / z_0H) - Psi_H)"
 fixed_units = false
-note = "Equation 11 for the potential temperature, the sea temperature at the roughness length (T(0), p. 12). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale."
+note = "Equation 11 for the potential temperature, the sea temperature at the roughness length (T(0), p. 12). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, divides the scale (X*/(alpha kappa))."
 output = { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the height" }
 inputs = [
   { identifier = "theta_0", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the roughness length, that of the sea surface" },
@@ -620,7 +621,7 @@ notation = { theta = 'T(Z)', theta_0 = 'T(Z_{0T})', T_s = 'T_*', alpha = '\alpha
 label = "Water vapour mixing ratio at a height from its scale, the profile function as an input (Fairall et al. 1978)"
 expression = "r_0 + r_s / (alpha * kappa) * (ln(z / z_0Q) - Psi_H)"
 fixed_units = false
-note = "Equation 11 for the mixing ratio, in g/kg, that of saturation at the sea temperature at the roughness length (H(0) = 100 %, p. 12); phi_q = phi_T (p. 23). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, multiplies the scale."
+note = "Equation 11 for the mixing ratio, in g/kg, that of saturation at the sea temperature at the roughness length (H(0) = 100 %, p. 12); phi_q = phi_T (p. 23). alpha_T = alpha_q = 1.35 and kappa = 0.35, from Businger et al. (1971) (p. 23); alpha, the ratio of the diffusivities K_x/K_u, divides the scale (X*/(alpha kappa))."
 output = { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Water vapour mixing ratio at the height" }
 inputs = [
   { identifier = "r_0", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio at the roughness length, saturated at the sea temperature" },
@@ -711,7 +712,7 @@ notation = { r_s = 'q_*', r = 'q(Z)', r_0 = 'q(0)', alpha = '\alpha_q', kappa = 
 label = "Friction velocity from the wind at a height, the profile function as an input (Frederickson et al. 1994)"
 expression = "(U - U_0) * k / (ln(z / z_0M) - Psi_M)"
 fixed_units = false
-note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 3)."
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 4)."
 output = { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" }
 inputs = [
   { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height" },
@@ -733,7 +734,7 @@ notation = { u_s = 'u_*', U = 'u_z', U_0 = 'u_o', k = 'k', z = 'z', z_0M = 'z_{o
 label = "Scale of temperature from the air-sea difference, the profile function as an input (Frederickson et al. 1994)"
 expression = "(T - T_0) * k / (ln(z / z_0H) - Psi_H)"
 fixed_units = false
-note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 3). A temperature, not a potential temperature."
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 4). A temperature, not a potential temperature."
 output = { identifier = "T_s", kind = "SurfaceLayerProfileScaleOfTemperature", unit = "K", description = "Scale of temperature" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height" },
@@ -755,7 +756,7 @@ notation = { T_s = 'T_*', T = 'T_z', T_0 = 'T_o', k = 'k', z = 'z', z_0H = 'z_{o
 label = "Scale of specific humidity from the air-sea difference, the profile function as an input (Frederickson et al. 1994)"
 expression = "(q - q_0) * k / (ln(z / z_0Q) - Psi_H)"
 fixed_units = false
-note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 3). q_o is the saturation specific humidity at the sea temperature."
+note = "Equation 1, k = 0.4, after Smith (1988), whose profile functions the report does not detail; the surface wind is zero (p. 4). q_o is the saturation specific humidity at the sea temperature."
 output = { identifier = "q_s", kind = "SurfaceLayerProfileScaleOfSpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Scale of specific humidity" }
 inputs = [
   { identifier = "q", kind = "SpecificHumidity", unit = "KiloGM-PER-KiloGM", description = "Specific humidity at the height" },
