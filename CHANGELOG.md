@@ -33,6 +33,22 @@ and this project adheres to
   an implicit equation, the derivative of its output is bounded over the
   unknown too. KEYPS is proven increasing in zeta over zeta <= 0. A
   property nomogram computes, never a validity domain.
+- **Systems of equations** (`nomogram.systems`): a `System` of equations,
+  each given by a formulation of the catalog (`Equation`), listed in the
+  order the source computes them, solved together for its unknowns, the
+  variables read before they are given: a multivariate measurement model
+  (JCGM 102:2011, 3.8). `System.evaluate` takes pint quantities and
+  returns a `Solution`, every variable in its unit with a status for
+  each set of values. Newton's method by default, damped by a line search
+  and vectorised, with an exact Jacobian assembled by the chain rule from
+  the partial derivatives of each formulation, units and conventional
+  scales included; or the passes of the fixed point the source iterates
+  (`method="fixed-point"`). Without convergence, with a singular Jacobian
+  or a residual undefined, the values are NaN and a `ConvergenceWarning`
+  counts them; the unknown of an implicit equation stays where its root is
+  sought. The domains of every equation apply to the inputs before
+  solving (not solved there) and to every value once solved, as `outside`
+  says, or as the source's practice for an equation says.
 
 ### Changed
 
