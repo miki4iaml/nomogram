@@ -218,8 +218,13 @@ closed form, or whose image overlaps another's makes the whole inverse
 numerical. Most formulas of the field meet the condition: saturation
 pressures, layers of a standard atmosphere. A constant branch does not:
 the 0 and 1 of a mixed-phase fraction are each reached on a whole
-interval of temperatures, and the numerical inverse returns one end of
-it, within the interval searched.
+interval of temperatures. The numerical inverse returns the end where
+the values below the target stop: 273.16 K for 1, the bottom of the
+interval of 1; and for 0, which no value lies below, the bottom of the
+interval searched (230 K when the search starts at 230 K), an answer
+that depends on that interval. Where a source jumps forward at a
+junction, the values in between have no solution: NaN, as for the
+symbolic inverse by branches, and a `RootWarning` that counts them.
 Every inverse is tested **both ways**, for every formulation over water
 (f(f⁻¹(e)) = e, below), and every formulation over ice through the
 frost point (f⁻¹(f(t)) = t):
@@ -347,7 +352,11 @@ They do not guarantee that:
   scale to the edge of a region where the residual is undefined, or
   closer than about 10⁻⁹ of its value to a finite end of the interval
   searched; and a jump between pieces smaller than a millionth
-  of the residual's change around it is taken for a root.
+  of the residual's change around it is taken for a root;
+- a numerical inverse gives the only solution where its source is
+  constant on part of the interval searched: a target equal to that
+  value has a whole interval of solutions, and the inverse gives one end
+  of it, or an end of the interval searched.
 
 ## Contributing to this effort
 

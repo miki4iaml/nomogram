@@ -361,7 +361,13 @@ cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", r
 [kinds.ConvectiveVelocityScale]
 label = "Convective Velocity Scale"
 specialization_of = "Speed"
-description = "Velocity scale of the large eddies of free convection, w_* = (z_i g Q_0v / T)^(1/3), from the virtual temperature flux at the surface and a height of the boundary layer; a gustiness added to the mean wind in the bulk formulas."
+description = "Velocity scale of the large eddies of free convection, the Deardorff velocity, formerly called the convective velocity scale, w_* = (z_i g Q_0v / T)^(1/3), from the virtual temperature flux at the surface and a height of the boundary layer: the free convection velocity scale of the IFS (CY49R1, Part IV, equation 3.20), which it adds to the wind (3.19), and the convective velocity scale W_* of COARE (Fairall et al. 1996, equation 17). Not the gustiness velocity beta W_* of the bulk formulas (GustinessVelocity), which it feeds through beta."
+
+[kinds.GustinessVelocity]
+label = "Gustiness Velocity"
+specialization_of = "Speed"
+description = "The velocity added in quadrature to the magnitude of the mean wind vector U to give the mean wind speed S of the bulk formulas, S^2 = U^2 + w_g^2: 'a gustiness velocity to account for the additional flux induced by boundary layer scale variability' (Fairall et al. 1996, abstract and equation 15), parameterized as beta W_*, beta an empirical coefficient near 1 that depends on the averaging (equation 16), with a floor where the buoyancy flux is not upward (0.2 m/s, COARE 3.6 code). Not a gust, the peak wind speed over a short interval (WMO, CF wind_speed_of_gust), nor the derived equivalent vertical gust velocity of aviation, a vertical component, nor a standard deviation of the wind speed, nor the convective velocity scale W_*."
+bounds = { low = 0, high = inf, unit = "M-PER-SEC", criterion = "A speed, never negative." }
 
 [kinds.SurfaceLayerScaleOfDryStaticEnergy]
 label = "Surface-Layer Scale of Dry Static Energy"
@@ -2602,7 +2608,7 @@ notation = { U_r = 'U_{rf}', U = 'U', S = 'u_t', u_s = 'u_*', k = '\mathrm{von}'
 label = "Equivalent neutral wind at 10 m from the friction velocity and the roughness length (COARE 3.6)"
 expression = "u_s * U / (k * S) * ln(z_10 / z_0M)"
 fixed_units = false
-note = "As coded in the loop, for the Charnock coefficient of the next iteration (coare36_charnock_coefficient); at convergence, the U10N of the output (l. 662) equals it."
+note = "As coded in the loop, for the Charnock coefficient of the next iteration (coare36_charnock_coefficient); at convergence, the U10N of the output (l. 662) equals it. The code's gf = ut/du is S/U, which Fairall et al. (2003, p. 582) call the gustiness factor G, in their 10-m neutral wind (equation 31)."
 output = { identifier = "U_10N", kind = "EquivalentNeutralWindSpeed", unit = "M-PER-SEC", description = "Equivalent neutral wind speed at 10 m" }
 inputs = [
   { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },
@@ -2947,7 +2953,7 @@ label = "Convective gustiness from the virtual temperature flux (COARE 3.6 code)
 expression = "piecewise((beta * (z_i * g / T * Q_0v) ** 0.333, Q_0v > 0), (u_0, Q_0v <= 0))"
 fixed_units = true
 note = "Lines 517 to 535 of the code: gust = Beta (Bf zi)^0.333 where the buoyancy flux Bf = g Q_0v/ta is positive, Beta = 1.2 (line 318), else 0.2 m/s. The exponent as the code writes it, 0.333 and not 1/3, makes it a numerical value equation, in the units of the code; with 1/3, the gust of the test data would be up to 0.06 % smaller (Bf zi below 1 m^3 s^-3 on most rows). It is added to the wind, S = sqrt(U^2 + gust^2), the wind speed the scales take (coare36_friction_velocity); the test data take zi = 600 m."
-output = { identifier = "u_g", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Gustiness" }
+output = { identifier = "u_g", kind = "GustinessVelocity", unit = "M-PER-SEC", description = "Gustiness velocity" }
 inputs = [
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Air temperature at the height of measurement" },
   { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux, positive upward" },
@@ -2969,7 +2975,7 @@ note = "Line 537 of the code, ut = sqrt(du^2 + gust^2), du = u - us, with us = 0
 output = { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface, gustiness included" }
 inputs = [
   { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface" },
-  { identifier = "u_g", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Gustiness" },
+  { identifier = "u_g", kind = "GustinessVelocity", unit = "M-PER-SEC", description = "Gustiness velocity" },
 ]
 keywords = ["gustiness", "wind speed", "COARE"]
 
@@ -2980,8 +2986,26 @@ note = "Lines 417 and 537."
 [[formulations.coare36_wind_speed_with_gust.citations]]
 reference = "fairall1996"
 equation = "15"
-note = "p. 3751, the mean wind speed with the gustiness w_g = beta W_* (equation 16), u the magnitude of the mean wind vector."
+note = "p. 3751, S 'the average value of the wind speed, not the magnitude of the mean wind vector' u; w_g, 'a gustiness velocity' (abstract, p. 3747), is beta W_* (equation 16, fairall1996_gustiness_velocity)."
 notation = { S = 'S', U = 'u', u_g = 'w_g' }
+
+[formulations.fairall1996_gustiness_velocity]
+label = "Gustiness velocity from the convective velocity scale (Fairall et al. 1996)"
+expression = "beta * W_s"
+fixed_units = false
+note = "Equation 16, w_g = beta W_*, beta 'an empirical constant, of the order of 1.0, but which depends on the temporal/spatial scale used to compute the averages' (p. 3751); the abstract gives the gustiness parameter beta = 1.25, from the measurements of the R/V Moana Wave (p. 3747). The definition through which a convective velocity scale feeds a gustiness velocity: the COARE 3.6 code takes beta = 1.2 with a floor of 0.2 m/s (coare36_convective_gust); the IFS adds w_* itself to the wind (ecmwf_ifs_wind_speed_free_convection)."
+output = { identifier = "w_g", kind = "GustinessVelocity", unit = "M-PER-SEC", description = "Gustiness velocity" }
+inputs = [
+  { identifier = "W_s", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Convective velocity scale" },
+]
+coefficients = { beta = 1.25 }
+keywords = ["gustiness", "gustiness velocity", "convective velocity", "COARE"]
+
+[[formulations.fairall1996_gustiness_velocity.citations]]
+reference = "fairall1996"
+equation = "16"
+note = "p. 3751; beta = 1.25 in the abstract, p. 3747."
+notation = { w_g = "w_g", beta = '\beta', W_s = "W_*" }
 
 # --- Flux-profile relations with the profile function as an input -------
 
@@ -3571,6 +3595,16 @@ community = "CF, numerical weather prediction (IFS)"
 kind = "SurfaceDragCoefficientForMomentum"
 definition = "The transfer coefficient relating the surface stress to the square of the wind speed at a height (CF surface_drag_coefficient_for_momentum_in_air; C_M of the IFS, equation 3.15)."
 sources = ["cf_standard_names_95", "ecmwf_ifs_cy49r1"]
+
+[trade_terms.gustiness]
+term = "gustiness"
+language = "en"
+
+[[trade_terms.gustiness.meanings]]
+community = "air-sea fluxes (COARE)"
+kind = "GustinessVelocity"
+definition = "w_g, 'a gustiness velocity' added in quadrature to the mean wind vector, S^2 = u^2 + w_g^2, w_g = beta W_* (Fairall et al. 1996, abstract and equations 15 and 16, beta = 1.25); the variable gust of the COARE 3.6 code, 'gustiness velocity (m/s)' (line 155), beta = 1.2 with a floor of 0.2 m/s. For WMO, gustiness is the extent of the rapid fluctuations of the wind, and a gust the peak wind speed over a short interval: not this velocity."
+sources = ["fairall1996", "coare36", "wmo2024"]
 
 # --- Systems ----------------------------------------------------------
 

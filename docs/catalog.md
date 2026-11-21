@@ -199,11 +199,12 @@ expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_
   formulation: a condition on a value an inner part computes is refused.
 - **Inversion has a limit:** a piecewise definition is inverted branch by
   branch **only if each branch is strictly monotonic on its interval**
-  (nomogram checks it on samples), has a closed form, and the images of
-  the intervals do not overlap; the inverse is then piecewise too, its
-  conditions being those images. A constant branch, such as the 0 and 1
-  of a mixed-phase fraction, has no inverse. Otherwise the inverse is
-  numerical (see
+  (nomogram proves it, or checks it on samples), has a closed form, and
+  the images of the intervals do not overlap; the inverse is then
+  piecewise too, its conditions being those images. A constant branch,
+  such as the 0 and 1 of a mixed-phase fraction, has no inverse branch:
+  its value has a whole interval of solutions. Otherwise the inverse is
+  numerical, and gives one end of such an interval (see
   [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
 
 ### Implicit equations
@@ -816,7 +817,7 @@ them, each with its criterion, in the extraction script for the kinds of
 QUDT and in `bounds` for its own:
 
 ```toml
-bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, never negative; where there is no duct, there is no height (NaN), not 0." }
 ```
 
 - A kind takes the bounds of the nearest kind it specializes that has

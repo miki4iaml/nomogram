@@ -285,7 +285,9 @@ class RootWarning(UserWarning):
     The value is NaN there: no root in the interval searched (the domains
     of the output and the bounds of its kind, or ``search=``), several
     roots (a domain to narrow), or a residual undefined inside the bracket
-    of a root.
+    of a root. A numerical inverse warns the same way for a target within
+    a gap of the image of its source, where it jumps forward at a
+    junction: no value gives it.
     """
 
 

@@ -43,7 +43,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from nomogram._roots import grid
+from nomogram._roots import COLLAPSE, grid
 from nomogram.expression import (
     PIECEWISE,
     ExpressionError,
@@ -58,6 +58,7 @@ from nomogram.model import (
     Formulation,
     OutOfDomainError,
     Outside,
+    RootWarning,
     ScaleConversion,
     UnitBasis,
     ValidityDomain,
@@ -632,12 +633,21 @@ class NumericalInverse:
     and :func:`~nomogram.comparison.compose`). :func:`invert` builds it
     only for a source monotonic over the search interval: proven, or
     found so on samples when no proof concludes (``monotonicity``). Values
-    outside its image give NaN, and results outside the source's validity
-    domains follow the ``outside`` option. Where a piecewise source steps
-    back at a junction (``monotonicity.steps``, as far as :func:`invert`
-    accepts), a target within the step has two solutions on either side of
-    the junction, at most ``monotonicity.widths`` apart, and the one found
-    is either; the bisection follows the direction proven.
+    outside its image give NaN: beyond the images of the ends of the
+    search interval, and within a gap where the source jumps forward at a
+    junction, which a :class:`~nomogram.model.RootWarning` reports. Results
+    outside the source's validity domains follow the ``outside`` option. Where a piecewise source steps back at a junction
+    (``monotonicity.steps``, as far as :func:`invert` accepts), a target
+    within the step has two solutions on either side of the junction, at
+    most ``monotonicity.widths`` apart, and the one found is either; the
+    bisection follows the direction proven. Where the source is constant
+    on part of the interval (a constant branch), a target equal to that
+    value has a whole interval of solutions, of which the bisection gives
+    the end where the values below the target stop: the lower end of the
+    plateau for an increasing source, the upper end for a decreasing one,
+    and, where no value lies below the target (the plateau holds the
+    minimum of the image), the end of the search interval on that side,
+    an answer that depends on the interval searched.
 
     Attributes
     ----------
@@ -770,10 +780,25 @@ class NumericalInverse:
             high = np.where(go_up, high, middle)
         solved = (low + high) / 2
         # Only between the images of the ends, in the order of the direction,
-        # is a solution bracketed.
+        # is a solution bracketed; and not where the source jumps forward
+        # between the two last points, as large a change between adjacent
+        # floats as the solver of implicit equations takes for a jump.
         first, last = ends if increasing else ends[::-1]
-        unreachable = (target < first) | (target > last) | ~np.isfinite(target)
-        solved = np.where(unreachable, np.nan, solved)
+        with np.errstate(invalid="ignore"):
+            jump = np.abs(forward(high) - forward(low))
+        gap = jump > COLLAPSE * abs(float(last - first))
+        beyond = (target < first) | (target > last) | ~np.isfinite(target)
+        within = gap & ~beyond
+        if within.any():
+            import warnings
+
+            message = (
+                f"{self.key}: NaN for {int(within.sum())} within a gap of the "
+                f"image of {self.source.key}, which jumps forward at a "
+                f"junction: no value of {source_input.identifier} gives them"
+            )
+            warnings.warn(message, RootWarning, stacklevel=2)
+        solved = np.where(beyond | gap, np.nan, solved)
         given = {source_input.identifier: solved, self.source.output.identifier: target}
         mask = self.source.outside_mask(given, basis)
         # The bounds of the kinds of its own variables, which may be
