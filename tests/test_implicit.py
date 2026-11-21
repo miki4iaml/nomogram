@@ -82,6 +82,24 @@ def test_roots_at_any_scale_and_on_a_bound() -> None:
     assert status[0] == _roots.ONE
 
 
+def test_a_bracket_is_narrowed_in_a_few_evaluations() -> None:
+    # Chandrupatla's method reaches adjacent floats in a handful of steps
+    # where halving needed about 55; the grid's samples are not counted.
+    evaluations = []
+
+    def members(y: np.ndarray, c: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        evaluations.append(np.size(y))
+        return np.exp(y) + y, c
+
+    c = np.linspace(2.0, 50.0, 100)
+    roots, status = _roots.solve(members, [c], 0.0, 10.0)
+    assert (status == _roots.ONE).all()
+    np.testing.assert_allclose(np.exp(roots) + roots, c, rtol=1e-15)
+    grid = _roots.grid(0.0, 10.0).size * c.size
+    per_root = (sum(evaluations) - grid) / c.size
+    assert per_root < 12
+
+
 def test_several_roots_and_roots_beyond_the_sweep_give_nan() -> None:
     two, status = solve(lambda y: ((y - 1) * (y - 5), 0 * y), 0.0, 10.0)
     assert math.isnan(two[0])

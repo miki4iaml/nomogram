@@ -7,11 +7,18 @@ The unknown is sought in an interval the caller derives from objective
 domains (VIM 2.48, note 1: h(Y, X1, ..., Xn) = 0, Y the output). The
 residual h = left - right is sampled on a grid; each change of sign
 between two finite samples, each exact zero and each edge of a region
-where the residual is undefined gives a candidate; each candidate is
-bisected down to adjacent floating-point numbers, and kept as a root only
+where the residual is undefined gives a candidate; each candidate's
+bracket is narrowed down to adjacent floating-point numbers by
+Chandrupatla's method (Chandrupatla, T. R., 1997, A new hybrid
+quadratic/bisection algorithm for finding the zero of a nonlinear
+function without using derivatives, Advances in Engineering Software
+28(3), 145-149, doi:10.1016/S0965-9978(96)00051-8): inverse quadratic
+interpolation where it is safe, halving otherwise, in the order of floats
+rather than at the arithmetic middle. A candidate is kept as a root only
 where the residual has collapsed there, to a millionth of its largest
-finite value at the ends of the bracket bisected: it stays as large
-across a jump between pieces, and grows at a pole. The members' own
+finite value at the ends of the bracket: it stays as large across a jump
+between pieces, and grows at a pole, which any bracketing method
+otherwise converges to. The members' own
 size plays no part, so that a member written 0 (h == 0) or computed by
 cancellation of large terms does not hide a root. One root gives the
 value; none, several, or a residual undefined inside a bracket give NaN,
@@ -129,46 +136,97 @@ def _finite_size(h: np.ndarray) -> np.ndarray:
     return np.where(np.isfinite(h), np.abs(h), 0.0)
 
 
-def _bisect(
+def _narrow(
     members: Members,
-    a: np.ndarray,
-    b: np.ndarray,
+    low: np.ndarray,
+    high: np.ndarray,
+    h_low: np.ndarray,
+    h_high: np.ndarray,
     args: list[Any],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Bisect brackets [a, b] (h of opposite signs at the ends).
+    """Narrow brackets [low, high] down to adjacent floats (Chandrupatla, 1997).
+
+    ``h_low`` and ``h_high``, the residuals at the ends, have opposite signs
+    (or the bracket is one point, a zero). Each step tries an inverse
+    quadratic interpolation through the last three points, where
+    Chandrupatla's criterion holds it safe, and halves the bracket in the
+    order of floats otherwise (:func:`_midpoint`): halving is forced after
+    two interpolations that did not halve the bracket, so that adjacent
+    floats are reached within about three times 64 steps. Only the brackets
+    still open are evaluated at each step.
 
     Returns the root found in each, NaN where it is rejected (a pole, a
     jump), and whether the residual was undefined inside.
     """
-    h_a = _residual(members, a, args)
     # The largest finite residual at the ends: a pole sampled exactly
     # gives no scale.
-    start = np.maximum(_finite_size(h_a), _finite_size(_residual(members, b, args)))
-    undefined = np.zeros(a.shape, dtype=bool)
-    exact = np.zeros(a.shape, dtype=bool)
-    # 64 halvings reach adjacent floats: the loop always ends by its break.
-    for _ in range(66):  # pragma: no branch
-        middle = _midpoint(a, b)
-        active = (middle != a) & (middle != b) & ~exact & ~undefined
-        if not active.any():
+    start = np.maximum(_finite_size(h_low), _finite_size(h_high))
+    # The ends of each bracket once closed, and why it closed.
+    end_a, end_b = high.copy(), low.copy()
+    end_fa, end_fb = h_high.copy(), h_low.copy()
+    undefined = np.zeros(low.shape, dtype=bool)
+    exact = np.zeros(low.shape, dtype=bool)
+    # The brackets still open: Chandrupatla's points, a the newest, b the
+    # other end of the bracket, c the previous a.
+    index = np.arange(low.size)
+    a, b, c = high.copy(), low.copy(), high.copy()
+    fa, fb, fc = h_high.copy(), h_low.copy(), h_high.copy()
+    interpolate = np.zeros(low.shape, dtype=bool)
+    t = np.full(low.shape, 0.5)
+    slow = np.zeros(low.shape, dtype=np.int64)
+    lower, upper = np.minimum(a, b), np.maximum(a, b)
+    middle = _midpoint(lower, upper)
+    open_ = (middle != lower) & (middle != upper)
+    for _ in range(4 * 66):  # pragma: no branch
+        if not open_.all():
+            # Close the brackets done: adjacent floats, an exact zero, or a
+            # residual undefined inside.
+            done = index[~open_]
+            end_a[done], end_b[done] = a[~open_], b[~open_]
+            end_fa[done], end_fb[done] = fa[~open_], fb[~open_]
+            index, a, b, c = index[open_], a[open_], b[open_], c[open_]
+            fa, fb, fc = fa[open_], fb[open_], fc[open_]
+            interpolate, t, slow = interpolate[open_], t[open_], slow[open_]
+            lower, upper, middle = lower[open_], upper[open_], middle[open_]
+        if not index.size:
             break
-        h_m = _residual(members, middle, args)
+        with np.errstate(all="ignore"):
+            trial = a + t * (b - a)
+        use = interpolate & (slow < 2) & (trial > lower) & (trial < upper)
+        x = np.where(use, trial, middle)
+        fx = _residual(members, x, [v[index] for v in args])
         # An infinite residual has a sign (a pole); NaN has none.
-        undefined |= active & np.isnan(h_m)
-        exact_here = active & (h_m == 0)
-        exact |= exact_here
-        a = np.where(exact_here, middle, a)
-        b = np.where(exact_here, middle, b)
-        same = active & ~np.isnan(h_m) & ~exact_here & (np.sign(h_m) == np.sign(h_a))
-        a = np.where(same, middle, a)
-        h_a = np.where(same, h_m, h_a)
-        other = active & ~np.isnan(h_m) & ~exact_here & ~same
-        b = np.where(other, middle, b)
-    h_a = _residual(members, a, args)
-    h_b = _residual(members, b, args)
-    root = np.where(np.abs(h_a) <= np.abs(h_b), a, b)
+        nan = np.isnan(fx)
+        undefined[index[nan]] = True
+        zero = fx == 0
+        exact[index[zero]] = True
+        moved = ~nan & ~zero
+        same = moved & (np.sign(fx) == np.sign(fa))
+        other = moved & ~same
+        width = upper - lower
+        # Same sign as a: c takes a. Otherwise c takes b, and b takes a.
+        c = np.where(same, a, np.where(other, b, c))
+        fc = np.where(same, fa, np.where(other, fb, fc))
+        b = np.where(other, a, np.where(zero, x, b))
+        fb = np.where(other, fa, np.where(zero, 0.0, fb))
+        a = np.where(nan, a, x)
+        fa = np.where(nan, fa, fx)
+        halved = np.abs(b - a) <= 0.5 * width
+        slow = np.where(moved & use & ~halved, slow + 1, np.where(moved, 0, slow))
+        with np.errstate(all="ignore"):
+            xi = (a - b) / (c - b)
+            phi = (fa - fb) / (fc - fb)
+            interpolate = (phi**2 < xi) & ((1 - phi) ** 2 < 1 - xi)
+            t = fa / (fb - fa) * fc / (fb - fc) + (c - a) / (b - a) * fa / (
+                fc - fa
+            ) * fb / (fc - fb)
+        interpolate &= np.isfinite(t)
+        lower, upper = np.minimum(a, b), np.maximum(a, b)
+        middle = _midpoint(lower, upper)
+        open_ = moved & (middle != lower) & (middle != upper)
+    root = np.where(np.abs(end_fa) <= np.abs(end_fb), end_a, end_b)
     with np.errstate(invalid="ignore"):
-        end = np.maximum(np.abs(h_a), np.abs(h_b))
+        end = np.maximum(np.abs(end_fa), np.abs(end_fb))
     kept = exact | (end <= COLLAPSE * start)
     return np.where(kept & ~undefined, root, np.nan), kept, undefined
 
@@ -240,10 +298,14 @@ def solve(
         change = pair_finite & (np.sign(h[:, :-1]) * np.sign(h[:, 1:]) < 0)
         edge = finite[:, :-1] != finite[:, 1:]
         candidate_rows, candidate_a, candidate_b = [], [], []
+        # The residuals at the ends, taken from the grid where they were.
+        candidate_ha, candidate_hb = [], []
         r, j = np.nonzero(change)
         candidate_rows.append(r)
         candidate_a.append(samples[j])
         candidate_b.append(samples[j + 1])
+        candidate_ha.append(h[r, j])
+        candidate_hb.append(h[r, j + 1])
         r, j = np.nonzero(edge)
         if r.size:
             # The residual becomes undefined between two samples: its last
@@ -263,10 +325,16 @@ def solve(
             )
             candidate_rows.append(r[crossing])
             # A zero at the edge is a bracket of one point.
-            low_end = np.where(h_edge == 0, x_edge, np.minimum(x_in, x_edge))
-            high_end = np.where(h_edge == 0, x_edge, np.maximum(x_in, x_edge))
+            at_zero = h_edge == 0
+            edge_first = x_edge < x_in
+            low_end = np.where(at_zero, x_edge, np.minimum(x_in, x_edge))
+            high_end = np.where(at_zero, x_edge, np.maximum(x_in, x_edge))
+            h_low = np.where(at_zero, 0.0, np.where(edge_first, h_edge, h_in))
+            h_high = np.where(at_zero, 0.0, np.where(edge_first, h_in, h_edge))
             candidate_a.append(low_end[crossing])
             candidate_b.append(high_end[crossing])
+            candidate_ha.append(h_low[crossing])
+            candidate_hb.append(h_high[crossing])
         rows_c = np.concatenate(candidate_rows)
         found = np.zeros(rows.size, dtype=np.int64)
         undetermined = np.zeros(rows.size, dtype=bool)
@@ -275,8 +343,13 @@ def solve(
         if rows_c.size:
             a = np.concatenate(candidate_a)
             b = np.concatenate(candidate_b)
-            root, kept, undefined = _bisect(
-                members, a, b, [blk[rows_c] for blk in block]
+            root, kept, undefined = _narrow(
+                members,
+                a,
+                b,
+                np.concatenate(candidate_ha),
+                np.concatenate(candidate_hb),
+                [blk[rows_c] for blk in block],
             )
             accepted = kept & ~undefined
             np.add.at(found, rows_c[accepted], 1)
