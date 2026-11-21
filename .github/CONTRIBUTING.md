@@ -236,7 +236,9 @@ For the maintainer, in this order:
    `chore: release x.y.z`. The same pull request brings
    `docs/security-and-compliance.md` up to date: the date, the version
    assessed, the dependency versions, the number of tests and the
-   coverage, the alerts handled, the checklist.
+   coverage, the alerts handled, the checklist; and `README.md` with
+   `README.fr.md`, for what the version adds that their readers should
+   know: features, examples, the figures and counts they state.
 3. Pull request `develop` → `main`, merged with a merge commit (the
    only exception to squash: `main` must hold the exact history of
    `develop`, otherwise both branches diverge at every release).

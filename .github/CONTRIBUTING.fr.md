@@ -249,7 +249,10 @@ Pour le mainteneur, dans cet ordre :
    `[x.y.z] - date`, titre `chore: release x.y.z`. La même PR met à
    jour `docs/security-and-compliance.md` : la date, la version évaluée,
    les versions des dépendances, le nombre de tests et la couverture,
-   les alertes traitées, la liste de contrôle.
+   les alertes traitées, la liste de contrôle ; et `README.md` avec
+   `README.fr.md`, pour ce que la version apporte et que leurs lecteurs
+   doivent savoir : fonctionnalités, exemples, chiffres et décomptes
+   qu'ils donnent.
 3. PR `develop` → `main`, fusionnée par un commit de fusion (seule
    exception au squash : `main` doit garder l'historique exact de
    `develop`, sinon les deux branches divergent à chaque version).
