@@ -9,10 +9,11 @@ knowledge graphs of mathematical models and formulas (MathModDB,
 Wikidata). Where nomogram departs from QUDT, the reason is given.
 
 Versions read: QUDT 3.5.3, CF standard name table 95, SI Brochure 9th
-edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14, MathModDB 2.0.0
-(OWL export of the MaRDI portal), Wikidata properties as of
-26 October 2026. The MathModDB / Wikidata column gives only
-correspondences checked in those versions.
+edition, VIM3 (JCGM 200:2012), pint 0.26, SymPy 1.14, mpmath 1.3,
+MathModDB 2.0.0 (OWL export of the MaRDI portal), Wikidata properties as
+of 21 November 2026; QUDT 3.5.3, CF 95 and MathModDB 2.0.0 were still
+their latest releases on that day. The MathModDB / Wikidata column gives
+only correspondences checked in those versions.
 
 ## Main table
 
@@ -20,7 +21,7 @@ correspondences checked in those versions.
 |---|---|---|---|---|---|---|---|
 | quantity kind | `qudt:QuantityKind` | kind of quantity (VIM 1.2) | none | none (`Basic.kind`, such as `NumberKind`, is another concept) | CF standard name (narrower); OM `Quantity` subclasses | MathModDB class *quantity kind*; `QUDT quantity kind ID` (P1654, a string). Wikidata P8393 *QUDT quantity kind ID* | `nomogram.semantics.QuantityKind`, with nomogram's scale type, point/difference typing and the bounds its definition admits (`KindBounds`). Two quantities of the same dimension need not be of the same kind (VIM 1.2): pint cannot tell a Celsius temperature from a temperature difference, hence QUDT kinds. |
 | specialization | `qudt:specializationOf` | — | none | none | — | — (MathModDB's `specialized by` relates models and formulas, not kinds) | How nomogram defines kinds QUDT lacks, e.g. the saturation vapour pressure as a specialization of `VapourPressure`, and the one over water as a specialization of it. Such kinds have `origin = "nomogram"` and no IRI yet; their local names are stable, to become the end of persistent IRIs (w3id.org) once nomogram has documentation online. |
-| provisional kind | none yet: a pull request adding the kind to QUDT | — | none | none | — | — | A kind with no QUDT kind to specialize, admitted only while a pull request adding it to QUDT is open (`QuantityKind.pending`, origin `provisional`): `KinematicHeatFlux`, pending [qudt/qudt-public-repo#1612](https://github.com/qudt/qudt-public-repo/pull/1612). QUDT may adopt it under another name or definition: nomogram then takes QUDT's kind, and a personal catalog that names the provisional kind needs the new name, which the changelog gives. |
+| provisional kind | none yet: a pull request adding the kind to QUDT | — | none | none | — | — | A kind with no QUDT kind to specialize, admitted only while a pull request adding it to QUDT is open (`QuantityKind.pending`, origin `provisional`): `KinematicHeatFlux`, pending [qudt/qudt-public-repo#1612](https://github.com/qudt/qudt-public-repo/pull/1612), merged on 11 November 2026 and in no release yet (3.5.3 is the latest). QUDT may adopt it under another name or definition: nomogram then takes QUDT's kind, and a personal catalog that names the provisional kind needs the new name, which the changelog gives. |
 | quantity | `qudt:Quantity` | quantity (VIM 1.1): a property of a phenomenon, body or substance | none | `sympy.physics.units.Quantity` (not used; a unit, a constant or a generic quantity) | OM `Quantity` | MathModDB class *quantity*; Wikidata *physical quantity* (Q107715) and its items | The property itself ("the temperature of this air"), not a number. Never a class name in nomogram, to avoid the clash with pint's `Quantity`. |
 | quantity value | `qudt:QuantityValue` (`numericValue` + `unit`) | quantity value (VIM 1.19) | `pint.Quantity` (`magnitude` + `units`) | `sympy.physics.units.Quantity` (not used) | OM `Measure` | MathModDB `numeric value` (rare); Wikidata P1181 *numeric value* | nomogram keeps pint's name `quantity` for parameters holding a pint object, and says "quantity value" in prose when the distinction matters. |
 | unit | `qudt:Unit` | measurement unit (VIM 1.9) | `pint.Unit` | `sympy.physics.units` (not used) | CF canonical units (UDUNITS strings) | MathModDB `recommended unit of measurement` (used once); Wikidata P8111 *recommended unit of measurement*, P2968 *QUDT unit ID* | pint is the only unit engine; QUDT units are mapped to pint strings and checked by dimension. |
@@ -419,7 +420,10 @@ here, not worked around silently.
     that gradient. nomogram declares the unit `PPM-PER-M`, written as
     QUDT writes `PPM-PER-K` and `PERCENT-PER-M`, without an IRI
     (`LOCAL_UNITS` of the extraction script), and the kind
-    `VerticalRadioRefractivityGradient` under `InverseLength`.
+    `VerticalRadioRefractivityGradient` under `InverseLength`. QUDT
+    pull request #1613, merged on 11 November 2026 and in no release
+    yet, adds `quantitykind:RefractivityGradient` and the units
+    `PPM-PER-M` and `PPM-PER-KiloM`.
 24. QUDT states no bound on the values of a kind: `qudt:lowerBound` and
     `qudt:upperBound` belong to its schema of datatypes (ranges of
     integers), and none of the vocabularies uses them (checked on 3.5.3
@@ -433,7 +437,8 @@ here, not worked around silently.
     `MassPerAreaTime`, for the downward flux of water vapour at the
     surface. It has no kind for a kinematic heat flux (K m s⁻¹, QUDT
     issue #1601): nomogram declares the provisional kind
-    `KinematicHeatFlux`, pending QUDT pull request #1612, for the virtual
+    `KinematicHeatFlux`, pending QUDT pull request #1612 (merged on
+    11 November 2026, in no release yet), for the virtual
     temperature fluxes of the IFS and of COARE 3.6 that the free
     convection velocity and the gustiness take; the covariance of the
     profiles of Beljaars 1992 is not entered yet.
@@ -451,14 +456,15 @@ does not say whether saturation is over water or over ice).
 
 ## Wikidata findings
 
-Read on 14 October 2026.
+Read on 14 October 2026, and checked again on 21 November 2026.
 
 - Wikidata has two items for absolute humidity in its meteorological
   sense: *absolute humidity* (Q1048298) and *mass concentration of
   water vapour* (Q76378808). QUDT links the second one only.
 - Items for the formulations are thin: *Tetens equation* (Q28231917)
-  carries one statement, *saturation vapor pressure* (Q2387102) has
-  neither a defining formula (P2534) nor a QUDT identifier (P8393).
+  carries two statements (one in October), *saturation vapor pressure*
+  (Q2387102) has neither a defining formula (P2534) nor a QUDT
+  identifier (P8393).
 - *Arden Buck equation* (Q4787919) is described as a group of
   correlations: Buck 1981 and Buck 1996 are narrower than it, which is
   why links carry a relation.
@@ -469,7 +475,12 @@ Read on 14 October 2026.
   narrower than a lapse rate. *Geopotential height* (Q12432978) had no
   French label. All four were corrected the same day from nomogram's
   account ("altitude-pression", with "QNE" kept as an alias, "QNH",
-  "gradient vertical de température", "hauteur géopotentielle").
+  "gradient vertical de température", "hauteur géopotentielle"), and
+  still read so on 21 November 2026.
+- Read on 21 November 2026: *wind gust* (Q3417299, "rafale de vent") is
+  a phenomenon, which the gust of WMO and CF, a speed, matches closely;
+  Wikidata has no item for the gust factor, the gustiness, or the
+  convective velocity scale (the Deardorff velocity).
 
 ## External links
 
@@ -497,7 +508,9 @@ qualifier P9758 *symbol represents*).
   *pseudoadiabatic lapse rate*, *ideal gas*, *hydrostatic equation*,
   *hydrostatic equilibrium*, *isothermal process*, *isothermal
   atmosphere*, *lapse rate*, *environmental lapse rate*,
-  <https://glossary.ametsoc.org/>, read on 1 November 2026.
+  <https://glossary.ametsoc.org/>, read on 1 November 2026; entries
+  *gust*, *gustiness components*, *gustiness factor*, *Deardorff
+  velocity*, *free convection scaling*, read on 21 November 2026.
 - IUPAC, *Compendium of Chemical Terminology* (the Gold Book), 5th
   edition, online version 5.0.0, 2025: *adiabatic*,
   doi:10.1351/goldbook.A00141; *ideal gas*, doi:10.1351/goldbook.I02935
