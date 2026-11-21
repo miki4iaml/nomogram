@@ -25,9 +25,10 @@ nomogram does not hard-code functions: it catalogs formulas, each one
 - **meaningful**: QUDT quantity kinds and units, links to CF and
   Wikidata, its source, its validity domain when stated;
 - **checked**: dimensions and units on loading, equivalences proved
-  symbolically, values cross-checked against references;
-- **ready to use**: compute, compose, invert, plot, and compare with its
-  alternatives.
+  symbolically, monotonicity proved by interval arithmetic, values
+  cross-checked against references;
+- **ready to use**: compute, compose, invert, solve with others as a
+  system of equations, plot, and compare with its alternatives.
 
 Built for trust, not for speed: to show that a calculation is right, and
 where it comes from.
@@ -125,24 +126,24 @@ catalog.search(kind="VapourPressure", source="buck*")
 ```
 
 Each formulation keeps its units, validity domain, temperature scale and
-references. The vocabulary is mapped in [docs/rosetta.md](docs/rosetta.md),
-and [Shared vocabularies](docs/shared-vocabularies.md) explains how nomogram
-builds on QUDT, CF and Wikidata and contributes to them;
-[How nomogram earns trust](docs/approach.md) explains what is checked and
-how, and [Displaying formulas](docs/display.md) shows formulas in notebooks,
-Markdown and plots. [Sea water](docs/sea-water.md) shows the salinity
-scales and the vapour pressure of sea water, and what its 2 % lowering
-changes at the sea surface. [Humidity aloft](docs/humidity-aloft.md)
-sets the formula of a radiosonde's producer against its users' along a
-vertical profile, through the dew point, over water or over ice, and
-against WMO's requirements. [The evaporation duct](docs/evaporation-duct.md)
-chains the catalog from the measurements of a ship to the height of the
-duct, through the surface layer of COARE 3.6 and of the IFS, and compares
-four ways to that height.
-[Security and compliance](docs/security-and-compliance.md) gathers, for
-those who approve its use on a laboratory network, how nomogram is
-developed, checked and published, what remains to do, and a checklist.
-[The logo](docs/logo.md) is a working nomogram.
+references. The guides:
+
+| Guide | What it shows |
+|---|---|
+| **Concepts** | |
+| [How nomogram earns trust](docs/approach.md) | what is checked, and how |
+| [Finding formulations](docs/search.md) | words, wildcards, fields, links |
+| [Rosetta](docs/rosetta.md) | the vocabulary across QUDT, SI, pint, SymPy, CF, OM |
+| [Shared vocabularies](docs/shared-vocabularies.md) | QUDT, CF, Wikidata: what nomogram takes and gives back |
+| [Displaying formulas](docs/display.md) | notebooks, Markdown, plots |
+| **Case studies** | |
+| [Sea water](docs/sea-water.md) | salinity scales, the 2 % lowering of vapour pressure |
+| [Humidity aloft](docs/humidity-aloft.md) | a radiosonde's formula against its users', along a profile |
+| [The evaporation duct](docs/evaporation-duct.md) | from a ship's measurements to the duct height, four ways |
+| [COARE 3.6 as a system](docs/coare-system.md) | the loop of the code solved by Newton's method |
+| **Using it in a laboratory** | |
+| [Security and compliance](docs/security-and-compliance.md) | how it is developed, checked, published; a checklist |
+| [The logo](docs/logo.md) | a working nomogram |
 
 ## Contributing
 

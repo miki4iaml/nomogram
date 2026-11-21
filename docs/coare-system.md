@@ -5,9 +5,9 @@
   its test data and its outputs, one row in 20 (109 rows). Thanks to the
   NOAA Physical Sciences Laboratory for publishing the algorithm with the
   data that test it.
-- Computed with the development version of nomogram 0.8 on 2026-11-21;
-  the tests compute every value of this page again for each later
-  version, and fail if one changes.
+- Computed with nomogram 0.8.0 on 2026-11-21; the tests compute every
+  value of this page again for each later version, and fail if one
+  changes.
 
 COARE 3.6 computes the fluxes of momentum, heat and water vapour between
 the sea and the air from the measurements of a ship. At its heart is a

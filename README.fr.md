@@ -26,9 +26,11 @@ chacune
 - **signifiante** : kinds et unités de QUDT, liens vers CF et Wikidata,
   sa source, son domaine de validité quand il est indiqué ;
 - **vérifiée** : dimensions et unités au chargement, équivalences
-  prouvées symboliquement, valeurs recoupées avec des références ;
-- **prête à l'emploi** : calculer, composer, inverser, tracer, et
-  comparer à ses alternatives.
+  prouvées symboliquement, monotonie prouvée par arithmétique
+  d'intervalles, valeurs recoupées avec des références ;
+- **prête à l'emploi** : calculer, composer, inverser, résoudre avec
+  d'autres en système d'équations, tracer, et comparer à ses
+  alternatives.
 
 Conçu pour la confiance, pas pour la vitesse : montrer qu'un calcul est
 juste, et d'où il vient.
@@ -128,29 +130,24 @@ catalog.search(kind="VapourPressure", source="buck*")
 ```
 
 Chaque formulation garde ses unités, son domaine de validité, son
-échelle de température et ses références. Le vocabulaire est mis en
-correspondance dans [docs/rosetta.md](docs/rosetta.md) (en anglais), et la
-page [Shared vocabularies](docs/shared-vocabularies.md) (en anglais)
-explique comment nomogram s'appuie sur QUDT, CF et Wikidata et y
-contribue ; la
-page [How nomogram earns trust](docs/approach.md) (en anglais) explique ce
-qui est vérifié, et comment, et [Displaying formulas](docs/display.md) (en
-anglais) montre l'affichage des formules dans un notebook, en Markdown et
-sur un graphique. [Sea water](docs/sea-water.md) (en anglais) présente les
-échelles de salinité et la pression de vapeur de l'eau de mer, et ce que
-son abaissement de 2 % change à la surface de la mer. [Humidity
-aloft](docs/humidity-aloft.md) (en anglais) confronte la formule du
-fabricant d'une radiosonde à celles de ses utilisateurs, le long d'un
-profil vertical, au travers du point de rosée, sur l'eau ou sur la
-glace, et face aux exigences de l'OMM. [The evaporation
-duct](docs/evaporation-duct.md) (en anglais) enchaîne le catalogue, des
-mesures d'un navire à la hauteur du conduit d'évaporation, par la couche
-de surface de COARE 3.6 et de l'IFS, et compare quatre manières
-d'obtenir cette hauteur. [Security and compliance](docs/security-and-compliance.md) (en
-anglais) rassemble, pour ceux qui autorisent son usage sur le réseau
-d'un laboratoire, la manière dont nomogram est développé, vérifié et
-publié, ce qui reste à faire, et une liste de contrôle. [Le
-logo](docs/logo.md) (en anglais) est un vrai nomogramme.
+échelle de température et ses références. Les guides, en anglais :
+
+| Guide | Ce qu'il montre |
+|---|---|
+| **Concepts** | |
+| [How nomogram earns trust](docs/approach.md) | ce qui est vérifié, et comment |
+| [Finding formulations](docs/search.md) | mots, jokers, champs, liens |
+| [Rosetta](docs/rosetta.md) | le vocabulaire de QUDT, du SI, de pint, de SymPy, de CF et d'OM mis en correspondance |
+| [Shared vocabularies](docs/shared-vocabularies.md) | QUDT, CF, Wikidata : ce que nomogram en reprend et leur rend |
+| [Displaying formulas](docs/display.md) | notebooks, Markdown, graphiques |
+| **Études de cas** | |
+| [Sea water](docs/sea-water.md) | échelles de salinité, abaissement de 2 % de la pression de vapeur |
+| [Humidity aloft](docs/humidity-aloft.md) | la formule d'un fabricant de radiosondes face à celles de ses utilisateurs, le long d'un profil |
+| [The evaporation duct](docs/evaporation-duct.md) | des mesures d'un navire à la hauteur du conduit, de quatre manières |
+| [COARE 3.6 as a system](docs/coare-system.md) | la boucle du code résolue par la méthode de Newton |
+| **En laboratoire** | |
+| [Security and compliance](docs/security-and-compliance.md) | comment il est développé, vérifié, publié ; une liste de contrôle |
+| [The logo](docs/logo.md) | un vrai nomogramme |
 
 ## Contribuer
 
