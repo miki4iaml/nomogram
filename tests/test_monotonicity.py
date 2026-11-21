@@ -141,6 +141,21 @@ def test_a_step_back_at_a_junction_is_measured() -> None:
     assert "steps back at 1 junction" in found.method
     assert dict(found.at) == {"t": 1.0}
     assert found.steps[1.0] == pytest.approx(2e-3 / 99.0, rel=1e-9)
+    # Both slopes are -1: the step is reached twice over 2e-3 of t.
+    assert found.widths[1.0] == pytest.approx(2e-3, rel=1e-9)
+
+
+def test_a_gentle_slope_widens_a_small_step() -> None:
+    # A step back of 1e-6 of the value, where the second branch rises by
+    # 1e-3 per unit of t: reached twice over 0.1 of t.
+    found = monotonicity(
+        one("piecewise((t + 100, t < 1), (1e-3 * t + 101 - 1e-3 - 1e-4, t >= 1))"),
+        "t",
+        (0.0, 2.0),
+    )
+    assert (found.status, found.direction) == ("refuted", "increasing")
+    assert found.steps[1.0] == pytest.approx(1e-4 / 101.0, rel=1e-6)
+    assert found.widths[1.0] == pytest.approx(0.1, rel=1e-6)
 
 
 def test_a_step_back_within_the_rounding_is_none() -> None:
@@ -184,6 +199,7 @@ def test_a_junction_with_several_inputs() -> None:
     assert (found.status, found.direction) == ("refuted", "increasing")
     assert found.at["t"] == 1.0
     assert found.steps[1.0] == pytest.approx(1.0, rel=1e-9)
+    assert found.widths[1.0] == pytest.approx(1.0, rel=1e-9)
 
 
 def test_an_implicit_equation_is_proven_over_the_unknown_too() -> None:

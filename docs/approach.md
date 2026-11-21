@@ -176,16 +176,24 @@ interval arithmetic (mpmath's `iv`, whose bounds are rigorous): the
 derivative, bounded on sub-intervals halved until its bounds exclude
 zero, keeps one sign, and the function stays finite there (no pole).
 Where no proof concludes (a derivative that vanishes at a point, as
-that of x³ at 0), it checks at least 2001 samples. A derivative that changes
-sign, proven or on the samples, refuses the inverse; the verdict goes
-with the inverse (`NumericalInverse.monotonicity`). The junctions of a
-piecewise definition are measured too: the published coefficients of
-ITU-R P.835 join the layers of its standard atmosphere to about 10⁻⁵
-(226.3206 hPa at the top of the first, 226.3226 hPa at the bottom of
-the second), so its pressure steps back by 9 × 10⁻⁶ of its value where
-it should keep decreasing. The inverse accepts such steps up to 10⁻⁴ of
-the value (`STEP_BACK_TOLERANCE`): the pressure altitude found is then
-within the step of its target.
+that of x³ at 0), it checks samples: the grid of the solver of implicit
+equations, geometric near each end and around zero, and 2001 evenly
+spaced points. A derivative that changes sign, proven or on the
+samples, refuses the inverse; the verdict goes with the inverse
+(`NumericalInverse.monotonicity`), and the bisection follows the
+direction proven. The junctions of a piecewise definition are measured
+too: the published coefficients of ITU-R P.835 join the layers of its
+standard atmosphere to about 10⁻⁵ (226.3206 hPa at the top of the first,
+226.3226 hPa at the bottom of the second), so its pressure steps back by
+9 × 10⁻⁶ of its value where it should keep decreasing. A pressure within
+the step has two altitudes, and how far apart depends on the slope: the
+step divided by the slope of the branches there, 5.6 cm of altitude at
+11 km, 10.3 cm at 71 km, where the pressure falls more slowly for the
+same relative step. nomogram gives both, the step relative to the value
+and this width on the input (`steps`, `widths`). The inverse accepts a
+step up to 10⁻⁴ of the value by default (`STEP_BACK_TOLERANCE`); the
+caller may set instead the width accepted on the solved variable, in its
+unit (`step_back=`, an altitude within 10 cm, say).
 
 The same proof is open to the caller:
 `nomogram.monotonicity.monotonicity(formulation, input, over)` says

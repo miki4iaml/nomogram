@@ -43,6 +43,7 @@ from typing import Any, Literal
 
 import numpy as np
 
+from nomogram._roots import grid
 from nomogram.expression import (
     PIECEWISE,
     ExpressionError,
@@ -90,14 +91,15 @@ SYMBOLIC_MAX_OCCURRENCES = 3
 DEW_POINT_SEARCH_CELSIUS = (-100.0, 100.0)
 
 #: Largest step back at a junction of a piecewise definition, relative to
-#: the value, that a numerical inverse accepts: a target within the step
-#: has two solutions, either side of the junction, and the one found is
-#: within the step of the target. The published coefficients of the
-#: standard atmospheres join their branches to about 1e-5.
+#: the value, that a numerical inverse accepts unless ``step_back`` says
+#: otherwise: a target within the step has two solutions, either side of
+#: the junction, and the one found is either. The published coefficients
+#: of the standard atmospheres join their branches to about 1e-5.
 STEP_BACK_TOLERANCE = 1e-4
 
-#: Points on which a numerical inverse, or a branch, is checked when no
-#: proof of its monotonicity concludes.
+#: Points of the linear grid on which a numerical inverse is checked when
+#: no proof of its monotonicity concludes, besides the grid of the solver
+#: of implicit equations (geometric near each end and around 0).
 _SAMPLES = 2001
 
 #: Name of the offset coefficient, 273.15 K, added when the result changes
@@ -334,13 +336,17 @@ def _branch_direction(
 
 
 def _checked_monotonicity(
-    formulation: Formulation, solve_for: str, interval: tuple[float, float]
+    formulation: Formulation,
+    solve_for: str,
+    interval: tuple[float, float],
+    step_back: float | None,
 ) -> Monotonicity:
     """The monotonicity of the source over the search interval, or an error.
 
     Proven, or refuted by steps back at junctions only, none beyond
-    :data:`STEP_BACK_TOLERANCE`; otherwise checked on samples, which a
-    step back beyond the rounding refutes.
+    :data:`STEP_BACK_TOLERANCE` of the value, or none wider than
+    ``step_back`` on the input; otherwise checked on samples, which a step
+    back beyond the rounding refutes.
 
     Raises
     ------
@@ -351,15 +357,25 @@ def _checked_monotonicity(
     where = f"over [{low!r}, {high!r}]"
     verdict = monotonicity(formulation, solve_for, interval)
     if verdict.direction is not None:
-        largest = max(verdict.steps.values(), default=0.0)
-        if largest <= STEP_BACK_TOLERANCE:
+        limit = STEP_BACK_TOLERANCE if step_back is None else step_back
+        measure = verdict.steps if step_back is None else verdict.widths
+        beyond = {cut: value for cut, value in measure.items() if value > limit}
+        if not beyond:
             return verdict
-        junction = max(verdict.steps, key=verdict.steps.__getitem__)
-        msg = (
-            f"{formulation.key} steps back by {largest:.3g} of its value at "
-            f"{solve_for} = {junction!r}, beyond STEP_BACK_TOLERANCE: a numerical "
-            "inverse would miss the targets within the step"
-        )
+        junction = max(beyond, key=beyond.__getitem__)
+        if step_back is None:
+            msg = (
+                f"{formulation.key} steps back by {beyond[junction]:.3g} of its "
+                f"value at {solve_for} = {junction!r}, beyond STEP_BACK_TOLERANCE; "
+                f"step_back accepts it by its width on {solve_for}, "
+                f"{verdict.widths[junction]:.3g}"
+            )
+        else:
+            msg = (
+                f"{formulation.key} steps back at {solve_for} = {junction!r}: a "
+                f"target within the step has two solutions up to "
+                f"{beyond[junction]:.3g} apart, beyond step_back = {step_back!r}"
+            )
         raise InversionError(msg)
     if verdict.status == "refuted":
         at = ", ".join(f"{k} = {v!r}" for k, v in verdict.at.items())
@@ -368,9 +384,7 @@ def _checked_monotonicity(
             f"({verdict.method}, at {at}): give a search interval where it is"
         )
         raise InversionError(msg)
-    points = np.linspace(low, high, _SAMPLES)
-    if low > 0 and high / low > 10:
-        points = np.union1d(points, np.geomspace(low, high, _SAMPLES))
+    points = np.union1d(grid(low, high), np.linspace(low, high, _SAMPLES))
     values = _forward(formulation)(points)
     values = values[np.isfinite(values)]
     if values.size >= 2:
@@ -606,10 +620,10 @@ class NumericalInverse:
     found so on samples when no proof concludes (``monotonicity``). Values
     outside its image give NaN, and results outside the source's validity
     domains follow the ``outside`` option. Where a piecewise source steps
-    back at a junction (``monotonicity.steps``, at most
-    :data:`STEP_BACK_TOLERANCE` of the value), a target within the step
-    has two solutions on either side of the junction, and the one found
-    is either.
+    back at a junction (``monotonicity.steps``, as far as :func:`invert`
+    accepts), a target within the step has two solutions on either side of
+    the junction, at most ``monotonicity.widths`` apart, and the one found
+    is either; the bisection follows the direction proven.
 
     Attributes
     ----------
@@ -727,8 +741,12 @@ class NumericalInverse:
         forward = _forward(self.source)
         low = np.full(target.shape, self.search[0])
         high = np.full(target.shape, self.search[1])
-        increasing = forward(np.array(self.search[1])) > forward(
-            np.array(self.search[0])
+        ends = forward(np.array(self.search))
+        # The direction proven, which steps back at junctions may hide from
+        # the ends alone.
+        direction = self.monotonicity.direction if self.monotonicity else None
+        increasing = (
+            direction == "increasing" if direction is not None else ends[1] > ends[0]
         )
         for _ in range(100):
             middle = (low + high) / 2
@@ -737,10 +755,10 @@ class NumericalInverse:
             low = np.where(go_up, middle, low)
             high = np.where(go_up, high, middle)
         solved = (low + high) / 2
-        ends = forward(np.array(self.search))
-        unreachable = (
-            (target < ends.min()) | (target > ends.max()) | ~np.isfinite(target)
-        )
+        # Only between the images of the ends, in the order of the direction,
+        # is a solution bracketed.
+        first, last = ends if increasing else ends[::-1]
+        unreachable = (target < first) | (target > last) | ~np.isfinite(target)
         solved = np.where(unreachable, np.nan, solved)
         given = {source_input.identifier: solved, self.source.output.identifier: target}
         mask = self.source.outside_mask(given, basis)
@@ -794,6 +812,7 @@ def invert(
     label: str | None = None,
     method: Method = "auto",
     search: tuple[float, float] | None = None,
+    step_back: float | None = None,
 ) -> Formulation | NumericalInverse:
     """Invert a formulation of one input.
 
@@ -821,6 +840,13 @@ def invert(
         Interval of x searched by numerical inversion, in x's unit;
         defaults to the source's stated validity domain. The source must
         be monotonic over it.
+    step_back : float, optional
+        For a numerical inverse of a piecewise definition that steps back
+        at a junction: the largest width accepted, in x's unit, of the
+        interval of x within which a target in the step has two solutions
+        (``monotonicity.widths``), the step divided by the slope there.
+        By default, a step back is accepted up to
+        :data:`STEP_BACK_TOLERANCE` of the value.
 
     Returns
     -------
@@ -834,10 +860,13 @@ def invert(
         If the formulation cannot be inverted as asked, or, numerically,
         is not monotonic over the search interval (a derivative that
         changes sign there, proven or found on samples, or a piecewise
-        definition that steps back by more than
-        :data:`STEP_BACK_TOLERANCE` at a junction).
+        definition that steps back at a junction beyond what is accepted),
+        or if ``step_back`` is negative.
     """
     _check(formulation, solve_for, output, input)
+    if step_back is not None and not step_back >= 0:
+        msg = f"step_back must be positive or zero, not {step_back!r}"
+        raise InversionError(msg)
     from nomogram.catalog import catalog
 
     # The bounds of their kinds, as the catalog gives them to its variables,
@@ -904,7 +933,9 @@ def invert(
         search=(low, high),
         derivation=Derivation(formulation.key, "numerical inversion", solve_for),
         references=formulation.references,
-        monotonicity=_checked_monotonicity(formulation, solve_for, (low, high)),
+        monotonicity=_checked_monotonicity(
+            formulation, solve_for, (low, high), step_back
+        ),
     )
 
 
@@ -913,6 +944,7 @@ def dew_point(
     *,
     method: Method = "auto",
     search: tuple[float, float] | None = None,
+    step_back: float | None = None,
 ) -> Formulation | NumericalInverse:
     """The dew point formulation obtained by inverting a saturation vapour pressure.
 
@@ -920,7 +952,7 @@ def dew_point(
     ----------
     formulation : Formulation
         A saturation vapour pressure formulation e_s = f(T).
-    method, search
+    method, search, step_back
         As for :func:`invert`. Without a stated validity domain, numerical
         inversion searches :data:`DEW_POINT_SEARCH_CELSIUS`.
 
@@ -948,4 +980,5 @@ def dew_point(
         label=f"Dew point, inverse of: {formulation.label}",
         method=method,
         search=search,
+        step_back=step_back,
     )
