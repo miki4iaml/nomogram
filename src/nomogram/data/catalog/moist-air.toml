@@ -1173,6 +1173,7 @@ scales = { T_d = "its90" }
 
 [[formulations.hardy1998_dew_point.citations.domains]]
 bounds = { T_d = [173.15, 373.15] }
+tolerance = { T_d = 0.0003 }
 criterion = "The range of the fit to equation 2, -100 to 100 degC, within 0.3 mK."
 
 [formulations.hardy1998_frost_point]
@@ -1203,6 +1204,7 @@ scales = { T_f = "its90" }
 
 [[formulations.hardy1998_frost_point.citations.domains]]
 bounds = { T_f = [123.15, 273.16] }
+tolerance = { T_f = 0.0001 }
 criterion = "The range of the fit to equation 3, -150 to 0.01 degC, within 0.1 mK."
 
 [formulations.sonntag1994_dew_point]
@@ -1237,6 +1239,7 @@ scales = { t_d = "its90" }
 
 [[formulations.sonntag1994_dew_point.citations.domains]]
 bounds = { t_d = [-100.0, 100.0] }
+tolerance = { t_d = [0.06, 0.01] }
 criterion = "The ranges of equations 10 and 11: 0 to 100 degC within 0.01 K; down to -75 degC within 0.01 K, -80 degC within 0.02 K, -100 degC within 0.06 K."
 
 [formulations.sonntag1994_frost_point]
@@ -1267,6 +1270,7 @@ scales = { t_f = "its90" }
 
 [[formulations.sonntag1994_frost_point.citations.domains]]
 bounds = { t_f = [-100.0, 0.01] }
+tolerance = { t_f = [0.03, 0.01] }
 criterion = "The range of equation 13: down to -80 degC within 0.01 K, -100 degC within 0.03 K."
 
 [formulations.sonntag1994_dew_point_magnus]

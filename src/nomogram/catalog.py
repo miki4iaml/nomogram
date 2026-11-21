@@ -1767,15 +1767,18 @@ class _Builder:
         """Physical domains (``reference`` None), or those a citation states.
 
         A domain may bound the output too; such a bound states its
-        criterion, what makes the source or physics exclude the rest.
+        criterion, what makes the source or physics exclude the rest. A
+        domain a citation states may give a tolerance at the ends of its
+        bounds (see :meth:`tolerance`).
         """
         result = []
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
-            optional = (
-                ("criterion", "reference") if reference is None else ("criterion",)
-            )
+            optional = ("criterion", "reference", "tolerance")
             f = _fields(w, item, ("bounds",), optional)
+            if reference is not None and f["reference"] is not None:
+                msg = f"{w}: unknown keys: reference"
+                raise CatalogError(msg)
             bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
             if (
                 output is not None
@@ -1784,6 +1787,18 @@ class _Builder:
             ):
                 msg = f"{w}: a bound on the output {output.identifier} states its criterion"
                 raise CatalogError(msg)
+            tolerance: Mapping[str, tuple[float, float]] = MappingProxyType({})
+            if f["tolerance"] is not None:
+                if reference is None:
+                    msg = (
+                        f"{w}.tolerance: a tolerance is the maximum deviation a "
+                        "source states; a physical domain has none"
+                    )
+                    raise CatalogError(msg)
+                if not f["criterion"]:
+                    msg = f"{w}.tolerance: the criterion states the deviation it comes from"
+                    raise CatalogError(msg)
+                tolerance = self.tolerance(f"{w}.tolerance", f["tolerance"], bounds)
             result.append(
                 ValidityDomain(
                     basis=DomainBasis.PHYSICAL
@@ -1796,9 +1811,45 @@ class _Builder:
                         if reference is not None
                         else self.optional_reference(f"{w}.reference", f["reference"])
                     ),
+                    tolerance=tolerance,
                 )
             )
         return tuple(result)
+
+    def tolerance(
+        self, where: str, table: Any, bounds: Mapping[str, tuple[float, float]]
+    ) -> Mapping[str, tuple[float, float]]:
+        """The tolerance at the ends of bounds: one number, or [low, high].
+
+        Positive and finite, in the unit of the variable, taken as a
+        difference; only for a variable the domain bounds, and only at a
+        finite end.
+        """
+        if not isinstance(table, dict) or not table:
+            msg = f"{where}: expected a table of bounded identifier to a number or [low, high]"
+            raise CatalogError(msg)
+        result = {}
+        for identifier, value in table.items():
+            w = f"{where}.{identifier}"
+            if identifier not in bounds:
+                msg = f"{w}: {identifier!r} is not bounded by this domain"
+                raise CatalogError(msg)
+            if isinstance(value, list):
+                low, high = _pair(w, value, "a number or [low, high]")
+            else:
+                low = high = _number(w, value)
+            for end, number in zip(bounds[identifier], (low, high), strict=True):
+                if number < 0:
+                    msg = f"{w}: expected a deviation of 0 or more, not {number!r}"
+                    raise CatalogError(msg)
+                if number > 0 and math.isinf(end):
+                    msg = f"{w}: an infinite end takes no tolerance"
+                    raise CatalogError(msg)
+            if low == 0 and high == 0:
+                msg = f"{w}: a tolerance of 0 widens nothing; leave it out"
+                raise CatalogError(msg)
+            result[identifier] = (low, high)
+        return MappingProxyType(result)
 
     def citations(
         self,

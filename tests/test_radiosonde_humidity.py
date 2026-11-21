@@ -62,11 +62,9 @@ def test_the_inverses_of_hardy_return_the_temperature() -> None:
     assert np.max(np.abs(back - water)) < 3e-4
     ice = np.linspace(173.15, 273.16, 101)
     e = F["hardy1998_ice"].evaluate(T=Q_(ice, "K"))
-    frost_point = F["hardy1998_frost_point"]
-    # At the triple point, the fit gives 273.16 K and 2.6 uK, beyond the
-    # range its domain states: computed here, where the fit is tested.
-    assert np.isnan(frost_point.evaluate(e=e[-1:]).magnitude[0])
-    back = frost_point.evaluate(e=e, outside="ignore").to("K").magnitude
+    # At the triple point, the fit lands a few uK beyond 273.16 K, within
+    # the 0.1 mK its domain tolerates (tests/test_domain_tolerance.py).
+    back = F["hardy1998_frost_point"].evaluate(e=e).to("K").magnitude
     assert np.max(np.abs(back - ice)) < 1e-4
 
 

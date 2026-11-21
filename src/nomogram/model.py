@@ -882,16 +882,22 @@ class Variable:
         return _converted_bounds(bounds.low, bounds.high, bounds.unit, self.unit)
 
 
-def _beyond(value: Any, low: float, high: float) -> Any:
+def _beyond(
+    value: Any, low: float, high: float, tolerance: tuple[float, float] = (0.0, 0.0)
+) -> Any:
     """Where values lie beyond a closed interval, its finite ends rounded.
 
-    The tolerance :data:`BOUND_TOLERANCE` lets a value converted between
-    units through at a bound; NaN is never beyond.
+    The relative tolerance :data:`BOUND_TOLERANCE` lets a value converted
+    between units through at a bound; a source's own tolerance at each end
+    (:attr:`ValidityDomain.tolerance`), when larger, widens that end. NaN
+    is never beyond.
     """
     finite = [abs(b) for b in (low, high) if math.isfinite(b)]
     margin = BOUND_TOLERANCE * max([*finite, 1.0])
     value = np.asarray(value, dtype=float)
-    return (value < low - margin) | (value > high + margin)
+    below = low - max(margin, tolerance[0])
+    above = high + max(margin, tolerance[1])
+    return (value < below) | (value > above)
 
 
 def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
@@ -1202,12 +1208,22 @@ class ValidityDomain:
         a reference formulation.
     reference : str or None
         Key of the source of the domain.
+    tolerance : mapping of str to (float, float)
+        How far beyond each end of a bound a value is still inside, per
+        identifier, in the variable's unit, taken as a difference: the
+        maximum deviation of that variable the source states (a fit
+        within 0.1 mK of the formulation it inverts), so that the fit does
+        not fall out of its own range. Only a domain a source states, with
+        its criterion, has one; empty otherwise.
     """
 
     basis: DomainBasis
     bounds: Mapping[str, tuple[float, float]]
     criterion: str | None
     reference: str | None
+    tolerance: Mapping[str, tuple[float, float]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 @dataclass(frozen=True)
@@ -2082,7 +2098,8 @@ class Formulation:
                 for identifier, low, high in bounds_of(domain, of_output):
                     if identifier not in arrays:
                         continue  # the output, not given (inputs are checked first)
-                    result = result | _beyond(arrays[identifier], low, high)
+                    tolerance = domain.tolerance.get(identifier, (0.0, 0.0))
+                    result = result | _beyond(arrays[identifier], low, high, tolerance)
             return result
 
         def outside_union(of_output: bool) -> Any:
