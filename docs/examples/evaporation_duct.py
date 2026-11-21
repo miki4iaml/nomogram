@@ -205,23 +205,16 @@ def ifs(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:
                 ("z_0Q", "humidity"),
             )
         }
-        # The implicit equation 3.25, solved for L. Its sign is that of Ri_b:
-        # the search keeps to that side, away from the pole at L = 0.
-        length = np.full_like(u, np.nan)
-        for side, search in (
-            (richardson < 0, (-1e6, -0.01)),
-            (richardson > 0, (0.01, 1e6)),
-        ):
-            if side.any():
-                length[side] = value(
-                    "ecmwf_ifs_obukhov_length_from_bulk_richardson_number",
-                    "m",
-                    Ri_b=Q_(richardson[side], ONE),
-                    z_n=z_n[side],
-                    z_0M=z_0["z_0M"][side],
-                    z_0H=z_0["z_0H"][side],
-                    search=search,
-                )
+        # The implicit equation 3.25, solved for L, its root found on either
+        # side of the pole at L = 0.
+        length = value(
+            "ecmwf_ifs_obukhov_length_from_bulk_richardson_number",
+            "m",
+            Ri_b=Q_(richardson, ONE),
+            z_n=z_n,
+            z_0M=z_0["z_0M"],
+            z_0H=z_0["z_0H"],
+        )
         at = {"z_n": z_n, "z_0M": z_0["z_0M"], "L": Q_(length, "m")}
         c_m = value("ecmwf_ifs_transfer_coefficient_momentum", ONE, **at)
         u_s = value(

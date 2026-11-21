@@ -68,23 +68,23 @@ Two steps show how the catalog keeps a formula within its bounds:
   flow term keeping the roughness length positive, and so does the script,
   with `outside="ignore"`, for one measurement;
 - equation 3.25 of the IFS is an implicit equation in L, solved at each
-  iteration; its root has the sign of Ri_b, and the script narrows the
-  search to that side with `search=`, away from the pole at L = 0, where
-  the residual is no longer computed meaningfully.
+  iteration; its root has the sign of Ri_b, on either side of the pole at
+  L = 0, near which the residual is no longer computed meaningfully: the
+  solver seeks the edge of that region only to the resolution of its
+  grids, and finds the root without being told the side.
 
 ```python
 m = measurements()
 a = air(m)
 by_coare, by_ifs = coare(m, a), ifs(m, a)
 z_star = duct_heights(a, by_coare)
-length[side] = value(
+length = value(
     "ecmwf_ifs_obukhov_length_from_bulk_richardson_number",
     "m",
-    Ri_b=Q_(richardson[side], ONE),
-    z_n=z_n[side],
-    z_0M=z_0["z_0M"][side],
-    z_0H=z_0["z_0H"][side],
-    search=search,
+    Ri_b=Q_(richardson, ONE),
+    z_n=z_n,
+    z_0M=z_0["z_0M"],
+    z_0H=z_0["z_0H"],
 )
 ```
 

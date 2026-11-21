@@ -22,6 +22,15 @@ and this project adheres to
   Sonntag's dew point at 100 degC, 0.96 mK beyond, were NaN by default;
   they are now given, within 0.1 mK and 0.01 K.
 
+### Fixed
+
+- An implicit equation whose residual turns to noise near a pole, as
+  equation 3.25 of the IFS does as L tends to 0, no longer gives NaN for
+  a root found elsewhere: the solver seeks the edge of a region where the
+  residual is undefined only to the resolution of its grids (10^-12 times
+  the scale), not down to that noise. The evaporation duct guide no longer
+  needs `search=` to keep to the side of Ri_b.
+
 ## [0.7.0] - 2026-11-08
 
 ### Added
