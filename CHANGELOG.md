@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **A tolerance at the ends of a stated validity domain**: how far
+  beyond an end a value is still inside, the maximum deviation of that
+  variable the source states, never a standard deviation nor a guess from
+  the printed digits (`tolerance` in a citation's domain, one number or
+  `[low, high]`; `ValidityDomain.tolerance`). It changes no value
+  computed: it only decides, at the ends, between a value and NaN. A
+  physical domain takes none; an inversion carries it with the bound of
+  its variable. The fits of Hardy (1998) and Sonntag (1994) state theirs:
+  Hardy's frost point at the triple point, 12 uK beyond 273.16 K, and
+  Sonntag's dew point at 100 degC, 0.96 mK beyond, were NaN by default;
+  they are now given, within 0.1 mK and 0.01 K.
+
 ## [0.7.0] - 2026-11-08
 
 ### Added

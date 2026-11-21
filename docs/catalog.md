@@ -155,7 +155,8 @@ All sections are optional; a key may be defined in one file only.
   One end may be open, written `inf` (`{ z = [0, inf] }` for z ≥ 0);
   never both, a domain bounds at least one end. Bounds are closed: a
   strict inequality is not written. A bound on the output states its
-  `criterion`. A domain stated by a source belongs to its citation.
+  `criterion`. A domain stated by a source belongs to its citation; a
+  physical domain takes no `tolerance`.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales
@@ -667,7 +668,14 @@ states:
 - `note`;
 - `domains`: validity domains the source states, as
   `[[formulations.<key>.citations.domains]]` tables with `bounds` and
-  `criterion`.
+  `criterion`, and optionally `tolerance`: how far beyond an end a value
+  is still inside, per bounded identifier, one number for both ends or
+  `[low, high]`, in the variable's unit and taken as a difference. It is
+  the maximum deviation of that variable the source states, never a
+  standard deviation nor a guess from the printed digits, and the
+  criterion says it: a fit reproducing the formulation it inverts within
+  0.1 mK, `tolerance = { T_f = 0.0001 }`, may land that much beyond the
+  ends of its own range and still be inside. An infinite end takes none.
 
 A source cited for a domain or a unit must be one of the citations: the
 link is never implicit. **By default, domains of different citations

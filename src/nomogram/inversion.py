@@ -445,24 +445,37 @@ def _carried_domains(
     The interval of the solved input becomes that of the inverse's output
     (shifted from K to degC or back when its unit changes); its image
     through the function, when both its ends are finite, and a bound on the
-    source's output become an interval of the inverse's input.
+    source's output become an interval of the inverse's input. A tolerance
+    goes with the bound of its variable (a difference, unchanged by the
+    shift); the image of an interval takes none.
     """
     solve_for = source.inputs[0].identifier
     carried = []
     for domain in domains:
         bounds: dict[str, tuple[float, float]] = {}
+        tolerance: dict[str, tuple[float, float]] = {}
         if solve_for in domain.bounds:
             low, high = domain.bounds[solve_for]
             bounds[output_identifier] = (low + shift, high + shift)
+            if solve_for in domain.tolerance:
+                tolerance[output_identifier] = domain.tolerance[solve_for]
             if np.isfinite(low) and np.isfinite(high):
                 ends = sorted(float(v) for v in forward(np.array([low, high])))
                 bounds[input_identifier] = (ends[0], ends[1])
         if source.output.identifier in domain.bounds:
             low, high = domain.bounds[source.output.identifier]
+            ends_tolerance = domain.tolerance.get(source.output.identifier, (0.0, 0.0))
             if input_identifier in bounds:
                 image = bounds[input_identifier]
+                # The tolerance of an end goes only where the source's bound wins.
+                ends_tolerance = (
+                    ends_tolerance[0] if low >= image[0] else 0.0,
+                    ends_tolerance[1] if high <= image[1] else 0.0,
+                )
                 low, high = max(low, image[0]), min(high, image[1])
             bounds[input_identifier] = (low, high)
+            if any(ends_tolerance):
+                tolerance[input_identifier] = ends_tolerance
         if not bounds:
             continue
         criterion = (
@@ -475,6 +488,7 @@ def _carried_domains(
                 MappingProxyType(bounds),
                 criterion,
                 domain.reference,
+                MappingProxyType(tolerance),
             )
         )
     return tuple(carried)

@@ -120,7 +120,8 @@ not find the caller by the kind of that input. An implicit equation that
 passes its unknown to a call (`phi_T(zeta=z_s / L)`) is linked the same
 way, and found by its output.
 Nor does a validity domain, whether it bounds an input or the output: it
-is read on the formulation (`domains`), criterion included, and the
+is read on the formulation (`domains`), criterion and tolerance
+included, and the
 formulation is found by its variables, the output a domain bounds among
 them. Likewise the bounds of a kind are read on the kind
 (`Catalog.bounds_of`), which a search finds by its names.
