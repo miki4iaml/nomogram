@@ -31,8 +31,9 @@ and this project adheres to
   relative to the value and by their width on the input (the step divided
   by the slope there: two solutions for a target within it); for
   an implicit equation, the derivative of its output is bounded over the
-  unknown too. KEYPS is proven increasing in zeta over zeta <= 0. A
-  property nomogram computes, never a validity domain.
+  unknown too. KEYPS is proven increasing in zeta over -1000 <= zeta <= 0
+  (Phi_M from 1e-3 to 1e3). A property nomogram computes, never a
+  validity domain.
 - **Systems of equations** (`nomogram.systems`): a `System` of equations,
   each given by a formulation of the catalog (`Equation`), listed in the
   order the source computes them, solved together for its unknowns, the
@@ -40,13 +41,17 @@ and this project adheres to
   (JCGM 102:2011, 3.8). `System.evaluate` takes pint quantities and
   returns a `Solution`, every variable in its unit with a status for
   each set of values. Newton's method by default, damped by a line search
-  and vectorised, with an exact Jacobian assembled by the chain rule from
-  the partial derivatives of each formulation, units and conventional
-  scales included; or the passes of the fixed point the source iterates
-  (`method="fixed-point"`). Without convergence, with a singular Jacobian
+  and vectorised, with a Jacobian assembled by the chain rule from the
+  exact partial derivatives of each formulation and of the conversions of
+  units (the slope of a conversion between conventional scales is a
+  central difference), started again from a few passes of the fixed point
+  where a residual is undefined at the first guess; or the passes of the
+  fixed point the source iterates (`method="fixed-point"`), whose residual
+  is reported, not tested. Without convergence, with a singular Jacobian
   or a residual undefined, the values are NaN and a `ConvergenceWarning`
   counts them; the unknown of an implicit equation stays where its root is
-  sought. The domains of every equation apply to the inputs before
+  sought. An input of the system taken by several equations is taken as
+  kinds of one lineage, in units of one dimension. The domains of every equation apply to the inputs before
   solving (not solved there) and to every value once solved, as `outside`
   says, or as the source's practice for an equation says.
 - **Profile functions derived from gradient functions**
@@ -71,25 +76,35 @@ and this project adheres to
   `_heat`), which departs from the integrals of their gradient functions
   (-18 % at zeta = -1 for the wind). Their C_TN, the coefficient of the
   temperature scale (T_* = C_TN^(1/2) dT), is not the neutral Stanton
-  number: a sibling kind, `NeutralTemperatureScaleCoefficient`.
+  number: a sibling kind, `NeutralTemperatureScaleCoefficient`, and the
+  trade term "neutral drag coefficient" gives both meanings of their C_XN.
+  Their first estimate xi_0 is not the stability parameter, which their
+  equation 20 makes of it: a sibling kind too,
+  `BulkEstimateOfStabilityParameter`.
 - **Systems in the catalog**: a `[systems.<key>]` section (format
   unchanged), `Catalog.systems` and `Catalog.systems_of(kind)`; a system
   is found by its names and by the kinds it gives, and linked to its
   formulations and its reference. The loop of COARE 3.6,
   `coare36_surface_layer`: its formulations in the order of the code, with
-  `coare36_wind_speed_with_gust`, the wind with the convective gustiness.
-  Given the inputs the code computes, it gives back the outputs of the
-  code to about 1e-6 (u\*, theta\*, q\*, L, z_0, gustiness), in four
-  Newton steps at most; its ten passes equal a loop over its formulations
-  to 1e-12. The evaporation duct guide calls it instead of its loop: the
+  `coare36_wind_speed_with_gust`, the wind with the convective gustiness
+  (equation 15 of Fairall et al. 1996). Given the inputs the code
+  computes, it gives back the outputs of the code to about 1e-6 (u\*, q\*,
+  z_0, gustiness), 1e-5 for L and 5e-5 for theta\*, the value nearest 0,
+  in four Newton steps at most; its ten passes equal a loop over its
+  formulations to 1e-12. Air and surface alike (first guess of the scales
+  0), Newton's method starts from a few passes of the code's loop. The evaporation duct guide calls it instead of its loop: the
   chain runs as fast, once the derivatives are compiled (about 1 s the
   first time in a process; measured on 2026-11-21).
 
 ### Changed
 
 - A numerical inverse is built only where its source is monotonic over
-  the interval searched: proven by interval arithmetic, or found so on
-  samples where no proof concludes; the verdict goes with it
+  the interval searched, proven by interval arithmetic or found so on
+  samples where no proof concludes, or steps back only at junctions, by
+  no more than a tolerance (below); within an accepted step, a target has
+  two solutions, at most `widths` apart. Its source must be defined at
+  the ends of the interval and, on samples, at each sample. The verdict
+  goes with it
   (`NumericalInverse.monotonicity`), and the bisection follows the
   direction proven. It is refused (`InversionError`) where the derivative
   changes sign, and where a piecewise definition steps back at a junction
@@ -103,12 +118,15 @@ and this project adheres to
   are proven strictly monotonic the same way, before samples.
 - mpmath, which SymPy requires, is a direct dependency (`mpmath>=1.3.0`),
   for its interval arithmetic.
-
+- `feeds` takes the quantity kinds to check against (`kinds=`), those of
+  the bundled catalog by default, loaded only for two different kinds.
 - The solver of implicit equations narrows each bracket of a root by
   Chandrupatla's method (1997): inverse quadratic interpolation where it
   is safe, halving in the order of floats otherwise, down to adjacent
-  floats as before, and only the brackets still open evaluated. About 9
-  evaluations per root instead of 54 beyond the grid; the same roots, to
+  floats as before, and only the brackets still open evaluated. About 6
+  to 16 evaluations per root instead of 54 beyond the grid (6 on equation
+  3.25 of the IFS in the chain of the evaporation duct guide, 16 on KEYPS,
+  measured on 2026-11-21); the same roots, to
   the noise of the residual (median 4e-16 relative); the chain of the
   evaporation duct guide runs 14 % faster (measured on 2026-11-21). The
   residuals at the ends of a bracket are taken from the grid.

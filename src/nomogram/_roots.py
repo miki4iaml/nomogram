@@ -30,7 +30,9 @@ linear one) or a double root, without a change of sign, escape; on an
 open interval, roots beyond 10^12 times the scale of the finite end are
 not sought, nor, at the edge of a region where the residual is undefined,
 a root closer to that edge than the grids' resolution (10^-12 times the
-scale max(|x|, 1)). A jump smaller than a millionth of the residual's change
+scale max(|x|, 1)), nor a root closer than about 10^-9 of its value to a
+finite end of the interval, whose bracket is too narrow there for the
+test of a jump below. A jump smaller than a millionth of the residual's change
 across its bracket is taken for a root; a crossing with an infinite
 slope, as steep as a cube root, may be taken for a jump where no float
 gives an exact zero.

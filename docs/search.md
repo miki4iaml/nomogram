@@ -56,7 +56,7 @@ each matching a word.
 | Field | Matches |
 |---|---|
 | `key` | the key of the entry |
-| `kind` | the output kind of a formulation, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well |
+| `kind` | the output kind of a formulation, a kind a system gives, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well |
 | `unit` | a unit an entry works in, as its links give it (see below), or a unit itself; by its QUDT name, symbol, UCUM code, label or pint expression: `hPa`, `HectoPA`, `hectopascal` are one unit. The pattern is compared whole with each form, so `K` does not match `J-PER-KiloGM-K`. A form written exactly as the pattern comes first, case included (`mPa` is not `MPa`), and is taken literally (UCUM's `[ppm]`); then a form equal without case or accents; then wildcards |
 | `output` | the output variable of a formulation: identifier, symbols in every notation, kind (name, label, CF names), description |
 | `input` | an input variable, likewise |
@@ -73,7 +73,12 @@ each matching a word.
 
 `section=` keeps the entries of one section (a pattern too):
 `formulations`, `kinds`, `references`, `constants`, `notations`,
-`trade_terms`, `scales`, `relations`, `cross_checks`, `families`, `units`.
+`trade_terms`, `scales`, `relations`, `cross_checks`, `systems`,
+`families`, `units`. A system is found by its key, label, note, the
+names of its variables and the keys of its formulations, by `kind=` (the
+kinds of the variables it gives) and by `source=` (its reference):
+`c.search(kind="ObukhovLength")` returns the system of COARE 3.6 with
+the formulations and the kind.
 
 ## Selections
 
@@ -101,7 +106,8 @@ c.search(output="SaturationVapourPressure*") - c.search(source="buck*")
 `uses(entry)` gives the entries an entry refers to (kinds of its
 variables, cited references, notations, constants, scales, units, the
 formulations a composition, a formulation by branches or calling others,
-a relation or a cross-check uses, the families a family requires); `used_by(entry)` the
+a relation, a cross-check or a system uses, the kinds a system gives and
+its reference, the families a family requires); `used_by(entry)` the
 entries that refer to it. The links are those the catalog checks for its families
 (`Catalog.links`), plus the units and the kinds and scales of a composed
 formulation's variables, which it takes from its parts. Results come in

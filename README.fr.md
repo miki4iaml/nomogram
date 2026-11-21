@@ -33,8 +33,8 @@ chacune
 Conçu pour la confiance, pas pour la vitesse : montrer qu'un calcul est
 juste, et d'où il vient.
 
-En Python pur, fondé sur SymPy, numpy et pint ; il fonctionne sur un
-poste déconnecté (aucun moteur en ligne).
+En Python pur, fondé sur SymPy, mpmath, numpy et pint ; il fonctionne
+sur un poste déconnecté (aucun moteur en ligne).
 
 > Projet à un stade précoce (alpha).
 

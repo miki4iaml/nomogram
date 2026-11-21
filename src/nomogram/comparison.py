@@ -90,8 +90,10 @@ def feeds(
     a saturation vapour pressure is a vapour pressure. Never the other
     way round, and never a difference for a point, though QUDT makes a
     temperature difference a temperature. ``kinds`` are those of the
-    bundled catalog by default.
+    bundled catalog by default, loaded only for two different kinds.
     """
+    if output_kind == input_kind:
+        return True
     if kinds is None:
         from nomogram.catalog import catalog
 

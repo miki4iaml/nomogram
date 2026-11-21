@@ -27,8 +27,11 @@ def values(formulation: Formulation, zeta: Any, name: str = "zeta") -> Any:
 
 
 def assert_same(mine: Any, theirs: Any, tolerance: float = 1e-12) -> None:
-    deviation = np.abs(mine - theirs) / np.maximum(1.0, np.abs(theirs))
-    assert np.nanmax(deviation) <= tolerance
+    # NaN in the same places only: a NaN where the other is finite fails.
+    assert np.isnan(mine).tolist() == np.isnan(theirs).tolist()
+    finite = ~np.isnan(theirs)
+    deviation = np.abs(mine - theirs)[finite] / np.maximum(1.0, np.abs(theirs[finite]))
+    assert np.max(deviation, initial=0.0) <= tolerance
 
 
 @pytest.fixture(scope="module")
@@ -192,7 +195,7 @@ specialization_of = "DimensionlessRatio"
 
 
 def synthetic(
-    expression: str, kind: str = "GradientFunctionForMomentum"
+    expression: str, kind: str = "GradientFunctionForMomentum", name: str = "zeta"
 ) -> Formulation:
     document = (
         SOURCE
@@ -202,13 +205,21 @@ label = "f"
 expression = "{expression}"
 fixed_units = true
 output = {{ identifier = "y", kind = "{kind}", unit = "UNITLESS", description = "y" }}
-inputs = [{{ identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "zeta" }}]
+inputs = [{{ identifier = "{name}", kind = "StabilityParameter", unit = "UNITLESS", description = "zeta" }}]
 
 [[formulations.f.citations]]
 reference = "test_source"
 """
     )
     return load_catalog([document]).formulations["f"]
+
+
+def test_a_stability_parameter_named_e_keeps_eulers_number() -> None:
+    # The quadrature compiles (1 - phi) / e with e renamed, as every
+    # compiled expression: exp(1) stays Euler's number.
+    derived = profile_function(synthetic("1 + 5 * exp(1) * e", name="e"))
+    zeta = np.linspace(0.01, 1.0, 11)
+    assert_same(values(derived, zeta, "e"), -5 * np.e * zeta)
 
 
 @pytest.mark.parametrize(

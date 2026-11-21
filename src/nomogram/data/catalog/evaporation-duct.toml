@@ -74,6 +74,11 @@ label = "Bulk Richardson Number over the Profile Coefficient"
 specialization_of = "DimensionlessRatio"
 description = "Jeske's bulk Richardson number, g Delta T z / (T u^2 Gamma), Delta T the air temperature minus the sea temperature and Gamma the surface-layer profile coefficient, about 0.1 (Paulus 1989, NOSC TD 1596, equation A-4): about ten times the bulk Richardson number of a layer, which it does not feed."
 
+[kinds.BulkEstimateOfStabilityParameter]
+label = "Bulk Estimate of the Stability Parameter"
+specialization_of = "DimensionlessRatio"
+description = "The first estimate of the stability parameter from the bulk differences, xi_0 = (kappa g Z / T) (C_TN^(1/2) / C_UN) (Delta theta + 0.18 Delta q) / U^2, a bulk Richardson number times kappa C_TN^(1/2) / C_UN (Fairall et al. 1978, NPS61-78-005, equation 21), which their equation 20 corrects with the profile functions into the stability parameter Z/L: an estimate in neutral conditions, it does not feed the stability parameter."
+
 [kinds.NeutralTemperatureScaleCoefficient]
 label = "Neutral Temperature Scale Coefficient"
 specialization_of = "DimensionlessRatio"
@@ -575,6 +580,22 @@ kind = "BulkRichardsonNumberOverProfileCoefficient"
 definition = "g Delta T z / (T u^2 Gamma), from the air temperature minus the sea temperature and the profile coefficient Gamma, about 0.1: about ten times the former (NOSC TD 1596, equation A-4)."
 sources = ["paulus1989_td1596"]
 
+[trade_terms.neutral_drag_coefficient]
+term = "neutral drag coefficient"
+language = "en"
+
+[[trade_terms.neutral_drag_coefficient.meanings]]
+community = "evaporation duct models (Fairall et al. 1978)"
+kind = "NeutralSurfaceDragCoefficientForMomentum"
+definition = "C_UN, the neutral value (equation 19) of 'the drag coefficient for' the wind, the coefficient of u_* = C_U^(1/2) U(Z) (equation 17, U(0) = 0)."
+sources = ["fairall1978_nps"]
+
+[[trade_terms.neutral_drag_coefficient.meanings]]
+community = "evaporation duct models (Fairall et al. 1978)"
+kind = "NeutralTemperatureScaleCoefficient"
+definition = "C_TN, the neutral value (equation 19) of 'the drag coefficient for' the temperature, the coefficient of T_* = C_T^(1/2) (T(Z) - T(0)) (equation 17), and C_qN for the humidity: not the Stanton number, which is (C_UN C_TN)^(1/2)."
+sources = ["fairall1978_nps"]
+
 # --- Flux-profile relations of Fairall et al. (1978) and Frederickson et al. (1994) ---
 # The profile function is an input, the reports leaving it to their sources.
 
@@ -757,7 +778,7 @@ label = "First estimate of the stability parameter from the bulk differences, mi
 expression = "kappa * g * z / T * C_TN ** (1 / 2) / C_UN * ((theta - theta_0) + c * (r - r_0)) / U ** 2"
 fixed_units = true
 note = "Equation 21, p. 22: xi_0, with kappa = 0.35 (p. 23) and the term 0.18 q, q in g/kg, of equation 10; T(Z) - T(0) a difference of potential temperature (equation 8). The source takes C_TN = 1.1e-3 (p. 23) and C_UN after Kondo (1975), not printed: both are inputs. Its C_X is the coefficient of X_* = C_X^(1/2) (X(Z) - X(0)) (equation 17): for the wind, the drag coefficient; for the temperature, a coefficient of the scale, not the Stanton number (NeutralTemperatureScaleCoefficient). It then solves for xi 'Eq. 21 iteratively', the implicit equation being 20 (fairall1978_stability_parameter)."
-output = { identifier = "xi_0", kind = "StabilityParameter", unit = "UNITLESS", description = "First estimate of the stability parameter, from the bulk differences" }
+output = { identifier = "xi_0", kind = "BulkEstimateOfStabilityParameter", unit = "UNITLESS", description = "First estimate of the stability parameter, from the bulk differences" }
 inputs = [
   { identifier = "z", kind = "Height", unit = "M", description = "Height of the measurements" },
   { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Mean temperature" },
@@ -789,7 +810,7 @@ fixed_units = true
 note = "Equation 20, p. 22, from equations 10 and 18, with kappa = 0.35 and alpha_T = 1.35 (p. 23); the denominator as printed, not squared. Implicit in xi through psi_u(xi) and psi_T(xi): written here with the profile functions as inputs, as the other equations of the bulk method (16), it is solved with them as a system (nomogram.systems)."
 output = { identifier = "xi", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" }
 inputs = [
-  { identifier = "xi_0", kind = "StabilityParameter", unit = "UNITLESS", description = "First estimate of the stability parameter (equation 21)" },
+  { identifier = "xi_0", kind = "BulkEstimateOfStabilityParameter", unit = "UNITLESS", description = "First estimate of the stability parameter (equation 21)" },
   { identifier = "C_UN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient" },
   { identifier = "C_TN", kind = "NeutralTemperatureScaleCoefficient", unit = "UNITLESS", description = "Neutral coefficient of the temperature scale, T_* = C_TN^(1/2) (T(Z) - T(0))" },
   { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for the wind at xi" },

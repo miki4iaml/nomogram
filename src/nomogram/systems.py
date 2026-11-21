@@ -18,26 +18,29 @@ no equation gives are the **inputs** of the system.
   unknowns, x - g(x) for an explicit equation, h for an implicit one (an
   implicit equation joins the unknowns of Newton's method even where it
   gives an intermediate variable), damped by a backtracking line search
-  (Armijo) and vectorised over the values given. The Jacobian is exact: the
-  chain rule assembles it from the partial derivatives of each formulation,
-  which SymPy derives and which are compiled once. A set of values
+  (Armijo) and vectorised over the values given. The chain rule assembles
+  the Jacobian from the exact partial derivatives of each formulation,
+  which SymPy derives and which are compiled once, and of each conversion
+  of units; the slope of a conversion between conventional scales, a
+  table or a polynomial, is a central difference. A set of values
   converges when every residual, relative to the size of its terms (the
   values on each side, and the first-order contribution of each variable),
   is below :data:`TOLERANCE`, or below :data:`FLOOR` where no step lowers
   it further, at the rounding of its terms. The unknown of an implicit
   equation stays where :meth:`~nomogram.model.Formulation.evaluate` seeks
   its root (the physical domains on its output and the bounds of its
-  kind). Without convergence, with a singular Jacobian or a residual
-  undefined, its results are NaN and a :class:`ConvergenceWarning` counts
-  the sets of values by reason. Newton's method finds a solution near its
-  start, the first guess the source prescribes: converged, never proven
-  unique (JCGM 102:2011, 6.3.1.2, note: solved numerically "starting from
-  an approximation").
-- ``method="fixed-point"``: the passes the source iterates, from its
-  first guess, each equation in turn taking the latest values, an implicit
-  equation solved for its root at each pass; the result is the source's
-  own procedure, and its residual is reported (:attr:`Solution.residual`),
-  not tested.
+  kind). Where a residual is undefined at the first guess, Newton's method
+  starts again from a few passes of the fixed point. Without convergence,
+  with a singular Jacobian or a residual undefined, its results are NaN
+  and a :class:`ConvergenceWarning` counts the sets of values by reason.
+  Newton's method finds a solution near its start, the first guess the
+  system gives (the source's, or a simpler one its note states):
+  converged, never proven unique (JCGM 102:2011, 6.3.1.2, note: solved
+  numerically "starting from an approximation").
+- ``method="fixed-point"``: the passes the source iterates, from the
+  system's first guess, each equation in turn taking the latest values,
+  an implicit equation solved for its root at each pass; its residual is
+  reported (:attr:`Solution.residual`), not tested, whatever it is.
 
 Units, conventional scales and validity domains follow
 :meth:`~nomogram.model.Formulation.evaluate`: each formulation takes its
@@ -68,7 +71,6 @@ from nomogram.model import (
     Formulation,
     OutOfDomainError,
     Outside,
-    RootWarning,
     ScaleConversion,
     ValidityWarning,
     Variable,
@@ -131,6 +133,10 @@ _HALVINGS = 40
 #: Condition number, after equilibration, beyond which a Jacobian is
 #: singular.
 _SINGULAR = 1e14
+
+#: Passes of the fixed point before Newton's method starts again, where a
+#: residual is undefined at the first guess.
+_RESTART = 3
 
 Method = Literal["newton", "fixed-point"]
 
@@ -312,30 +318,43 @@ class System:
 
     def _check_links(self, kinds: Mapping[str, Any] | None) -> None:
         """Each variable given feeds each equation that takes it: a kind it
-        may feed, in a unit of the same dimension."""
+        may feed, in a unit of the same dimension. An input of the system
+        taken by several equations is taken as kinds of one lineage (one
+        may feed the other), in units of the same dimension: one quantity
+        feeds them all."""
         from pint.errors import DimensionalityError
 
         from nomogram.comparison import _may_feed
 
         units = semantic_catalog().units
+        first: dict[str, tuple[Variable, str]] = {}
         for equation in self.equations:
+            key = equation.formulation.key
             for v in equation.formulation.inputs:
                 name = equation.name(v.identifier)
                 if name not in self._giver:
-                    continue
-                source = self.variable(name)
-                where = f"{self.key}: {name} given as {source.kind}"
-                if not _may_feed(source.kind, v.kind, kinds):
-                    msg = f"{where} cannot feed {v.kind} in {equation.formulation.key}"
-                    raise ValueError(msg)
+                    source, by = first.setdefault(name, (v, key))
+                    where = (
+                        f"{self.key}: the input {name} is taken as {source.kind} in "
+                        f"{source.unit} by {by}, as {v.kind} in {v.unit} by {key}"
+                    )
+                    lineage = _may_feed(source.kind, v.kind, kinds) or _may_feed(
+                        v.kind, source.kind, kinds
+                    )
+                else:
+                    source = self.variable(name)
+                    where = f"{self.key}: {name} given as {source.kind}"
+                    lineage = _may_feed(source.kind, v.kind, kinds)
+                    if not lineage:
+                        where = f"{where} cannot feed {v.kind} in {key}"
+                    else:
+                        where = f"{where} in {source.unit}, taken in {v.unit} by {key}"
+                if not lineage:
+                    raise ValueError(where)
                 try:
                     convert(Q_(1.0, units[source.unit].pint), units[v.unit].pint)
                 except DimensionalityError as error:
-                    msg = (
-                        f"{where} in {source.unit}, taken in {v.unit} by "
-                        f"{equation.formulation.key}"
-                    )
-                    raise ValueError(msg) from error
+                    raise ValueError(where) from error
 
     @cached_property
     def _giver(self) -> Mapping[str, int]:
@@ -626,10 +645,8 @@ class _Run:
             known[name] = column
         if len(self.unknowns) > len(system.unknowns):
             rows = np.arange(self.size)
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RootWarning)
-                for name in system.intermediates:
-                    known[name] = self.apply(system._giver[name], known, None, rows)[0]
+            for name in system.intermediates:
+                known[name] = self.apply(system._giver[name], known, None, rows)[0]
         return np.stack([known[name] for name in self.unknowns], axis=1)
 
     def apply(
@@ -642,13 +659,16 @@ class _Run:
         """An equation on the values known: its result as the system holds
         it (on the reference scale), its gradient in the unknowns, the values
         it takes and gives as the formulation does, and the size of its
-        first-order terms (with the gradient)."""
+        first-order terms (with the gradient). An implicit equation without
+        a root gives NaN, unreported: the status of the set of values says
+        it."""
         equation = self.system.equations[i]
         formulation = equation.formulation
         taken, slopes = self._taken(i, known, rows)
         with np.errstate(all="ignore"):
             raw = np.broadcast_to(
-                np.asarray(formulation._raw(taken), dtype=float), rows.shape
+                np.asarray(formulation._raw(taken, quiet=True), dtype=float),
+                rows.shape,
             )
         result, back = self.backs[i](raw)
         gradient = size = None
@@ -658,16 +678,17 @@ class _Run:
             gradient = np.zeros((rows.size, n))
             partial = self._partials(formulation, taken, rows.size)
             size = np.zeros(rows.size)
-            for v in formulation.inputs:
-                magnitude = np.abs(taken[v.identifier])
-                if v.identifier in slopes:
-                    name = equation.name(v.identifier)
-                    term = partial[v.identifier] * slopes[v.identifier]
-                    gradient += term[:, None] * gradients[name]
-                    magnitude = _held(magnitude, slopes[v.identifier], known[name])
-                size = size + np.abs(partial[v.identifier]) * magnitude
-            gradient *= back[:, None]
-            size = size * np.abs(back)
+            with np.errstate(all="ignore"):
+                for v in formulation.inputs:
+                    magnitude = np.abs(taken[v.identifier])
+                    if v.identifier in slopes:
+                        name = equation.name(v.identifier)
+                        term = partial[v.identifier] * slopes[v.identifier]
+                        gradient += term[:, None] * gradients[name]
+                        magnitude = _held(magnitude, slopes[v.identifier], known[name])
+                    size = size + np.abs(partial[v.identifier]) * magnitude
+                gradient *= back[:, None]
+                size = size * np.abs(back)
         return result, gradient, {**taken, formulation.output.identifier: raw}, size
 
     def _taken(
@@ -828,7 +849,14 @@ class _Run:
         return first - second, size, row, {**taken, output.identifier: y}, inside
 
     def newton(self, first: Any, most: int, skip: Any) -> _Found:
-        """Damped Newton's method from the first guesses, row by row."""
+        """Damped Newton's method from the first guesses, row by row.
+
+        Where a residual is undefined at the first guess (an Obukhov length
+        infinite where the first guess of the scales is 0, air and surface
+        alike), Newton's method starts again from a few passes of the fixed
+        point, which take the first guess a step along the source's own
+        procedure.
+        """
         x = first.copy()
         size = x.shape[0]
         status = np.full(size, NOT_CONVERGED)
@@ -837,14 +865,24 @@ class _Run:
         status[skip] = OUTSIDE
         status[~skip & (self.blank | ~np.isfinite(x).all(axis=1))] = UNDEFINED
         active = np.flatnonzero(status == NOT_CONVERGED)
+        undefined = self._iterate(x, active, status, left, steps, most)
+        if undefined.size:
+            x[undefined] = self._passes(x[undefined], undefined, _RESTART)
+            moved = np.isfinite(x[undefined]).all(axis=1)
+            status[undefined[moved]] = NOT_CONVERGED
+            self._iterate(x, undefined[moved], status, left, steps, most)
+        return _Found(x, status, left, steps)
+
+    def _iterate(
+        self, x: Any, active: Any, status: Any, left: Any, steps: Any, most: int
+    ) -> Any:
+        """Newton's steps on the rows given, in place; the rows whose
+        residual is undefined at their start."""
+        undefined = np.array([], dtype=int)
         for step in range(most + 1):
             if not active.size:
                 break
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RootWarning)
-                residual, terms, matrix, inside = self.state(x[active], active, True)[
-                    :4
-                ]
+            residual, terms, matrix, inside = self.state(x[active], active, True)[:4]
             if step == 0:
                 # A first guess outside where an implicit equation's root is
                 # sought gives no solution there.
@@ -864,6 +902,8 @@ class _Run:
             steps[active] = step
             finite = np.isfinite(error) & np.isfinite(matrix).all(axis=(1, 2))
             status[active[~done & ~finite]] = UNDEFINED
+            if step == 0:
+                undefined = active[~done & ~finite]
             keep = ~done & finite
             if step == most or not keep.any():
                 break
@@ -880,7 +920,17 @@ class _Run:
             stalled = rows[~accepted]
             status[stalled[left[stalled] <= FLOOR]] = CONVERGED
             active = rows[accepted]
-        return _Found(x, status, left, steps)
+        return undefined
+
+    def _passes(self, x: Any, rows: Any, passes: int) -> Any:
+        """Passes of the fixed point from x on the rows given: the unknowns
+        of Newton's method after them."""
+        system = self.system
+        known = {name: x[:, k] for k, name in enumerate(system.unknowns)}
+        for _ in range(passes):
+            for i, equation in enumerate(system.equations):
+                known[equation.output] = self.apply(i, known, None, rows)[0]
+        return np.stack([known[name] for name in self.unknowns], axis=1)
 
     def _line_search(
         self, x: Any, rows: Any, delta: Any, residual: Any, terms: Any
@@ -898,8 +948,7 @@ class _Run:
             if not todo.size:
                 break
             trial = start[todo] + factor[todo, None] * delta[todo]
-            with np.errstate(all="ignore"), warnings.catch_warnings():
-                warnings.simplefilter("ignore", RootWarning)
+            with np.errstate(all="ignore"):
                 found, _, _, inside = self.state(trial, rows[todo], jacobian=False)[:4]
                 value = 0.5 * np.sum((found / safe[todo]) ** 2, axis=1)
             good = (
@@ -919,15 +968,11 @@ class _Run:
         rows = np.arange(self.size)
         known = {name: first[:, k] for k, name in enumerate(system.unknowns)}
         seen: dict[int, dict[str, Any]] = {}
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RootWarning)
-            for _ in range(passes):
-                for i, equation in enumerate(system.equations):
-                    known[equation.output], _, seen[i], _ = self.apply(
-                        i, known, None, rows
-                    )
-            x = np.stack([known[name] for name in self.unknowns], axis=1)
-            residual, terms = self.state(x, rows, jacobian=True)[:2]
+        for _ in range(passes):
+            for i, equation in enumerate(system.equations):
+                known[equation.output], _, seen[i], _ = self.apply(i, known, None, rows)
+        x = np.stack([known[name] for name in self.unknowns], axis=1)
+        residual, terms = self.state(x, rows, jacobian=True)[:2]
         left = _relative(residual, terms).max(axis=1)
         status = np.where(np.isfinite(x).all(axis=1), ITERATED, UNDEFINED)
         status[self.blank] = UNDEFINED
@@ -994,9 +1039,12 @@ class _Run:
 
 
 def _relative(residual: Any, terms: Any) -> Any:
-    """Residuals relative to the size of their terms; 0 where both are 0."""
+    """Residuals relative to the size of their terms; 0 where both are 0,
+    NaN where a term is infinite (a derivative infinite there), whatever
+    the residual."""
     with np.errstate(all="ignore"):
         relative = np.abs(residual) / terms
+    relative = np.where(np.isinf(terms), np.nan, relative)
     return np.where((terms == 0) & (residual == 0), 0.0, relative)
 
 
@@ -1015,8 +1063,7 @@ def _condition(matrix: Any) -> Any:
     for axis in (2, 1):
         largest = np.abs(scaled).max(axis=axis, keepdims=True)
         scaled = scaled / np.where(largest > 0, largest, 1.0)
-    with np.errstate(all="ignore"), warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
+    with np.errstate(all="ignore"):
         return np.linalg.cond(scaled)
 
 

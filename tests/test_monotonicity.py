@@ -4,6 +4,9 @@
 """Monotonicity proven, refuted or left unproven by interval arithmetic."""
 
 import math
+import sys
+import threading
+import warnings
 
 import pytest
 
@@ -168,6 +171,91 @@ def test_a_step_back_within_the_rounding_is_none() -> None:
     assert (found.status, found.direction) == ("proven", "decreasing")
 
 
+def test_a_step_back_of_exactly_the_tolerance_is_none() -> None:
+    for expression in (
+        "piecewise((t, t < 1), (t - 1e-12, t >= 1))",
+        "piecewise((2 * t, t < 1), (2 * t - 2e-12, t >= 1))",
+    ):
+        found = monotonicity(one(expression), "t", (0.0, 2.0))
+        assert (found.status, found.direction) == ("proven", "increasing")
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "large_yeager2004_profile_function_momentum",
+        "large_yeager2004_profile_function_heat",
+        "coare36_profile_function_momentum",
+        "ecmwf_ifs_profile_function_momentum",
+    ],
+)
+def test_a_junction_where_the_value_is_0(key: str) -> None:
+    # psi(0) = 0 on both sides: no relative step to measure, and none.
+    found = monotonicity(catalog().formulations[key], "zeta", (-1.0, 1.0))
+    assert (found.status, found.direction) == ("proven", "decreasing")
+    found = monotonicity(
+        one("piecewise((t, t < 0), (2 * t, t >= 0))"), "t", (-1.0, 1.0)
+    )
+    assert found.status == "proven"
+
+
+def test_an_end_of_the_box_held_by_another_branch() -> None:
+    # The end t = 1 belongs to the second branch: a junction too.
+    found = monotonicity(
+        one("piecewise((t + 100, t < 1), (t, t >= 1))"), "t", (0.0, 1.0)
+    )
+    assert (found.status, found.direction) == ("refuted", "increasing")
+    assert found.steps[1.0] == pytest.approx(100.0 / 101.0, rel=1e-9)
+    assert found.widths[1.0] == pytest.approx(100.0, rel=1e-9)
+    # Held by the branch of the box: nothing to measure.
+    found = monotonicity(one("piecewise((t, t <= 1), (t + 5, t > 1))"), "t", (0.0, 1.0))
+    assert found.status == "proven"
+    # Held by no branch: no value there.
+    found = monotonicity(one("piecewise((t, t < 1))"), "t", (0.0, 1.0))
+    assert found.status == "proven"
+
+
+def test_a_face_of_the_box_held_by_another_branch() -> None:
+    # At p = 1, the end of the box, the function decreases in t.
+    f = one("piecewise((t, p < 1), (-t, p >= 1))", f"{T}, {P}")
+    found = monotonicity(f, "t", {"t": (0.0, 1.0), "p": (0.0, 1.0)})
+    assert (found.status, found.direction) == ("refuted", None)
+    found = monotonicity(f, "t", {"t": (0.0, 1.0), "p": (0.0, 0.5)})
+    assert found.status == "proven"
+
+
+def test_concurrent_calls_change_no_global_state() -> None:
+    import mpmath
+    from mpmath import iv
+
+    from nomogram.monotonicity import _interval_namespace
+
+    # atan bounded with a precision of its own; no warning filter.
+    f = one("atan(t)")
+    precision, filters = mpmath.mp.prec, list(warnings.filters)
+    interval = sys.getswitchinterval()
+
+    atan = _interval_namespace()["atan"]
+
+    def work() -> None:
+        for _ in range(50):
+            monotonicity(f, "t", (0.5, 5.0))
+        for _ in range(1000):
+            atan(iv.mpf([0.1, 0.2]))
+
+    sys.setswitchinterval(1e-5)
+    try:
+        threads = [threading.Thread(target=work) for _ in range(4)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+    finally:
+        sys.setswitchinterval(interval)
+    assert mpmath.mp.prec == precision
+    assert warnings.filters == filters
+
+
 def test_branches_in_opposite_directions_refute() -> None:
     found = monotonicity(one("piecewise((t, t < 1), (-t, t >= 1))"), "t", (0.0, 2.0))
     assert (found.status, found.direction) == ("refuted", None)
@@ -200,6 +288,16 @@ def test_a_junction_with_several_inputs() -> None:
     assert found.at["t"] == 1.0
     assert found.steps[1.0] == pytest.approx(1.0, rel=1e-9)
     assert found.widths[1.0] == pytest.approx(1.0, rel=1e-9)
+
+
+def test_the_largest_step_back_over_the_other_inputs() -> None:
+    # Forward for p < 0.5, back beyond: the largest step, 0.75 of the
+    # value, is at p = 1, whatever the point a search meets first.
+    f = one("piecewise((t + 2, t < 0), (t + 1.5 - p, t >= 0))", f"{T}, {P}")
+    found = monotonicity(f, "t", {"t": (-1.0, 1.0), "p": (-1.0, 1.0)})
+    assert (found.status, found.direction) == ("refuted", "increasing")
+    assert found.steps[0.0] == pytest.approx(0.75, rel=1e-3)
+    assert found.at["p"] == pytest.approx(1.0, abs=2e-3)
 
 
 def test_an_implicit_equation_is_proven_over_the_unknown_too() -> None:

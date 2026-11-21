@@ -22,7 +22,10 @@ A piecewise definition is split at the ends of its branches: each branch
 is proven on its part of the box, and at each junction on the input the
 value must not step back by more than :data:`JUNCTION_TOLERANCE` (the
 rounding of its evaluation: a continuous junction evaluates equal only to
-it); a larger step back refutes, and is measured. For an implicit
+it); a larger step back refutes, and is measured, the largest over the
+other inputs. An end of the box where a branch ends belongs to the branch
+whose condition holds there: a junction too, on the input, and a face
+whose branch is proven, on another input. For an implicit
 equation h(y, x) = 0, the derivative of the output is -h_x / h_y,
 bounded over the whole box of the unknown and the inputs: that box holds
 more than the solutions, so a change of sign there does not refute, and
@@ -31,8 +34,8 @@ the result is then unproven; a piecewise implicit equation is not tried.
 
 from __future__ import annotations
 
+import heapq
 import math
-import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -59,6 +62,9 @@ JUNCTION_TOLERANCE = 1e-12
 
 #: Relative width below which a sub-box is not halved again.
 _RESOLUTION = 1e-9
+
+#: Relative precision of the largest step back at a junction over other inputs.
+_PRECISION = 1e-3
 
 #: How the proof is made, as :attr:`Monotonicity.method` says it.
 _METHOD = "interval arithmetic (mpmath.iv) on the derivative"
@@ -107,10 +113,9 @@ class Monotonicity:
         For each junction of ``steps``, the width of the interval of the
         input within which a value of the step is reached twice: the step
         divided by the smaller slope of the two branches there, in the
-        input's unit, infinite where a branch is flat. The same step back
-        weighs more where the slope is gentle: ITU-R P.835 steps back by
-        9e-6 of its pressure at 11 km and 1.6e-5 at 71 km, 5.6 and 10.3 cm
-        of altitude.
+        input's unit, infinite where a branch may be flat. ITU-R P.835
+        steps back by 8.9e-6 of its pressure at 11 km and 1.6e-5 at 71 km,
+        for a nearly equal relative slope: 5.6 and 10.3 cm of altitude.
     """
 
     status: Status
@@ -263,8 +268,11 @@ def _prove(
     except ExpressionError:
         reason = "a piecewise condition it cannot split"
         return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
-    # The ends of the branches inside the box, by variable.
+    # The ends of the branches by variable: inside the box, where the branch
+    # changes; at an end of the box, where the end may belong to a branch
+    # other than that of the cell next to it.
     cuts: dict[Any, set[float]] = {s: set() for s in symbols}
+    edges: dict[Any, set[float]] = {s: set() for s in symbols}
     for branches in pieces:
         for piece in branches:
             k = symbols.index(piece.variable)
@@ -272,13 +280,25 @@ def _prove(
                 end = float(end.xreplace(values))
                 if box[k][0] < end < box[k][1]:
                     cuts[piece.variable].add(end)
-    grids = [[box[k][0], *sorted(cuts[s]), box[k][1]] for k, s in enumerate(symbols)]
-    signs: dict[int, tuple[float, ...]] = {}
-    reasons = []
+                elif end in box[k]:
+                    edges[piece.variable].add(end)
+    spans: list[list[tuple[float, float]]] = []
+    for j, s in enumerate(symbols):
+        low, high = box[j]
+        here = list(pairwise([low, *sorted(cuts[s]), high]))
+        # An end of the box that ends a branch: a cell of its own, a point.
+        spans.append(
+            [(low, low)] * (low in edges[s])
+            + here
+            + [(high, high)] * (high in edges[s])
+        )
     smooth: dict[Box, Any] = {}
-    for cell in product(*[list(pairwise(grid)) for grid in grids]):
-        chosen = _branches(nodes, pieces, symbols, _middle(cell), values)
+    for cell in product(*spans):
+        chosen = _branches(nodes, pieces, symbols, cell, values)
         if chosen is None:
+            if any(lo == hi for lo, hi in cell):
+                # An end of the box where no branch holds: no value there.
+                continue
             reason = "no branch holds in part of the box"
             return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
         branch = expression
@@ -286,6 +306,17 @@ def _prove(
         for _ in range(len(nodes)):
             branch = branch.xreplace(chosen)
         smooth[cell] = branch
+    k = symbols.index(variable)
+    signs: dict[int, tuple[float, ...]] = {}
+    reasons = []
+    for cell, branch in smooth.items():
+        if cell[k][0] == cell[k][1]:
+            # A point of the input: only its step to the next cell counts.
+            continue
+        inner = _inner(cell, spans)
+        if inner != cell and smooth.get(inner) == branch:
+            # A face at an end of the box, of the branch of the cell inside.
+            continue
         sign, at, reason = _sign_of(branch, symbols, variable, None, cell, budget)
         if sign == 0:
             return "refuted", 0, f"{_METHOD}: the derivative changes sign", at, {}, {}
@@ -299,19 +330,25 @@ def _prove(
     if reasons:
         return "unproven", 0, f"{_METHOD}: {reasons[0]}", None, {}, {}
     (sign,) = signs
-    k = symbols.index(variable)
     steps: dict[float, float] = {}
     widths: dict[float, float] = {}
     first: tuple[float, ...] | None = None
-    for cut in grids[k][1:-1]:
-        found = _junction(smooth, k, cut, sign, symbols, budget)
-        if found is None:
-            reason = f"the junction {input} = {cut!r} cannot be bounded"
-            return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
-        step, at, width = found
-        if step > 0:
-            steps[cut], widths[cut] = step, width
-            first = first or at
+    for before_span, after_span in pairwise(spans[k]):
+        cut = before_span[1]
+        for cell, before in smooth.items():
+            if cell[k] != before_span:
+                continue
+            after = smooth.get((*cell[:k], after_span, *cell[k + 1 :]))
+            if after is None or after == before:
+                continue
+            found = _junction(before, after, cell, k, cut, sign, symbols, budget)
+            if found is None:
+                reason = f"the junction {input} = {cut!r} cannot be bounded"
+                return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
+            step, at, width = found
+            if step > steps.get(cut, 0.0):
+                steps[cut], widths[cut] = step, width
+                first = first or at
     if steps:
         method = (
             f"{_METHOD}: every branch is proven "
@@ -331,16 +368,25 @@ def _branches(
     nodes: list[Any],
     pieces: list[Any],
     symbols: tuple[Any, ...],
-    middle: tuple[float, ...],
+    cell: Box,
     values: Mapping[Any, float],
 ) -> dict[Any, Any] | None:
-    """Each piecewise definition replaced by its branch at a point, or None."""
+    """Each piecewise definition replaced by its branch over a cell, or None:
+    the branch holding its centre, or, on a variable where the cell is a
+    point, the branch whose condition holds at that point."""
     chosen = {}
     for node, branches in zip(nodes, pieces, strict=True):
         for piece in branches:
-            x = middle[symbols.index(piece.variable)]
+            start, end = cell[symbols.index(piece.variable)]
             low = float(piece.low.xreplace(values))
-            if low < x < float(piece.high.xreplace(values)):
+            high = float(piece.high.xreplace(values))
+            if start == end:
+                holds = (low < start or (piece.low_closed and low == start)) and (
+                    start < high or (piece.high_closed and start == high)
+                )
+            else:
+                holds = low < (start + end) / 2 < high
+            if holds:
                 chosen[node] = piece.expression
                 break
         else:
@@ -348,15 +394,29 @@ def _branches(
     return chosen
 
 
+def _inner(cell: Box, spans: list[list[tuple[float, float]]]) -> Box:
+    """The cell next to a cell, inside the box, on each variable where the
+    cell is a point at an end of the box."""
+    inner = []
+    for j, span in enumerate(cell):
+        if span[0] == span[1]:
+            span = spans[j][1] if span == spans[j][0] else spans[j][-2]
+        inner.append(span)
+    return tuple(inner)
+
+
 def _junction(
-    smooth: Mapping[Box, Any],
+    before: Any,
+    after: Any,
+    cell: Box,
     k: int,
     cut: float,
     sign: int,
     symbols: tuple[Any, ...],
     budget: int,
 ) -> tuple[float, tuple[float, ...], float] | None:
-    """The largest relative step back at a junction on the input, 0 for none,
+    """The largest relative step back from a branch to the next at a
+    junction on the input, over the other inputs of the cell, 0 for none,
     with where it is and its width on the input; None when it cannot be
     bounded.
 
@@ -365,40 +425,44 @@ def _junction(
     """
     import sympy
 
-    largest, width = 0.0, 0.0
-    where: tuple[float, ...] = (cut,)
-    for cell, before in smooth.items():
-        if cell[k][1] != cut:
-            continue
-        after = next(
-            e
-            for c, e in smooth.items()
-            if c[k][0] == cut
-            and all(c[j] == cell[j] for j in range(len(cell)) if j != k)
-        )
-        point = {symbols[k]: sympy.Float(cut)}
-        # Positive where the value goes the way of the branches.
-        step = (sign * (after - before)).xreplace(point)
-        size = abs(before.xreplace(point))
-        others = tuple(c for j, c in enumerate(cell) if j != k)
-        rest = tuple(s for j, s in enumerate(symbols) if j != k)
-        margin = step + JUNCTION_TOLERANCE * size
-        found, at, _ = _search(_interval_function(rest, (size, margin)), others, budget)
+    point = {symbols[k]: sympy.Float(cut)}
+    # Positive where the value goes the way of the branches.
+    step = (sign * (after - before)).xreplace(point)
+    if step == 0:
+        return 0.0, (), 0.0
+    size = abs(before.xreplace(point))
+    margin = step + JUNCTION_TOLERANCE * size
+    others = tuple(c for j, c in enumerate(cell) if j != k)
+    rest = tuple(s for j, s in enumerate(symbols) if j != k)
+    if others:
+        found, _, _ = _search(_interval_function(rest, (size, margin)), others, budget)
         if found == 1:
-            continue
-        if found is None and others:
+            return 0.0, (), 0.0
+        if found is None:
             return None
-        # The size of the step where it goes back, with the tight bounds of
-        # a point.
-        here = at if at is not None else _middle(others)
-        exact = tuple((v, v) for v in here)
-        low, _ = _enclosure(_interval_function(rest, (size, step)), exact)
-        scale = _enclosure(_interval_function(rest, (size, size)), exact)[1]
+        largest = _largest(
+            _interval_function(rest, (size, -step / size)), others, budget
+        )
+        if largest is None:
+            return None
+        relative, here = largest
+    else:
+        # One input: the step at the point itself, with tight bounds.
+        high = _enclosure(_interval_function(rest, (size, margin)), ())[1]
+        if not math.isfinite(high):
+            return None
+        if not high < 0:
+            return 0.0, (), 0.0
+        here = ()
+        scale = _enclosure(_interval_function(rest, (size, size)), ())[1]
+        low = _enclosure(_interval_function(rest, (size, step)), ())[0]
         relative = -low / scale if scale > 0 else math.inf
-        if relative > largest:
-            largest, where = relative, (*here[:k], cut, *here[k:])
-            width = -low / _slope((before, after), symbols, k, where)
-    return largest, where, width
+    where = (*here[:k], cut, *here[k:])
+    # The step itself where it is largest, for its width on the input.
+    exact = tuple((v, v) for v in here)
+    low = _enclosure(_interval_function(rest, (size, step)), exact)[0]
+    slope = _slope((before, after), symbols, k, where)
+    return relative, where, -low / slope if slope > 0 else math.inf
 
 
 def _slope(
@@ -484,14 +548,19 @@ def _interval_namespace() -> dict[str, Any]:
     import mpmath
     from mpmath import iv
 
+    # A context of nomogram's own, never changed once made: mpmath.workprec
+    # would change the precision of mpmath's global context for every
+    # thread at once.
+    precise = mpmath.MPContext()
+    precise.prec = 80
+
     def increasing(function: Callable[[Any], Any]) -> Callable[[Any], Any]:
         """An increasing function on intervals, its ends rounded outwards."""
 
         def bounded(value: Any) -> Any:
             value = iv.mpf(value)
-            with mpmath.workprec(80):
-                low = function(mpmath.mpf(float(value.a)))
-                high = function(mpmath.mpf(float(value.b)))
+            low = function(precise.mpf(float(value.a)))
+            high = function(precise.mpf(float(value.b)))
             # 2**-50 is eight units in the last place of a double.
             return iv.mpf(
                 [float(low - abs(low) * 2**-50), float(high + abs(high) * 2**-50)]
@@ -507,8 +576,8 @@ def _interval_namespace() -> dict[str, Any]:
         "sqrt": iv.sqrt,
         "sin": iv.sin,
         "cos": iv.cos,
-        "atan": increasing(mpmath.atan),
-        "tanh": increasing(mpmath.tanh),
+        "atan": increasing(precise.atan),
+        "tanh": increasing(precise.tanh),
         "pi": iv.pi,
         "e": iv.e,
     }
@@ -520,11 +589,9 @@ def _enclosure(function: Callable[..., Any], box: Box) -> tuple[float, float]:
     from mpmath import iv
 
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            values = function(*[iv.mpf([low, high]) for low, high in box])
-            first, last = iv.mpf(values[0]), iv.mpf(values[-1])
-            ends = [float(first.a), float(first.b), float(last.a), float(last.b)]
+        values = function(*[iv.mpf([low, high]) for low, high in box])
+        first, last = iv.mpf(values[0]), iv.mpf(values[-1])
+        ends = [float(first.a), float(first.b), float(last.a), float(last.b)]
     except (ValueError, ZeroDivisionError, OverflowError, TypeError, ArithmeticError):
         return -math.inf, math.inf
     if not all(math.isfinite(v) for v in ends[:2]) or any(math.isnan(v) for v in ends):
@@ -555,9 +622,8 @@ def _search(
             point_low, point_high = _enclosure(function, tuple((m, m) for m in middle))
             if point_low > 0 or point_high < 0:
                 seen.setdefault(1 if point_low > 0 else -1, middle)
-            widths = [(h - lo) / max(abs(lo), abs(h), 1.0) for lo, h in current]
-            k = max(range(len(current)), key=widths.__getitem__)
-            if widths[k] < _RESOLUTION:
+            k = _widest(current)
+            if k is None:
                 where = ", ".join(f"{m:.6g}" for m in middle)
                 stuck = f"bounds too wide, or a pole, near {where}"
             else:
@@ -568,6 +634,51 @@ def _search(
         return None, None, stuck or "no sign"
     (sign,) = seen
     return sign, None, ""
+
+
+def _largest(
+    function: Callable[..., Any], box: Box, budget: int
+) -> tuple[float, tuple[float, ...]] | None:
+    """The largest of the last value of the function over the box, with
+    where it is reached: a value reached, which an upper bound exceeds by
+    :data:`_PRECISION` at most; that upper bound where the budget runs out
+    first; None when no finite bound is found.
+
+    Branch and bound: the sub-box of the largest upper bound is halved
+    until that bound comes within the precision of a value reached.
+    """
+    best, where = -math.inf, _middle(box)
+    pending = [(-_enclosure(function, box)[1], 0, box)]
+    unsplit, count = -math.inf, 0
+    while pending:
+        upper = -pending[0][0]
+        if upper <= max(best + _PRECISION * abs(best), unsplit) or count >= budget:
+            break
+        _, _, current = heapq.heappop(pending)
+        middle = _middle(current)
+        value = _enclosure(function, tuple((m, m) for m in middle))[0]
+        if value > best:
+            best, where = value, middle
+        k = _widest(current)
+        if k is None:
+            unsplit = max(unsplit, upper)
+            continue
+        for half in _halves(current, k):
+            count += 1
+            heapq.heappush(pending, (-_enclosure(function, half)[1], count, half))
+    bound = max(-pending[0][0] if pending else -math.inf, unsplit)
+    if bound <= best + _PRECISION * abs(best):
+        return best, where
+    return (bound, where) if math.isfinite(bound) else None
+
+
+def _widest(box: Box) -> int | None:
+    """The variable along which a box is widest, relative to its values;
+    None when every width is below :data:`_RESOLUTION`, or for a point."""
+    widths = [(h - lo) / max(abs(lo), abs(h), 1.0) for lo, h in box]
+    if not widths or max(widths) < _RESOLUTION:
+        return None
+    return max(range(len(box)), key=widths.__getitem__)
 
 
 def _halves(box: Box, k: int) -> tuple[Box, Box]:

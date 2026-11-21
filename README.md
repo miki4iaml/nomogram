@@ -32,8 +32,8 @@ nomogram does not hard-code functions: it catalogs formulas, each one
 Built for trust, not for speed: to show that a calculation is right, and
 where it comes from.
 
-Pure Python, built on SymPy, numpy and pint; it works on an offline
-workstation (no online engine).
+Pure Python, built on SymPy, mpmath, numpy and pint; it works on an
+offline workstation (no online engine).
 
 > Early stage project (alpha).
 

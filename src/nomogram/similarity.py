@@ -122,17 +122,19 @@ def profile_function(
     -------
     Formulation
         ψ in closed form, its ``derivation`` recording the source and the
-        method ``"integration"``.
+        method ``"integration"``. A domain of the source without the point
+        its integral starts from (0, or the junction of a branch) is
+        carried as it is, and the note says that the integral takes φ
+        outside it.
 
     Raises
     ------
     DerivationError
         If the gradient function is implicit, not of the stability
         parameter alone, does not tend to 1 at 0, has branches with a gap
-        between them or a domain without the point its integral starts
-        from, has no closed-form integral in the syntax of expressions, or
-        one that departs from the quadrature; or if no output is given for
-        a kind without a default.
+        between them, has no closed-form integral in the syntax of
+        expressions, or one that departs from the quadrature; or if no
+        output is given for a kind without a default.
     """
     import sympy
 
@@ -546,11 +548,16 @@ def _check(source: Formulation, branches: list[_Piece], zeta: Variable) -> None:
     from nomogram.expression import compile_numeric
 
     z = sympy.Symbol(zeta.identifier, real=True)
+    # Renamed as nomogram.expression does, so that the identifier (e, pi)
+    # cannot shadow a name of the generated code.
+    renamed = sympy.Symbol(f"_v_{zeta.identifier}", real=True)
     names = (zeta.identifier,)
     functions = [
         (
             b,
-            sympy.lambdify(z, (1 - b.phi) / z, modules="mpmath"),
+            sympy.lambdify(
+                renamed, ((1 - b.phi) / z).xreplace({z: renamed}), modules="mpmath"
+            ),
             compile_numeric(parse_expression(b.text, names, limit=None), names),
         )
         for b in branches

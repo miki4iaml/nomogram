@@ -380,6 +380,8 @@ def test_evaporation_duct_guide_shows_lines_of_its_script() -> None:
     blocks = python_blocks(DUCT_GUIDE)
     assert len(blocks) == 3
     for block in blocks:
+        # Whole statements, not a truncated call.
+        ast.parse(block)
         for line in code_lines(block):
             assert any(line in candidate for candidate in script), line
 
@@ -417,7 +419,7 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
     assert round(deviation(by_coare["L"], m["L"]), 1) == 0.5
     assert round(deviation(by_coare["q_s"], m["qsr"]), 1) == 0.8
     assert round(deviation(by_coare["T_s"], m["tsr"]), 2) == 0.01
-    assert float(np.max(np.abs(by_coare["T_s"] - m["tsr"]))) < 2.5e-5
+    assert round(float(np.max(np.abs(by_coare["T_s"] - m["tsr"]))), 6) == 2.3e-5
 
     def median(ratio: Any) -> int:
         return round(100 * float(np.median(ratio - 1)))

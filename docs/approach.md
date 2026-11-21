@@ -185,22 +185,25 @@ direction proven. The junctions of a piecewise definition are measured
 too: the published coefficients of ITU-R P.835 join the layers of its
 standard atmosphere to about 10⁻⁵ (226.3206 hPa at the top of the first,
 226.3226 hPa at the bottom of the second), so its pressure steps back by
-9 × 10⁻⁶ of its value where it should keep decreasing. A pressure within
-the step has two altitudes, and how far apart depends on the slope: the
-step divided by the slope of the branches there, 5.6 cm of altitude at
-11 km, 10.3 cm at 71 km, where the pressure falls more slowly for the
-same relative step. nomogram gives both, the step relative to the value
-and this width on the input (`steps`, `widths`). The inverse accepts a
-step up to 10⁻⁴ of the value by default (`STEP_BACK_TOLERANCE`); the
-caller may set instead the width accepted on the solved variable, in its
-unit (`step_back=`, an altitude within 10 cm, say).
+8.9 × 10⁻⁶ of its value where it should keep decreasing. A pressure
+within the step has two altitudes, the step divided by the slope of the
+branches there apart: 5.6 cm of altitude at 11 km, and 10.3 cm at 71 km,
+where the pressure steps back by 1.6 × 10⁻⁵ for a nearly equal relative
+slope. nomogram gives both, the step relative to the value and this
+width on the input (`steps`, `widths`). The inverse accepts a step up to
+10⁻⁴ of the value by default (`STEP_BACK_TOLERANCE`); the caller may set
+instead the width accepted on the solved variable, in its unit
+(`step_back=`: an altitude within 20 cm, say, accepts the 10.3 cm of the
+71 km junction, which 10 cm refuses). Within an accepted step, a target
+has two solutions, at most `widths` apart, and the inverse gives either.
 
 The same proof is open to the caller:
 `nomogram.monotonicity.monotonicity(formulation, input, over)` says
 whether a formulation is monotonic in one input over a box the caller
 chooses: proven, refuted (with a counterexample), or unproven, with its
-method. KEYPS, below, is proven increasing in ζ over ζ ≤ 0. It is a
-property nomogram computes, with its box, never a validity domain.
+method. KEYPS, below, is proven increasing in ζ over −1000 ≤ ζ ≤ 0,
+with Φ_M from 10⁻³ to 10³. It is a property nomogram computes, with its
+box, never a validity domain.
 SymPy's `is_monotonic` does not serve: read in SymPy 1.14, it answers
 no for x³ over [−1, 1], and yes for a function that jumps down.
 
@@ -257,19 +260,27 @@ words of JCGM 102:2011 (3.8): equations, each given by a formulation of
 the catalog, listed in the order the source computes them; the
 variables read before they are given are its unknowns, the others are
 computed from them. It solves them by Newton's method, damped by a line
-search, with an exact Jacobian: SymPy derives each formulation, and the
-chain rule assembles the derivatives through units and conventional
-scales, so that a linear system is solved in one step. Newton's method
-finds a solution near its start, the first guess of the source: nomogram
-says converged, never unique; the unknown of an implicit equation stays
-where its root is sought, as for the formulation alone. Without
-convergence, or with a singular Jacobian, the values are NaN and a
-warning counts them; inputs outside a domain are not solved. The passes the
-source iterates remain available (`method="fixed-point"`), to compare
-with its own procedure. The loop of COARE 3.6 is such a system
+search: SymPy derives each formulation exactly, and the chain rule
+assembles the Jacobian through the conversions of units, so that a
+linear system without conventional scales is solved in one step (the
+slope of a conversion between conventional scales is a central
+difference). Newton's method finds a solution near its start, the first
+guess the system gives (the source's, or a simpler one its note states),
+and starts again from a few passes of the fixed point where a residual
+is undefined there: nomogram says converged, never unique; the unknown
+of an implicit equation stays where its root is sought, as for the
+formulation alone. Without convergence, or with a singular Jacobian, the
+values are NaN and a warning counts them; inputs outside a domain are
+not solved. The passes the source iterates remain available
+(`method="fixed-point"`), from the system's first guess; their residual
+is reported, not tested. The loop of COARE 3.6 is such a system
 (`coare36_surface_layer`): given the inputs the code computes, it gives
-back the outputs of the code to about 10⁻⁶, and its ten passes, written
-as a loop over the formulations, to 10⁻¹².
+back the outputs of the code to about 10⁻⁶ for the friction velocity,
+the humidity scale, the roughness length and the gustiness, 10⁻⁵ for
+the Obukhov length and 5 × 10⁻⁵ for the temperature scale, the value
+nearest 0, which follows the skin temperature of the data, given to
+seven digits; its ten passes, written as a loop over the formulations,
+to 10⁻¹².
 
 The profile functions of Monin-Obukhov similarity integrate the gradient
 functions, ψ(ζ) = ∫₀^ζ (1 − φ(x))/x dx (Paulson, 1970), and nomogram
@@ -305,12 +316,16 @@ They guarantee that:
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
 - a numerical inverse is solved over an interval where its source is
-  monotonic, proven, or found so on samples;
+  monotonic, proven or found so on samples, or steps back only at
+  junctions, by no more than `STEP_BACK_TOLERANCE` of its value (or
+  `step_back` on the input);
 - the root of an implicit equation is the one root in the interval
   searched, or NaN with a warning;
-- the solution of a system satisfies each of its equations to 10⁻¹²,
-  relative to the size of its terms (10⁻⁸ where the rounding of terms
-  that nearly cancel stops Newton's method), or is NaN with a warning;
+- the solution of a system by Newton's method satisfies each of its
+  equations to 10⁻¹², relative to the size of its terms (10⁻⁸ where the
+  rounding of terms that nearly cancel stops it), or is NaN with a
+  warning; the passes of a fixed point report their residual
+  (`Solution.residual`) and do not test it;
 - the Python examples of the README and of the guides run (those of the
   sea water guide give the values their comments state), and the README
   code is the code that drew its plot.
@@ -321,13 +336,18 @@ They do not guarantee that:
 - a secondary source quoted its original correctly;
 - a formulation is physically meaningful outside its domain;
 - a numerical inverse is unique where the monotonicity of its source was
-  found on samples only: between two samples, a turn goes unseen;
+  found on samples only: between two samples, a turn goes unseen; nor
+  within a step back it accepts at a junction, where a target has two
+  solutions, at most `widths` apart;
 - the solution of a system is its only one: Newton's method finds the
   one near its start;
 - every root of an implicit equation is seen: two roots closer than the
   step of the search grid, or a double root, where the residual does not
-  change sign, escape it; and a jump between pieces smaller than a
-  millionth of the residual's change around it is taken for a root.
+  change sign, escape it, as does a root closer than 10⁻¹² times its
+  scale to the edge of a region where the residual is undefined, or
+  closer than about 10⁻⁹ of its value to a finite end of the interval
+  searched; and a jump between pieces smaller than a millionth
+  of the residual's change around it is taken for a root.
 
 ## Contributing to this effort
 

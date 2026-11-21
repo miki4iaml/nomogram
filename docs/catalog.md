@@ -677,8 +677,9 @@ states:
   the maximum deviation of that variable the source states, never a
   standard deviation nor a guess from the printed digits, and the
   criterion says it: a fit reproducing the formulation it inverts within
-  0.1 mK, `tolerance = { T_f = 0.0001 }`, may land that much beyond the
-  ends of its own range and still be inside. An infinite end takes none.
+  0.1 mK over a range, `tolerance = { T_f = 0.0001 }`, may land that much
+  beyond the ends of that range and still be inside. An infinite end
+  takes none.
 
 A source cited for a domain or a unit must be one of the citations: the
 link is never implicit. **By default, domains of different citations
@@ -1138,7 +1139,7 @@ equations = [
   # ... the roughness lengths, the scales, the gustiness, in the order of the code
   { formulation = "coare36_charnock_coefficient", outside = "ignore" },
 ]
-start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
+start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T + g * z_t / 1004.67 - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
 iterations = 10                   # the passes the source runs
 reference = "coare36"
 ```
@@ -1153,13 +1154,15 @@ reference = "coare36"
   source takes a value beyond them, which the note says.
 - **`start`**: a first guess for each unknown, an expression of the
   inputs in the syntax of expressions, in the unit of the formulation
-  that gives the unknown; Newton's method finds the solution near it.
+  that gives the unknown, each input in the unit of the first equation
+  that takes it; Newton's method finds the solution near it.
 - **`iterations`**: the passes of the fixed point the source runs, when
   it says.
-- A system is found by its key, label, note and the names of its
-  variables, by the kinds of the variables it gives
-  (`search(kind=...)`, `Catalog.systems_of`), and through its links:
-  `uses` lists its formulations, kinds and reference.
+- A system is found by its key, label, note, the names of its
+  variables and the keys of its formulations, by the kinds of the
+  variables it gives (`search(kind=...)`, `Catalog.systems_of`), by its
+  reference (`search(source=...)`), and through its links: `uses` lists
+  its formulations, kinds and reference.
 
 ## Units of coefficients
 
