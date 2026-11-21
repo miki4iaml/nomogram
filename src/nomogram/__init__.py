@@ -8,7 +8,8 @@ light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
 (SymPy), :mod:`nomogram.semantics` (bundled QUDT and CF subsets),
 :mod:`nomogram.model` and :mod:`nomogram.catalog` (formulations),
 :mod:`nomogram.dimensions`, :mod:`nomogram.comparison`,
-:mod:`nomogram.inversion`, :mod:`nomogram.relations`,
+:mod:`nomogram.inversion`, :mod:`nomogram.monotonicity`,
+:mod:`nomogram.relations`,
 :mod:`nomogram.search`, :mod:`nomogram.display` and :mod:`nomogram.plot`.
 
 Each is also an attribute of the package, imported the first time it is
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from nomogram import expression as expression
     from nomogram import inversion as inversion
     from nomogram import model as model
+    from nomogram import monotonicity as monotonicity
     from nomogram import plot as plot
     from nomogram import relations as relations
     from nomogram import search as search
@@ -46,6 +48,7 @@ __all__ = [
     "expression",
     "inversion",
     "model",
+    "monotonicity",
     "plot",
     "relations",
     "search",

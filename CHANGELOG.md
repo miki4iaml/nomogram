@@ -21,8 +21,32 @@ and this project adheres to
   Hardy's frost point at the triple point, 12 uK beyond 273.16 K, and
   Sonntag's dew point at 100 degC, 0.96 mK beyond, were NaN by default;
   they are now given, within 0.1 mK and 0.01 K.
+- **Monotonicity proven by interval arithmetic** (`nomogram.monotonicity`):
+  `monotonicity(formulation, input, over)` says whether the output of a
+  formulation varies in one direction with one input over a box the
+  caller chooses: proven, refuted with a counterexample, or unproven,
+  with its method. The derivative is bounded by mpmath's interval
+  arithmetic, whose bounds are rigorous; a piecewise definition is proven
+  branch by branch, and the steps back at its junctions are measured; for
+  an implicit equation, the derivative of its output is bounded over the
+  unknown too. KEYPS is proven increasing in zeta over zeta <= 0. A
+  property nomogram computes, never a validity domain.
 
 ### Changed
+
+- A numerical inverse is built only where its source is monotonic over
+  the interval searched: proven by interval arithmetic, or found so on
+  at least 2001 samples where no proof concludes; the verdict goes with it
+  (`NumericalInverse.monotonicity`). It is refused (`InversionError`)
+  where the derivative changes sign, and where a piecewise definition
+  steps back at a junction by more than `STEP_BACK_TOLERANCE`, 1e-4 of
+  the value: the layers of the standard atmosphere of ITU-R P.835 step
+  back by 3e-6 to 2e-5, and its pressure altitude stays an inverse. A
+  search interval must be finite and increasing. The branches of a
+  piecewise closed form are proven strictly monotonic the same way,
+  before samples.
+- mpmath, which SymPy requires, is a direct dependency (`mpmath>=1.3.0`),
+  for its interval arithmetic.
 
 - The solver of implicit equations narrows each bracket of a root by
   Chandrupatla's method (1997): inverse quadratic interpolation where it

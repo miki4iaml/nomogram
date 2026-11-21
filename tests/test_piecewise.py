@@ -482,10 +482,8 @@ def test_a_bounded_branch_has_a_bounded_image() -> None:
         "piecewise((t + exp(t / 10), t < 0), (t + 2 + exp(t / 10), t >= 0))",
         # Images both unbounded: ln(t + 30) covers every value.
         "piecewise((ln(t + 30), t > -30))",
-        # Not monotonic on its interval: (t - 10)**2 + 1 on t >= 0.
-        "piecewise((exp(t / 10), t < 0), ((t - 10) ** 2 + 1, t >= 0))",
-        # Images that overlap: the second branch starts below the first.
-        "piecewise((t + 100, t < 0), (t + 50, t >= 0))",
+        # Images that overlap by a step back within STEP_BACK_TOLERANCE.
+        "piecewise((t + 100, t < 0), (t + 100 - 1e-6, t >= 0))",
         # Two piecewise definitions.
         "piecewise((t + 1, t < 0), (t + 2, t >= 0)) * piecewise((1, t < 5), (2, t >= 5))",
     ],
@@ -511,6 +509,36 @@ def test_without_a_closed_form_the_inverse_is_numerical(expression: str) -> None
         invert(
             f, "t", output=output, input=given, method="symbolic", search=(-20.0, 20.0)
         )
+
+
+@pytest.mark.parametrize(
+    ("expression", "message"),
+    [
+        # Not monotonic on its interval: (t - 10)**2 + 1 on t >= 0.
+        (
+            "piecewise((exp(t / 10), t < 0), ((t - 10) ** 2 + 1, t >= 0))",
+            "not monotonic in t",
+        ),
+        # The second branch starts far below the first.
+        ("piecewise((t + 100, t < 0), (t + 50, t >= 0))", "steps back by 0.5"),
+    ],
+)
+def test_no_inverse_where_the_source_is_not_monotonic(
+    expression: str, message: str
+) -> None:
+    document = SOURCE + formulation(
+        expression,
+        output='kind = "VapourPressure", unit = "HectoPA"',
+        inputs=(
+            '{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", '
+            'description = "t" }'
+        ),
+    )
+    f = load_catalog([document]).formulations["f"]
+    output = Variable("t", "CelsiusTemperature", "DEG_C", "t")
+    given = Variable("e", "VapourPressure", "HectoPA", "e")
+    with pytest.raises(InversionError, match=message):
+        invert(f, "t", output=output, input=given, search=(-20.0, 20.0))
 
 
 def test_a_constant_branch_makes_the_inverse_numerical() -> None:
