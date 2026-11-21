@@ -14,7 +14,13 @@ import sympy
 from nomogram.catalog import catalog, load_catalog
 from nomogram.comparison import compose
 from nomogram.inversion import InversionError, NumericalInverse, dew_point, invert
-from nomogram.model import Formulation, OutOfDomainError, ValidityWarning, Variable
+from nomogram.model import (
+    Formulation,
+    OutOfDomainError,
+    RootWarning,
+    ValidityWarning,
+    Variable,
+)
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -427,7 +433,8 @@ def test_no_solution_in_a_gap_of_the_image() -> None:
     assert isinstance(inverse, NumericalInverse)
     assert inverse.monotonicity is not None
     assert inverse.monotonicity.status == "proven"
-    found = inverse.evaluate(p=Q_([0.5, 1.5, 2.5], "Pa")).magnitude
+    with pytest.warns(RootWarning, match="1 within a gap of the image of jump"):
+        found = inverse.evaluate(p=Q_([0.5, 1.5, 2.5], "Pa")).magnitude
     assert found[0] == pytest.approx(0.5, abs=1e-12)
     assert math.isnan(found[1])
     assert found[2] == pytest.approx(1.5, abs=1e-12)
@@ -443,8 +450,14 @@ def test_no_solution_in_a_gap_of_the_image() -> None:
         method="numerical",
         search=(-5.0, 0.0),
     )
-    within = coefficient.evaluate(outside="ignore", Gamma_e=Q_([0.0647, 0.0649], ""))
+    with pytest.warns(RootWarning, match="2 within a gap"):
+        within = coefficient.evaluate(
+            outside="ignore", Gamma_e=Q_([0.0647, 0.0649], "")
+        )
     assert np.isnan(within.magnitude).all()
+    # Beyond the image, NaN without a warning, as before.
+    beyond = inverse.evaluate(p=Q_([5.0], "Pa")).magnitude
+    assert math.isnan(beyond[0])
 
 
 def test_dew_point_passes_step_back_on() -> None:

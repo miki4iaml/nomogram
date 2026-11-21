@@ -149,8 +149,9 @@ and this project adheres to
 ### Fixed
 
 - A numerical inverse gives NaN for a target within a gap of its image,
-  where its source jumps forward at a junction, as its docstring says and
-  as the symbolic inverse by branches does: it gave the junction, where
+  where its source jumps forward at a junction, with a `RootWarning` that
+  counts them, as its docstring says and as the symbolic inverse by
+  branches does (without the warning): it gave the junction, where
   the source does not take that value (the profile coefficient of Paulus,
   1989, inverted between 0.06452 and 0.06496). Its documentation states
   which end of a plateau of its source it gives.

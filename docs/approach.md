@@ -224,7 +224,7 @@ interval of 1; and for 0, which no value lies below, the bottom of the
 interval searched (230 K when the search starts at 230 K), an answer
 that depends on that interval. Where a source jumps forward at a
 junction, the values in between have no solution: NaN, as for the
-symbolic inverse by branches.
+symbolic inverse by branches, and a `RootWarning` that counts them.
 Every inverse is tested **both ways**, for every formulation over water
 (f(f⁻¹(e)) = e, below), and every formulation over ice through the
 frost point (f⁻¹(f(t)) = t):

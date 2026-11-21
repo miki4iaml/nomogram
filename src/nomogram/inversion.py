@@ -58,6 +58,7 @@ from nomogram.model import (
     Formulation,
     OutOfDomainError,
     Outside,
+    RootWarning,
     ScaleConversion,
     UnitBasis,
     ValidityDomain,
@@ -632,10 +633,10 @@ class NumericalInverse:
     and :func:`~nomogram.comparison.compose`). :func:`invert` builds it
     only for a source monotonic over the search interval: proven, or
     found so on samples when no proof concludes (``monotonicity``). Values
-    outside its image give NaN, beyond the images of the ends of the
-    search interval as within a gap where the source jumps forward, and
-    results outside the source's validity domains follow the ``outside``
-    option. Where a piecewise source steps back at a junction
+    outside its image give NaN: beyond the images of the ends of the
+    search interval, and within a gap where the source jumps forward at a
+    junction, which a :class:`~nomogram.model.RootWarning` reports. Results
+    outside the source's validity domains follow the ``outside`` option. Where a piecewise source steps back at a junction
     (``monotonicity.steps``, as far as :func:`invert` accepts), a target
     within the step has two solutions on either side of the junction, at
     most ``monotonicity.widths`` apart, and the one found is either; the
@@ -786,8 +787,18 @@ class NumericalInverse:
         with np.errstate(invalid="ignore"):
             jump = np.abs(forward(high) - forward(low))
         gap = jump > COLLAPSE * abs(float(last - first))
-        unreachable = (target < first) | (target > last) | ~np.isfinite(target) | gap
-        solved = np.where(unreachable, np.nan, solved)
+        beyond = (target < first) | (target > last) | ~np.isfinite(target)
+        within = gap & ~beyond
+        if within.any():
+            import warnings
+
+            message = (
+                f"{self.key}: NaN for {int(within.sum())} within a gap of the "
+                f"image of {self.source.key}, which jumps forward at a "
+                f"junction: no value of {source_input.identifier} gives them"
+            )
+            warnings.warn(message, RootWarning, stacklevel=2)
+        solved = np.where(beyond | gap, np.nan, solved)
         given = {source_input.identifier: solved, self.source.output.identifier: target}
         mask = self.source.outside_mask(given, basis)
         # The bounds of the kinds of its own variables, which may be
