@@ -103,6 +103,14 @@ class Monotonicity:
         value, by the input's value at the junction. The published
         coefficients of a standard atmosphere join its branches so, to
         about 1e-5.
+    widths : mapping of float to float
+        For each junction of ``steps``, the width of the interval of the
+        input within which a value of the step is reached twice: the step
+        divided by the smaller slope of the two branches there, in the
+        input's unit, infinite where a branch is flat. The same step back
+        weighs more where the slope is gentle: ITU-R P.835 steps back by
+        9e-6 of its pressure at 11 km and 1.6e-5 at 71 km, 5.6 and 10.3 cm
+        of altitude.
     """
 
     status: Status
@@ -112,6 +120,7 @@ class Monotonicity:
     method: str
     at: Mapping[str, float] = field(default_factory=lambda: MappingProxyType({}))
     steps: Mapping[float, float] = field(default_factory=lambda: MappingProxyType({}))
+    widths: Mapping[float, float] = field(default_factory=lambda: MappingProxyType({}))
 
 
 def monotonicity(
@@ -187,7 +196,7 @@ def monotonicity(
                 msg += " (give the interval of the unknown in over)"
             raise ValueError(msg)
         box.append((low, high))
-    status, sign, method, at, steps = _prove(
+    status, sign, method, at, steps, widths = _prove(
         formulation, tuple(names), input, tuple(box), budget
     )
     return Monotonicity(
@@ -198,10 +207,13 @@ def monotonicity(
         method=method,
         at=MappingProxyType(dict(zip(names, at, strict=True)) if at else {}),
         steps=MappingProxyType(steps),
+        widths=MappingProxyType(widths),
     )
 
 
-Verdict = tuple[Status, int, str, tuple[float, ...] | None, dict[float, float]]
+Verdict = tuple[
+    Status, int, str, tuple[float, ...] | None, dict[float, float], dict[float, float]
+]
 
 
 def _prove(
@@ -211,8 +223,8 @@ def _prove(
     box: Box,
     budget: int,
 ) -> Verdict:
-    """The status, the sign of the branches, the method, a counterexample
-    and the steps back at junctions."""
+    """The status, the sign of the branches, the method, a counterexample,
+    and the steps back at junctions with their widths on the input."""
     import sympy
 
     from nomogram.expression import ExpressionError, _pieces
@@ -227,14 +239,14 @@ def _prove(
         residual = (left - formulation._member_factor * right).xreplace(values)
         if residual.has(sympy.Piecewise):
             reason = "a piecewise implicit equation is not tried"
-            return "unproven", 0, f"{_METHOD}: {reason}", None, {}
+            return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
         sign, _, reason = _sign_of(residual, symbols, variable, symbols[0], box, budget)
         if sign == 1 or sign == -1:
             method = f"{_METHOD} (-h_x / h_y, over the unknown too)"
-            return "proven", sign, method, None, {}
+            return "proven", sign, method, None, {}, {}
         # Over the unknown, the box holds more than the solutions: no refutation.
         reason = reason or "a change of sign over a box wider than the solutions"
-        return "unproven", 0, f"{_METHOD}: {reason}", None, {}
+        return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
     expression = (
         formulation.sympy_expression.xreplace(values) * formulation.output_factor
     )
@@ -250,7 +262,7 @@ def _prove(
         pieces = [_pieces(node, names) for node in nodes]
     except ExpressionError:
         reason = "a piecewise condition it cannot split"
-        return "unproven", 0, f"{_METHOD}: {reason}", None, {}
+        return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
     # The ends of the branches inside the box, by variable.
     cuts: dict[Any, set[float]] = {s: set() for s in symbols}
     for branches in pieces:
@@ -268,7 +280,7 @@ def _prove(
         chosen = _branches(nodes, pieces, symbols, _middle(cell), values)
         if chosen is None:
             reason = "no branch holds in part of the box"
-            return "unproven", 0, f"{_METHOD}: {reason}", None, {}
+            return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
         branch = expression
         # A definition nested in a branch is replaced once its parent is.
         for _ in range(len(nodes)):
@@ -276,28 +288,29 @@ def _prove(
         smooth[cell] = branch
         sign, at, reason = _sign_of(branch, symbols, variable, None, cell, budget)
         if sign == 0:
-            return "refuted", 0, f"{_METHOD}: the derivative changes sign", at, {}
+            return "refuted", 0, f"{_METHOD}: the derivative changes sign", at, {}, {}
         if sign is None:
             reasons.append(reason)
             continue
         signs.setdefault(sign, _middle(cell))
         if len(signs) == 2:
             method = f"{_METHOD}: the derivative changes sign between branches"
-            return "refuted", 0, method, signs[-sign], {}
+            return "refuted", 0, method, signs[-sign], {}, {}
     if reasons:
-        return "unproven", 0, f"{_METHOD}: {reasons[0]}", None, {}
+        return "unproven", 0, f"{_METHOD}: {reasons[0]}", None, {}, {}
     (sign,) = signs
     k = symbols.index(variable)
     steps: dict[float, float] = {}
+    widths: dict[float, float] = {}
     first: tuple[float, ...] | None = None
     for cut in grids[k][1:-1]:
         found = _junction(smooth, k, cut, sign, symbols, budget)
         if found is None:
             reason = f"the junction {input} = {cut!r} cannot be bounded"
-            return "unproven", 0, f"{_METHOD}: {reason}", None, {}
-        step, at = found
+            return "unproven", 0, f"{_METHOD}: {reason}", None, {}, {}
+        step, at, width = found
         if step > 0:
-            steps[cut] = step
+            steps[cut], widths[cut] = step, width
             first = first or at
     if steps:
         method = (
@@ -305,8 +318,8 @@ def _prove(
             f"{'increasing' if sign > 0 else 'decreasing'}, but the value steps "
             f"back at {len(steps)} junction(s)"
         )
-        return "refuted", sign, method, first, steps
-    return "proven", sign, _METHOD, None, {}
+        return "refuted", sign, method, first, steps, widths
+    return "proven", sign, _METHOD, None, {}, {}
 
 
 def _middle(cell: Box) -> tuple[float, ...]:
@@ -342,16 +355,17 @@ def _junction(
     sign: int,
     symbols: tuple[Any, ...],
     budget: int,
-) -> tuple[float, tuple[float, ...]] | None:
+) -> tuple[float, tuple[float, ...], float] | None:
     """The largest relative step back at a junction on the input, 0 for none,
-    with where it is; None when it cannot be bounded.
+    with where it is and its width on the input; None when it cannot be
+    bounded.
 
     A step back within :data:`JUNCTION_TOLERANCE` of the value counts as
     none: a continuous junction evaluates equal only to the rounding.
     """
     import sympy
 
-    largest = 0.0
+    largest, width = 0.0, 0.0
     where: tuple[float, ...] = (cut,)
     for cell, before in smooth.items():
         if cell[k][1] != cut:
@@ -383,7 +397,24 @@ def _junction(
         relative = -low / scale if scale > 0 else math.inf
         if relative > largest:
             largest, where = relative, (*here[:k], cut, *here[k:])
-    return largest, where
+            width = -low / _slope((before, after), symbols, k, where)
+    return largest, where, width
+
+
+def _slope(
+    sides: tuple[Any, Any], symbols: tuple[Any, ...], k: int, point: tuple[float, ...]
+) -> float:
+    """The smaller lower bound of the slopes of two branches at a point, in
+    absolute value; 0 where one may be flat, or cannot be bounded."""
+    exact = tuple((v, v) for v in point)
+    smallest = math.inf
+    for side in sides:
+        derivative = _derivative(side, symbols[k], None)
+        if derivative is None:
+            return 0.0
+        low, high = _enclosure(_interval_function(symbols, (side, derivative)), exact)
+        smallest = min(smallest, low if low > 0 else -high if high < 0 else 0.0)
+    return smallest
 
 
 def _sign_of(

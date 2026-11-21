@@ -4,6 +4,7 @@
 """Tests for :mod:`nomogram.inversion`: dew point by symbolic or numerical inversion."""
 
 import math
+import re
 from typing import Any
 
 import numpy as np
@@ -305,13 +306,13 @@ def test_without_a_proof_monotonicity_is_found_on_samples() -> None:
     assert isinstance(inverse, NumericalInverse)
     assert inverse.monotonicity is not None
     assert inverse.monotonicity.status == "unproven"
-    assert "monotonic on 2001 samples" in inverse.monotonicity.method
+    assert re.search(r"monotonic on \d+ samples", inverse.monotonicity.method)
     assert inverse.evaluate(p=Q_(8.0, "Pa")).magnitude == pytest.approx(2.0, abs=1e-9)
 
 
 def test_no_numerical_inverse_where_samples_show_no_monotonicity() -> None:
     with pytest.raises(
-        InversionError, match="not monotonic in t over .* on 2001 samples"
+        InversionError, match=r"not monotonic in t over .* on \d+ samples"
     ):
         invert(
             TESTS["pole"],
@@ -336,6 +337,11 @@ def test_a_search_interval_is_finite_and_increasing(
             method="numerical",
             search=search,
         )
+
+
+def test_dew_point_passes_step_back_on() -> None:
+    with pytest.raises(InversionError, match="step_back must be positive or zero"):
+        dew_point(FORMULATIONS["goff_gratch1946"], step_back=-1.0)
 
 
 def test_a_numerical_inverse_built_directly_has_no_proof() -> None:
