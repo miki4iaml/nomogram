@@ -21,7 +21,9 @@ Limits, by construction: two roots closer than the grid's step (a factor
 of 10^(1/16) on a geometric grid, a 63rd of a finite interval on the
 linear one) or a double root, without a change of sign, escape; on an
 open interval, roots beyond 10^12 times the scale of the finite end are
-not sought. A jump smaller than a millionth of the residual's change
+not sought, nor, at the edge of a region where the residual is undefined,
+a root closer to that edge than the grids' resolution (10^-12 times the
+scale max(|x|, 1)). A jump smaller than a millionth of the residual's change
 across its bracket is taken for a root; a crossing with an infinite
 slope, as steep as a cube root, may be taken for a jump where no float
 gives an exact zero.
@@ -42,6 +44,9 @@ SAMPLES_PER_DECADE = 16
 
 #: Decades the geometric grids span, from an anchor, relative to its scale.
 DECADES = (-12, 12)
+
+#: The finest offset of the grids, relative to the scale max(|x|, 1).
+RESOLUTION = 10.0 ** DECADES[0]
 
 #: Samples of the linear grid of a finite interval.
 LINEAR_SAMPLES = 64
@@ -171,10 +176,17 @@ def _bisect(
 def _edges(
     members: Members, x_in: np.ndarray, x_out: np.ndarray, args: list[Any]
 ) -> np.ndarray:
-    """The last point where the residual is defined, from x_in towards x_out."""
+    """The last point where the residual is defined, from x_in towards x_out.
+
+    Sought to the resolution of the grids, 10^-12 times max(|x|, 1), not
+    to adjacent floats: closer to a pole, an overflowing expression gives
+    noise, whose sign is no crossing (IFS 3.25 as L tends to 0).
+    """
     for _ in range(66):  # pragma: no branch
         middle = _midpoint(np.minimum(x_in, x_out), np.maximum(x_in, x_out))
-        active = (middle != x_in) & (middle != x_out)
+        scale = np.maximum(np.maximum(np.abs(x_in), np.abs(x_out)), 1.0)
+        wide = np.abs(x_out - x_in) > RESOLUTION * scale
+        active = (middle != x_in) & (middle != x_out) & wide
         if not active.any():
             break
         defined = ~np.isnan(_residual(members, middle, args))
