@@ -9,9 +9,10 @@ itself: the specific humidity of the air by its ``qsat26air`` (Buck's
 saturation vapour pressure with his enhancement factor, at the pressure
 of the thermometer, lines 304 to 309 and 798 to 830 of
 ``coare36vn_zrf_et.py``) and the gravity by its ``grv`` (lines 834 to
-844), written here as the code writes them.
+844), as the script of the guide ``docs/coare-system.md`` writes them.
 """
 
+import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -22,46 +23,24 @@ from nomogram.catalog import catalog
 from nomogram.systems import CONVERGED, ITERATED
 from nomogram.units import Q_
 
-DATA = Path(__file__).parents[1] / "docs" / "examples" / "data" / "coare36_test.csv"
+SCRIPT = Path(__file__).parents[1] / "docs" / "examples" / "coare_system.py"
+
+
+def script() -> Any:
+    """The script of the guide, which computes the inputs of the code."""
+    spec = importlib.util.spec_from_file_location("coare_system", SCRIPT)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+COARE = script()
 CATALOG = catalog()
 SYSTEM = CATALOG.systems["coare36_surface_layer"]
-
-
-def measurements() -> dict[str, np.ndarray]:
-    lines = DATA.read_text(encoding="utf-8").splitlines()
-    rows = [line.split(",") for line in lines if not line.startswith("#")]
-    table = np.array(rows[1:], dtype=float)
-    return {name: table[:, i] for i, name in enumerate(rows[0])}
-
-
-M = measurements()
-
-
-def code_inputs(m: dict[str, np.ndarray]) -> dict[str, Any]:
-    """The inputs of the system, as the code of COARE 3.6 computes them."""
-    t, rh, zt = m["ta"], m["rh"], m["zt"]
-    p_tq = m["P"] - 0.125 * zt
-    e_s = 6.1121 * np.exp(17.502 * t / (t + 240.97)) * (1.0007 + 3.46e-6 * p_tq)
-    e = 0.01 * rh * e_s
-    q = 622 * e / (p_tq - 0.378 * e) / 1000
-    x = np.sin(np.radians(m["lat"]))
-    g = 9.7803267715 * (
-        1 + 0.0052790414 * x**2 + 2.32718e-05 * x**4 + 1.262e-07 * x**6 + 7e-10 * x**8
-    )
-    viscosity = CATALOG.formulations["coare36_kinematic_viscosity_of_air"]
-    return {
-        "T": Q_(t + 273.16, "K"),
-        "T_surf": Q_(m["T_skin"] + 273.16, "K"),
-        "q": Q_(q, "kg/kg"),
-        "q_surf": Q_(m["Qs"] / 1000, "kg/kg"),
-        "U": Q_(m["u"], "m/s"),
-        "z_u": Q_(m["zu"], "m"),
-        "z_t": Q_(zt, "m"),
-        "z_q": Q_(m["zq"], "m"),
-        "z_i": Q_(m["zi"], "m"),
-        "nu": viscosity.evaluate(t=Q_(t, "degC")).to("m**2/s"),
-        "g": Q_(g, "m/s**2"),
-    }
+code_inputs = COARE.code_inputs
+M = COARE.measurements()
 
 
 def test_the_loop_of_coare_is_a_system_of_the_catalog() -> None:
@@ -94,7 +73,7 @@ def test_the_system_gives_back_the_outputs_of_the_code() -> None:
         ("L", "L", "m", 1e-5),
         ("z_0M", "zo", "m", 3e-6),
         ("u_g", "gust", "m/s", 5e-6),
-        # The scale nearest 0 (-0.0145 K at most) follows the skin
+        # The scale nearest 0 (from -0.10 K to -0.002 K) follows the skin
         # temperature, given to seven digits.
         ("T_s", "tsr", "K", 1e-4),
     ):
