@@ -150,7 +150,9 @@ its inputs (`nomogram.monotonicity.monotonicity`) is one. It adds no field
 and no name to the index: a search finds the formulation, by its kind or
 its names, and the function then answers for the box given. A numerical
 inverse carries the verdict of its source over the interval it searches
-(`NumericalInverse.monotonicity`).
+(`NumericalInverse.monotonicity`). A system of equations
+(`nomogram.systems.System`) is built from formulations of the catalog:
+a search finds them, by their names, their kinds and their links.
 
 ## What grows without changing searches
 

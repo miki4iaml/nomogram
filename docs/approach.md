@@ -248,6 +248,26 @@ explicit in ζ, ζ = (φm⁴ − 1)/(γ₁ φm³), to 10⁻¹², against the slo
 γ₁/4 = 2.25 at neutral the source gives (p. 184), and against the
 explicit formula it compares with (equation 8).
 
+Some sources iterate several coupled formulas until they agree: the
+surface layer of COARE 3.6 takes the friction velocity from the Obukhov
+length, the length from the scales, the scales from the roughness
+lengths, and loops ten times. nomogram writes such a model as a system
+(`nomogram.systems.System`), a multivariate measurement model in the
+words of JCGM 102:2011 (3.8): equations, each given by a formulation of
+the catalog, listed in the order the source computes them; the
+variables read before they are given are its unknowns, the others are
+computed from them. It solves them by Newton's method, damped by a line
+search, with an exact Jacobian: SymPy derives each formulation, and the
+chain rule assembles the derivatives through units and conventional
+scales, so that a linear system is solved in one step. Newton's method
+finds a solution near its start, the first guess of the source: nomogram
+says converged, never unique; the unknown of an implicit equation stays
+where its root is sought, as for the formulation alone. Without
+convergence, or with a singular Jacobian, the values are NaN and a
+warning counts them; inputs outside a domain are not solved. The passes the
+source iterates remain available (`method="fixed-point"`), to compare
+with its own procedure.
+
 ## 7. What the tests guarantee, and what they do not
 
 They guarantee that:
@@ -262,6 +282,9 @@ They guarantee that:
   monotonic, proven, or found so on samples;
 - the root of an implicit equation is the one root in the interval
   searched, or NaN with a warning;
+- the solution of a system satisfies each of its equations to 10⁻¹²,
+  relative to the size of its terms (10⁻⁸ where the rounding of terms
+  that nearly cancel stops Newton's method), or is NaN with a warning;
 - the Python examples of the README and of the guides run (those of the
   sea water guide give the values their comments state), and the README
   code is the code that drew its plot.
@@ -273,6 +296,8 @@ They do not guarantee that:
 - a formulation is physically meaningful outside its domain;
 - a numerical inverse is unique where the monotonicity of its source was
   found on samples only: between two samples, a turn goes unseen;
+- the solution of a system is its only one: Newton's method finds the
+  one near its start;
 - every root of an implicit equation is seen: two roots closer than the
   step of the search grid, or a double root, where the residual does not
   change sign, escape it; and a jump between pieces smaller than a

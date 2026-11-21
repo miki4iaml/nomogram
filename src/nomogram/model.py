@@ -180,6 +180,44 @@ def _check_search(key: str, search: Any) -> tuple[float, float]:
     return low, high
 
 
+def _on_scale(variable: Variable, quantity: Any, scale: ScaleConversion) -> Any:
+    """A quantity as a formulation takes it, and where its scale failed.
+
+    The magnitude in the unit of the variable and, with ``scale="convert"``,
+    on the conventional scale of the variable when it is not the reference
+    one; with where the conversion of scale failed (NaN there), or ``None``
+    without one.
+    """
+    units = semantic_catalog().units
+    unit = units[variable.unit].pint
+    if scale != "convert" or variable.scale is None or variable.scale.is_reference:
+        return np.asarray(convert(quantity, unit).magnitude, dtype=float), None
+    variable.scale.check_convertible()
+    table = units[str(variable.scale.unit)].pint
+    on_scale, failed = variable.scale.from_reference(convert(quantity, table).magnitude)
+    return np.asarray(convert(Q_(on_scale, table), unit).magnitude, dtype=float), failed
+
+
+def _to_reference(variable: Variable, magnitude: Any, scale: ScaleConversion) -> Any:
+    """A result on the scale of its variable, back on the reference scale.
+
+    In the unit of the variable, with ``scale="convert"``; with where the
+    conversion failed (NaN there), or ``None`` without one.
+    """
+    if scale != "convert" or variable.scale is None or variable.scale.is_reference:
+        return np.asarray(magnitude, dtype=float), None
+    variable.scale.check_convertible()
+    units = semantic_catalog().units
+    unit = units[variable.unit].pint
+    table = units[str(variable.scale.unit)].pint
+    on_scale = convert(Q_(magnitude, unit), table).magnitude
+    converted = variable.scale.to_reference(on_scale)
+    failed = np.isnan(converted) & ~np.isnan(on_scale)
+    return np.asarray(
+        convert(Q_(converted, table), unit).magnitude, dtype=float
+    ), failed
+
+
 def _check_given(key: str, variable: Variable, value: Any) -> None:
     """Refuse a value taken as given that is not written as its scale writes it.
 
@@ -2350,28 +2388,13 @@ class Formulation:
         if scale == "ignore":
             for v in self.inputs:
                 _check_given(self.key, v, inputs[v.identifier])
-        units = semantic_catalog().units
-        values = {
-            v.identifier: np.asarray(
-                convert(inputs[v.identifier], units[v.unit].pint).magnitude,
-                dtype=float,
-            )
-            for v in self.inputs
-        }
-        if scale == "convert":
-            beyond = []
-            for v in self.inputs:
-                if v.scale is None or v.scale.is_reference:
-                    continue
-                v.scale.check_convertible()
-                table = units[str(v.scale.unit)].pint
-                on_reference = convert(inputs[v.identifier], table).magnitude
-                on_scale, failed = v.scale.from_reference(on_reference)
+        values = {}
+        beyond = []
+        for v in self.inputs:
+            values[v.identifier], failed = _on_scale(v, inputs[v.identifier], scale)
+            if failed is not None and v.scale is not None:
                 beyond.append((v.identifier, v.scale, failed))
-                values[v.identifier] = np.asarray(
-                    convert(Q_(on_scale, table), units[v.unit].pint).magnitude,
-                    dtype=float,
-                )
+        if scale == "convert":
             _flag_beyond(self.key, beyond, outside)
         skip = None
         if self.implicit and outside in ("nan", "raise"):
@@ -2393,28 +2416,15 @@ class Formulation:
                 warnings.warn(message, ValidityWarning, stacklevel=2)
             else:
                 result = np.where(mask, np.nan, result)
-        output_unit = units[self.output.unit].pint
-        output_scale = self.output.scale
-        if (
-            scale == "convert"
-            and output_scale is not None
-            and not output_scale.is_reference
-        ):
-            # A value computed on the formulation's scale goes back to the
-            # reference scale, that of inputs and results.
-            output_scale.check_convertible()
-            table = units[str(output_scale.unit)].pint
-            on_scale = convert(Q_(result, output_unit), table).magnitude
-            converted = output_scale.to_reference(on_scale)
-            failed = np.isnan(converted) & ~np.isnan(on_scale)
+        # A value computed on the formulation's scale goes back to the
+        # reference scale, that of inputs and results.
+        result, failed = _to_reference(self.output, result, scale)
+        if failed is not None and self.output.scale is not None:
             _flag_beyond(
-                self.key, [(self.output.identifier, output_scale, failed)], outside
-            )
-            result = np.asarray(
-                convert(Q_(converted, table), output_unit).magnitude, dtype=float
+                self.key, [(self.output.identifier, self.output.scale, failed)], outside
             )
         magnitude = result.item() if result.ndim == 0 else result
-        return Q_(magnitude, output_unit)
+        return Q_(magnitude, semantic_catalog().units[self.output.unit].pint)
 
 
 def _origin(formulation: Formulation, identifier: str) -> tuple[str, str]:

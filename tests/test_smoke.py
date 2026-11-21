@@ -24,6 +24,7 @@ SUBMODULES = [
     "relations",
     "search",
     "semantics",
+    "systems",
     "units",
 ]
 
