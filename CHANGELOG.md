@@ -22,6 +22,17 @@ and this project adheres to
   Sonntag's dew point at 100 degC, 0.96 mK beyond, were NaN by default;
   they are now given, within 0.1 mK and 0.01 K.
 
+### Changed
+
+- The solver of implicit equations narrows each bracket of a root by
+  Chandrupatla's method (1997): inverse quadratic interpolation where it
+  is safe, halving in the order of floats otherwise, down to adjacent
+  floats as before, and only the brackets still open evaluated. About 9
+  evaluations per root instead of 54 beyond the grid; the same roots, to
+  the noise of the residual (median 4e-16 relative); the chain of the
+  evaporation duct guide runs 14 % faster (measured on 2026-11-21). The
+  residuals at the ends of a bracket are taken from the grid.
+
 ### Fixed
 
 - An implicit equation whose residual turns to noise near a pole, as

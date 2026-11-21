@@ -243,7 +243,9 @@ criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind
   open end is swept up to 10¹² times the scale of the other one; on a
   conventional scale other than the reference one, the bounds of the
   kind are carried onto it). The residual is sampled, each change of
-  sign bisected to adjacent floating point numbers, and a root kept only
+  sign narrowed to adjacent floating point numbers (Chandrupatla 1997:
+  inverse quadratic interpolation where it is safe, halving otherwise),
+  and a root kept only
   where the residual has fallen to a millionth of its value at the ends
   of the bracket: across a jump between pieces it stays as large, at a
   pole it grows. One root gives the value; none, several, or a residual

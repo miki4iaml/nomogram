@@ -204,8 +204,11 @@ physical domains on the output and the bounds of its kind allow (φm ≥ 0,
 the shear of a wind increasing with height, rules out the negative
 root), and returns it only if it is the one root there. Otherwise, no
 root, several, or a residual undefined around one, the value is NaN and
-a warning says which. A root is kept where the residual falls, from the
-ends of the interval bisected, to a millionth of its size there: across
+a warning says which. Each bracket of a root is narrowed to adjacent
+floats by Chandrupatla's method (1997: inverse quadratic interpolation
+where it is safe, halving otherwise). A root is kept where the residual
+falls, from the ends of its bracket, to a millionth of its size there:
+across
 a jump between pieces it does not fall, at a pole it grows. Solved this way, KEYPS is tested against its form
 explicit in ζ, ζ = (φm⁴ − 1)/(γ₁ φm³), to 10⁻¹², against the slope
 γ₁/4 = 2.25 at neutral the source gives (p. 184), and against the
