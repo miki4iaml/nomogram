@@ -308,6 +308,16 @@ inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", descr
 
 [[formulations.back_at_end.citations]]
 reference = "src"
+
+[formulations.jump]
+label = "A step forward at t = 1"
+expression = "piecewise((t, t < 1), (t + 1, t >= 1))"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.jump.citations]]
+reference = "src"
 """
 TESTS = load_catalog([DECREASING]).formulations
 TEMPERATURE = Variable("t", "CelsiusTemperature", "DEG_C", "temperature")
@@ -402,6 +412,39 @@ def test_a_search_interval_is_finite_and_increasing(
             method="numerical",
             search=search,
         )
+
+
+def test_no_solution_in_a_gap_of_the_image() -> None:
+    # The source jumps forward from 1 to 2 at t = 1: 1.5 has no solution.
+    inverse = invert(
+        TESTS["jump"],
+        "t",
+        output=TEMPERATURE,
+        input=PRESSURE,
+        method="numerical",
+        search=(0.0, 2.0),
+    )
+    assert isinstance(inverse, NumericalInverse)
+    assert inverse.monotonicity is not None
+    assert inverse.monotonicity.status == "proven"
+    found = inverse.evaluate(p=Q_([0.5, 1.5, 2.5], "Pa")).magnitude
+    assert found[0] == pytest.approx(0.5, abs=1e-12)
+    assert math.isnan(found[1])
+    assert found[2] == pytest.approx(1.5, abs=1e-12)
+    # A source of the catalog: the profile coefficient of Paulus (1989),
+    # 0.06452 below Ri_b = -0.12 and 0.06496 above.
+    paulus = FORMULATIONS["paulus1989_profile_coefficient"]
+    ri_b, gamma = paulus.inputs[0], paulus.output
+    coefficient = invert(
+        paulus,
+        "Ri_b",
+        output=Variable("Ri_b", ri_b.kind, ri_b.unit, "Ri_b"),
+        input=Variable("Gamma_e", gamma.kind, gamma.unit, "Gamma_e"),
+        method="numerical",
+        search=(-5.0, 0.0),
+    )
+    within = coefficient.evaluate(outside="ignore", Gamma_e=Q_([0.0647, 0.0649], ""))
+    assert np.isnan(within.magnitude).all()
 
 
 def test_dew_point_passes_step_back_on() -> None:

@@ -66,6 +66,14 @@ and this project adheres to
   the form of Paulson the IFS takes; the stable gradient functions of the
   IFS are not those its profile functions integrate (+78 % for heat at
   zeta = 0.1).
+- **The gustiness velocity of the bulk formulas** (`GustinessVelocity`),
+  w_g, added in quadrature to the mean wind vector, S^2 = U^2 + w_g^2:
+  "a gustiness velocity" (Fairall et al. 1996), not a gust in the sense
+  of WMO and CF, the peak wind. A sibling kind of the convective velocity
+  scale W_*, which feeds it only through `fairall1996_gustiness_velocity`
+  (equation 16, w_g = beta W_*, beta = 1.25). The trade term "gustiness"
+  gives its meaning against WMO's, and docs/rosetta.md the meanings of
+  gust, gust factor, gustiness factor and gustiness parameter by author.
 - Fairall et al. (1978): equation 21, the first estimate of the
   stability parameter from the bulk differences
   (`fairall1978_bulk_stability_parameter`), equation 20, the stability
@@ -120,6 +128,13 @@ and this project adheres to
   for its interval arithmetic.
 - `feeds` takes the quantity kinds to check against (`kinds=`), those of
   the bundled catalog by default, loaded only for two different kinds.
+- The gustiness of COARE 3.6 (`coare36_convective_gust`, beta = 1.2 and
+  0.2 m/s where the buoyancy flux is not upward) is a `GustinessVelocity`,
+  which `coare36_wind_speed_with_gust` takes, no longer a
+  `ConvectiveVelocityScale`: the free convection velocity scale of the IFS
+  no longer feeds it directly.
+- `EvaporationDuctHeight`: without a duct there is no height, NaN, as the
+  formulations give it, and not 0.
 - The solver of implicit equations narrows each bracket of a root by
   Chandrupatla's method (1997): inverse quadratic interpolation where it
   is safe, halving in the order of floats otherwise, down to adjacent
@@ -133,6 +148,12 @@ and this project adheres to
 
 ### Fixed
 
+- A numerical inverse gives NaN for a target within a gap of its image,
+  where its source jumps forward at a junction, as its docstring says and
+  as the symbolic inverse by branches does: it gave the junction, where
+  the source does not take that value (the profile coefficient of Paulus,
+  1989, inverted between 0.06452 and 0.06496). Its documentation states
+  which end of a plateau of its source it gives.
 - The skin temperature of the COARE 3.6 test data of the evaporation
   duct guide (`docs/examples/data/coare36_test.csv`) is built from the
   sea temperature the code took, `tsg`, not `tsnk`: it was up to 0.087 K

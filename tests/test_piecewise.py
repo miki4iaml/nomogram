@@ -607,6 +607,10 @@ def test_a_constant_branch_makes_the_inverse_numerical() -> None:
     assert isinstance(found, NumericalInverse)
     back = found.evaluate(y=Q_([0.25, 0.5], "")).magnitude
     assert back == pytest.approx(250.16 + 23 * np.sqrt([0.25, 0.5]))
+    # On a plateau, the end where the values below the target stop: T_0
+    # for 1; for 0, which no value lies below, the end of the search.
+    ends = found.evaluate(y=Q_([0.0, 1.0], "")).magnitude
+    assert ends == pytest.approx([230.0, 273.16], abs=1e-9)
     with pytest.raises(InversionError, match="strictly monotonic"):
         invert(
             f, "T", output=output, input=given, method="symbolic", search=(230.0, 290.0)
