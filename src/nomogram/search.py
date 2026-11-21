@@ -69,6 +69,7 @@ SECTIONS = (
     "scales",
     "relations",
     "cross_checks",
+    "systems",
     "families",
     "units",
 )
@@ -78,7 +79,8 @@ SECTIONS = (
 FIELDS: Mapping[str, str] = {
     "key": "the key of the entry",
     "kind": (
-        "the output kind of a formulation, or a quantity kind itself; with "
+        "the output kind of a formulation, a kind a system gives, or a "
+        "quantity kind itself; with "
         "specializations=True (default), kinds specializing it as well"
     ),
     "unit": (
@@ -565,6 +567,26 @@ def _records(catalog: Catalog) -> list[_Record]:
                 Entry("cross_checks", key, label, check),
                 words(_join(key, label, check.note)) | _whole(check.url),
                 {},
+            )
+        )
+    for key, system in catalog.systems.items():
+        given = tuple(system.variable(name).kind for name in system.outputs)
+        records.append(
+            _Record(
+                Entry("systems", key, system.label, system),
+                words(
+                    _join(
+                        key,
+                        system.label,
+                        system.note,
+                        *system.outputs,
+                        *system.inputs,
+                        *(e.formulation.key for e in system.equations),
+                    )
+                ),
+                {},
+                kinds=given,
+                citations=_sourced(catalog, system.reference),
             )
         )
     for name, family in catalog.families.items():

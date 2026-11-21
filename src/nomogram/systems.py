@@ -55,7 +55,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from functools import cached_property, lru_cache
 from types import MappingProxyType
 from typing import Any, Literal
@@ -248,6 +248,13 @@ class System:
         The passes of the fixed point the source iterates, if it says.
     note : str
         Free text.
+    reference : str or None
+        Key of the reference that states the procedure, as the catalog
+        gives it.
+    kinds : mapping of str to QuantityKind, optional
+        Init-only: the quantity kinds against which each variable given is
+        checked to feed the equations that take it; those of the bundled
+        catalog by default (a catalog being loaded passes its own).
     """
 
     key: str
@@ -256,8 +263,10 @@ class System:
     start: Mapping[str, str]
     iterations: int | None = None
     note: str = ""
+    reference: str | None = None
+    kinds: InitVar[Mapping[str, Any] | None] = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, kinds: Mapping[str, Any] | None) -> None:
         object.__setattr__(self, "equations", tuple(self.equations))
         if not self.equations:
             msg = f"{self.key}: a system needs equations"
@@ -274,7 +283,7 @@ class System:
                 "it: a composition, not a system"
             )
             raise ValueError(msg)
-        self._check_links()
+        self._check_links(kinds)
         start: dict[str, str] = {}
         given_start: Mapping[str, object] = self.start
         for name, text in given_start.items():
@@ -301,7 +310,7 @@ class System:
             msg = f"{self.key}: iterations must be positive"
             raise ValueError(msg)
 
-    def _check_links(self) -> None:
+    def _check_links(self, kinds: Mapping[str, Any] | None) -> None:
         """Each variable given feeds each equation that takes it: a kind it
         may feed, in a unit of the same dimension."""
         from pint.errors import DimensionalityError
@@ -316,7 +325,7 @@ class System:
                     continue
                 source = self.variable(name)
                 where = f"{self.key}: {name} given as {source.kind}"
-                if not _may_feed(source.kind, v.kind):
+                if not _may_feed(source.kind, v.kind, kinds):
                     msg = f"{where} cannot feed {v.kind} in {equation.formulation.key}"
                     raise ValueError(msg)
                 try:

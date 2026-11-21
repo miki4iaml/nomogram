@@ -84,91 +84,24 @@ def air(m: dict[str, np.ndarray]) -> dict[str, Any]:
 
 
 def coare(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:
-    """The scales of COARE 3.6: a fixed point over its formulations."""
-    u, zu, zt, zq = m["u"], Q_(m["zu"], "m"), Q_(m["zt"], "m"), Q_(m["zq"], "m")
-    gust = np.full_like(u, 0.5)  # m/s, COARE's first guess
-    u_s = 0.035 * u
-    z_0M = np.full_like(u, 1e-4)
-    length = np.full_like(u, -100.0)
-    for _ in range(10):  # as COARE iterates
-        s = np.hypot(u, gust)  # the wind and the convective gust
-        u_10n = u_s / 0.4 * u / s * np.log(10.0 / z_0M)
-        # Below 2.94 m/s, the line gives a negative coefficient, beyond the
-        # bounds of its kind: NaN unless asked. COARE takes it, the smooth
-        # flow term keeping the roughness length positive.
-        alpha = value(
-            "coare36_charnock_coefficient",
-            ONE,
-            U_10N=Q_(u_10n, "m/s"),
-            outside="ignore",
-        )
-        z_0M = value(
-            "edson2013_roughness_length_momentum",
-            "m",
-            alpha=Q_(alpha, ONE),
-            u_s=Q_(u_s, "m/s"),
-            nu=a["nu"],
-            g=a["g"],
-            outside="ignore",  # the coefficient taken below 2.94 m/s
-        )
-        r_r = Q_(z_0M * u_s / a["nu"].magnitude, ONE)
-        z_0T = value("coare36_roughness_length_heat", "m", R_r=r_r)
-        z_0Q = value("coare36_roughness_length_humidity", "m", R_r=r_r)
-        at = {"L": Q_(length, "m")}
-        u_s = value(
-            "coare36_friction_velocity",
-            "m/s",
-            S=Q_(s, "m/s"),
-            z_u=zu,
-            z_0M=Q_(z_0M, "m"),
-            **at,
-        )
-        t_s = value(
-            "coare36_temperature_scale",
-            "K",
-            T_surf=a["T_surf"],
-            T=a["T"],
-            z_t=zt,
-            z_0T=Q_(z_0T, "m"),
-            g=a["g"],
-            **at,
-        )
-        q_s = value(
-            "coare36_humidity_scale",
-            "kg/kg",
-            q_surf=a["q_surf"],
-            q=a["q"],
-            z_q=zq,
-            z_0Q=Q_(z_0Q, "m"),
-            **at,
-        )
-        length = value(
-            "coare36_obukhov_length",
-            "m",
-            T=a["T"],
-            u_s=Q_(u_s, "m/s"),
-            T_s=Q_(t_s, "K"),
-            q_s=Q_(q_s, "kg/kg"),
-            g=a["g"],
-        )
-        flux = value(  # the virtual temperature flux, positive upward
-            "coare36_virtual_temperature_flux",
-            "K*m/s",
-            u_s=Q_(u_s, "m/s"),
-            T_s=Q_(t_s, "K"),
-            q_s=Q_(q_s, "kg/kg"),
-            q=a["q"],
-            T=a["T"],
-        )
-        gust = value(
-            "coare36_convective_gust",
-            "m/s",
-            T=a["T"],
-            Q_0v=Q_(flux, "K*m/s"),
-            z_i=Q_(m["zi"], "m"),
-            g=a["g"],
-        )
-    return {"u_s": u_s, "T_s": t_s, "q_s": q_s, "L": length, "z_0M": z_0M}
+    """The scales of COARE 3.6: its loop, a system of the catalog."""
+    system = CATALOG.systems["coare36_surface_layer"]
+    CALLED.update(e.formulation.key for e in system.equations)
+    solution = system.evaluate(
+        T=a["T"],
+        T_surf=a["T_surf"],
+        q=a["q"],
+        q_surf=a["q_surf"],
+        U=Q_(m["u"], "m/s"),
+        z_u=Q_(m["zu"], "m"),
+        z_t=Q_(m["zt"], "m"),
+        z_q=Q_(m["zq"], "m"),
+        z_i=Q_(m["zi"], "m"),
+        nu=a["nu"],
+        g=a["g"],
+    )
+    units = {"u_s": "m/s", "T_s": "K", "q_s": "kg/kg", "L": "m", "z_0M": "m"}
+    return {k: np.asarray(solution[k].to(u).magnitude) for k, u in units.items()}
 
 
 def ifs(m: dict[str, np.ndarray], a: dict[str, Any]) -> dict[str, np.ndarray]:

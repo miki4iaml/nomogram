@@ -266,7 +266,10 @@ where its root is sought, as for the formulation alone. Without
 convergence, or with a singular Jacobian, the values are NaN and a
 warning counts them; inputs outside a domain are not solved. The passes the
 source iterates remain available (`method="fixed-point"`), to compare
-with its own procedure.
+with its own procedure. The loop of COARE 3.6 is such a system
+(`coare36_surface_layer`): given the inputs the code computes, it gives
+back the outputs of the code to about 10⁻⁶, and its ten passes, written
+as a loop over the formulations, to 10⁻¹².
 
 ## 7. What the tests guarantee, and what they do not
 

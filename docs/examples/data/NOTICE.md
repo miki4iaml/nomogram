@@ -18,8 +18,11 @@ test); the outputs `Qs` (specific humidity at the sea surface, g/kg),
 humidity, kg/kg), `L` (Obukhov length, m), `zo` (roughness length, m)
 and `gust` (gustiness, m/s). Changes: the rows and columns were selected, the values rounded to
 seven significant digits, and `T_skin` added, the skin temperature COARE
-computes with its warm layer and cool skin, `tsnk + dT_warm_to_skin -
-dT_skinx` (°C), as its code documents.
+computes with its warm layer and cool skin, `tsg + dT_warm_to_skin -
+dT_skinx` (°C): `tsg` is the sea temperature of the data at the depth
+`ztsg`, to which the warm layer of the test adds `dT_warm_to_skin`, as
+the latent heat of vaporization `Le` and the surface humidity `Qs` of the
+outputs show (they follow from it to 2e-8 K).
 
 ```text
 MIT License

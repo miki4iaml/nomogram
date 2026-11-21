@@ -49,6 +49,18 @@ and this project adheres to
   sought. The domains of every equation apply to the inputs before
   solving (not solved there) and to every value once solved, as `outside`
   says, or as the source's practice for an equation says.
+- **Systems in the catalog**: a `[systems.<key>]` section (format
+  unchanged), `Catalog.systems` and `Catalog.systems_of(kind)`; a system
+  is found by its names and by the kinds it gives, and linked to its
+  formulations and its reference. The loop of COARE 3.6,
+  `coare36_surface_layer`: its formulations in the order of the code, with
+  `coare36_wind_speed_with_gust`, the wind with the convective gustiness.
+  Given the inputs the code computes, it gives back the outputs of the
+  code to about 1e-6 (u\*, theta\*, q\*, L, z_0, gustiness), in four
+  Newton steps at most; its ten passes equal a loop over its formulations
+  to 1e-12. The evaporation duct guide calls it instead of its loop: the
+  chain runs as fast, once the derivatives are compiled (about 1 s the
+  first time in a process; measured on 2026-11-21).
 
 ### Changed
 
@@ -80,6 +92,11 @@ and this project adheres to
 
 ### Fixed
 
+- The skin temperature of the COARE 3.6 test data of the evaporation
+  duct guide (`docs/examples/data/coare36_test.csv`) is built from the
+  sea temperature the code took, `tsg`, not `tsnk`: it was up to 0.087 K
+  off (0.007 K in median). The guide's theta\* now departs from the code
+  by 0.01 % in median instead of 0.9 %, L by 0.5 % instead of 0.6 %.
 - An implicit equation whose residual turns to noise near a pole, as
   equation 3.25 of the IFS does as L tends to 0, no longer gives NaN for
   a root found elsewhere: the solver seeks the edge of a region where the

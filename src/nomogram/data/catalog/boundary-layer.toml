@@ -2961,6 +2961,22 @@ keywords = ["gustiness", "free convection", "convective velocity", "COARE"]
 reference = "coare36"
 note = "Lines 318 and 517 to 535."
 
+[formulations.coare36_wind_speed_with_gust]
+label = "Wind speed with the convective gustiness (COARE 3.6 code)"
+expression = "sqrt(U ** 2 + u_g ** 2)"
+fixed_units = false
+note = "Line 537 of the code, ut = sqrt(du^2 + gust^2), du = u - us the wind relative to the surface current (us = 0 in the test data); line 417 for the first guess, with a gustiness of 0.5 m/s. The code cites no paper for it: its comment calls the gustiness that of the original code (lines 519 to 530). The scales take this speed (coare36_friction_velocity), and the neutral wind at 10 m the ratio U/S (coare36_equivalent_neutral_wind_10m)."
+output = { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface, gustiness included" }
+inputs = [
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface" },
+  { identifier = "u_g", kind = "ConvectiveVelocityScale", unit = "M-PER-SEC", description = "Gustiness" },
+]
+keywords = ["gustiness", "wind speed", "COARE"]
+
+[[formulations.coare36_wind_speed_with_gust.citations]]
+reference = "coare36"
+note = "Lines 417 and 537."
+
 # --- Flux-profile relations with the profile function as an input -------
 
 [formulations.businger1985_wind_profile]
@@ -3549,6 +3565,30 @@ community = "CF, numerical weather prediction (IFS)"
 kind = "SurfaceDragCoefficientForMomentum"
 definition = "The transfer coefficient relating the surface stress to the square of the wind speed at a height (CF surface_drag_coefficient_for_momentum_in_air; C_M of the IFS, equation 3.15)."
 sources = ["cf_standard_names_95", "ecmwf_ifs_cy49r1"]
+
+# --- Systems ----------------------------------------------------------
+
+[systems.coare36_surface_layer]
+label = "Surface-layer scales of COARE 3.6, solved together (COARE 3.6 code)"
+equations = [
+  { formulation = "coare36_obukhov_length" },
+  { formulation = "edson2013_roughness_length_momentum", outside = "ignore" },
+  { formulation = "roughness_reynolds_number" },
+  { formulation = "coare36_roughness_length_humidity" },
+  { formulation = "coare36_roughness_length_heat" },
+  { formulation = "coare36_friction_velocity" },
+  { formulation = "coare36_humidity_scale" },
+  { formulation = "coare36_temperature_scale" },
+  { formulation = "coare36_virtual_temperature_flux" },
+  { formulation = "coare36_convective_gust" },
+  { formulation = "coare36_wind_speed_with_gust" },
+  { formulation = "coare36_equivalent_neutral_wind_10m" },
+  { formulation = "coare36_charnock_coefficient", outside = "ignore" },
+]
+start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
+iterations = 10
+reference = "coare36"
+note = "The loop of the code (lines 480 to 595) over the formulations of the catalog, in the order of the code: the Obukhov length from the scales of the previous pass, the roughness lengths, the scales, the gustiness, the wind with it, the neutral wind at 10 m and the Charnock coefficient. Its unknowns, read before they are computed in a pass, are the three scales, the Charnock coefficient and the wind with gustiness. The code runs 10 passes without a test of convergence (line 473); Newton's method solves the equations themselves. The first guess is simpler than the code's (lines 380 to 477, which take psiu_40 and a relation from the bulk Richardson number, not in the catalog): the scales of a neutral profile, k / ln(17 m / 1e-4 m) = 0.033 times the differences between air and surface, and a gustiness of 0.5 m/s. The cool skin and the warm layer, which the code computes in the loop, are left out: the surface temperature and humidity are inputs (the skin temperature and Qs of the output of the code, in its test data). Over ice, the code takes z_0 = 5e-4 m (line 484): not here. Below 2.94 m/s the Charnock coefficient is negative, beyond the bounds of its kind; the code takes it, its smooth-flow term keeping the roughness length positive (outside = ignore for both)."
 
 # --- Cross-checks -----------------------------------------------------------
 

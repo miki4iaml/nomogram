@@ -114,6 +114,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from nomogram.search import Entry, Selection
+    from nomogram.systems import System
 
 __all__ = [
     "FORMAT",
@@ -137,6 +138,7 @@ _SECTIONS = (
     "formulations",
     "relations",
     "cross_checks",
+    "systems",
 )
 
 
@@ -216,13 +218,16 @@ class Catalog:
         By key.
     cross_checks : mapping of str to CrossCheck
         Values of formulations computed by other implementations, by key.
+    systems : mapping of str to System
+        Equations given by formulations, solved together, by key.
     links : mapping of str to tuple of str
         For each entry (``section.key``), the entries it refers to: kinds
         of its variables (those a composition takes from its parts
         included), cited references, notations, constants, scales,
         units (of its variables, constants and declared coefficients; of
         a constant, of a scale), the formulations a composition, a
-        relation or a cross-check uses, the families a family requires.
+        relation, a cross-check or a system uses, the kinds a system
+        gives, the families a family requires.
     """
 
     kinds: Mapping[str, QuantityKind]
@@ -241,6 +246,9 @@ class Catalog:
     cross_checks: Mapping[str, CrossCheck] = dataclasses.field(
         default_factory=lambda: MappingProxyType({})
     )
+    systems: Mapping[str, System] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
     links: Mapping[str, tuple[str, ...]] = dataclasses.field(
         default_factory=lambda: MappingProxyType({})
     )
@@ -248,6 +256,14 @@ class Catalog:
     def formulations_of(self, kind: str) -> tuple[Formulation, ...]:
         """The alternative formulations computing a quantity kind."""
         return tuple(f for f in self.formulations.values() if f.output.kind == kind)
+
+    def systems_of(self, kind: str) -> tuple[System, ...]:
+        """The systems giving a quantity kind among their variables."""
+        return tuple(
+            s
+            for s in self.systems.values()
+            if any(s.variable(name).kind == kind for name in s.outputs)
+        )
 
     def bounds_of(self, kind: str) -> KindBounds | None:
         """The values a quantity kind admits by its definition.
@@ -3251,6 +3267,67 @@ class _Builder:
             )
             raise CatalogError(msg)
 
+    def system(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> System:
+        """A system of equations, each given by a formulation of the catalog."""
+        from nomogram.systems import Equation, System
+
+        where = f"systems.{key}"
+        f = _fields(
+            where,
+            table,
+            ("label", "equations", "start"),
+            ("iterations", "reference", "note"),
+        )
+        for name in ("label", "note"):
+            if f[name] is not None and not isinstance(f[name], str):
+                msg = f"{where}.{name}: expected a string"
+                raise CatalogError(msg)
+        if not isinstance(f["equations"], list) or not f["equations"]:
+            msg = f"{where}.equations: expected a non-empty list of equations"
+            raise CatalogError(msg)
+        equations = []
+        for i, item in enumerate(f["equations"]):
+            w = f"{where}.equations[{i}]"
+            e = _fields(w, item, ("formulation",), ("bind", "outside"))
+            formulation = self.part(f"{w}.formulation", e["formulation"], formulations)
+            bind = e["bind"] or {}
+            if not isinstance(bind, dict) or not all(
+                isinstance(v, str) for v in bind.values()
+            ):
+                msg = f"{w}.bind: expected a table of names"
+                raise CatalogError(msg)
+            try:
+                equations.append(Equation(formulation, bind, e["outside"]))
+            except ValueError as error:
+                raise CatalogError(f"{w}: {error}") from error
+        if not isinstance(f["start"], dict):
+            msg = f"{where}.start: expected a table of first guesses, by unknown"
+            raise CatalogError(msg)
+        iterations = f["iterations"]
+        if iterations is not None and (
+            isinstance(iterations, bool) or not isinstance(iterations, int)
+        ):
+            msg = f"{where}.iterations: expected a number of passes"
+            raise CatalogError(msg)
+        reference = None
+        if f["reference"] is not None:
+            reference = self.reference(f"{where}.reference", f["reference"])
+        try:
+            return System(
+                key,
+                f["label"],
+                tuple(equations),
+                f["start"],
+                iterations=iterations,
+                note=f["note"] or "",
+                reference=reference,
+                kinds=self.kinds,
+            )
+        except (ValueError, TypeError) as error:
+            raise CatalogError(str(error)) from error
+
     def cross_check(
         self, key: str, table: Any, formulations: Mapping[str, Formulation]
     ) -> CrossCheck:
@@ -3440,6 +3517,12 @@ class _Builder:
                     for key, table in self.data["cross_checks"].items()
                 }
             ),
+            systems=MappingProxyType(
+                {
+                    key: self.system(key, table, formulations)
+                    for key, table in self.data["systems"].items()
+                }
+            ),
             references=MappingProxyType(self.references),
             constants=MappingProxyType(self.constants),
             notations=MappingProxyType(self.notations),
@@ -3552,6 +3635,10 @@ def _references(section: str, table: Any) -> set[tuple[str, str]]:
     elif section == "cross_checks":
         for case in table["cases"]:
             add("formulations", case["formulation"])
+    elif section == "systems":
+        for equation in table["equations"]:
+            add("formulations", equation["formulation"])
+        add("references", table.get("reference"))
     elif section == "relations":  # a computed relation has no citation
         add("formulations", table["subject"])
         add("formulations", table["object"])
@@ -3659,8 +3746,8 @@ def load_catalog(sources: Iterable[Source]) -> Catalog:
         TOML texts, or paths to TOML files, with an optional ``[catalog]``
         header (name, format, requires...) and the sections ``kinds``,
         ``references``, ``constants``, ``notations``, ``trade_terms``,
-        ``scales``, ``formulations``, ``relations`` and ``cross_checks``
-        (all optional). A document with a header is a family: its entries
+        ``scales``, ``formulations``, ``relations``, ``cross_checks`` and
+        ``systems`` (all optional). A document with a header is a family: its entries
         may refer only to its own entries and to those of the families it
         requires, and every family it requires must be used.
 
@@ -3769,6 +3856,10 @@ def _links(
         elif section == "kinds":
             for unit in data[section][key].get("units") or ():
                 references.add(("units", unit))
+        elif section == "systems":
+            system = built.systems[key]
+            for name in system.outputs:
+                references.add(("kinds", system.variable(name).kind))
         targets = sorted(references)
         found = tuple(
             f"{s}.{k}"
