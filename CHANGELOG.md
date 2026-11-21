@@ -66,6 +66,9 @@ and this project adheres to
   the form of Paulson the IFS takes; the stable gradient functions of the
   IFS are not those its profile functions integrate (+78 % for heat at
   zeta = 0.1).
+- A guide, `docs/coare-system.md`: the loop of COARE 3.6 as a system of
+  equations of the catalog, solved, and compared with the outputs of the
+  code variable by variable, with its script and its figure.
 - **The gustiness velocity of the bulk formulas** (`GustinessVelocity`),
   w_g, added in quadrature to the mean wind vector, S^2 = U^2 + w_g^2:
   "a gustiness velocity" (Fairall et al. 1996), not a gust in the sense
