@@ -4,9 +4,9 @@
   outputs, Python version (NOAA-PSL/COARE-algorithm, commit `bd1cac8` of
   2026-03-17, MIT licence). Thanks to the NOAA Physical Sciences
   Laboratory for publishing the algorithm with the data that test it.
-- Computed with nomogram 0.7.0 on 2026-11-08; the tests
-  compute every value of this page again for each later version, and fail
-  if one changes.
+- Computed with nomogram 0.8.0 on 2026-11-21; the tests compute every
+  value of this page again for each later version, and fail if one
+  changes.
 
 Over the sea, the humidity falls quickly with height in the first metres,
 and with it the radio refractivity N. A horizontal wave whose refraction
@@ -35,7 +35,7 @@ The skin temperature and the humidity at the sea surface are the ones
 COARE computes, with its warm layer and its cool skin, which the catalog
 does not hold.
 
-## The surface layer, by a fixed point
+## The surface layer, a system of equations
 
 The scales u\*, θ\* and q\* and the Obukhov length L depend on each other:
 both algorithms iterate. Each step is a formulation of the catalog,
@@ -47,7 +47,7 @@ called by its key:
 | Roughness for heat and humidity | `coare36_roughness_length_heat`, `coare36_roughness_length_humidity` | `ecmwf_ifs_roughness_length_heat_sea`, `ecmwf_ifs_roughness_length_humidity_sea` |
 | Stability | `coare36_obukhov_length`, from the scales | `ecmwf_ifs_bulk_richardson_number` (3.26), then `ecmwf_ifs_obukhov_length_from_bulk_richardson_number` (3.25) |
 | Scales | `coare36_friction_velocity`, `coare36_temperature_scale`, `coare36_humidity_scale` | `ecmwf_ifs_transfer_coefficient_momentum`, `_heat`, `_humidity` (3.16 to 3.18), `ecmwf_ifs_friction_velocity` |
-| Gustiness of free convection | `coare36_virtual_temperature_flux`, `coare36_convective_gust` | `ecmwf_ifs_virtual_temperature_flux` (3.10), `ecmwf_ifs_free_convection_velocity_scale` (3.20), `ecmwf_ifs_wind_speed_free_convection` (3.19) |
+| Gustiness of free convection | `coare36_virtual_temperature_flux`, `coare36_convective_gust`, `coare36_wind_speed_with_gust` | `ecmwf_ifs_virtual_temperature_flux` (3.10), `ecmwf_ifs_free_convection_velocity_scale` (3.20), `ecmwf_ifs_wind_speed_free_convection` (3.19) |
 | Viscosity of air | `coare36_kinematic_viscosity_of_air` | in its roughness lengths |
 
 Both add a gustiness to the wind in free convection, from the virtual
@@ -65,34 +65,65 @@ Two steps show how the catalog keeps a formula within its bounds:
 - below a 10 m neutral wind of 2.94 m/s, the line of Edson et al. (2013)
   gives a negative Charnock coefficient, beyond the bounds of its kind,
   which nomogram gives as NaN unless asked; COARE takes it, its smooth
-  flow term keeping the roughness length positive, and so does the script,
-  with `outside="ignore"`, for one measurement;
+  flow term keeping the roughness length positive, and so does its system
+  in the catalog, which declares that practice for those two equations
+  (`outside = "ignore"`), for one measurement;
 - equation 3.25 of the IFS is an implicit equation in L, solved at each
-  iteration; its root has the sign of Ri_b, and the script narrows the
-  search to that side with `search=`, away from the pole at L = 0, where
-  the residual is no longer computed meaningfully.
+  iteration; its root has the sign of Ri_b, on either side of the pole at
+  L = 0, near which the residual is no longer computed meaningfully: the
+  solver seeks the edge of that region only to the resolution of its
+  grids, and finds the root without being told the side.
 
 ```python
 m = measurements()
 a = air(m)
 by_coare, by_ifs = coare(m, a), ifs(m, a)
 z_star = duct_heights(a, by_coare)
-length[side] = value(
+length = value(
     "ecmwf_ifs_obukhov_length_from_bulk_richardson_number",
     "m",
-    Ri_b=Q_(richardson[side], ONE),
-    z_n=z_n[side],
-    z_0M=z_0["z_0M"][side],
-    z_0H=z_0["z_0H"][side],
-    search=search,
+    Ri_b=Q_(richardson, ONE),
+    z_n=z_n,
+    z_0M=z_0["z_0M"],
+    z_0H=z_0["z_0H"],
 )
 ```
 
-The fixed point over the catalog gives back the outputs of COARE: the
-median deviations are 0.02 % on u\*, 0.05 % on the roughness length,
-0.6 % on L, 0.8 % on q\* and 0.9 % on θ\* (0.003 K at most). They come
-from what the script takes otherwise: the humidity at 17 m, the gravity,
-and the skin temperature fixed at its final value.
+The loop of COARE is a system of the catalog, `coare36_surface_layer`:
+its formulations in the order the code computes them, whose unknowns are
+the variables read before they are computed in a pass (the three scales,
+the Charnock coefficient and the wind with gustiness), solved together by
+Newton's method, in four steps at most (`nomogram.systems`; see
+[the loop of COARE 3.6, solved as a system](coare-system.md)):
+
+```python
+system = CATALOG.systems["coare36_surface_layer"]
+solution = system.evaluate(
+    T=a["T"],
+    T_surf=a["T_surf"],
+    q=a["q"],
+    q_surf=a["q_surf"],
+    U=Q_(m["u"], "m/s"),
+    z_u=Q_(m["zu"], "m"),
+    z_t=Q_(m["zt"], "m"),
+    z_q=Q_(m["zq"], "m"),
+    z_i=Q_(m["zi"], "m"),
+    nu=a["nu"],
+    g=a["g"],
+)
+units = {"u_s": "m/s", "T_s": "K", "q_s": "kg/kg", "L": "m", "z_0M": "m"}
+return {k: np.asarray(solution[k].to(u).magnitude) for k, u in units.items()}
+```
+
+It gives back the outputs of COARE: the median deviations are 0.02 % on
+u\*, 0.04 % on the roughness length, 0.5 % on L, 0.8 % on q\* and 0.01 %
+on θ\* (2.3 × 10⁻⁵ K at most). They come from what the script takes
+otherwise, the humidity at 17 m and the gravity: given those the code
+computes itself (its saturation humidity, with the enhancement factor of
+Buck, and its gravity), the system gives back its outputs to about 10⁻⁶,
+10⁻⁵ for L and 5 × 10⁻⁵ for θ\*, the value nearest 0, which follows the
+skin temperature of the data, given to seven digits. The ten passes the
+code iterates give the same values (`method="fixed-point"`).
 
 On the same measurements, the IFS departs from COARE: its roughness
 length is twice COARE's (a Charnock coefficient of 0.018, where the line
@@ -141,7 +172,7 @@ Against the minimum of M, in medians over the 109 measurements:
 | z\* of Fairall et al., scales of COARE | +11 % |
 | z\* of Frederickson et al., scales of COARE | +9 % |
 | z\* of Fairall et al., scales of the IFS | +13 % |
-| Paulus-Jeske | +65 % (+46 % to +74 %) |
+| Paulus-Jeske | +64 % (+46 % to +75 %) |
 
 The scales of the two algorithms change the height of Fairall et al. by
 about 1 %, less than the ways differ from one another.
@@ -177,7 +208,9 @@ catalog (`Catalog.uses`) and written by the script:
 - Businger, J. A. (1985). *The marine boundary layer, from air-sea interface to inversion*. NCAR Technical Note NCAR/TN-252+STR, National Center for Atmospheric Research, Boulder. <https://opensky.ucar.edu/system/files/2024-08/technotes_362.pdf>
 - ECMWF (2024). *IFS Documentation CY49R1 - Part IV: Physical Processes*. <https://doi.org/10.21957/c731ee1102>
 - Edson, J. B., Jampana, V., Weller, R. A., Bigorre, S. P., Plueddemann, A. J., Fairall, C. W., Miller, S. D., Mahrt, L., Vickers, D. and Hersbach, H. (2013). *On the exchange of momentum over the open ocean*. Journal of Physical Oceanography, 43, 1589-1610. <https://doi.org/10.1175/JPO-D-12-0173.1>
+- Fairall, C. W., Bradley, E. F., Hare, J. E., Grachev, A. A. and Edson, J. B. (2003). *Bulk parameterization of air-sea fluxes: updates and verification for the COARE algorithm*. Journal of Climate, 16, 571-591. <https://doi.org/10.1175/1520-0442(2003)016<0571:BPOASF>2.0.CO;2>
 - Fairall, C. W., Davidson, K. L., Schacher, G. E. and Houlihan, T. M. (1978). *Evaporation duct height measurements in the Mid-Atlantic: final report*. Naval Postgraduate School, Monterey, California, report NPS61-78-005, 15 August 1978. <https://hdl.handle.net/10945/29858>
+- Fairall, C. W.; Bradley, E. F.; Rogers, D. P.; Edson, J. B.; Young, G. S. (1996). *Bulk parameterization of air-sea fluxes for Tropical Ocean-Global Atmosphere Coupled-Ocean Atmosphere Response Experiment*. Journal of Geophysical Research 101(C2), 3747-3764. <https://doi.org/10.1029/95JC03205>
 - Frederickson, P. A., Davidson, K. L. and Jones, F. K. (1994). *The effect of infrared sea surface temperature measurements on evaporation duct height estimation*. Naval Postgraduate School, Monterey, California, report NPS-MR-94-003, November 1994. <https://hdl.handle.net/10945/28715>
 - Holtslag, A. A. M. and De Bruin, H. A. R. (1988). *Applied modeling of the nighttime surface energy balance over land*. Journal of Applied Meteorology, 27, 689-704. <https://doi.org/10.1175/1520-0450(1988)027<0689:AMOTNS>2.0.CO;2>
 - ITU-R (2019). *Recommendation ITU-R P.453-14: The radio refractive index: its formula and refractivity data*. <https://www.itu.int/rec/R-REC-P.453-14-201908-I>

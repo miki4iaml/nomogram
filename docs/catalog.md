@@ -129,6 +129,7 @@ All sections are optional; a key may be defined in one file only.
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
+| `[systems.<key>]` | `label`, `equations` (`formulation`), `start` (first guess of each unknown) | `iterations`, `reference`, `note`; per equation `bind`, `outside` |
 
 ### Formulations
 
@@ -155,7 +156,8 @@ All sections are optional; a key may be defined in one file only.
   One end may be open, written `inf` (`{ z = [0, inf] }` for z ≥ 0);
   never both, a domain bounds at least one end. Bounds are closed: a
   strict inequality is not written. A bound on the output states its
-  `criterion`. A domain stated by a source belongs to its citation.
+  `criterion`. A domain stated by a source belongs to its citation; a
+  physical domain takes no `tolerance`.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales
@@ -197,11 +199,12 @@ expression = "piecewise((0, T <= T_ice), (((T - T_ice) / (T_0 - T_ice)) ** 2, T_
   formulation: a condition on a value an inner part computes is refused.
 - **Inversion has a limit:** a piecewise definition is inverted branch by
   branch **only if each branch is strictly monotonic on its interval**
-  (nomogram checks it on samples), has a closed form, and the images of
-  the intervals do not overlap; the inverse is then piecewise too, its
-  conditions being those images. A constant branch, such as the 0 and 1
-  of a mixed-phase fraction, has no inverse. Otherwise the inverse is
-  numerical (see
+  (nomogram proves it, or checks it on samples), has a closed form, and
+  the images of the intervals do not overlap; the inverse is then
+  piecewise too, its conditions being those images. A constant branch,
+  such as the 0 and 1 of a mixed-phase fraction, has no inverse branch:
+  its value has a whole interval of solutions. Otherwise the inverse is
+  numerical, and gives one end of such an interval (see
   [the approach](approach.md#6-derived-formulations-are-checked-both-ways)).
 
 ### Implicit equations
@@ -242,7 +245,9 @@ criterion = "The dimensionless wind shear (k z/u_*) dU/dz (equation 2) of a wind
   open end is swept up to 10¹² times the scale of the other one; on a
   conventional scale other than the reference one, the bounds of the
   kind are carried onto it). The residual is sampled, each change of
-  sign bisected to adjacent floating point numbers, and a root kept only
+  sign narrowed to adjacent floating point numbers (Chandrupatla 1997:
+  inverse quadratic interpolation where it is safe, halving otherwise),
+  and a root kept only
   where the residual has fallen to a millionth of its value at the ends
   of the bracket: across a jump between pieces it stays as large, at a
   pole it grows. One root gives the value; none, several, or a residual
@@ -667,7 +672,15 @@ states:
 - `note`;
 - `domains`: validity domains the source states, as
   `[[formulations.<key>.citations.domains]]` tables with `bounds` and
-  `criterion`.
+  `criterion`, and optionally `tolerance`: how far beyond an end a value
+  is still inside, per bounded identifier, one number for both ends or
+  `[low, high]`, in the variable's unit and taken as a difference. It is
+  the maximum deviation of that variable the source states, never a
+  standard deviation nor a guess from the printed digits, and the
+  criterion says it: a fit reproducing the formulation it inverts within
+  0.1 mK over a range, `tolerance = { T_f = 0.0001 }`, may land that much
+  beyond the ends of that range and still be inside. An infinite end
+  takes none.
 
 A source cited for a domain or a unit must be one of the citations: the
 link is never implicit. **By default, domains of different citations
@@ -804,7 +817,7 @@ them, each with its criterion, in the extraction script for the kinds of
 QUDT and in `bounds` for its own:
 
 ```toml
-bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, never negative; where there is no duct, there is no height (NaN), not 0." }
 ```
 
 - A kind takes the bounds of the nearest kind it specializes that has
@@ -1106,6 +1119,51 @@ call = "dry_term_radio_refractivity(1000.0, 293.15)"
   change of a formulation cannot silently depart from what an
   independent implementation gave; `python -m nomogram.catalog verify`
   lists the cross-checks with the verdicts.
+
+## Systems of equations
+
+A system holds equations its source solves together, each given by a
+formulation of the catalog, in the order the source computes them: a
+multivariate measurement model (JCGM 102:2011, 3.8). The variables an
+equation reads before the equation that gives it are its unknowns, what
+the source iterates on; the others it gives are intermediate; the
+variables no equation gives are its inputs.
+`System.evaluate` solves it by Newton's method, or by the passes of the
+source (`method="fixed-point"`); see `nomogram.systems`.
+
+```toml
+[systems.coare36_surface_layer]
+label = "Surface-layer scales of COARE 3.6, solved together (COARE 3.6 code)"
+equations = [
+  { formulation = "coare36_obukhov_length" },
+  { formulation = "edson2013_roughness_length_momentum", outside = "ignore" },
+  # ... the roughness lengths, the scales, the gustiness, in the order of the code
+  { formulation = "coare36_charnock_coefficient", outside = "ignore" },
+]
+start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T + g * z_t / 1004.67 - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
+iterations = 10                   # the passes the source runs
+reference = "coare36"
+```
+
+- **`equations`**: the formulations, by key; a variable keeps the
+  identifier the formulation gives it, unless **`bind`** names it
+  otherwise in the system (`bind = { u = "T" }`). A variable given by one
+  equation and taken by another must be of a kind that may feed it, in a
+  unit of the same dimension; no two equations give the same variable.
+- **`outside`**: the source's own practice for the domains of an
+  equation, in place of the option of `evaluate`: `"ignore"` where the
+  source takes a value beyond them, which the note says.
+- **`start`**: a first guess for each unknown, an expression of the
+  inputs in the syntax of expressions, in the unit of the formulation
+  that gives the unknown, each input in the unit of the first equation
+  that takes it; Newton's method finds the solution near it.
+- **`iterations`**: the passes of the fixed point the source runs, when
+  it says.
+- A system is found by its key, label, note, the names of its
+  variables and the keys of its formulations, by the kinds of the
+  variables it gives (`search(kind=...)`, `Catalog.systems_of`), by its
+  reference (`search(source=...)`), and through its links: `uses` lists
+  its formulations, kinds and reference.
 
 ## Units of coefficients
 

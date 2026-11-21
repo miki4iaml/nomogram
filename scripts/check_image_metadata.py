@@ -3,7 +3,7 @@
 
 """Pre-commit hook: refuse metadata in images.
 
-nomogram draws its images itself, so none needs metadata, and metadata
+The project draws its images itself, so none needs metadata, and metadata
 can carry what an image should never publish: a name, a path, the
 software and the date of a machine, the place a photograph was taken
 (EXIF GPS). An image passes only if every block it holds is on the

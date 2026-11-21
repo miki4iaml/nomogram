@@ -55,12 +55,49 @@ def test_a_root_near_where_the_residual_becomes_undefined() -> None:
     assert roots[0] == pytest.approx(2.99, rel=1e-14)
 
 
+def test_noise_beyond_the_resolution_of_the_grids_is_no_root() -> None:
+    # -1/y = 2 has its root at -0.5. Near the pole at 0, as an overflowing
+    # expression does (IFS 3.25 as L tends to 0, probed on the evaporation
+    # duct guide), the residual turns undefined below 1e-100, then to noise
+    # of the other sign below 1e-150, and is undefined at 0; halving the
+    # floats from -1e-12 towards 0 lands in that noise (-1.1e-160 first).
+    # The edge of the defined region is sought to the resolution of the
+    # grids only (1e-12 times the scale), never down to that noise.
+    def members(y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        size = np.abs(y)
+        noise = np.where((size > 0) & (size <= 1e-150), -0.03, np.nan)
+        left = np.where(size > 1e-100, -1 / y, noise)
+        return left, 2.0 + 0 * y
+
+    roots, status = solve(members, -math.inf, math.inf)
+    assert status[0] == _roots.ONE
+    assert roots[0] == pytest.approx(-0.5, rel=1e-14)
+
+
 def test_roots_at_any_scale_and_on_a_bound() -> None:
     tiny, _ = solve(lambda y: (y, 1e-200 + 0 * y), -1.0, 1.0)
     assert tiny[0] == pytest.approx(1e-200, rel=1e-14)
     zero, status = solve(lambda y: (y, 0 * y), 0.0, math.inf)
     assert zero[0] == 0.0
     assert status[0] == _roots.ONE
+
+
+def test_a_bracket_is_narrowed_in_a_few_evaluations() -> None:
+    # Chandrupatla's method reaches adjacent floats in a handful of steps
+    # where halving needed about 55; the grid's samples are not counted.
+    evaluations = []
+
+    def members(y: np.ndarray, c: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        evaluations.append(np.size(y))
+        return np.exp(y) + y, c
+
+    c = np.linspace(2.0, 50.0, 100)
+    roots, status = _roots.solve(members, [c], 0.0, 10.0)
+    assert (status == _roots.ONE).all()
+    np.testing.assert_allclose(np.exp(roots) + roots, c, rtol=1e-15)
+    grid = _roots.grid(0.0, 10.0).size * c.size
+    per_root = (sum(evaluations) - grid) / c.size
+    assert per_root < 12
 
 
 def test_several_roots_and_roots_beyond_the_sweep_give_nan() -> None:

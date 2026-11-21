@@ -180,6 +180,44 @@ def _check_search(key: str, search: Any) -> tuple[float, float]:
     return low, high
 
 
+def _on_scale(variable: Variable, quantity: Any, scale: ScaleConversion) -> Any:
+    """A quantity as a formulation takes it, and where its scale failed.
+
+    The magnitude in the unit of the variable and, with ``scale="convert"``,
+    on the conventional scale of the variable when it is not the reference
+    one; with where the conversion of scale failed (NaN there), or ``None``
+    without one.
+    """
+    units = semantic_catalog().units
+    unit = units[variable.unit].pint
+    if scale != "convert" or variable.scale is None or variable.scale.is_reference:
+        return np.asarray(convert(quantity, unit).magnitude, dtype=float), None
+    variable.scale.check_convertible()
+    table = units[str(variable.scale.unit)].pint
+    on_scale, failed = variable.scale.from_reference(convert(quantity, table).magnitude)
+    return np.asarray(convert(Q_(on_scale, table), unit).magnitude, dtype=float), failed
+
+
+def _to_reference(variable: Variable, magnitude: Any, scale: ScaleConversion) -> Any:
+    """A result on the scale of its variable, back on the reference scale.
+
+    In the unit of the variable, with ``scale="convert"``; with where the
+    conversion failed (NaN there), or ``None`` without one.
+    """
+    if scale != "convert" or variable.scale is None or variable.scale.is_reference:
+        return np.asarray(magnitude, dtype=float), None
+    variable.scale.check_convertible()
+    units = semantic_catalog().units
+    unit = units[variable.unit].pint
+    table = units[str(variable.scale.unit)].pint
+    on_scale = convert(Q_(magnitude, unit), table).magnitude
+    converted = variable.scale.to_reference(on_scale)
+    failed = np.isnan(converted) & ~np.isnan(on_scale)
+    return np.asarray(
+        convert(Q_(converted, table), unit).magnitude, dtype=float
+    ), failed
+
+
 def _check_given(key: str, variable: Variable, value: Any) -> None:
     """Refuse a value taken as given that is not written as its scale writes it.
 
@@ -247,7 +285,9 @@ class RootWarning(UserWarning):
     The value is NaN there: no root in the interval searched (the domains
     of the output and the bounds of its kind, or ``search=``), several
     roots (a domain to narrow), or a residual undefined inside the bracket
-    of a root.
+    of a root. A numerical inverse warns the same way for a target within
+    a gap of the image of its source, where it jumps forward at a
+    junction: no value gives it.
     """
 
 
@@ -808,8 +848,10 @@ class Derivation:
         calls, the first formulation called.
     method : str
         ``"symbolic inversion"`` (closed form found by SymPy),
-        ``"numerical inversion"``, ``"composition"``, ``"branches"`` or
-        ``"calls"``.
+        ``"numerical inversion"``, ``"composition"``, ``"branches"``,
+        ``"calls"``, ``"integration"`` (a profile function from a gradient
+        function) or ``"differentiation"`` (back), see
+        :mod:`nomogram.similarity`.
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
@@ -882,16 +924,22 @@ class Variable:
         return _converted_bounds(bounds.low, bounds.high, bounds.unit, self.unit)
 
 
-def _beyond(value: Any, low: float, high: float) -> Any:
+def _beyond(
+    value: Any, low: float, high: float, tolerance: tuple[float, float] = (0.0, 0.0)
+) -> Any:
     """Where values lie beyond a closed interval, its finite ends rounded.
 
-    The tolerance :data:`BOUND_TOLERANCE` lets a value converted between
-    units through at a bound; NaN is never beyond.
+    The relative tolerance :data:`BOUND_TOLERANCE` lets a value converted
+    between units through at a bound; a source's own tolerance at each end
+    (:attr:`ValidityDomain.tolerance`), when larger, widens that end. NaN
+    is never beyond.
     """
     finite = [abs(b) for b in (low, high) if math.isfinite(b)]
     margin = BOUND_TOLERANCE * max([*finite, 1.0])
     value = np.asarray(value, dtype=float)
-    return (value < low - margin) | (value > high + margin)
+    below = low - max(margin, tolerance[0])
+    above = high + max(margin, tolerance[1])
+    return (value < below) | (value > above)
 
 
 def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
@@ -1202,12 +1250,22 @@ class ValidityDomain:
         a reference formulation.
     reference : str or None
         Key of the source of the domain.
+    tolerance : mapping of str to (float, float)
+        How far beyond each end of a bound a value is still inside, per
+        identifier, in the variable's unit, taken as a difference: the
+        maximum deviation of that variable the source states (a fit
+        within 0.1 mK of the formulation it inverts), so that the fit does
+        not fall out of its own range. Only a domain a source states, with
+        its criterion, has one; empty otherwise.
     """
 
     basis: DomainBasis
     bounds: Mapping[str, tuple[float, float]]
     criterion: str | None
     reference: str | None
+    tolerance: Mapping[str, tuple[float, float]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 @dataclass(frozen=True)
@@ -1794,11 +1852,15 @@ class Formulation:
         values: Mapping[str, Any],
         search: tuple[float, float] | None,
         skip: Any = None,
+        quiet: bool = False,
     ) -> Any:
         """The root of an implicit equation for each set of inputs, NaN without one.
 
         Neither sought nor reported where an input is NaN, or where
         ``skip`` holds (inputs outside a domain, their result NaN anyway).
+        With ``quiet``, a NaN is not reported (a caller that reports it
+        itself, a system at its trial points): no warning filter changed,
+        which would act on every thread.
         """
         from nomogram._roots import NONE, SEVERAL, UNDETERMINED, solve
 
@@ -1837,7 +1899,7 @@ class Formulation:
             for code, text in reasons
             if np.any(status == code)
         ]
-        if found:
+        if found and not quiet:
             message = f"{self.key}: NaN for " + "; ".join(found)
             warnings.warn(message, RootWarning, stacklevel=4)
         return roots
@@ -2082,7 +2144,8 @@ class Formulation:
                 for identifier, low, high in bounds_of(domain, of_output):
                     if identifier not in arrays:
                         continue  # the output, not given (inputs are checked first)
-                    result = result | _beyond(arrays[identifier], low, high)
+                    tolerance = domain.tolerance.get(identifier, (0.0, 0.0))
+                    result = result | _beyond(arrays[identifier], low, high, tolerance)
             return result
 
         def outside_union(of_output: bool) -> Any:
@@ -2231,14 +2294,16 @@ class Formulation:
         values: Mapping[str, Any],
         search: tuple[float, float] | None = None,
         skip: Any = None,
+        quiet: bool = False,
     ) -> Any:
         """The result in the output unit, inputs in their units and scales.
 
-        For an implicit equation, its root, not sought where ``skip`` holds
-        (see :meth:`_solve` and :meth:`evaluate`).
+        For an implicit equation, its root, not sought where ``skip`` holds,
+        a NaN not reported with ``quiet`` (see :meth:`_solve` and
+        :meth:`evaluate`).
         """
         if self.implicit:
-            return self._solve(values, search, skip)
+            return self._solve(values, search, skip, quiet)
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]
@@ -2333,28 +2398,13 @@ class Formulation:
         if scale == "ignore":
             for v in self.inputs:
                 _check_given(self.key, v, inputs[v.identifier])
-        units = semantic_catalog().units
-        values = {
-            v.identifier: np.asarray(
-                convert(inputs[v.identifier], units[v.unit].pint).magnitude,
-                dtype=float,
-            )
-            for v in self.inputs
-        }
-        if scale == "convert":
-            beyond = []
-            for v in self.inputs:
-                if v.scale is None or v.scale.is_reference:
-                    continue
-                v.scale.check_convertible()
-                table = units[str(v.scale.unit)].pint
-                on_reference = convert(inputs[v.identifier], table).magnitude
-                on_scale, failed = v.scale.from_reference(on_reference)
+        values = {}
+        beyond = []
+        for v in self.inputs:
+            values[v.identifier], failed = _on_scale(v, inputs[v.identifier], scale)
+            if failed is not None and v.scale is not None:
                 beyond.append((v.identifier, v.scale, failed))
-                values[v.identifier] = np.asarray(
-                    convert(Q_(on_scale, table), units[v.unit].pint).magnitude,
-                    dtype=float,
-                )
+        if scale == "convert":
             _flag_beyond(self.key, beyond, outside)
         skip = None
         if self.implicit and outside in ("nan", "raise"):
@@ -2376,28 +2426,15 @@ class Formulation:
                 warnings.warn(message, ValidityWarning, stacklevel=2)
             else:
                 result = np.where(mask, np.nan, result)
-        output_unit = units[self.output.unit].pint
-        output_scale = self.output.scale
-        if (
-            scale == "convert"
-            and output_scale is not None
-            and not output_scale.is_reference
-        ):
-            # A value computed on the formulation's scale goes back to the
-            # reference scale, that of inputs and results.
-            output_scale.check_convertible()
-            table = units[str(output_scale.unit)].pint
-            on_scale = convert(Q_(result, output_unit), table).magnitude
-            converted = output_scale.to_reference(on_scale)
-            failed = np.isnan(converted) & ~np.isnan(on_scale)
+        # A value computed on the formulation's scale goes back to the
+        # reference scale, that of inputs and results.
+        result, failed = _to_reference(self.output, result, scale)
+        if failed is not None and self.output.scale is not None:
             _flag_beyond(
-                self.key, [(self.output.identifier, output_scale, failed)], outside
-            )
-            result = np.asarray(
-                convert(Q_(converted, table), output_unit).magnitude, dtype=float
+                self.key, [(self.output.identifier, self.output.scale, failed)], outside
             )
         magnitude = result.item() if result.ndim == 0 else result
-        return Q_(magnitude, output_unit)
+        return Q_(magnitude, semantic_catalog().units[self.output.unit].pint)
 
 
 def _origin(formulation: Formulation, identifier: str) -> tuple[str, str]:

@@ -16,11 +16,14 @@ function, and a :class:`~nomogram.model.Derivation` recording its
 origin. When there is none, or when the unknown appears more than
 :data:`SYMBOLIC_MAX_OCCURRENCES` times (to keep the search short), the
 result is a :class:`NumericalInverse`, solved by vectorised bisection
-over a search interval.
+over a search interval, once the formulation is proven monotonic there
+(:func:`nomogram.monotonicity.monotonicity`), or found so on samples when
+no proof concludes; it is refused where the formulation is not.
 
 A piecewise definition is inverted branch by branch, **provided each
-branch is strictly monotonic on its interval** (nomogram checks it on
-samples; a constant branch is not):
+branch is strictly monotonic on its interval** (nomogram proves it by
+interval arithmetic, or checks it on samples when no proof concludes; a
+constant branch is not):
 each branch then needs a closed form, and the images of the intervals,
 which become the conditions of the inverse, must not overlap. Otherwise
 the inverse is numerical.
@@ -40,6 +43,7 @@ from typing import Any, Literal
 
 import numpy as np
 
+from nomogram._roots import COLLAPSE, grid
 from nomogram.expression import (
     PIECEWISE,
     ExpressionError,
@@ -54,6 +58,7 @@ from nomogram.model import (
     Formulation,
     OutOfDomainError,
     Outside,
+    RootWarning,
     ScaleConversion,
     UnitBasis,
     ValidityDomain,
@@ -64,11 +69,13 @@ from nomogram.model import (
     _check_options,
     _flag_beyond,
 )
+from nomogram.monotonicity import Monotonicity, monotonicity
 from nomogram.semantics import semantic_catalog
 from nomogram.units import Q_, convert
 
 __all__ = [
     "DEW_POINT_SEARCH_CELSIUS",
+    "STEP_BACK_TOLERANCE",
     "SYMBOLIC_MAX_OCCURRENCES",
     "InversionError",
     "NumericalInverse",
@@ -83,6 +90,18 @@ SYMBOLIC_MAX_OCCURRENCES = 3
 #: Interval searched by :func:`dew_point` when the formulation states no
 #: validity domain, in degC: a search interval, not a validity domain.
 DEW_POINT_SEARCH_CELSIUS = (-100.0, 100.0)
+
+#: Largest step back at a junction of a piecewise definition, relative to
+#: the value, that a numerical inverse accepts unless ``step_back`` says
+#: otherwise: a target within the step has two solutions, either side of
+#: the junction, and the one found is either. The published coefficients
+#: of the standard atmospheres join their branches to about 1e-5.
+STEP_BACK_TOLERANCE = 1e-4
+
+#: Points of the linear grid on which a numerical inverse is checked when
+#: no proof of its monotonicity concludes, besides the grid of the solver
+#: of implicit equations (geometric near each end and around 0).
+_SAMPLES = 2001
 
 #: Name of the offset coefficient, 273.15 K, added when the result changes
 #: from K to degC or back (t = T - T0, SI Brochure, section 2.3.1).
@@ -287,6 +306,115 @@ def _branch_samples(low: float, high: float, samples: Any) -> Any:
     return np.linspace(start, stop, 51)[1:-1]
 
 
+def _branch_direction(
+    formulation: Formulation,
+    solve_for: str,
+    low: float,
+    high: float,
+    inside: Any,
+    forward: Any,
+) -> int | None:
+    """+1 or -1 when a branch is strictly monotonic, None otherwise.
+
+    Proven by interval arithmetic over the branch's interval, or over the
+    span of its samples where an end is infinite; checked on the samples
+    when no proof concludes.
+    """
+    start = low if np.isfinite(low) else float(inside[0])
+    stop = high if np.isfinite(high) else float(inside[-1])
+    if start < stop:
+        verdict = monotonicity(formulation, solve_for, (start, stop))
+        if verdict.status == "proven":
+            return 1 if verdict.direction == "increasing" else -1
+        if verdict.status == "refuted":
+            return None
+    steps = np.diff(forward(inside))
+    if np.all(steps > 0):
+        return 1
+    if np.all(steps < 0):
+        return -1
+    return None
+
+
+def _checked_monotonicity(
+    formulation: Formulation,
+    solve_for: str,
+    interval: tuple[float, float],
+    step_back: float | None,
+) -> Monotonicity:
+    """The monotonicity of the source over the search interval, or an error.
+
+    Proven, or refuted by steps back at junctions only, none beyond
+    :data:`STEP_BACK_TOLERANCE` of the value, or none wider than
+    ``step_back`` on the input; otherwise checked on samples, which a step
+    back beyond the rounding refutes, as does a sample where the source is
+    undefined.
+
+    Raises
+    ------
+    InversionError
+        If the source is not monotonic over the interval, or undefined at
+        one of its ends or of the samples.
+    """
+    low, high = interval
+    where = f"over [{low!r}, {high!r}]"
+    ends = _forward(formulation)(np.array(interval, dtype=float))
+    if not np.isfinite(ends).all():
+        msg = (
+            f"{formulation.key} is undefined at an end of the search interval "
+            f"{where}: give a search interval where it is defined"
+        )
+        raise InversionError(msg)
+    verdict = monotonicity(formulation, solve_for, interval)
+    if verdict.direction is not None:
+        limit = STEP_BACK_TOLERANCE if step_back is None else step_back
+        measure = verdict.steps if step_back is None else verdict.widths
+        beyond = {cut: value for cut, value in measure.items() if value > limit}
+        if not beyond:
+            return verdict
+        junction = max(beyond, key=beyond.__getitem__)
+        if step_back is None:
+            msg = (
+                f"{formulation.key} steps back by {beyond[junction]:.3g} of its "
+                f"value at {solve_for} = {junction!r}, beyond STEP_BACK_TOLERANCE; "
+                f"step_back accepts it by its width on {solve_for}, "
+                f"{verdict.widths[junction]:.3g}"
+            )
+        else:
+            msg = (
+                f"{formulation.key} steps back at {solve_for} = {junction!r}: a "
+                f"target within the step has two solutions up to "
+                f"{beyond[junction]:.3g} apart, beyond step_back = {step_back!r}"
+            )
+        raise InversionError(msg)
+    if verdict.status == "refuted":
+        at = ", ".join(f"{k} = {v!r}" for k, v in verdict.at.items())
+        msg = (
+            f"{formulation.key} is not monotonic in {solve_for} {where} "
+            f"({verdict.method}, at {at}): give a search interval where it is"
+        )
+        raise InversionError(msg)
+    points = np.union1d(grid(low, high), np.linspace(low, high, _SAMPLES))
+    values = _forward(formulation)(points)
+    undefined = int(np.sum(~np.isfinite(values)))
+    if undefined:
+        msg = (
+            f"{formulation.key} is undefined at {undefined} of {points.size} "
+            f"samples {where}: give a search interval where it is defined"
+        )
+        raise InversionError(msg)
+    overall = np.sign(values[-1] - values[0])
+    noise = 1e-9 * float(np.max(np.abs(values)))
+    if overall != 0 and not np.any(overall * np.diff(values) < -noise):
+        method = f"{verdict.method}; monotonic on {points.size} samples"
+        return replace(verdict, method=method)
+    msg = (
+        f"{formulation.key} is not monotonic in {solve_for} {where} on "
+        f"{points.size} samples: give a search interval where it is"
+    )
+    raise InversionError(msg)
+
+
 def _image_condition(
     variable: str,
     lower: tuple[float, bool] | None,
@@ -313,8 +441,9 @@ def _closed_form_of_pieces(
 ) -> tuple[str, list[Coefficient]] | None:
     """A closed-form inverse of a piecewise definition, branch by branch.
 
-    Each branch must be strictly monotonic on its interval (checked on
-    samples) and have a closed-form inverse; the inverse takes the image
+    Each branch must be strictly monotonic on its interval (proven, or
+    checked on samples, see :func:`_branch_direction`) and have a
+    closed-form inverse; the inverse takes the image
     of each interval as its condition, and the images must not overlap.
     One piecewise definition only: with several, ``None``.
     """
@@ -343,8 +472,10 @@ def _closed_form_of_pieces(
         high = float(piece.high.xreplace(values))
         inside = _branch_samples(low, high, samples)
         forward = _forward(formulation, branch)
-        steps = np.diff(forward(inside))
-        if not (np.all(steps > 0) or np.all(steps < 0)):
+        direction = _branch_direction(
+            formulation, solve_for, low, high, inside, forward
+        )
+        if direction is None:
             return None
         found = _closed_form(formulation, branch, solve_for, output, input, inside)
         if found is None:
@@ -354,7 +485,7 @@ def _closed_form_of_pieces(
         for end, closed in ((low, piece.low_closed), (high, piece.high_closed)):
             image = float(forward(np.array(end))) if np.isfinite(end) else np.inf
             ends.append((image, closed) if np.isfinite(image) else None)
-        lower, upper = ends if steps[0] > 0 else ends[::-1]
+        lower, upper = ends if direction > 0 else ends[::-1]
         if lower is None and upper is None:
             return None
         texts.append(f"({source}, {_image_condition(input.identifier, lower, upper)})")
@@ -370,7 +501,7 @@ def _closed_form_of_pieces(
     for (_, _, top, top_closed), (bottom, bottom_open, _, _) in pairwise(spans):
         if top > bottom or (top == bottom and top_closed and not bottom_open):
             return None
-    # Each branch was checked on its samples, and the images do not overlap.
+    # Each branch is monotonic, and the images do not overlap.
     return f"{PIECEWISE}({', '.join(texts)})", coefficients
 
 
@@ -445,24 +576,37 @@ def _carried_domains(
     The interval of the solved input becomes that of the inverse's output
     (shifted from K to degC or back when its unit changes); its image
     through the function, when both its ends are finite, and a bound on the
-    source's output become an interval of the inverse's input.
+    source's output become an interval of the inverse's input. A tolerance
+    goes with the bound of its variable (a difference, unchanged by the
+    shift); the image of an interval takes none.
     """
     solve_for = source.inputs[0].identifier
     carried = []
     for domain in domains:
         bounds: dict[str, tuple[float, float]] = {}
+        tolerance: dict[str, tuple[float, float]] = {}
         if solve_for in domain.bounds:
             low, high = domain.bounds[solve_for]
             bounds[output_identifier] = (low + shift, high + shift)
+            if solve_for in domain.tolerance:
+                tolerance[output_identifier] = domain.tolerance[solve_for]
             if np.isfinite(low) and np.isfinite(high):
                 ends = sorted(float(v) for v in forward(np.array([low, high])))
                 bounds[input_identifier] = (ends[0], ends[1])
         if source.output.identifier in domain.bounds:
             low, high = domain.bounds[source.output.identifier]
+            ends_tolerance = domain.tolerance.get(source.output.identifier, (0.0, 0.0))
             if input_identifier in bounds:
                 image = bounds[input_identifier]
+                # The tolerance of an end goes only where the source's bound wins.
+                ends_tolerance = (
+                    ends_tolerance[0] if low >= image[0] else 0.0,
+                    ends_tolerance[1] if high <= image[1] else 0.0,
+                )
                 low, high = max(low, image[0]), min(high, image[1])
             bounds[input_identifier] = (low, high)
+            if any(ends_tolerance):
+                tolerance[input_identifier] = ends_tolerance
         if not bounds:
             continue
         criterion = (
@@ -475,6 +619,7 @@ def _carried_domains(
                 MappingProxyType(bounds),
                 criterion,
                 domain.reference,
+                MappingProxyType(tolerance),
             )
         )
     return tuple(carried)
@@ -485,10 +630,24 @@ class NumericalInverse:
     """The inverse of a formulation, solved numerically.
 
     Evaluable like a formulation (see :func:`nomogram.comparison.compare`
-    and :func:`~nomogram.comparison.compose`). The source is assumed
-    monotonic over the search interval; values outside its image give
-    NaN, and results outside the source's validity domains follow the
-    ``outside`` option.
+    and :func:`~nomogram.comparison.compose`). :func:`invert` builds it
+    only for a source monotonic over the search interval: proven, or
+    found so on samples when no proof concludes (``monotonicity``). Values
+    outside its image give NaN: beyond the images of the ends of the
+    search interval, and within a gap where the source jumps forward at a
+    junction, which a :class:`~nomogram.model.RootWarning` reports. Results
+    outside the source's validity domains follow the ``outside`` option. Where a piecewise source steps back at a junction
+    (``monotonicity.steps``, as far as :func:`invert` accepts), a target
+    within the step has two solutions on either side of the junction, at
+    most ``monotonicity.widths`` apart, and the one found is either; the
+    bisection follows the direction proven. Where the source is constant
+    on part of the interval (a constant branch), a target equal to that
+    value has a whole interval of solutions, of which the bisection gives
+    the end where the values below the target stop: the lower end of the
+    plateau for an increasing source, the upper end for a decreasing one,
+    and, where no value lies below the target (the plateau holds the
+    minimum of the image), the end of the search interval on that side,
+    an answer that depends on the interval searched.
 
     Attributes
     ----------
@@ -502,6 +661,12 @@ class NumericalInverse:
         Interval of the source's input searched, in its unit.
     derivation : Derivation
         Origin, with ``method="numerical inversion"``.
+    references : tuple of str
+        The references of the source.
+    monotonicity : Monotonicity or None
+        The monotonicity of the source over the search interval, as
+        :func:`invert` checked it; ``None`` for an inverse built directly,
+        whose monotonicity nobody checked.
     """
 
     key: str
@@ -512,6 +677,7 @@ class NumericalInverse:
     search: tuple[float, float]
     derivation: Derivation
     references: tuple[str, ...] = field(default=())
+    monotonicity: Monotonicity | None = None
 
     @property
     def inputs(self) -> tuple[Variable, ...]:
@@ -599,8 +765,12 @@ class NumericalInverse:
         forward = _forward(self.source)
         low = np.full(target.shape, self.search[0])
         high = np.full(target.shape, self.search[1])
-        increasing = forward(np.array(self.search[1])) > forward(
-            np.array(self.search[0])
+        ends = forward(np.array(self.search))
+        # The direction proven, which steps back at junctions may hide from
+        # the ends alone.
+        direction = self.monotonicity.direction if self.monotonicity else None
+        increasing = (
+            direction == "increasing" if direction is not None else ends[1] > ends[0]
         )
         for _ in range(100):
             middle = (low + high) / 2
@@ -609,11 +779,26 @@ class NumericalInverse:
             low = np.where(go_up, middle, low)
             high = np.where(go_up, high, middle)
         solved = (low + high) / 2
-        ends = forward(np.array(self.search))
-        unreachable = (
-            (target < ends.min()) | (target > ends.max()) | ~np.isfinite(target)
-        )
-        solved = np.where(unreachable, np.nan, solved)
+        # Only between the images of the ends, in the order of the direction,
+        # is a solution bracketed; and not where the source jumps forward
+        # between the two last points, as large a change between adjacent
+        # floats as the solver of implicit equations takes for a jump.
+        first, last = ends if increasing else ends[::-1]
+        with np.errstate(invalid="ignore"):
+            jump = np.abs(forward(high) - forward(low))
+        gap = jump > COLLAPSE * abs(float(last - first))
+        beyond = (target < first) | (target > last) | ~np.isfinite(target)
+        within = gap & ~beyond
+        if within.any():
+            import warnings
+
+            message = (
+                f"{self.key}: NaN for {int(within.sum())} within a gap of the "
+                f"image of {self.source.key}, which jumps forward at a "
+                f"junction: no value of {source_input.identifier} gives them"
+            )
+            warnings.warn(message, RootWarning, stacklevel=2)
+        solved = np.where(beyond | gap, np.nan, solved)
         given = {source_input.identifier: solved, self.source.output.identifier: target}
         mask = self.source.outside_mask(given, basis)
         # The bounds of the kinds of its own variables, which may be
@@ -666,6 +851,7 @@ def invert(
     label: str | None = None,
     method: Method = "auto",
     search: tuple[float, float] | None = None,
+    step_back: float | None = None,
 ) -> Formulation | NumericalInverse:
     """Invert a formulation of one input.
 
@@ -691,7 +877,15 @@ def invert(
         intervals do not overlap.
     search : (float, float), optional
         Interval of x searched by numerical inversion, in x's unit;
-        defaults to the source's stated validity domain.
+        defaults to the source's stated validity domain. The source must
+        be monotonic over it.
+    step_back : float, optional
+        For a numerical inverse of a piecewise definition that steps back
+        at a junction: the largest width accepted, in x's unit, of the
+        interval of x within which a target in the step has two solutions
+        (``monotonicity.widths``), the step divided by the slope there.
+        By default, a step back is accepted up to
+        :data:`STEP_BACK_TOLERANCE` of the value.
 
     Returns
     -------
@@ -702,9 +896,16 @@ def invert(
     Raises
     ------
     InversionError
-        If the formulation cannot be inverted as asked.
+        If the formulation cannot be inverted as asked, or, numerically,
+        is not monotonic over the search interval (a derivative that
+        changes sign there, proven or found on samples, or a piecewise
+        definition that steps back at a junction beyond what is accepted),
+        or if ``step_back`` is negative.
     """
     _check(formulation, solve_for, output, input)
+    if step_back is not None and not step_back >= 0:
+        msg = f"step_back must be positive or zero, not {step_back!r}"
+        raise InversionError(msg)
     from nomogram.catalog import catalog
 
     # The bounds of their kinds, as the catalog gives them to its variables,
@@ -758,15 +959,22 @@ def invert(
             "give a search interval for numerical inversion"
         )
         raise InversionError(msg)
+    low, high = float(interval[0]), float(interval[1])
+    if not (np.isfinite(low) and np.isfinite(high) and low < high):
+        msg = f"the search interval must be finite and increasing, not {interval}"
+        raise InversionError(msg)
     return NumericalInverse(
         key=key,
         label=label,
         output=output,
         input=input,
         source=formulation,
-        search=(float(interval[0]), float(interval[1])),
+        search=(low, high),
         derivation=Derivation(formulation.key, "numerical inversion", solve_for),
         references=formulation.references,
+        monotonicity=_checked_monotonicity(
+            formulation, solve_for, (low, high), step_back
+        ),
     )
 
 
@@ -775,6 +983,7 @@ def dew_point(
     *,
     method: Method = "auto",
     search: tuple[float, float] | None = None,
+    step_back: float | None = None,
 ) -> Formulation | NumericalInverse:
     """The dew point formulation obtained by inverting a saturation vapour pressure.
 
@@ -782,7 +991,7 @@ def dew_point(
     ----------
     formulation : Formulation
         A saturation vapour pressure formulation e_s = f(T).
-    method, search
+    method, search, step_back
         As for :func:`invert`. Without a stated validity domain, numerical
         inversion searches :data:`DEW_POINT_SEARCH_CELSIUS`.
 
@@ -810,4 +1019,5 @@ def dew_point(
         label=f"Dew point, inverse of: {formulation.label}",
         method=method,
         search=search,
+        step_back=step_back,
     )

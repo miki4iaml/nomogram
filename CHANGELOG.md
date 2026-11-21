@@ -8,6 +8,187 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-21
+
+Numerical results that nomogram proves and that can be reproduced. Three
+of them:
+
+- The loop of the COARE 3.6 bulk algorithm, written as a system of
+  formulations of the catalog and solved by Newton's method, gives back
+  the outputs of the code to 5.6 × 10⁻⁷ for the friction velocity,
+  7.4 × 10⁻⁶ for the Obukhov length and 5.3 × 10⁻⁵ for the temperature
+  scale ([the guide](docs/coare-system.md)).
+- The monotonicity of a formulation is proven by interval arithmetic, and
+  the junctions of a piecewise definition are measured: the layers of the
+  standard atmosphere of ITU-R P.835 step back by 8.9 × 10⁻⁶ of the
+  pressure at 11 km, 5.6 cm of altitude, which its numerical inverse
+  accepts knowingly.
+- Profile functions are derived from gradient functions in closed form:
+  the mean profile function Fairall et al. (1978) print departs from the
+  integral of their own gradient functions by −18 % at ζ = −1.
+
+### Added
+
+- **A tolerance at the ends of a stated validity domain**: how far
+  beyond an end a value is still inside, the maximum deviation of that
+  variable the source states, never a standard deviation nor a guess from
+  the printed digits (`tolerance` in a citation's domain, one number or
+  `[low, high]`; `ValidityDomain.tolerance`). It changes no value
+  computed: it only decides, at the ends, between a value and NaN. A
+  physical domain takes none; an inversion carries it with the bound of
+  its variable. The fits of Hardy (1998) and Sonntag (1994) state theirs:
+  Hardy's frost point at the triple point, 12 uK beyond 273.16 K, and
+  Sonntag's dew point at 100 degC, 0.96 mK beyond, were NaN by default;
+  they are now given, within 0.1 mK and 0.01 K.
+- **Monotonicity proven by interval arithmetic** (`nomogram.monotonicity`):
+  `monotonicity(formulation, input, over)` says whether the output of a
+  formulation varies in one direction with one input over a box the
+  caller chooses: proven, refuted with a counterexample, or unproven,
+  with its method. The derivative is bounded by mpmath's interval
+  arithmetic, whose bounds are rigorous; a piecewise definition is proven
+  branch by branch, and the steps back at its junctions are measured,
+  relative to the value and by their width on the input (the step divided
+  by the slope there: two solutions for a target within it); for
+  an implicit equation, the derivative of its output is bounded over the
+  unknown too. KEYPS is proven increasing in zeta over -1000 <= zeta <= 0
+  (Phi_M from 1e-3 to 1e3). A property nomogram computes, never a
+  validity domain.
+- **Systems of equations** (`nomogram.systems`): a `System` of equations,
+  each given by a formulation of the catalog (`Equation`), listed in the
+  order the source computes them, solved together for its unknowns, the
+  variables read before they are given: a multivariate measurement model
+  (JCGM 102:2011, 3.8). `System.evaluate` takes pint quantities and
+  returns a `Solution`, every variable in its unit with a status for
+  each set of values. Newton's method by default, damped by a line search
+  and vectorised, with a Jacobian assembled by the chain rule from the
+  exact partial derivatives of each formulation and of the conversions of
+  units (the slope of a conversion between conventional scales is a
+  central difference), started again from a few passes of the fixed point
+  where a residual is undefined at the first guess; or the passes of the
+  fixed point the source iterates (`method="fixed-point"`), whose residual
+  is reported, not tested. Without convergence, with a singular Jacobian
+  or a residual undefined, the values are NaN and a `ConvergenceWarning`
+  counts them; the unknown of an implicit equation stays where its root is
+  sought. An input of the system taken by several equations is taken as
+  kinds of one lineage, in units of one dimension. The domains of every equation apply to the inputs before
+  solving (not solved there) and to every value once solved, as `outside`
+  says, or as the source's practice for an equation says.
+- **Profile functions derived from gradient functions**
+  (`nomogram.similarity`): `profile_function` integrates a gradient
+  function of Monin-Obukhov similarity, psi(zeta) = integral from 0 to
+  zeta of (1 - phi(x))/x dx, in closed form with SymPy (branch by branch
+  for a piecewise definition, checked against a quadrature, refused
+  without a closed form in the syntax of expressions), and
+  `gradient_function` differentiates back, phi = 1 - zeta dpsi/dzeta:
+  ordinary formulations, derived by nomogram (`Derivation` methods
+  `"integration"`, `"differentiation"`). The integral of Businger-Dyer is
+  the form of Paulson the IFS takes; the stable gradient functions of the
+  IFS are not those its profile functions integrate (+78 % for heat at
+  zeta = 0.1).
+- A guide, `docs/coare-system.md`: the loop of COARE 3.6 as a system of
+  equations of the catalog, solved, and compared with the outputs of the
+  code variable by variable, with its script and its figure.
+- **The gustiness velocity of the bulk formulas** (`GustinessVelocity`),
+  w_g, added in quadrature to the mean wind vector, S^2 = U^2 + w_g^2:
+  "a gustiness velocity" (Fairall et al. 1996), not a gust in the sense
+  of WMO and CF, the peak wind. A sibling kind of the convective velocity
+  scale W_*, which feeds it only through `fairall1996_gustiness_velocity`
+  (equation 16, w_g = beta W_*, beta = 1.25). The trade term "gustiness"
+  gives its meaning against WMO's, and docs/rosetta.md the meanings of
+  gust, gust factor, gustiness factor and gustiness parameter by author.
+- Fairall et al. (1978): equation 21, the first estimate of the
+  stability parameter from the bulk differences
+  (`fairall1978_bulk_stability_parameter`), equation 20, the stability
+  parameter from it, the profile functions as inputs
+  (`fairall1978_stability_parameter`), solved as a system with the
+  derived profile functions; and the mean profile function of their
+  appendix B as printed (`fairall1978_profile_function_momentum`,
+  `_heat`), which departs from the integrals of their gradient functions
+  (-18 % at zeta = -1 for the wind). Their C_TN, the coefficient of the
+  temperature scale (T_* = C_TN^(1/2) dT), is not the neutral Stanton
+  number: a sibling kind, `NeutralTemperatureScaleCoefficient`, and the
+  trade term "neutral drag coefficient" gives both meanings of their C_XN.
+  Their first estimate xi_0 is not the stability parameter, which their
+  equation 20 makes of it: a sibling kind too,
+  `BulkEstimateOfStabilityParameter`.
+- **Systems in the catalog**: a `[systems.<key>]` section (format
+  unchanged), `Catalog.systems` and `Catalog.systems_of(kind)`; a system
+  is found by its names and by the kinds it gives, and linked to its
+  formulations and its reference. The loop of COARE 3.6,
+  `coare36_surface_layer`: its formulations in the order of the code, with
+  `coare36_wind_speed_with_gust`, the wind with the convective gustiness
+  (equation 15 of Fairall et al. 1996). Given the inputs the code
+  computes, it gives back the outputs of the code to about 1e-6 (u\*, q\*,
+  z_0, gustiness), 1e-5 for L and 5e-5 for theta\*, the value nearest 0,
+  in four Newton steps at most; its ten passes equal a loop over its
+  formulations to 1e-12. Air and surface alike (first guess of the scales
+  0), Newton's method starts from a few passes of the code's loop. The evaporation duct guide calls it instead of its loop: the
+  chain runs as fast, once the derivatives are compiled (about 1 s the
+  first time in a process; measured on 2026-11-21).
+
+### Changed
+
+- A numerical inverse is built only where its source is monotonic over
+  the interval searched, proven by interval arithmetic or found so on
+  samples where no proof concludes, or steps back only at junctions, by
+  no more than a tolerance (below); within an accepted step, a target has
+  two solutions, at most `widths` apart. Its source must be defined at
+  the ends of the interval and, on samples, at each sample. The verdict
+  goes with it
+  (`NumericalInverse.monotonicity`), and the bisection follows the
+  direction proven. It is refused (`InversionError`) where the derivative
+  changes sign, and where a piecewise definition steps back at a junction
+  by more than `STEP_BACK_TOLERANCE`, 1e-4 of the value, or, with
+  `step_back=`, by more than that width on the solved variable, in its
+  unit: the layers of the standard atmosphere of ITU-R P.835 step back by
+  3e-6 to 2e-5 of the pressure, 2.5 to 10.3 cm of altitude, and its
+  pressure altitude stays an inverse. Samples are the grid of the solver
+  of implicit equations and 2001 evenly spaced points. A search interval
+  must be finite and increasing. The branches of a piecewise closed form
+  are proven strictly monotonic the same way, before samples.
+- mpmath, which SymPy requires, is a direct dependency (`mpmath>=1.3.0`),
+  for its interval arithmetic.
+- `feeds` takes the quantity kinds to check against (`kinds=`), those of
+  the bundled catalog by default, loaded only for two different kinds.
+- The gustiness of COARE 3.6 (`coare36_convective_gust`, beta = 1.2 and
+  0.2 m/s where the buoyancy flux is not upward) is a `GustinessVelocity`,
+  which `coare36_wind_speed_with_gust` takes, no longer a
+  `ConvectiveVelocityScale`: the free convection velocity scale of the IFS
+  no longer feeds it directly.
+- `EvaporationDuctHeight`: without a duct there is no height, NaN, as the
+  formulations give it, and not 0.
+- The solver of implicit equations narrows each bracket of a root by
+  Chandrupatla's method (1997): inverse quadratic interpolation where it
+  is safe, halving in the order of floats otherwise, down to adjacent
+  floats as before, and only the brackets still open evaluated. About 6
+  to 16 evaluations per root instead of 54 beyond the grid (6 on equation
+  3.25 of the IFS in the chain of the evaporation duct guide, 16 on KEYPS,
+  measured on 2026-11-21); the same roots, to
+  the noise of the residual (median 4e-16 relative); the chain of the
+  evaporation duct guide runs 14 % faster (measured on 2026-11-21). The
+  residuals at the ends of a bracket are taken from the grid.
+
+### Fixed
+
+- A numerical inverse gives NaN for a target within a gap of its image,
+  where its source jumps forward at a junction, with a `RootWarning` that
+  counts them, as its docstring says and as the symbolic inverse by
+  branches does (without the warning): it gave the junction, where
+  the source does not take that value (the profile coefficient of Paulus,
+  1989, inverted between 0.06452 and 0.06496). Its documentation states
+  which end of a plateau of its source it gives.
+- The skin temperature of the COARE 3.6 test data of the evaporation
+  duct guide (`docs/examples/data/coare36_test.csv`) is built from the
+  sea temperature the code took, `tsg`, not `tsnk`: it was up to 0.087 K
+  off (0.007 K in median). The guide's theta\* now departs from the code
+  by 0.01 % in median instead of 0.9 %, L by 0.5 % instead of 0.6 %.
+- An implicit equation whose residual turns to noise near a pole, as
+  equation 3.25 of the IFS does as L tends to 0, no longer gives NaN for
+  a root found elsewhere: the solver seeks the edge of a region where the
+  residual is undefined only to the resolution of its grids (10^-12 times
+  the scale), not down to that noise. The evaporation duct guide no longer
+  needs `search=` to keep to the side of Ri_b.
+
 ## [0.7.0] - 2026-11-08
 
 ### Added
@@ -1835,7 +2016,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...develop
+[0.8.0]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0

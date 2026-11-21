@@ -23,7 +23,7 @@ from nomogram.expression import (
     to_latex,
 )
 from nomogram.inversion import InversionError, NumericalInverse, dew_point, invert
-from nomogram.model import Variable
+from nomogram.model import Formulation, Variable
 from nomogram.relations import signature, verify
 from nomogram.units import Q_
 
@@ -482,10 +482,8 @@ def test_a_bounded_branch_has_a_bounded_image() -> None:
         "piecewise((t + exp(t / 10), t < 0), (t + 2 + exp(t / 10), t >= 0))",
         # Images both unbounded: ln(t + 30) covers every value.
         "piecewise((ln(t + 30), t > -30))",
-        # Not monotonic on its interval: (t - 10)**2 + 1 on t >= 0.
-        "piecewise((exp(t / 10), t < 0), ((t - 10) ** 2 + 1, t >= 0))",
-        # Images that overlap: the second branch starts below the first.
-        "piecewise((t + 100, t < 0), (t + 50, t >= 0))",
+        # Images that overlap by a step back within STEP_BACK_TOLERANCE.
+        "piecewise((t + 100, t < 0), (t + 100 - 1e-6, t >= 0))",
         # Two piecewise definitions.
         "piecewise((t + 1, t < 0), (t + 2, t >= 0)) * piecewise((1, t < 5), (2, t >= 5))",
     ],
@@ -513,6 +511,91 @@ def test_without_a_closed_form_the_inverse_is_numerical(expression: str) -> None
         )
 
 
+@pytest.mark.parametrize(
+    ("expression", "message"),
+    [
+        # Not monotonic on its interval: (t - 10)**2 + 1 on t >= 0.
+        (
+            "piecewise((exp(t / 10), t < 0), ((t - 10) ** 2 + 1, t >= 0))",
+            "not monotonic in t",
+        ),
+        # The second branch starts far below the first.
+        ("piecewise((t + 100, t < 0), (t + 50, t >= 0))", "steps back by 0.5"),
+    ],
+)
+def test_no_inverse_where_the_source_is_not_monotonic(
+    expression: str, message: str
+) -> None:
+    document = SOURCE + formulation(
+        expression,
+        output='kind = "VapourPressure", unit = "HectoPA"',
+        inputs=(
+            '{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", '
+            'description = "t" }'
+        ),
+    )
+    f = load_catalog([document]).formulations["f"]
+    output = Variable("t", "CelsiusTemperature", "DEG_C", "t")
+    given = Variable("e", "VapourPressure", "HectoPA", "e")
+    with pytest.raises(InversionError, match=message):
+        invert(f, "t", output=output, input=given, search=(-20.0, 20.0))
+
+
+def stepping(expression: str) -> Formulation:
+    """The formulation of a test, in hPa of a Celsius temperature."""
+    document = SOURCE + formulation(
+        expression,
+        output='kind = "VapourPressure", unit = "HectoPA"',
+        inputs=(
+            '{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", '
+            'description = "t" }'
+        ),
+    )
+    return load_catalog([document]).formulations["f"]
+
+
+def test_step_back_accepts_a_step_by_its_width() -> None:
+    # The value steps back by 1 at t = 0, with slopes of 1: two solutions
+    # up to 1 degC apart for a target within the step.
+    f = stepping("piecewise((t + 100, t < 0), (t + 99, t >= 0))")
+    output = Variable("t", "CelsiusTemperature", "DEG_C", "t")
+    given = Variable("e", "VapourPressure", "HectoPA", "e")
+    search = (-20.0, 20.0)
+    with pytest.raises(
+        InversionError, match="step_back accepts it by its width on t, 1"
+    ):
+        invert(f, "t", output=output, input=given, search=search)
+    with pytest.raises(InversionError, match="up to 1 apart, beyond step_back = 0.5"):
+        invert(f, "t", output=output, input=given, search=search, step_back=0.5)
+    with pytest.raises(InversionError, match="positive or zero"):
+        invert(f, "t", output=output, input=given, search=search, step_back=-1.0)
+    inverse = invert(f, "t", output=output, input=given, search=search, step_back=2.0)
+    assert isinstance(inverse, NumericalInverse)
+    found = inverse.evaluate(e=Q_([99.5, 110.0, 85.0], "hPa")).magnitude
+    assert found[0] == pytest.approx(-0.5, abs=1e-9) or found[0] == pytest.approx(
+        0.5, abs=1e-9
+    )
+    assert found[1:] == pytest.approx([11.0, -15.0], abs=1e-9)
+
+
+def test_a_step_back_accepted_never_gives_a_wrong_value() -> None:
+    # The value falls from 100 to 50 at t = 0: f(-20) = 80 lies above
+    # f(20) = 70, though both branches increase. The bisection follows the
+    # direction proven, and finds no bracket: NaN, never a wrong value.
+    f = stepping("piecewise((t + 100, t < 0), (t + 50, t >= 0))")
+    inverse = invert(
+        f,
+        "t",
+        output=Variable("t", "CelsiusTemperature", "DEG_C", "t"),
+        input=Variable("e", "VapourPressure", "HectoPA", "e"),
+        search=(-20.0, 20.0),
+        step_back=100.0,
+    )
+    assert isinstance(inverse, NumericalInverse)
+    found = inverse.evaluate(e=Q_([75.0, 90.0, 60.0], "hPa")).magnitude
+    assert np.isnan(found).all()
+
+
 def test_a_constant_branch_makes_the_inverse_numerical() -> None:
     # The mixed-phase fraction is 0 below T_ice and 1 above T_0: monotonic,
     # but not strictly, so no inverse branch exists for those values.
@@ -524,6 +607,10 @@ def test_a_constant_branch_makes_the_inverse_numerical() -> None:
     assert isinstance(found, NumericalInverse)
     back = found.evaluate(y=Q_([0.25, 0.5], "")).magnitude
     assert back == pytest.approx(250.16 + 23 * np.sqrt([0.25, 0.5]))
+    # On a plateau, the end where the values below the target stop: T_0
+    # for 1; for 0, which no value lies below, the end of the search.
+    ends = found.evaluate(y=Q_([0.0, 1.0], "")).magnitude
+    assert ends == pytest.approx([230.0, 273.16], abs=1e-9)
     with pytest.raises(InversionError, match="strictly monotonic"):
         invert(
             f, "T", output=output, input=given, method="symbolic", search=(230.0, 290.0)

@@ -56,7 +56,7 @@ each matching a word.
 | Field | Matches |
 |---|---|
 | `key` | the key of the entry |
-| `kind` | the output kind of a formulation, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well |
+| `kind` | the output kind of a formulation, a kind a system gives, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well |
 | `unit` | a unit an entry works in, as its links give it (see below), or a unit itself; by its QUDT name, symbol, UCUM code, label or pint expression: `hPa`, `HectoPA`, `hectopascal` are one unit. The pattern is compared whole with each form, so `K` does not match `J-PER-KiloGM-K`. A form written exactly as the pattern comes first, case included (`mPa` is not `MPa`), and is taken literally (UCUM's `[ppm]`); then a form equal without case or accents; then wildcards |
 | `output` | the output variable of a formulation: identifier, symbols in every notation, kind (name, label, CF names), description |
 | `input` | an input variable, likewise |
@@ -73,7 +73,12 @@ each matching a word.
 
 `section=` keeps the entries of one section (a pattern too):
 `formulations`, `kinds`, `references`, `constants`, `notations`,
-`trade_terms`, `scales`, `relations`, `cross_checks`, `families`, `units`.
+`trade_terms`, `scales`, `relations`, `cross_checks`, `systems`,
+`families`, `units`. A system is found by its key, label, note, the
+names of its variables and the keys of its formulations, by `kind=` (the
+kinds of the variables it gives) and by `source=` (its reference):
+`c.search(kind="ObukhovLength")` returns the system of COARE 3.6 with
+the formulations and the kind.
 
 ## Selections
 
@@ -101,7 +106,8 @@ c.search(output="SaturationVapourPressure*") - c.search(source="buck*")
 `uses(entry)` gives the entries an entry refers to (kinds of its
 variables, cited references, notations, constants, scales, units, the
 formulations a composition, a formulation by branches or calling others,
-a relation or a cross-check uses, the families a family requires); `used_by(entry)` the
+a relation, a cross-check or a system uses, the kinds a system gives and
+its reference, the families a family requires); `used_by(entry)` the
 entries that refer to it. The links are those the catalog checks for its families
 (`Catalog.links`), plus the units and the kinds and scales of a composed
 formulation's variables, which it takes from its parts. Results come in
@@ -120,7 +126,8 @@ not find the caller by the kind of that input. An implicit equation that
 passes its unknown to a call (`phi_T(zeta=z_s / L)`) is linked the same
 way, and found by its output.
 Nor does a validity domain, whether it bounds an input or the output: it
-is read on the formulation (`domains`), criterion included, and the
+is read on the formulation (`domains`), criterion and tolerance
+included, and the
 formulation is found by its variables, the output a domain bounds among
 them. Likewise the bounds of a kind are read on the kind
 (`Catalog.bounds_of`), which a search finds by its names.
@@ -140,6 +147,18 @@ Celsius and the temperature scales converted in them,
 surface layer, which take g/kg besides the number of their parent, and
 `used_by("constants.R_ecmwf_ifs")` the gas constants the IFS derives
 from R.
+
+## What is computed, not searched
+
+Some properties are computed on demand for a box the caller chooses,
+never stored in the catalog: the monotonicity of a formulation in one of
+its inputs (`nomogram.monotonicity.monotonicity`) is one. It adds no field
+and no name to the index: a search finds the formulation, by its kind or
+its names, and the function then answers for the box given. A numerical
+inverse carries the verdict of its source over the interval it searches
+(`NumericalInverse.monotonicity`). A profile function derived from a
+gradient function (`nomogram.similarity`) is built on demand, like an
+inverse: a search finds the gradient function it comes from.
 
 ## What grows without changing searches
 

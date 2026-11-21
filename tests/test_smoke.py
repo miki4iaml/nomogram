@@ -19,10 +19,13 @@ SUBMODULES = [
     "expression",
     "inversion",
     "model",
+    "monotonicity",
     "plot",
     "relations",
     "search",
     "semantics",
+    "similarity",
+    "systems",
     "units",
 ]
 

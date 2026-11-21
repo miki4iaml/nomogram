@@ -51,7 +51,7 @@ note = "Read in the copy of the NPS archive (Calhoun), approved for public relea
 [kinds.EvaporationDuctHeight]
 label = "Evaporation Duct Height"
 specialization_of = "Height"
-bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, 0 where there is no duct." }
+bounds = { low = 0, high = inf, unit = "M", criterion = "A height above the sea surface, never negative; where there is no duct, there is no height (NaN), not 0." }
 description = "Height above the sea surface at which the modified refractivity M reaches its minimum, dM/dz = 0, the gradient of potential refractivity reaching its critical value (Paulus 1989, NOSC TD 1596, section 1.0); for propagation, a measure of the strength of the duct rather than a height below which an antenna must be (section 2.4)."
 
 [kinds.PotentialRadioRefractivity]
@@ -73,6 +73,17 @@ description = "Gamma, the profile coefficient of Jeske's bulk Richardson number 
 label = "Bulk Richardson Number over the Profile Coefficient"
 specialization_of = "DimensionlessRatio"
 description = "Jeske's bulk Richardson number, g Delta T z / (T u^2 Gamma), Delta T the air temperature minus the sea temperature and Gamma the surface-layer profile coefficient, about 0.1 (Paulus 1989, NOSC TD 1596, equation A-4): about ten times the bulk Richardson number of a layer, which it does not feed."
+
+[kinds.BulkEstimateOfStabilityParameter]
+label = "Bulk Estimate of the Stability Parameter"
+specialization_of = "DimensionlessRatio"
+description = "The first estimate of the stability parameter from the bulk differences, xi_0 = (kappa g Z / T) (C_TN^(1/2) / C_UN) (Delta theta + 0.18 Delta q) / U^2, a bulk Richardson number times kappa C_TN^(1/2) / C_UN (Fairall et al. 1978, NPS61-78-005, equation 21), which their equation 20 corrects with the profile functions into the stability parameter Z/L: an estimate in neutral conditions, it does not feed the stability parameter."
+
+[kinds.NeutralTemperatureScaleCoefficient]
+label = "Neutral Temperature Scale Coefficient"
+specialization_of = "DimensionlessRatio"
+description = "In neutral conditions, the square of the ratio of the temperature scale to the difference of temperature between a height and the surface, T_* = C_TN^(1/2) (T(Z) - T(0)), so that C_TN^(1/2) = alpha_T kappa / ln(Z/Z_0T) (Fairall et al. 1978, NPS61-78-005, equations 17 to 19). Not the neutral Stanton number, which relates the flux of heat to the wind and the difference of temperature and equals (C_UN C_TN)^(1/2), C_UN the neutral drag coefficient: it does not feed it."
+bounds = { low = 0, high = inf, unit = "UNITLESS", criterion = "The square of a ratio, never negative." }
 
 # --- Potential refractivity -------------------------------------------
 
@@ -569,6 +580,22 @@ kind = "BulkRichardsonNumberOverProfileCoefficient"
 definition = "g Delta T z / (T u^2 Gamma), from the air temperature minus the sea temperature and the profile coefficient Gamma, about 0.1: about ten times the former (NOSC TD 1596, equation A-4)."
 sources = ["paulus1989_td1596"]
 
+[trade_terms.neutral_drag_coefficient]
+term = "neutral drag coefficient"
+language = "en"
+
+[[trade_terms.neutral_drag_coefficient.meanings]]
+community = "evaporation duct models (Fairall et al. 1978)"
+kind = "NeutralSurfaceDragCoefficientForMomentum"
+definition = "C_UN, the neutral value (equation 19) of 'the drag coefficient for' the wind, the coefficient of u_* = C_U^(1/2) U(Z) (equation 17, U(0) = 0)."
+sources = ["fairall1978_nps"]
+
+[[trade_terms.neutral_drag_coefficient.meanings]]
+community = "evaporation duct models (Fairall et al. 1978)"
+kind = "NeutralTemperatureScaleCoefficient"
+definition = "C_TN, the neutral value (equation 19) of 'the drag coefficient for' the temperature, the coefficient of T_* = C_T^(1/2) (T(Z) - T(0)) (equation 17), and C_qN for the humidity: not the Stanton number, which is (C_UN C_TN)^(1/2)."
+sources = ["fairall1978_nps"]
+
 # --- Flux-profile relations of Fairall et al. (1978) and Frederickson et al. (1994) ---
 # The profile function is an input, the reports leaving it to their sources.
 
@@ -707,6 +734,96 @@ equation = "16"
 note = "p. 21."
 units = { alpha = "UNITLESS", kappa = "UNITLESS" }
 notation = { r_s = 'q_*', r = 'q(Z)', r_0 = 'q(0)', alpha = '\alpha_q', kappa = '\kappa', z = 'Z', z_0Q = 'Z_{0q}', Psi_H = '\psi_q(\xi)' }
+
+[formulations.fairall1978_profile_function_momentum]
+label = "Mean profile function of the gradient function, as printed, with the gradient function of the wind (Fairall et al. 1978)"
+expression = "1 - Phi_M - 3 * ln(Phi_M) + 2 * ln((1 + Phi_M) / 2) + 2 * atan(Phi_M) - pi / 2 + ln((1 + Phi_M ** 2) / 2)"
+fixed_units = false
+note = "Appendix B, p. B-1: the mean profile function psi(xi), as printed, a function of the gradient function phi(xi). With phi = 1/x it equals the form of Paulson (1970), 2 ln((1 + x)/2) + ln((1 + x^2)/2) - 2 arctan x + pi/2, plus 1 - phi + ln phi (computed by nomogram). With phi_U it departs from the integral of phi_U, psi(xi) = integral from 0 to xi of (1 - phi_U(x))/x dx (nomogram.similarity.profile_function), by -9 % at xi = -0.1, -18 % at xi = -1 and -21 % at xi = 0.1 (computed by nomogram)."
+output = { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for the wind" }
+inputs = [
+  { identifier = "Phi_M", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "Gradient function for the wind" },
+]
+assumptions = [
+  { text = "The appendix prints one mean profile function, of phi without subscript; equation 20 takes psi_u and psi_T: nomogram takes it with phi_U for the wind and phi_T for the temperature.", status = "deduced" },
+]
+keywords = ["profile function", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_profile_function_momentum.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1."
+notation = { Psi_M = '\psi_u', Phi_M = '\phi_U' }
+
+[formulations.fairall1978_profile_function_heat]
+label = "Mean profile function of the gradient function, as printed, with the gradient function of temperature (Fairall et al. 1978)"
+expression = "1 - Phi_H - 3 * ln(Phi_H) + 2 * ln((1 + Phi_H) / 2) + 2 * atan(Phi_H) - pi / 2 + ln((1 + Phi_H ** 2) / 2)"
+fixed_units = false
+note = "Appendix B, p. B-1, the function of fairall1978_profile_function_momentum with phi_T. It departs from the integral of phi_T, psi(xi) = integral from 0 to xi of (1 - phi_T(x))/x dx (nomogram.similarity.profile_function), by -5 % at xi = -0.1 and at xi = -1, and by -25 % at xi = 0.1 (computed by nomogram)."
+output = { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for temperature and moisture" }
+inputs = [
+  { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for temperature and moisture" },
+]
+assumptions = [
+  { text = "The appendix prints one mean profile function, of phi without subscript; equation 20 takes psi_u and psi_T: nomogram takes it with phi_U for the wind and phi_T for the temperature.", status = "deduced" },
+]
+keywords = ["profile function", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_profile_function_heat.citations]]
+reference = "fairall1978_nps"
+note = "Appendix B, p. B-1."
+notation = { Psi_H = '\psi_T', Phi_H = '\phi_T' }
+
+[formulations.fairall1978_bulk_stability_parameter]
+label = "First estimate of the stability parameter from the bulk differences, mixing ratio in g/kg (Fairall et al. 1978)"
+expression = "kappa * g * z / T * C_TN ** (1 / 2) / C_UN * ((theta - theta_0) + c * (r - r_0)) / U ** 2"
+fixed_units = true
+note = "Equation 21, p. 22: xi_0, with kappa = 0.35 (p. 23) and the term 0.18 q, q in g/kg, of equation 10; T(Z) - T(0) a difference of potential temperature (equation 8). The source takes C_TN = 1.1e-3 (p. 23) and C_UN after Kondo (1975), not printed: both are inputs. Its C_X is the coefficient of X_* = C_X^(1/2) (X(Z) - X(0)) (equation 17): for the wind, the drag coefficient; for the temperature, a coefficient of the scale, not the Stanton number (NeutralTemperatureScaleCoefficient). It then solves for xi 'Eq. 21 iteratively', the implicit equation being 20 (fairall1978_stability_parameter)."
+output = { identifier = "xi_0", kind = "BulkEstimateOfStabilityParameter", unit = "UNITLESS", description = "First estimate of the stability parameter, from the bulk differences" }
+inputs = [
+  { identifier = "z", kind = "Height", unit = "M", description = "Height of the measurements" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Mean temperature" },
+  { identifier = "g", kind = "AccelerationOfGravity", unit = "M-PER-SEC2", description = "Acceleration of gravity" },
+  { identifier = "C_UN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient" },
+  { identifier = "C_TN", kind = "NeutralTemperatureScaleCoefficient", unit = "UNITLESS", description = "Neutral coefficient of the temperature scale, T_* = C_TN^(1/2) (T(Z) - T(0))" },
+  { identifier = "theta", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the height" },
+  { identifier = "theta_0", kind = "PotentialTemperature", unit = "K", description = "Potential temperature at the sea surface" },
+  { identifier = "r", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio at the height" },
+  { identifier = "r_0", kind = "MassRatioOfWaterVapourToDryGas", unit = "GM-PER-KiloGM", description = "Mixing ratio saturated at the sea temperature" },
+  { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Wind speed at the height, relative to the sea" },
+]
+coefficients = { kappa = 0.35, c = 0.18 }
+assumptions = [
+  { text = "0.18 q, q in g/kg, is 0.61 T q, q in kg/kg, at T = 295 K (computed by nomogram), as in equation 10.", status = "deduced" },
+]
+keywords = ["stability parameter", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_bulk_stability_parameter.citations]]
+reference = "fairall1978_nps"
+equation = "21"
+note = "p. 22."
+notation = { xi_0 = '\xi_0', kappa = '\kappa', z = 'Z', C_UN = 'C_{UN}', C_TN = 'C_{TN}', theta = 'T(Z)', theta_0 = 'T(0)', r = 'q(Z)', r_0 = 'q(0)', U = 'U(Z)' }
+
+[formulations.fairall1978_stability_parameter]
+label = "Stability parameter from its bulk estimate, the profile functions as inputs (Fairall et al. 1978)"
+expression = "xi_0 * (1 - C_UN ** (1 / 2) * Psi_M / kappa) ** 2 / (1 - C_TN ** (1 / 2) * Psi_H / (alpha * kappa))"
+fixed_units = true
+note = "Equation 20, p. 22, from equations 10 and 18, with kappa = 0.35 and alpha_T = 1.35 (p. 23); the denominator as printed, not squared. Implicit in xi through psi_u(xi) and psi_T(xi): written here with the profile functions as inputs, as the other equations of the bulk method (16), it is solved with them as a system (nomogram.systems)."
+output = { identifier = "xi", kind = "StabilityParameter", unit = "UNITLESS", description = "Stability parameter Z/L" }
+inputs = [
+  { identifier = "xi_0", kind = "BulkEstimateOfStabilityParameter", unit = "UNITLESS", description = "First estimate of the stability parameter (equation 21)" },
+  { identifier = "C_UN", kind = "NeutralSurfaceDragCoefficientForMomentum", unit = "UNITLESS", description = "Neutral drag coefficient" },
+  { identifier = "C_TN", kind = "NeutralTemperatureScaleCoefficient", unit = "UNITLESS", description = "Neutral coefficient of the temperature scale, T_* = C_TN^(1/2) (T(Z) - T(0))" },
+  { identifier = "Psi_M", kind = "ProfileFunctionForMomentum", unit = "UNITLESS", description = "Profile function for the wind at xi" },
+  { identifier = "Psi_H", kind = "ProfileFunctionForHeat", unit = "UNITLESS", description = "Profile function for temperature at xi" },
+]
+coefficients = { kappa = 0.35, alpha = 1.35 }
+keywords = ["stability parameter", "bulk method", "Monin-Obukhov", "Fairall"]
+
+[[formulations.fairall1978_stability_parameter.citations]]
+reference = "fairall1978_nps"
+equation = "20"
+note = "p. 22."
+notation = { xi = '\xi', xi_0 = '\xi_0', kappa = '\kappa', alpha = '\alpha_T', C_UN = 'C_{UN}', C_TN = 'C_{TN}', Psi_M = '\psi_u(\xi)', Psi_H = '\psi_T(\xi)' }
 
 [formulations.frederickson1994_friction_velocity]
 label = "Friction velocity from the wind at a height, the profile function as an input (Frederickson et al. 1994)"

@@ -378,8 +378,10 @@ def duct_results(duct: Any) -> dict[str, Any]:
 def test_evaporation_duct_guide_shows_lines_of_its_script() -> None:
     script = code_lines(DUCT.read_text(encoding="utf-8"))
     blocks = python_blocks(DUCT_GUIDE)
-    assert len(blocks) == 2
+    assert len(blocks) == 3
     for block in blocks:
+        # Whole statements, not a truncated call.
+        ast.parse(block)
         for line in code_lines(block):
             assert any(line in candidate for candidate in script), line
 
@@ -411,13 +413,13 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
     def deviation(mine: Any, theirs: Any) -> float:
         return 100 * float(np.median(np.abs(mine / theirs - 1)))
 
-    # The fixed point over the catalog against the outputs of COARE.
+    # The system of the catalog against the outputs of COARE.
     assert round(deviation(by_coare["u_s"], m["usr"]), 2) == 0.02
-    assert round(deviation(by_coare["z_0M"], m["zo"]), 2) == 0.05
-    assert round(deviation(by_coare["L"], m["L"]), 1) == 0.6
+    assert round(deviation(by_coare["z_0M"], m["zo"]), 2) == 0.04
+    assert round(deviation(by_coare["L"], m["L"]), 1) == 0.5
     assert round(deviation(by_coare["q_s"], m["qsr"]), 1) == 0.8
-    assert round(deviation(by_coare["T_s"], m["tsr"]), 1) == 0.9
-    assert round(float(np.max(np.abs(by_coare["T_s"] - m["tsr"]))), 3) == 0.003
+    assert round(deviation(by_coare["T_s"], m["tsr"]), 2) == 0.01
+    assert round(float(np.max(np.abs(by_coare["T_s"] - m["tsr"]))), 6) == 2.3e-5
 
     def median(ratio: Any) -> int:
         return round(100 * float(np.median(ratio - 1)))
@@ -448,13 +450,13 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
     assert median(with_ifs / lowest) == 13
     assert median(with_ifs / fairall) == 1
     paulus_jeske = heights["Paulus-Jeske, measurements at 6 m"] / lowest
-    assert median(paulus_jeske) == 65
+    assert median(paulus_jeske) == 64
     assert (
         round(100 * (paulus_jeske.min() - 1)),
         round(100 * (paulus_jeske.max() - 1)),
     ) == (
         46,
-        74,
+        75,
     )
 
 
@@ -466,3 +468,90 @@ def test_evaporation_duct_guide_lists_the_references_of_its_chain(
     listed = [line for line in section.splitlines() if line.startswith("- ")]
     assert listed == duct.bibliography(duct_results["called"])
     assert any("COARE 3.6 bulk flux algorithm" in line for line in listed)
+
+
+COARE_SCRIPT = ROOT / "docs" / "examples" / "coare_system.py"
+COARE_GUIDE = ROOT / "docs" / "coare-system.md"
+SUPERSCRIPTS = str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻")
+
+
+def scientific(value: float) -> str:
+    """A value as the guide writes it, two significant digits: 5.6 × 10⁻⁷."""
+    mantissa, exponent = f"{value:.1e}".split("e")
+    return f"{mantissa} × 10{str(int(exponent)).translate(SUPERSCRIPTS)}"
+
+
+@pytest.fixture(scope="module")
+def coare() -> Any:
+    spec = importlib.util.spec_from_file_location("coare_system", COARE_SCRIPT)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def coare_results(coare: Any) -> dict[str, Any]:
+    """The system solved once for the module."""
+    results: dict[str, Any] = coare.compute()
+    return results
+
+
+def test_coare_guide_gives_the_values_it_states(
+    coare: Any, coare_results: dict[str, Any]
+) -> None:
+    import numpy as np
+
+    text = COARE_GUIDE.read_text(encoding="utf-8")
+    # The equations of the table, in the order of the system, as nomogram
+    # writes them in the notation of the page.
+    rows = re.findall(r"\| `([a-z0-9_]+)` \|$", text, flags=re.MULTILINE)
+    assert rows == [e.formulation.key for e in coare.SYSTEM.equations]
+    for equation in coare.equations():
+        assert f"$`{equation}`$" in text, equation
+    assert len(coare.SYSTEM.unknowns) == 5
+    assert text.count("**unknown**") == 5
+    assert len(coare.SYSTEM.inputs) == 11
+    m, solution = coare_results["m"], coare_results["solution"]
+    assert m["u"].size == 109
+    assert round(float(m["u"][coare.EXAMPLE]), 1) == 12.1
+    # Three steps for most measurements, four at most.
+    steps = np.asarray(solution.iterations)
+    assert int(steps.max()) == 4
+    assert np.sum(steps == 3) > np.sum(steps == 4)
+    assert float(np.max(solution.residual)) <= 1e-12
+    assert round(math.log10(coare_results["passes"][-1])) == -10
+    for name, (column, _) in coare.COMPARED.items():
+        largest, median = coare_results["deviations"][name]
+        code, mine = (v.replace("-", "\u2212") for v in coare_results["example"][name])
+        row = (
+            f"| `{column}` | {code} | {mine} | {scientific(largest)} | "
+            f"{scientific(median)} |"
+        )
+        assert row in text, row
+    assert (round(float(m["tsr"].min()), 2), round(float(m["tsr"].max()), 3)) == (
+        -0.10,
+        -0.002,
+    )
+    assert (round(m["L"].min()), round(m["L"].max(), 1)) == (-326, -4.5)
+
+
+def test_coare_guide_points_to_its_script_and_figure() -> None:
+    text = COARE_GUIDE.read_text(encoding="utf-8")
+    assert "(examples/coare_system.py)" in text
+    assert re.search(r"!\[[^]]+\]\(images/coare-system\.png\)", text)
+    assert (ROOT / "docs" / "images" / "coare-system.png").exists()
+    assert python_blocks(COARE_GUIDE) == []
+
+
+def test_coare_example_writes_its_plot(
+    coare: Any,
+    coare_results: dict[str, Any],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(coare, "compute", lambda: coare_results)
+    output = tmp_path / "plot.png"
+    coare.main(str(output))
+    assert output.read_bytes().startswith(b"\x89PNG")

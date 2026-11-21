@@ -2,13 +2,13 @@
 
 An assessment file for those who approve the use of nomogram on a
 laboratory network, in particular one without direct Internet access,
-and for the users who prepare that request. State as of 8 November 2026.
+and for the users who prepare that request. State as of 21 November 2026.
 
 | Item | Value |
 |---|---|
 | Component | nomogram, a Python library of scientific formulas |
-| Published version assessed | 0.7.0 (8 November 2026), on PyPI |
-| State of development | `develop` branch as of 8 November 2026 |
+| Published version assessed | 0.8.0 (21 November 2026), on PyPI |
+| State of development | `develop` branch as of 21 November 2026 |
 | Repository | <https://github.com/miki4iaml/nomogram> |
 | Licence | BSD-3-Clause (code); CC BY 4.0 and CC0 1.0 (third-party data) |
 | Persistent identifier | concept DOI 10.5281/zenodo.23373134 (Zenodo) |
@@ -47,10 +47,10 @@ to a fixed, verifiable text.
 |---|---|
 | Run time | No network access, no subprocess, no telemetry, no file written unless explicitly asked. Works entirely offline. |
 | Input data | Data is plain TOML and JSON, read by the standard library; no serialized Python objects. Formulas are read by a whitelist parser, also tested on random texts; `eval`, `sympify` and `parse_expr` are banned from the code by a blocking rule. |
-| Dependencies | Three direct dependencies (numpy, pint, sympy), under permissive licences; matplotlib as an option. |
+| Dependencies | Four direct dependencies (mpmath, numpy, pint, sympy), under permissive licences; matplotlib as an option. |
 | Approach | DevSecOps principles applied from planning to publication on PyPI, with the security features GitHub offers public repositories (section 12). |
 | Development | Protected branches, mandatory review, signed and verified commits, blocking automated checks, code analysis (CodeQL), secret detection. |
-| Alerts | 59 Dependabot alerts, all fixed, none on a run-time dependency; 2 CodeQL alerts, in tests, fixed before merging; no secret detected (section 5.5). |
+| Alerts | 58 Dependabot alerts, all fixed, none on a run-time dependency; 2 CodeQL alerts, in tests, fixed before merging; no secret detected (section 5.5). |
 | Publication | Single build, attestations of provenance (SLSA Build Level 2) and of the software bill of materials (SBOM), publication without a stored token, after human approval. |
 | Licences and sources | BSD-3-Clause code; third-party data attributed; every formulation is tied to its source, or declared derived by nomogram. |
 | Regulation | No personal data processed; free software, not monetised; the right of rights holders to opt out respected. |
@@ -64,15 +64,21 @@ evaluates them.
 
 **Run-time dependencies** (package installed without options) [public]:
 
-| Dependency | Version as of 8 November 2026 | Licence |
+| Dependency | Version as of 21 November 2026 | Licence |
 |---|---|---|
 | numpy | 2.5.4 | BSD-3-Clause (and 0BSD, MIT, Zlib, CC0 components) |
 | sympy | 1.14.0 | BSD |
-| mpmath (required by sympy) | 1.3.0 | BSD |
+| mpmath | 1.3.0 | BSD |
 | pint | 0.26.2 | BSD |
 | flexcache, flexparser (required by pint) | 0.3, 0.4 | BSD |
 | platformdirs (required by pint) | 4.12.2 | MIT |
 | typing_extensions (required by pint) | 4.16.0 | PSF-2.0 |
+
+mpmath, which sympy requires, is also declared directly: nomogram uses its
+interval arithmetic to prove that a formulation is monotonic
+(`nomogram.monotonicity`). Its one known vulnerability, CVE-2021-29063
+(a regular expression slow on crafted input, before version 1.3.0), is
+excluded by the lowest version declared.
 
 The `viz` extra adds matplotlib and its own dependencies, for plots
 only. `pyproject.toml` declares lowest versions, not pinned ones: see
@@ -120,7 +126,8 @@ described in [NOTICE.md](../src/nomogram/data/NOTICE.md).
   `sympy.lambdify`, which generates and compiles Python code from the
   validated tree: no text supplied by the user is executed as such; its
   variables are renamed with a reserved prefix, so that none shadows a
-  name of the generated code;
+  name of the generated code. The same holds for its derivative, compiled
+  to mpmath's interval functions to prove monotonicity;
 - limits bound the resources spent reading a formula: at most 2,000
   characters per expression, and at most 1,000 digits for a power or an
   exponential computed exactly;
@@ -169,8 +176,8 @@ identically in continuous integration [public:
   ([check_image_metadata.py](../scripts/check_image_metadata.py));
 - format of commit messages (Conventional Commits).
 
-**Tests** [public]: 2,803 tests as of 8 November 2026, run on the full,
-blocking matrix; branch coverage measured (99 % as of 8 November
+**Tests** [public]: 2,967 tests as of 21 November 2026, run on the full,
+blocking matrix; branch coverage measured (99 % as of 21 November
 2026), with a floor of 80 % required in every configuration.
 
 **Randomized tests of the expression parser** [public:
@@ -226,15 +233,15 @@ as diffs, never run in an environment where an agent works [public:
 
 ### 5.5 Alerts raised and handled
 
-As of 8 November 2026 [administrator: Security tab; public: the pull
+As of 21 November 2026 [administrator: Security tab; public: the pull
 requests cited]:
-- **Dependabot alerts**: 59, all fixed, none on a run-time dependency.
-  41 concerned Pillow, which matplotlib brings with the `viz` extra; the
+- **Dependabot alerts**: 58, all fixed, none on a run-time dependency.
+  40 concerned Pillow, which matplotlib brings with the `viz` extra; the
   lock file was updated the same day ([#66](https://github.com/miki4iaml/nomogram/pull/66)). 18 concerned virtualenv and
   filelock, which pre-commit brings with the development tools; a
   Dependabot pull request updated them ([#71](https://github.com/miki4iaml/nomogram/pull/71)).
-- **Dependabot version updates**: four pull requests, merged ([#5](https://github.com/miki4iaml/nomogram/pull/5), [#71](https://github.com/miki4iaml/nomogram/pull/71),
-  [#154](https://github.com/miki4iaml/nomogram/pull/154), [#176](https://github.com/miki4iaml/nomogram/pull/176)), read as diffs since 31 October (section 5.4); the last
+- **Dependabot version updates**: five pull requests, merged ([#5](https://github.com/miki4iaml/nomogram/pull/5), [#71](https://github.com/miki4iaml/nomogram/pull/71),
+  [#154](https://github.com/miki4iaml/nomogram/pull/154), [#176](https://github.com/miki4iaml/nomogram/pull/176), [#216](https://github.com/miki4iaml/nomogram/pull/216)), read as diffs since 31 October (section 5.4); the last
   one showed that pytest 9.2 broke a test, fixed first ([#179](https://github.com/miki4iaml/nomogram/pull/179)).
 - **CodeQL**: two alerts, both in tests, fixed before their pull request
   was merged: a test variable named like a secret ([#147](https://github.com/miki4iaml/nomogram/pull/147)), an imprecise
@@ -261,7 +268,7 @@ The maintainer keeps a log of the alerts and of how each was handled
   stored token), after **human approval** of the protected `pypi`
   environment, restricted to `v*` tags.
 - PyPI shows the provenance attestation of each published file
-  (PEP 740); for the wheel and the source archive of version 0.7.0, it
+  (PEP 740); for the wheel and the source archive of version 0.8.0, it
   names the repository `miki4iaml/nomogram`, the workflow `release.yml`
   and the environment `pypi`.
 - Each published version is archived on Zenodo, with its own DOI.
@@ -269,7 +276,7 @@ The maintainer keeps a log of the alerts and of how each was handled
 **Verification** [user, on a connected workstation]:
 
 ```
-gh attestation verify nomogram-0.7.0-py3-none-any.whl --repo miki4iaml/nomogram
+gh attestation verify nomogram-0.8.0-py3-none-any.whl --repo miki4iaml/nomogram
 ```
 
 ## 7. Installation on a network without Internet access
@@ -279,7 +286,7 @@ A suggested procedure, to adapt to local rules [user]:
    for the target platform:
 
    ```
-   python -m pip download nomogram==0.7.0 --dest packages --only-binary=:all:
+   python -m pip download nomogram==0.8.0 --dest packages --only-binary=:all:
    ```
 
    For a platform or Python version other than the workstation's, add
@@ -291,7 +298,7 @@ A suggested procedure, to adapt to local rules [user]:
 4. On the target workstation, install without network access:
 
    ```
-   python -m pip install --no-index --find-links packages nomogram==0.7.0
+   python -m pip install --no-index --find-links packages nomogram==0.8.0
    ```
 
    To lock versions and digests, use a requirements file with hashes

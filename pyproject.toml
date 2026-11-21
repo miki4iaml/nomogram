@@ -1,6 +1,6 @@
 [project]
 name = "nomogram"
-version = "0.7.0"
+version = "0.8.0"
 description = "Repository of scientific formulas: notations, units, validity domains"
 readme = "README.md"
 authors = [
@@ -37,6 +37,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "mpmath>=1.3.0",
     "numpy>=2.0",
     "pint>=0.24.4",
     "sympy>=1.14",

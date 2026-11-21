@@ -170,10 +170,47 @@ point t_d = f⁻¹(e):
 
 Inverting a formulation over ice gives the frost point the same way.
 
+A numerical inverse is unique only if its source is **monotonic** over
+the interval searched, and nomogram **proves** it before solving, by
+interval arithmetic (mpmath's `iv`, whose bounds are rigorous): the
+derivative, bounded on sub-intervals halved until its bounds exclude
+zero, keeps one sign, and the function stays finite there (no pole).
+Where no proof concludes (a derivative that vanishes at a point, as
+that of x³ at 0), it checks samples: the grid of the solver of implicit
+equations, geometric near each end and around zero, and 2001 evenly
+spaced points. A derivative that changes sign, proven or on the
+samples, refuses the inverse; the verdict goes with the inverse
+(`NumericalInverse.monotonicity`), and the bisection follows the
+direction proven. The junctions of a piecewise definition are measured
+too: the published coefficients of ITU-R P.835 join the layers of its
+standard atmosphere to about 10⁻⁵ (226.3206 hPa at the top of the first,
+226.3226 hPa at the bottom of the second), so its pressure steps back by
+8.9 × 10⁻⁶ of its value where it should keep decreasing. A pressure
+within the step has two altitudes, the step divided by the slope of the
+branches there apart: 5.6 cm of altitude at 11 km, and 10.3 cm at 71 km,
+where the pressure steps back by 1.6 × 10⁻⁵ for a nearly equal relative
+slope. nomogram gives both, the step relative to the value and this
+width on the input (`steps`, `widths`). The inverse accepts a step up to
+10⁻⁴ of the value by default (`STEP_BACK_TOLERANCE`); the caller may set
+instead the width accepted on the solved variable, in its unit
+(`step_back=`: an altitude within 20 cm, say, accepts the 10.3 cm of the
+71 km junction, which 10 cm refuses). Within an accepted step, a target
+has two solutions, at most `widths` apart, and the inverse gives either.
+
+The same proof is open to the caller:
+`nomogram.monotonicity.monotonicity(formulation, input, over)` says
+whether a formulation is monotonic in one input over a box the caller
+chooses: proven, refuted (with a counterexample), or unproven, with its
+method. KEYPS, below, is proven increasing in ζ over −1000 ≤ ζ ≤ 0,
+with Φ_M from 10⁻³ to 10³. It is a property nomogram computes, with its
+box, never a validity domain.
+SymPy's `is_monotonic` does not serve: read in SymPy 1.14, it answers
+no for x³ over [−1, 1], and yes for a function that jumps down.
+
 A piecewise definition (over ice below 0 degC, over water above) is
 inverted branch by branch, with a clear limit: **each branch must be
-strictly monotonic on its interval**. nomogram checks it on samples,
-solves each branch, and takes the image of each interval as the
+strictly monotonic on its interval**. nomogram proves it, or checks it
+on samples where no proof concludes, solves each branch, and takes the image of each interval as the
 condition of its inverse branch (e < 6.112 hPa, then e ≥ 6.112 hPa); a
 gap between two images, where no temperature gives the vapour pressure,
 has no inverse (NaN). A branch that is not strictly monotonic, has no
@@ -181,8 +218,13 @@ closed form, or whose image overlaps another's makes the whole inverse
 numerical. Most formulas of the field meet the condition: saturation
 pressures, layers of a standard atmosphere. A constant branch does not:
 the 0 and 1 of a mixed-phase fraction are each reached on a whole
-interval of temperatures, and the numerical inverse returns one end of
-it, within the interval searched.
+interval of temperatures. The numerical inverse returns the end where
+the values below the target stop: 273.16 K for 1, the bottom of the
+interval of 1; and for 0, which no value lies below, the bottom of the
+interval searched (230 K when the search starts at 230 K), an answer
+that depends on that interval. Where a source jumps forward at a
+junction, the values in between have no solution: NaN, as for the
+symbolic inverse by branches, and a `RootWarning` that counts them.
 Every inverse is tested **both ways**, for every formulation over water
 (f(f⁻¹(e)) = e, below), and every formulation over ice through the
 frost point (f⁻¹(f(t)) = t):
@@ -204,12 +246,69 @@ physical domains on the output and the bounds of its kind allow (φm ≥ 0,
 the shear of a wind increasing with height, rules out the negative
 root), and returns it only if it is the one root there. Otherwise, no
 root, several, or a residual undefined around one, the value is NaN and
-a warning says which. A root is kept where the residual falls, from the
-ends of the interval bisected, to a millionth of its size there: across
+a warning says which. Each bracket of a root is narrowed to adjacent
+floats by Chandrupatla's method (1997: inverse quadratic interpolation
+where it is safe, halving otherwise). A root is kept where the residual
+falls, from the ends of its bracket, to a millionth of its size there:
+across
 a jump between pieces it does not fall, at a pole it grows. Solved this way, KEYPS is tested against its form
 explicit in ζ, ζ = (φm⁴ − 1)/(γ₁ φm³), to 10⁻¹², against the slope
 γ₁/4 = 2.25 at neutral the source gives (p. 184), and against the
 explicit formula it compares with (equation 8).
+
+Some sources iterate several coupled formulas until they agree: the
+surface layer of COARE 3.6 takes the friction velocity from the Obukhov
+length, the length from the scales, the scales from the roughness
+lengths, and loops ten times. nomogram writes such a model as a system
+(`nomogram.systems.System`), a multivariate measurement model in the
+words of JCGM 102:2011 (3.8): equations, each given by a formulation of
+the catalog, listed in the order the source computes them; the
+variables read before they are given are its unknowns, the others are
+computed from them. It solves them by Newton's method, damped by a line
+search: SymPy derives each formulation exactly, and the chain rule
+assembles the Jacobian through the conversions of units, so that a
+linear system without conventional scales is solved in one step (the
+slope of a conversion between conventional scales is a central
+difference). Newton's method finds a solution near its start, the first
+guess the system gives (the source's, or a simpler one its note states),
+and starts again from a few passes of the fixed point where a residual
+is undefined there: nomogram says converged, never unique; the unknown
+of an implicit equation stays where its root is sought, as for the
+formulation alone. Without convergence, or with a singular Jacobian, the
+values are NaN and a warning counts them; inputs outside a domain are
+not solved. The passes the source iterates remain available
+(`method="fixed-point"`), from the system's first guess; their residual
+is reported, not tested. The loop of COARE 3.6 is such a system
+(`coare36_surface_layer`): given the inputs the code computes, it gives
+back the outputs of the code to about 10⁻⁶ for the friction velocity,
+the humidity scale, the roughness length and the gustiness, 10⁻⁵ for
+the Obukhov length and 5 × 10⁻⁵ for the temperature scale, the value
+nearest 0, which follows the skin temperature of the data, given to
+seven digits; its ten passes, written as a loop over the formulations,
+to 10⁻¹².
+
+The profile functions of Monin-Obukhov similarity integrate the gradient
+functions, ψ(ζ) = ∫₀^ζ (1 − φ(x))/x dx (Paulson, 1970), and nomogram
+derives one from the other (`nomogram.similarity`): `profile_function`
+integrates a gradient function in closed form with SymPy, branch by
+branch for a piecewise definition, checks the closed form against a
+numerical quadrature, and refuses where there is none in the syntax of
+expressions; `gradient_function` differentiates back, φ = 1 − ζ dψ/dζ.
+Both give ordinary formulations, derived by nomogram. Against the pairs
+of the catalog: the integral of the gradient function of Businger and
+Dyer is the form of Paulson the IFS takes, to 10⁻¹⁵; those of Beljaars
+and Holtslag (1991) are the profile functions the IFS takes in stable
+conditions, those of SHEBA for heat, of Cheng and Brutsaert and of
+Businger (1985) theirs, to 10⁻¹⁵. The gradient functions the IFS takes
+in stable conditions are not those its profile functions integrate: at
+ζ = 0.1, their integrals depart from them by +1.6 % for momentum and
++78 % for heat. For SHEBA's gradient function for momentum, SymPy writes
+the integral with complex roots of unity: refused, though its profile
+function is that integral, by quadrature, to 10⁻¹⁰. The mean profile
+function Fairall et al. (1978) print in their appendix B departs from the
+integrals of their gradient functions, by −18 % at ζ = −1 for the wind;
+their equation 20, implicit in ζ through the profile functions, is
+solved as a system with the integrals.
 
 ## 7. What the tests guarantee, and what they do not
 
@@ -221,8 +320,17 @@ They guarantee that:
   every coefficient, consistent with the expression);
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
+- a numerical inverse is solved over an interval where its source is
+  monotonic, proven or found so on samples, or steps back only at
+  junctions, by no more than `STEP_BACK_TOLERANCE` of its value (or
+  `step_back` on the input);
 - the root of an implicit equation is the one root in the interval
   searched, or NaN with a warning;
+- the solution of a system by Newton's method satisfies each of its
+  equations to 10⁻¹², relative to the size of its terms (10⁻⁸ where the
+  rounding of terms that nearly cancel stops it), or is NaN with a
+  warning; the passes of a fixed point report their residual
+  (`Solution.residual`) and do not test it;
 - the Python examples of the README and of the guides run (those of the
   sea water guide give the values their comments state), and the README
   code is the code that drew its plot.
@@ -232,12 +340,23 @@ They do not guarantee that:
 - a reference marked `to-confirm` is right: that is why it says so;
 - a secondary source quoted its original correctly;
 - a formulation is physically meaningful outside its domain;
-- a numerical inverse is unique: the source is assumed monotonic over
-  the interval searched;
+- a numerical inverse is unique where the monotonicity of its source was
+  found on samples only: between two samples, a turn goes unseen; nor
+  within a step back it accepts at a junction, where a target has two
+  solutions, at most `widths` apart;
+- the solution of a system is its only one: Newton's method finds the
+  one near its start;
 - every root of an implicit equation is seen: two roots closer than the
   step of the search grid, or a double root, where the residual does not
-  change sign, escape it; and a jump between pieces smaller than a
-  millionth of the residual's change around it is taken for a root.
+  change sign, escape it, as does a root closer than 10⁻¹² times its
+  scale to the edge of a region where the residual is undefined, or
+  closer than about 10⁻⁹ of its value to a finite end of the interval
+  searched; and a jump between pieces smaller than a millionth
+  of the residual's change around it is taken for a root;
+- a numerical inverse gives the only solution where its source is
+  constant on part of the interval searched: a target equal to that
+  value has a whole interval of solutions, and the inverse gives one end
+  of it, or an end of the interval searched.
 
 ## Contributing to this effort
 

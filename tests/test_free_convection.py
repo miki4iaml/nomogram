@@ -106,14 +106,26 @@ def test_the_free_convection_velocity_and_wind_of_the_ifs() -> None:
 
 
 def test_the_free_convection_entries_are_found() -> None:
-    gusts = {f.key for f in CATALOG.formulations_of("ConvectiveVelocityScale")}
-    assert gusts == {
-        "ecmwf_ifs_free_convection_velocity_scale",
-        "coare36_convective_gust",
-    }
+    scales = {f.key for f in CATALOG.formulations_of("ConvectiveVelocityScale")}
+    assert scales == {"ecmwf_ifs_free_convection_velocity_scale"}
+    gustiness = {f.key for f in CATALOG.formulations_of("GustinessVelocity")}
+    assert gustiness == {"coare36_convective_gust", "fairall1996_gustiness_velocity"}
+    found = CATALOG.search("gustiness").refs
+    assert {"kinds.GustinessVelocity", "trade_terms.gustiness"} <= set(found)
     fluxes = {f.key for f in CATALOG.formulations_of("KinematicHeatFlux")}
     assert fluxes == {
         "ecmwf_ifs_virtual_temperature_flux",
         "coare36_virtual_temperature_flux",
     }
     assert "kinds.ConvectiveVelocityScale" in CATALOG.search("convective").refs
+
+
+def test_a_convective_velocity_scale_feeds_a_gustiness_only_through_beta() -> None:
+    # w_* and w_g = beta W_* are siblings: neither stands for the other,
+    # the definition of Fairall et al. (1996, equation 16) links them.
+    from nomogram.comparison import feeds
+
+    assert not feeds("ConvectiveVelocityScale", "GustinessVelocity")
+    assert not feeds("GustinessVelocity", "ConvectiveVelocityScale")
+    w_g = F["fairall1996_gustiness_velocity"].evaluate(W_s=Q_(0.8, "m/s"))
+    assert w_g.to("m/s").magnitude == pytest.approx(1.0, rel=1e-15)

@@ -4,6 +4,7 @@
 """Tests for :mod:`nomogram.inversion`: dew point by symbolic or numerical inversion."""
 
 import math
+import re
 from typing import Any
 
 import numpy as np
@@ -13,7 +14,13 @@ import sympy
 from nomogram.catalog import catalog, load_catalog
 from nomogram.comparison import compose
 from nomogram.inversion import InversionError, NumericalInverse, dew_point, invert
-from nomogram.model import Formulation, OutOfDomainError, ValidityWarning, Variable
+from nomogram.model import (
+    Formulation,
+    OutOfDomainError,
+    RootWarning,
+    ValidityWarning,
+    Variable,
+)
 from nomogram.units import Q_
 
 CATALOG = catalog()
@@ -247,6 +254,76 @@ reference = "src"
 
 [[formulations.offset_name.citations.domains]]
 bounds = { T = [250.0, 320.0] }
+
+[formulations.cube]
+label = "Increasing, its derivative zero at 0"
+expression = "t ** 3"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.cube.citations]]
+reference = "src"
+
+[formulations.pole]
+label = "Decreasing on either side of a pole"
+expression = "1 / t"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.pole.citations]]
+reference = "src"
+
+[formulations.pole_off]
+label = "Decreasing on either side of a pole between samples"
+expression = "1 / (t - pi / 10)"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.pole_off.citations]]
+reference = "src"
+
+[formulations.root_of]
+label = "Undefined below -1"
+expression = "sqrt(t + 1)"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.root_of.citations]]
+reference = "src"
+
+[formulations.gap]
+label = "No branch between 0 and 1"
+expression = "piecewise((t, t < 0), (t + 1, t >= 1))"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.gap.citations]]
+reference = "src"
+
+[formulations.back_at_end]
+label = "A step back at t = 1"
+expression = "piecewise((t + 100, t < 1), (t, t >= 1))"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.back_at_end.citations]]
+reference = "src"
+
+[formulations.jump]
+label = "A step forward at t = 1"
+expression = "piecewise((t, t < 1), (t + 1, t >= 1))"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.jump.citations]]
+reference = "src"
 """
 TESTS = load_catalog([DECREASING]).formulations
 TEMPERATURE = Variable("t", "CelsiusTemperature", "DEG_C", "temperature")
@@ -262,6 +339,148 @@ def test_decreasing_function_inverts_numerically() -> None:
     )
     assert inverse.key == "down_inverse"
     assert inverse.label.startswith("Inverse of:")
+
+
+def test_a_numerical_inverse_records_the_proof_of_its_monotonicity() -> None:
+    inverse = dew_point(FORMULATIONS["goff_gratch1946"])
+    assert isinstance(inverse, NumericalInverse)
+    proof = inverse.monotonicity
+    assert proof is not None
+    assert (proof.status, proof.direction) == ("proven", "increasing")
+    assert dict(proof.over) == {inverse.source.inputs[0].identifier: inverse.search}
+
+
+def test_without_a_proof_monotonicity_is_found_on_samples() -> None:
+    inverse = invert(
+        TESTS["cube"],
+        "t",
+        output=TEMPERATURE,
+        input=PRESSURE,
+        method="numerical",
+        search=(-20.0, 20.0),
+    )
+    assert isinstance(inverse, NumericalInverse)
+    assert inverse.monotonicity is not None
+    assert inverse.monotonicity.status == "unproven"
+    assert re.search(r"monotonic on \d+ samples", inverse.monotonicity.method)
+    assert inverse.evaluate(p=Q_(8.0, "Pa")).magnitude == pytest.approx(2.0, abs=1e-9)
+
+
+def test_no_numerical_inverse_where_samples_show_no_monotonicity() -> None:
+    with pytest.raises(
+        InversionError, match=r"not monotonic in t over .* on \d+ samples"
+    ):
+        invert(
+            TESTS["pole_off"],
+            "t",
+            output=TEMPERATURE,
+            input=PRESSURE,
+            method="numerical",
+            search=(-1.0, 1.0),
+        )
+
+
+@pytest.mark.parametrize(
+    ("key", "search", "message"),
+    [
+        # Infinite at the sample t = 0.
+        ("pole", (-1.0, 1.0), r"undefined at 1 of \d+ samples over"),
+        ("gap", (-1.0, 2.0), r"undefined at \d+ of \d+ samples over"),
+        ("root_of", (-2.0, 3.0), "undefined at an end of the search interval"),
+        # The end t = 1 belongs to the second branch, 100 below.
+        ("back_at_end", (0.0, 1.0), "steps back by 0.99 of its value at t = 1.0"),
+    ],
+)
+def test_no_numerical_inverse_where_its_source_is_undefined_or_steps_back(
+    key: str, search: tuple[float, float], message: str
+) -> None:
+    with pytest.raises(InversionError, match=message):
+        invert(
+            TESTS[key],
+            "t",
+            output=TEMPERATURE,
+            input=PRESSURE,
+            method="numerical",
+            search=search,
+        )
+
+
+@pytest.mark.parametrize("search", [(1.0, 1.0), (2.0, 1.0), (0.0, math.inf)])
+def test_a_search_interval_is_finite_and_increasing(
+    search: tuple[float, float],
+) -> None:
+    with pytest.raises(InversionError, match="finite and increasing"):
+        invert(
+            TESTS["down"],
+            "t",
+            output=TEMPERATURE,
+            input=PRESSURE,
+            method="numerical",
+            search=search,
+        )
+
+
+def test_no_solution_in_a_gap_of_the_image() -> None:
+    # The source jumps forward from 1 to 2 at t = 1: 1.5 has no solution.
+    inverse = invert(
+        TESTS["jump"],
+        "t",
+        output=TEMPERATURE,
+        input=PRESSURE,
+        method="numerical",
+        search=(0.0, 2.0),
+    )
+    assert isinstance(inverse, NumericalInverse)
+    assert inverse.monotonicity is not None
+    assert inverse.monotonicity.status == "proven"
+    with pytest.warns(RootWarning, match="1 within a gap of the image of jump"):
+        found = inverse.evaluate(p=Q_([0.5, 1.5, 2.5], "Pa")).magnitude
+    assert found[0] == pytest.approx(0.5, abs=1e-12)
+    assert math.isnan(found[1])
+    assert found[2] == pytest.approx(1.5, abs=1e-12)
+    # A source of the catalog: the profile coefficient of Paulus (1989),
+    # 0.06452 below Ri_b = -0.12 and 0.06496 above.
+    paulus = FORMULATIONS["paulus1989_profile_coefficient"]
+    ri_b, gamma = paulus.inputs[0], paulus.output
+    coefficient = invert(
+        paulus,
+        "Ri_b",
+        output=Variable("Ri_b", ri_b.kind, ri_b.unit, "Ri_b"),
+        input=Variable("Gamma_e", gamma.kind, gamma.unit, "Gamma_e"),
+        method="numerical",
+        search=(-5.0, 0.0),
+    )
+    with pytest.warns(RootWarning, match="2 within a gap"):
+        within = coefficient.evaluate(
+            outside="ignore", Gamma_e=Q_([0.0647, 0.0649], "")
+        )
+    assert np.isnan(within.magnitude).all()
+    # Beyond the image, NaN without a warning, as before.
+    beyond = inverse.evaluate(p=Q_([5.0], "Pa")).magnitude
+    assert math.isnan(beyond[0])
+
+
+def test_dew_point_passes_step_back_on() -> None:
+    with pytest.raises(InversionError, match="step_back must be positive or zero"):
+        dew_point(FORMULATIONS["goff_gratch1946"], step_back=-1.0)
+
+
+def test_a_numerical_inverse_built_directly_has_no_proof() -> None:
+    checked = invert(
+        TESTS["down"], "t", output=TEMPERATURE, input=PRESSURE, method="numerical"
+    )
+    assert isinstance(checked, NumericalInverse)
+    direct = NumericalInverse(
+        key="direct",
+        label="direct",
+        output=checked.output,
+        input=checked.input,
+        source=checked.source,
+        search=checked.search,
+        derivation=checked.derivation,
+    )
+    assert direct.monotonicity is None
+    assert direct.evaluate(p=Q_(700.0, "Pa")).magnitude == pytest.approx(30.0, abs=1e-9)
 
 
 SCALED = """

@@ -80,18 +80,24 @@ def same_state(kind_a: str, kind_b: str) -> bool:
     return kind_a == kind_b or {kind_a, kind_b} <= TEMPERATURE_POINTS
 
 
-def feeds(output_kind: str, input_kind: str) -> bool:
+def feeds(
+    output_kind: str, input_kind: str, kinds: Mapping[str, Any] | None = None
+) -> bool:
     """Whether a result of one kind may feed an input of another.
 
     It may when the kinds are the same, or when the result's kind
     specializes the input's (QUDT ``specializationOf``, directly or not):
     a saturation vapour pressure is a vapour pressure. Never the other
     way round, and never a difference for a point, though QUDT makes a
-    temperature difference a temperature.
+    temperature difference a temperature. ``kinds`` are those of the
+    bundled catalog by default, loaded only for two different kinds.
     """
-    from nomogram.catalog import catalog
+    if output_kind == input_kind:
+        return True
+    if kinds is None:
+        from nomogram.catalog import catalog
 
-    kinds = catalog().kinds
+        kinds = catalog().kinds
     kind = kinds.get(output_kind)
     target = kinds.get(input_kind)
     if kind is not None and target is not None and kind.delta and not target.delta:
@@ -105,7 +111,9 @@ def feeds(output_kind: str, input_kind: str) -> bool:
     return output_kind == input_kind
 
 
-def _may_feed(output_kind: str, input_kind: str) -> bool:
+def _may_feed(
+    output_kind: str, input_kind: str, kinds: Mapping[str, Any] | None = None
+) -> bool:
     """Whether a computed value may feed an input of a composition.
 
     As :func:`feeds`; or a temperature in the same state, in kelvins or in
@@ -117,7 +125,7 @@ def _may_feed(output_kind: str, input_kind: str) -> bool:
     from nomogram.catalog import _EVALUATION_POINTS
 
     return (
-        feeds(output_kind, input_kind)
+        feeds(output_kind, input_kind, kinds)
         or same_state(output_kind, input_kind)
         or input_kind in _EVALUATION_POINTS.get(output_kind, ())
     )

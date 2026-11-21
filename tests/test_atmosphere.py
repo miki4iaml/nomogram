@@ -226,7 +226,12 @@ def test_a_layer_of_p835_is_the_general_form_of_the_us_standard_atmosphere() -> 
 
 
 def test_pressure_altitude_by_inversion_and_from_the_nws() -> None:
-    from nomogram.inversion import invert
+    from nomogram.inversion import (
+        STEP_BACK_TOLERANCE,
+        InversionError,
+        NumericalInverse,
+        invert,
+    )
     from nomogram.model import Variable
 
     altitude = invert(
@@ -239,6 +244,31 @@ def test_pressure_altitude_by_inversion_and_from_the_nws() -> None:
     nws = FORMULATIONS["nws_pressure_altitude"].evaluate(P=Q_(500, "hPa"))
     assert p835 == pytest.approx(5574.44, abs=0.01)
     assert p835 - nws.to("m").magnitude == pytest.approx(2.33, abs=0.01)
+    # Its layers join with small steps back, which the inverse accepts.
+    assert isinstance(altitude, NumericalInverse)
+    proof = altitude.monotonicity
+    assert proof is not None
+    assert (proof.status, proof.direction) == ("refuted", "decreasing")
+    assert proof.steps[11.0] == pytest.approx(8.89e-6, rel=1e-3)
+    assert max(proof.steps.values()) < STEP_BACK_TOLERANCE
+    # In altitude, 5.6 cm at 11 km and 10.3 cm at 71 km, where the step
+    # back is larger (1.6e-5) for a nearly equal relative slope.
+    assert proof.widths[11.0] == pytest.approx(5.6e-5, rel=1e-2)
+    assert proof.widths[71.0] == pytest.approx(1.03e-4, rel=1e-2)
+
+    def within(step_back: float) -> Any:
+        return invert(
+            FORMULATIONS["itu_r_p835_pressure"],
+            "H",
+            output=Variable("H_p", "PressureAltitude", "KiloM", "Pressure altitude"),
+            input=Variable("P", "Pressure", "HectoPA", "Pressure"),
+            step_back=step_back,
+        )
+
+    with pytest.raises(InversionError, match="H = 71.0"):
+        within(1e-4)
+    at_500 = within(2e-4).evaluate(P=Q_(500, "hPa")).to("m").magnitude
+    assert at_500 == pytest.approx(5574.44, abs=0.01)
 
 
 def test_interpolation_schemes_on_the_reference_atmosphere() -> None:
