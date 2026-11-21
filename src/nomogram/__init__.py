@@ -9,7 +9,8 @@ light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
 :mod:`nomogram.model` and :mod:`nomogram.catalog` (formulations),
 :mod:`nomogram.dimensions`, :mod:`nomogram.comparison`,
 :mod:`nomogram.inversion`, :mod:`nomogram.monotonicity`,
-:mod:`nomogram.systems`, :mod:`nomogram.relations`,
+:mod:`nomogram.systems`, :mod:`nomogram.similarity`,
+:mod:`nomogram.relations`,
 :mod:`nomogram.search`, :mod:`nomogram.display` and :mod:`nomogram.plot`.
 
 Each is also an attribute of the package, imported the first time it is
@@ -37,6 +38,7 @@ if TYPE_CHECKING:
     from nomogram import relations as relations
     from nomogram import search as search
     from nomogram import semantics as semantics
+    from nomogram import similarity as similarity
     from nomogram import systems as systems
     from nomogram import units as units
 
@@ -54,6 +56,7 @@ __all__ = [
     "relations",
     "search",
     "semantics",
+    "similarity",
     "systems",
     "units",
 ]

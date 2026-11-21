@@ -271,6 +271,29 @@ with its own procedure. The loop of COARE 3.6 is such a system
 back the outputs of the code to about 10⁻⁶, and its ten passes, written
 as a loop over the formulations, to 10⁻¹².
 
+The profile functions of Monin-Obukhov similarity integrate the gradient
+functions, ψ(ζ) = ∫₀^ζ (1 − φ(x))/x dx (Paulson, 1970), and nomogram
+derives one from the other (`nomogram.similarity`): `profile_function`
+integrates a gradient function in closed form with SymPy, branch by
+branch for a piecewise definition, checks the closed form against a
+numerical quadrature, and refuses where there is none in the syntax of
+expressions; `gradient_function` differentiates back, φ = 1 − ζ dψ/dζ.
+Both give ordinary formulations, derived by nomogram. Against the pairs
+of the catalog: the integral of the gradient function of Businger and
+Dyer is the form of Paulson the IFS takes, to 10⁻¹⁵; those of Beljaars
+and Holtslag (1991) are the profile functions the IFS takes in stable
+conditions, those of SHEBA for heat, of Cheng and Brutsaert and of
+Businger (1985) theirs, to 10⁻¹⁵. The gradient functions the IFS takes
+in stable conditions are not those its profile functions integrate: at
+ζ = 0.1, their integrals depart from them by +1.6 % for momentum and
++78 % for heat. For SHEBA's gradient function for momentum, SymPy writes
+the integral with complex roots of unity: refused, though its profile
+function is that integral, by quadrature, to 10⁻¹⁰. The mean profile
+function Fairall et al. (1978) print in their appendix B departs from the
+integrals of their gradient functions, by −18 % at ζ = −1 for the wind;
+their equation 20, implicit in ζ through the profile functions, is
+solved as a system with the integrals.
+
 ## 7. What the tests guarantee, and what they do not
 
 They guarantee that:

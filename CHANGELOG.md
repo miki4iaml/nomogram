@@ -49,6 +49,29 @@ and this project adheres to
   sought. The domains of every equation apply to the inputs before
   solving (not solved there) and to every value once solved, as `outside`
   says, or as the source's practice for an equation says.
+- **Profile functions derived from gradient functions**
+  (`nomogram.similarity`): `profile_function` integrates a gradient
+  function of Monin-Obukhov similarity, psi(zeta) = integral from 0 to
+  zeta of (1 - phi(x))/x dx, in closed form with SymPy (branch by branch
+  for a piecewise definition, checked against a quadrature, refused
+  without a closed form in the syntax of expressions), and
+  `gradient_function` differentiates back, phi = 1 - zeta dpsi/dzeta:
+  ordinary formulations, derived by nomogram (`Derivation` methods
+  `"integration"`, `"differentiation"`). The integral of Businger-Dyer is
+  the form of Paulson the IFS takes; the stable gradient functions of the
+  IFS are not those its profile functions integrate (+78 % for heat at
+  zeta = 0.1).
+- Fairall et al. (1978): equation 21, the first estimate of the
+  stability parameter from the bulk differences
+  (`fairall1978_bulk_stability_parameter`), equation 20, the stability
+  parameter from it, the profile functions as inputs
+  (`fairall1978_stability_parameter`), solved as a system with the
+  derived profile functions; and the mean profile function of their
+  appendix B as printed (`fairall1978_profile_function_momentum`,
+  `_heat`), which departs from the integrals of their gradient functions
+  (-18 % at zeta = -1 for the wind). Their C_TN, the coefficient of the
+  temperature scale (T_* = C_TN^(1/2) dT), is not the neutral Stanton
+  number: a sibling kind, `NeutralTemperatureScaleCoefficient`.
 - **Systems in the catalog**: a `[systems.<key>]` section (format
   unchanged), `Catalog.systems` and `Catalog.systems_of(kind)`; a system
   is found by its names and by the kinds it gives, and linked to its
