@@ -649,3 +649,92 @@ def test_a_nan_input_gives_nan_silently() -> None:
 def test_values_taken_as_they_are() -> None:
     system = linear()
     assert system.evaluate(scale="ignore", a=one(7.0), b=one(4.0)).status == CONVERGED
+
+
+# --- The systems of a catalog --------------------------------------------
+
+SYSTEM_ENTRIES = entry("fx", "(a - y) / 2", "x", ["a", "y"]) + entry(
+    "fy", "(b - x) / 3", "y", ["b", "x"]
+)
+SYSTEM = """
+[systems.pair]
+label = "Two linear equations"
+equations = [{ formulation = "fx" }, { formulation = "fy" }]
+start = { y = "0" }
+"""
+
+
+def test_a_system_in_a_catalog() -> None:
+    from nomogram.catalog import load_catalog
+
+    loaded = load_catalog(
+        [
+            SOURCE
+            + SYSTEM_ENTRIES
+            + SYSTEM.replace(
+                'start = { y = "0" }',
+                'start = { y = "0" }\niterations = 30\nreference = "src"\nnote = "A test."',
+            )
+        ]
+    )
+    system = loaded.systems["pair"]
+    assert system.unknowns == ("y",)
+    assert (system.iterations, system.reference, system.note) == (30, "src", "A test.")
+    assert system.evaluate(a=one(7.0), b=one(4.0))["x"].magnitude == pytest.approx(3.4)
+    assert loaded.systems_of("DimensionlessRatio") == (system,)
+    assert loaded.links["systems.pair"] == (
+        "formulations.fx",
+        "formulations.fy",
+        "kinds.DimensionlessRatio",
+        "references.src",
+    )
+
+
+@pytest.mark.parametrize(
+    ("system", "message"),
+    [
+        (
+            SYSTEM.replace("equations = [", "equations = 3 #["),
+            "non-empty list of equations",
+        ),
+        (SYSTEM.replace('"fy"', '"fz"'), "unknown formulation 'fz'"),
+        (
+            SYSTEM.replace(
+                '{ formulation = "fy" }', '{ formulation = "fy", bind = 3 }'
+            ),
+            "expected a table of names",
+        ),
+        (
+            SYSTEM.replace(
+                '{ formulation = "fy" }', '{ formulation = "fy", outside = "no" }'
+            ),
+            "outside: expected",
+        ),
+        (
+            SYSTEM.replace('start = { y = "0" }', 'start = "0"'),
+            "table of first guesses",
+        ),
+        (
+            SYSTEM.replace(
+                'start = { y = "0" }', 'start = { y = "0" }\niterations = 2.5'
+            ),
+            "number of passes",
+        ),
+        (
+            SYSTEM.replace(
+                'start = { y = "0" }', 'start = { y = "0" }\nreference = "none"'
+            ),
+            "none",
+        ),
+        (
+            SYSTEM.replace('label = "Two linear equations"', "label = 3"),
+            "expected a string",
+        ),
+        (SYSTEM.replace('start = { y = "0" }', "start = {}"), "missing: y"),
+    ],
+)
+def test_invalid_systems_of_a_catalog(system: str, message: str) -> None:
+    from nomogram.catalog import CatalogError, load_catalog
+
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([SOURCE + SYSTEM_ENTRIES + system])

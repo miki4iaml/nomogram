@@ -378,7 +378,7 @@ def duct_results(duct: Any) -> dict[str, Any]:
 def test_evaporation_duct_guide_shows_lines_of_its_script() -> None:
     script = code_lines(DUCT.read_text(encoding="utf-8"))
     blocks = python_blocks(DUCT_GUIDE)
-    assert len(blocks) == 2
+    assert len(blocks) == 3
     for block in blocks:
         for line in code_lines(block):
             assert any(line in candidate for candidate in script), line
@@ -411,13 +411,13 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
     def deviation(mine: Any, theirs: Any) -> float:
         return 100 * float(np.median(np.abs(mine / theirs - 1)))
 
-    # The fixed point over the catalog against the outputs of COARE.
+    # The system of the catalog against the outputs of COARE.
     assert round(deviation(by_coare["u_s"], m["usr"]), 2) == 0.02
-    assert round(deviation(by_coare["z_0M"], m["zo"]), 2) == 0.05
-    assert round(deviation(by_coare["L"], m["L"]), 1) == 0.6
+    assert round(deviation(by_coare["z_0M"], m["zo"]), 2) == 0.04
+    assert round(deviation(by_coare["L"], m["L"]), 1) == 0.5
     assert round(deviation(by_coare["q_s"], m["qsr"]), 1) == 0.8
-    assert round(deviation(by_coare["T_s"], m["tsr"]), 1) == 0.9
-    assert round(float(np.max(np.abs(by_coare["T_s"] - m["tsr"]))), 3) == 0.003
+    assert round(deviation(by_coare["T_s"], m["tsr"]), 2) == 0.01
+    assert float(np.max(np.abs(by_coare["T_s"] - m["tsr"]))) < 2.5e-5
 
     def median(ratio: Any) -> int:
         return round(100 * float(np.median(ratio - 1)))
@@ -448,13 +448,13 @@ def test_evaporation_duct_guide_gives_the_values_it_states(
     assert median(with_ifs / lowest) == 13
     assert median(with_ifs / fairall) == 1
     paulus_jeske = heights["Paulus-Jeske, measurements at 6 m"] / lowest
-    assert median(paulus_jeske) == 65
+    assert median(paulus_jeske) == 64
     assert (
         round(100 * (paulus_jeske.min() - 1)),
         round(100 * (paulus_jeske.max() - 1)),
     ) == (
         46,
-        74,
+        75,
     )
 
 

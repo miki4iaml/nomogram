@@ -129,6 +129,7 @@ All sections are optional; a key may be defined in one file only.
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
+| `[systems.<key>]` | `label`, `equations` (`formulation`), `start` (first guess of each unknown) | `iterations`, `reference`, `note`; per equation `bind`, `outside` |
 
 ### Formulations
 
@@ -1116,6 +1117,49 @@ call = "dry_term_radio_refractivity(1000.0, 293.15)"
   change of a formulation cannot silently depart from what an
   independent implementation gave; `python -m nomogram.catalog verify`
   lists the cross-checks with the verdicts.
+
+## Systems of equations
+
+A system holds equations its source solves together, each given by a
+formulation of the catalog, in the order the source computes them: a
+multivariate measurement model (JCGM 102:2011, 3.8). The variables an
+equation reads before the equation that gives it are its unknowns, what
+the source iterates on; the others it gives are intermediate; the
+variables no equation gives are its inputs.
+`System.evaluate` solves it by Newton's method, or by the passes of the
+source (`method="fixed-point"`); see `nomogram.systems`.
+
+```toml
+[systems.coare36_surface_layer]
+label = "Surface-layer scales of COARE 3.6, solved together (COARE 3.6 code)"
+equations = [
+  { formulation = "coare36_obukhov_length" },
+  { formulation = "edson2013_roughness_length_momentum", outside = "ignore" },
+  # ... the roughness lengths, the scales, the gustiness, in the order of the code
+  { formulation = "coare36_charnock_coefficient", outside = "ignore" },
+]
+start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
+iterations = 10                   # the passes the source runs
+reference = "coare36"
+```
+
+- **`equations`**: the formulations, by key; a variable keeps the
+  identifier the formulation gives it, unless **`bind`** names it
+  otherwise in the system (`bind = { u = "T" }`). A variable given by one
+  equation and taken by another must be of a kind that may feed it, in a
+  unit of the same dimension; no two equations give the same variable.
+- **`outside`**: the source's own practice for the domains of an
+  equation, in place of the option of `evaluate`: `"ignore"` where the
+  source takes a value beyond them, which the note says.
+- **`start`**: a first guess for each unknown, an expression of the
+  inputs in the syntax of expressions, in the unit of the formulation
+  that gives the unknown; Newton's method finds the solution near it.
+- **`iterations`**: the passes of the fixed point the source runs, when
+  it says.
+- A system is found by its key, label, note and the names of its
+  variables, by the kinds of the variables it gives
+  (`search(kind=...)`, `Catalog.systems_of`), and through its links:
+  `uses` lists its formulations, kinds and reference.
 
 ## Units of coefficients
 
