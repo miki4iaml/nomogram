@@ -846,8 +846,10 @@ class Derivation:
         calls, the first formulation called.
     method : str
         ``"symbolic inversion"`` (closed form found by SymPy),
-        ``"numerical inversion"``, ``"composition"``, ``"branches"`` or
-        ``"calls"``.
+        ``"numerical inversion"``, ``"composition"``, ``"branches"``,
+        ``"calls"``, ``"integration"`` (a profile function from a gradient
+        function) or ``"differentiation"`` (back), see
+        :mod:`nomogram.similarity`.
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
