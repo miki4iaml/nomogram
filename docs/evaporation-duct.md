@@ -93,7 +93,8 @@ The loop of COARE is a system of the catalog, `coare36_surface_layer`:
 its formulations in the order the code computes them, whose unknowns are
 the variables read before they are computed in a pass (the three scales,
 the Charnock coefficient and the wind with gustiness), solved together by
-Newton's method, in four steps at most (`nomogram.systems`):
+Newton's method, in four steps at most (`nomogram.systems`; see
+[the loop of COARE 3.6, solved as a system](coare-system.md)):
 
 ```python
 system = CATALOG.systems["coare36_surface_layer"]
