@@ -63,10 +63,12 @@ code stop at about 10⁻¹⁰.
 ## Against the code
 
 The values of the code and of nomogram for the first measurement of the
-test data (wind 12.1 m/s), and the relative deviations over its 109
-measurements, given the inputs the code computes itself (its humidity,
-with the enhancement factor of Buck, its gravity and its viscosity of
-air):
+test data, which gives the system its eleven inputs, $`T`$, $`q`$,
+$`T_0`$, $`q_0`$, $`U`$, $`z_{\mathrm{u}}`$, $`z_{\mathrm{t}}`$,
+$`z_{\mathrm{q}}`$, $`z_{\mathrm{i}}`$, $`\nu`$ and $`g`$ (a wind of
+12.1 m/s), and the relative deviations over its 109 measurements. The
+inputs are those the code computes itself: its humidity, with the
+enhancement factor of Buck, its gravity and its viscosity of air.
 
 | Variable | In the code | COARE, first measurement | nomogram, first measurement | Largest deviation | Median deviation |
 |---|---|---|---|---|---|
