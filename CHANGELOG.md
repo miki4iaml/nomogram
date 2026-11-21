@@ -8,6 +8,25 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-21
+
+Numerical results that nomogram proves and that can be reproduced. Three
+of them:
+
+- The loop of the COARE 3.6 bulk algorithm, written as a system of
+  formulations of the catalog and solved by Newton's method, gives back
+  the outputs of the code to 5.6 × 10⁻⁷ for the friction velocity,
+  7.4 × 10⁻⁶ for the Obukhov length and 5.3 × 10⁻⁵ for the temperature
+  scale ([the guide](docs/coare-system.md)).
+- The monotonicity of a formulation is proven by interval arithmetic, and
+  the junctions of a piecewise definition are measured: the layers of the
+  standard atmosphere of ITU-R P.835 step back by 8.9 × 10⁻⁶ of the
+  pressure at 11 km, 5.6 cm of altitude, which its numerical inverse
+  accepts knowingly.
+- Profile functions are derived from gradient functions in closed form:
+  the mean profile function Fairall et al. (1978) print departs from the
+  integral of their own gradient functions by −18 % at ζ = −1.
+
 ### Added
 
 - **A tolerance at the ends of a stated validity domain**: how far
@@ -1997,7 +2016,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...develop
+[0.8.0]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/miki4iaml/nomogram/compare/v0.4.0...v0.5.0
