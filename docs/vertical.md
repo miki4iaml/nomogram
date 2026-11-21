@@ -178,7 +178,9 @@ prints. The layers meet with small jumps (226.3206 hPa at the top of the
 first, 226.3226 hPa at the bottom of the second). A pressure altitude is
 the inverse of this pressure; the jumps make the images of two layers
 overlap by a few thousandths of a hectopascal, so the inverse is
-numerical, within the 0 to 84.852 km' P.835 states:
+numerical (nomogram measures these steps back, from 3 × 10⁻⁶ to
+2 × 10⁻⁵ of the pressure: `altitude.monotonicity.steps`), within the 0 to 84.852 km'
+P.835 states:
 
 ```python
 from nomogram.catalog import catalog

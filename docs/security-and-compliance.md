@@ -47,7 +47,7 @@ to a fixed, verifiable text.
 |---|---|
 | Run time | No network access, no subprocess, no telemetry, no file written unless explicitly asked. Works entirely offline. |
 | Input data | Data is plain TOML and JSON, read by the standard library; no serialized Python objects. Formulas are read by a whitelist parser, also tested on random texts; `eval`, `sympify` and `parse_expr` are banned from the code by a blocking rule. |
-| Dependencies | Three direct dependencies (numpy, pint, sympy), under permissive licences; matplotlib as an option. |
+| Dependencies | Four direct dependencies (mpmath, numpy, pint, sympy), under permissive licences; matplotlib as an option. |
 | Approach | DevSecOps principles applied from planning to publication on PyPI, with the security features GitHub offers public repositories (section 12). |
 | Development | Protected branches, mandatory review, signed and verified commits, blocking automated checks, code analysis (CodeQL), secret detection. |
 | Alerts | 59 Dependabot alerts, all fixed, none on a run-time dependency; 2 CodeQL alerts, in tests, fixed before merging; no secret detected (section 5.5). |
@@ -68,11 +68,17 @@ evaluates them.
 |---|---|---|
 | numpy | 2.5.4 | BSD-3-Clause (and 0BSD, MIT, Zlib, CC0 components) |
 | sympy | 1.14.0 | BSD |
-| mpmath (required by sympy) | 1.3.0 | BSD |
+| mpmath | 1.3.0 | BSD |
 | pint | 0.26.2 | BSD |
 | flexcache, flexparser (required by pint) | 0.3, 0.4 | BSD |
 | platformdirs (required by pint) | 4.12.2 | MIT |
 | typing_extensions (required by pint) | 4.16.0 | PSF-2.0 |
+
+mpmath, which sympy requires, is also declared directly: nomogram uses its
+interval arithmetic to prove that a formulation is monotonic
+(`nomogram.monotonicity`). Its one known vulnerability, CVE-2021-29063
+(a regular expression slow on crafted input, before version 1.3.0), is
+excluded by the lowest version declared.
 
 The `viz` extra adds matplotlib and its own dependencies, for plots
 only. `pyproject.toml` declares lowest versions, not pinned ones: see
@@ -120,7 +126,8 @@ described in [NOTICE.md](../src/nomogram/data/NOTICE.md).
   `sympy.lambdify`, which generates and compiles Python code from the
   validated tree: no text supplied by the user is executed as such; its
   variables are renamed with a reserved prefix, so that none shadows a
-  name of the generated code;
+  name of the generated code. The same holds for its derivative, compiled
+  to mpmath's interval functions to prove monotonicity;
 - limits bound the resources spent reading a formula: at most 2,000
   characters per expression, and at most 1,000 digits for a power or an
   exponential computed exactly;

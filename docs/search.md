@@ -142,6 +142,16 @@ surface layer, which take g/kg besides the number of their parent, and
 `used_by("constants.R_ecmwf_ifs")` the gas constants the IFS derives
 from R.
 
+## What is computed, not searched
+
+Some properties are computed on demand for a box the caller chooses,
+never stored in the catalog: the monotonicity of a formulation in one of
+its inputs (`nomogram.monotonicity.monotonicity`) is one. It adds no field
+and no name to the index: a search finds the formulation, by its kind or
+its names, and the function then answers for the box given. A numerical
+inverse carries the verdict of its source over the interval it searches
+(`NumericalInverse.monotonicity`).
+
 ## What grows without changing searches
 
 Names come to entries from several sources: identifiers, notations,
