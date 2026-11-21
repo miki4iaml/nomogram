@@ -170,10 +170,36 @@ point t_d = f⁻¹(e):
 
 Inverting a formulation over ice gives the frost point the same way.
 
+A numerical inverse is unique only if its source is **monotonic** over
+the interval searched, and nomogram **proves** it before solving, by
+interval arithmetic (mpmath's `iv`, whose bounds are rigorous): the
+derivative, bounded on sub-intervals halved until its bounds exclude
+zero, keeps one sign, and the function stays finite there (no pole).
+Where no proof concludes (a derivative that vanishes at a point, as
+that of x³ at 0), it checks at least 2001 samples. A derivative that changes
+sign, proven or on the samples, refuses the inverse; the verdict goes
+with the inverse (`NumericalInverse.monotonicity`). The junctions of a
+piecewise definition are measured too: the published coefficients of
+ITU-R P.835 join the layers of its standard atmosphere to about 10⁻⁵
+(226.3206 hPa at the top of the first, 226.3226 hPa at the bottom of
+the second), so its pressure steps back by 9 × 10⁻⁶ of its value where
+it should keep decreasing. The inverse accepts such steps up to 10⁻⁴ of
+the value (`STEP_BACK_TOLERANCE`): the pressure altitude found is then
+within the step of its target.
+
+The same proof is open to the caller:
+`nomogram.monotonicity.monotonicity(formulation, input, over)` says
+whether a formulation is monotonic in one input over a box the caller
+chooses: proven, refuted (with a counterexample), or unproven, with its
+method. KEYPS, below, is proven increasing in ζ over ζ ≤ 0. It is a
+property nomogram computes, with its box, never a validity domain.
+SymPy's `is_monotonic` does not serve: read in SymPy 1.14, it answers
+no for x³ over [−1, 1], and yes for a function that jumps down.
+
 A piecewise definition (over ice below 0 degC, over water above) is
 inverted branch by branch, with a clear limit: **each branch must be
-strictly monotonic on its interval**. nomogram checks it on samples,
-solves each branch, and takes the image of each interval as the
+strictly monotonic on its interval**. nomogram proves it, or checks it
+on samples where no proof concludes, solves each branch, and takes the image of each interval as the
 condition of its inverse branch (e < 6.112 hPa, then e ≥ 6.112 hPa); a
 gap between two images, where no temperature gives the vapour pressure,
 has no inverse (NaN). A branch that is not strictly monotonic, has no
@@ -224,6 +250,8 @@ They guarantee that:
   every coefficient, consistent with the expression);
 - formulations reproduce the published values cited above;
 - derived formulations invert their source, both ways;
+- a numerical inverse is solved over an interval where its source is
+  monotonic, proven, or found so on samples;
 - the root of an implicit equation is the one root in the interval
   searched, or NaN with a warning;
 - the Python examples of the README and of the guides run (those of the
@@ -235,8 +263,8 @@ They do not guarantee that:
 - a reference marked `to-confirm` is right: that is why it says so;
 - a secondary source quoted its original correctly;
 - a formulation is physically meaningful outside its domain;
-- a numerical inverse is unique: the source is assumed monotonic over
-  the interval searched;
+- a numerical inverse is unique where the monotonicity of its source was
+  found on samples only: between two samples, a turn goes unseen;
 - every root of an implicit equation is seen: two roots closer than the
   step of the search grid, or a double root, where the residual does not
   change sign, escape it; and a jump between pieces smaller than a

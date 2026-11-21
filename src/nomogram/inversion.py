@@ -16,11 +16,14 @@ function, and a :class:`~nomogram.model.Derivation` recording its
 origin. When there is none, or when the unknown appears more than
 :data:`SYMBOLIC_MAX_OCCURRENCES` times (to keep the search short), the
 result is a :class:`NumericalInverse`, solved by vectorised bisection
-over a search interval.
+over a search interval, once the formulation is proven monotonic there
+(:func:`nomogram.monotonicity.monotonicity`), or found so on samples when
+no proof concludes; it is refused where the formulation is not.
 
 A piecewise definition is inverted branch by branch, **provided each
-branch is strictly monotonic on its interval** (nomogram checks it on
-samples; a constant branch is not):
+branch is strictly monotonic on its interval** (nomogram proves it by
+interval arithmetic, or checks it on samples when no proof concludes; a
+constant branch is not):
 each branch then needs a closed form, and the images of the intervals,
 which become the conditions of the inverse, must not overlap. Otherwise
 the inverse is numerical.
@@ -64,11 +67,13 @@ from nomogram.model import (
     _check_options,
     _flag_beyond,
 )
+from nomogram.monotonicity import Monotonicity, monotonicity
 from nomogram.semantics import semantic_catalog
 from nomogram.units import Q_, convert
 
 __all__ = [
     "DEW_POINT_SEARCH_CELSIUS",
+    "STEP_BACK_TOLERANCE",
     "SYMBOLIC_MAX_OCCURRENCES",
     "InversionError",
     "NumericalInverse",
@@ -83,6 +88,17 @@ SYMBOLIC_MAX_OCCURRENCES = 3
 #: Interval searched by :func:`dew_point` when the formulation states no
 #: validity domain, in degC: a search interval, not a validity domain.
 DEW_POINT_SEARCH_CELSIUS = (-100.0, 100.0)
+
+#: Largest step back at a junction of a piecewise definition, relative to
+#: the value, that a numerical inverse accepts: a target within the step
+#: has two solutions, either side of the junction, and the one found is
+#: within the step of the target. The published coefficients of the
+#: standard atmospheres join their branches to about 1e-5.
+STEP_BACK_TOLERANCE = 1e-4
+
+#: Points on which a numerical inverse, or a branch, is checked when no
+#: proof of its monotonicity concludes.
+_SAMPLES = 2001
 
 #: Name of the offset coefficient, 273.15 K, added when the result changes
 #: from K to degC or back (t = T - T0, SI Brochure, section 2.3.1).
@@ -287,6 +303,89 @@ def _branch_samples(low: float, high: float, samples: Any) -> Any:
     return np.linspace(start, stop, 51)[1:-1]
 
 
+def _branch_direction(
+    formulation: Formulation,
+    solve_for: str,
+    low: float,
+    high: float,
+    inside: Any,
+    forward: Any,
+) -> int | None:
+    """+1 or -1 when a branch is strictly monotonic, None otherwise.
+
+    Proven by interval arithmetic over the branch's interval, or over the
+    span of its samples where an end is infinite; checked on the samples
+    when no proof concludes.
+    """
+    start = low if np.isfinite(low) else float(inside[0])
+    stop = high if np.isfinite(high) else float(inside[-1])
+    if start < stop:
+        verdict = monotonicity(formulation, solve_for, (start, stop))
+        if verdict.status == "proven":
+            return 1 if verdict.direction == "increasing" else -1
+        if verdict.status == "refuted":
+            return None
+    steps = np.diff(forward(inside))
+    if np.all(steps > 0):
+        return 1
+    if np.all(steps < 0):
+        return -1
+    return None
+
+
+def _checked_monotonicity(
+    formulation: Formulation, solve_for: str, interval: tuple[float, float]
+) -> Monotonicity:
+    """The monotonicity of the source over the search interval, or an error.
+
+    Proven, or refuted by steps back at junctions only, none beyond
+    :data:`STEP_BACK_TOLERANCE`; otherwise checked on samples, which a
+    step back beyond the rounding refutes.
+
+    Raises
+    ------
+    InversionError
+        If the source is not monotonic over the interval.
+    """
+    low, high = interval
+    where = f"over [{low!r}, {high!r}]"
+    verdict = monotonicity(formulation, solve_for, interval)
+    if verdict.direction is not None:
+        largest = max(verdict.steps.values(), default=0.0)
+        if largest <= STEP_BACK_TOLERANCE:
+            return verdict
+        junction = max(verdict.steps, key=verdict.steps.__getitem__)
+        msg = (
+            f"{formulation.key} steps back by {largest:.3g} of its value at "
+            f"{solve_for} = {junction!r}, beyond STEP_BACK_TOLERANCE: a numerical "
+            "inverse would miss the targets within the step"
+        )
+        raise InversionError(msg)
+    if verdict.status == "refuted":
+        at = ", ".join(f"{k} = {v!r}" for k, v in verdict.at.items())
+        msg = (
+            f"{formulation.key} is not monotonic in {solve_for} {where} "
+            f"({verdict.method}, at {at}): give a search interval where it is"
+        )
+        raise InversionError(msg)
+    points = np.linspace(low, high, _SAMPLES)
+    if low > 0 and high / low > 10:
+        points = np.union1d(points, np.geomspace(low, high, _SAMPLES))
+    values = _forward(formulation)(points)
+    values = values[np.isfinite(values)]
+    if values.size >= 2:
+        overall = np.sign(values[-1] - values[0])
+        noise = 1e-9 * float(np.max(np.abs(values)))
+        if overall != 0 and not np.any(overall * np.diff(values) < -noise):
+            method = f"{verdict.method}; monotonic on {points.size} samples"
+            return replace(verdict, method=method)
+    msg = (
+        f"{formulation.key} is not monotonic in {solve_for} {where} on "
+        f"{points.size} samples: give a search interval where it is"
+    )
+    raise InversionError(msg)
+
+
 def _image_condition(
     variable: str,
     lower: tuple[float, bool] | None,
@@ -313,8 +412,9 @@ def _closed_form_of_pieces(
 ) -> tuple[str, list[Coefficient]] | None:
     """A closed-form inverse of a piecewise definition, branch by branch.
 
-    Each branch must be strictly monotonic on its interval (checked on
-    samples) and have a closed-form inverse; the inverse takes the image
+    Each branch must be strictly monotonic on its interval (proven, or
+    checked on samples, see :func:`_branch_direction`) and have a
+    closed-form inverse; the inverse takes the image
     of each interval as its condition, and the images must not overlap.
     One piecewise definition only: with several, ``None``.
     """
@@ -343,8 +443,10 @@ def _closed_form_of_pieces(
         high = float(piece.high.xreplace(values))
         inside = _branch_samples(low, high, samples)
         forward = _forward(formulation, branch)
-        steps = np.diff(forward(inside))
-        if not (np.all(steps > 0) or np.all(steps < 0)):
+        direction = _branch_direction(
+            formulation, solve_for, low, high, inside, forward
+        )
+        if direction is None:
             return None
         found = _closed_form(formulation, branch, solve_for, output, input, inside)
         if found is None:
@@ -354,7 +456,7 @@ def _closed_form_of_pieces(
         for end, closed in ((low, piece.low_closed), (high, piece.high_closed)):
             image = float(forward(np.array(end))) if np.isfinite(end) else np.inf
             ends.append((image, closed) if np.isfinite(image) else None)
-        lower, upper = ends if steps[0] > 0 else ends[::-1]
+        lower, upper = ends if direction > 0 else ends[::-1]
         if lower is None and upper is None:
             return None
         texts.append(f"({source}, {_image_condition(input.identifier, lower, upper)})")
@@ -370,7 +472,7 @@ def _closed_form_of_pieces(
     for (_, _, top, top_closed), (bottom, bottom_open, _, _) in pairwise(spans):
         if top > bottom or (top == bottom and top_closed and not bottom_open):
             return None
-    # Each branch was checked on its samples, and the images do not overlap.
+    # Each branch is monotonic, and the images do not overlap.
     return f"{PIECEWISE}({', '.join(texts)})", coefficients
 
 
@@ -499,10 +601,15 @@ class NumericalInverse:
     """The inverse of a formulation, solved numerically.
 
     Evaluable like a formulation (see :func:`nomogram.comparison.compare`
-    and :func:`~nomogram.comparison.compose`). The source is assumed
-    monotonic over the search interval; values outside its image give
-    NaN, and results outside the source's validity domains follow the
-    ``outside`` option.
+    and :func:`~nomogram.comparison.compose`). :func:`invert` builds it
+    only for a source monotonic over the search interval: proven, or
+    found so on samples when no proof concludes (``monotonicity``). Values
+    outside its image give NaN, and results outside the source's validity
+    domains follow the ``outside`` option. Where a piecewise source steps
+    back at a junction (``monotonicity.steps``, at most
+    :data:`STEP_BACK_TOLERANCE` of the value), a target within the step
+    has two solutions on either side of the junction, and the one found
+    is either.
 
     Attributes
     ----------
@@ -516,6 +623,12 @@ class NumericalInverse:
         Interval of the source's input searched, in its unit.
     derivation : Derivation
         Origin, with ``method="numerical inversion"``.
+    references : tuple of str
+        The references of the source.
+    monotonicity : Monotonicity or None
+        The monotonicity of the source over the search interval, as
+        :func:`invert` checked it; ``None`` for an inverse built directly,
+        whose monotonicity nobody checked.
     """
 
     key: str
@@ -526,6 +639,7 @@ class NumericalInverse:
     search: tuple[float, float]
     derivation: Derivation
     references: tuple[str, ...] = field(default=())
+    monotonicity: Monotonicity | None = None
 
     @property
     def inputs(self) -> tuple[Variable, ...]:
@@ -705,7 +819,8 @@ def invert(
         intervals do not overlap.
     search : (float, float), optional
         Interval of x searched by numerical inversion, in x's unit;
-        defaults to the source's stated validity domain.
+        defaults to the source's stated validity domain. The source must
+        be monotonic over it.
 
     Returns
     -------
@@ -716,7 +831,11 @@ def invert(
     Raises
     ------
     InversionError
-        If the formulation cannot be inverted as asked.
+        If the formulation cannot be inverted as asked, or, numerically,
+        is not monotonic over the search interval (a derivative that
+        changes sign there, proven or found on samples, or a piecewise
+        definition that steps back by more than
+        :data:`STEP_BACK_TOLERANCE` at a junction).
     """
     _check(formulation, solve_for, output, input)
     from nomogram.catalog import catalog
@@ -772,15 +891,20 @@ def invert(
             "give a search interval for numerical inversion"
         )
         raise InversionError(msg)
+    low, high = float(interval[0]), float(interval[1])
+    if not (np.isfinite(low) and np.isfinite(high) and low < high):
+        msg = f"the search interval must be finite and increasing, not {interval}"
+        raise InversionError(msg)
     return NumericalInverse(
         key=key,
         label=label,
         output=output,
         input=input,
         source=formulation,
-        search=(float(interval[0]), float(interval[1])),
+        search=(low, high),
         derivation=Derivation(formulation.key, "numerical inversion", solve_for),
         references=formulation.references,
+        monotonicity=_checked_monotonicity(formulation, solve_for, (low, high)),
     )
 
 
