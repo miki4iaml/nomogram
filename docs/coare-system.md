@@ -21,53 +21,61 @@ millionths.
 
 ## The system
 
-Thirteen equations, in the order of the code:
+Thirteen equations, in the order of the code, as nomogram writes them
+(the coefficients by their names in the catalog, ψ the profile
+functions of COARE):
 
-| Equation | Gives | From |
-|---|---|---|
-| `coare36_obukhov_length` | Obukhov length L | u\*, θ\*, q\*, T, g |
-| `edson2013_roughness_length_momentum` | roughness length z₀ | **α**, u\*, ν, g |
-| `roughness_reynolds_number` | roughness Reynolds number | z₀, u\*, ν |
-| `coare36_roughness_length_humidity` | roughness length for humidity | the Reynolds number |
-| `coare36_roughness_length_heat` | roughness length for temperature | the Reynolds number |
-| `coare36_friction_velocity` | friction velocity **u\*** | **S**, z₀, L, z_u |
-| `coare36_humidity_scale` | humidity scale **q\*** | q, q_s, its roughness length, L, z_q |
-| `coare36_temperature_scale` | temperature scale **θ\*** | T, T_s, its roughness length, L, z_t, g |
-| `coare36_virtual_temperature_flux` | virtual temperature flux | u\*, θ\*, q\*, q, T |
-| `coare36_convective_gust` | gustiness velocity | the flux, T, z_i, g |
-| `coare36_wind_speed_with_gust` | wind speed with gustiness **S** | U, the gustiness |
-| `coare36_equivalent_neutral_wind_10m` | neutral wind at 10 m | u\*, U, S, z₀ |
-| `coare36_charnock_coefficient` | Charnock coefficient **α** | the neutral wind |
+| | Equation | Gives | Formulation |
+|---|---|---|---|
+| 1 | $`L = \frac{T u_*^{2}}{g k \left(T c q_* + \theta_*\right)}`$ | Obukhov length | `coare36_obukhov_length` |
+| 2 | $`z_0 = \frac{\alpha u_*^{2}}{g} + \frac{\gamma \nu}{u_*}`$ | roughness length | `edson2013_roughness_length_momentum` |
+| 3 | $`R_{\mathrm{r}} = \frac{u_* z_0}{\nu}`$ | roughness Reynolds number | `roughness_reynolds_number` |
+| 4 | $`z_{0q} = \left\{A \;\mathrm{if}\; R_{\mathrm{r}} \leq R_{\mathrm{x}},\; B R_{\mathrm{r}}^{- p} \;\mathrm{if}\; R_{\mathrm{r}} > R_{\mathrm{x}}\right.`$ | roughness length for humidity | `coare36_roughness_length_humidity` |
+| 5 | $`z_{0\theta} = \left\{A \;\mathrm{if}\; R_{\mathrm{r}} \leq R_{\mathrm{x}},\; B R_{\mathrm{r}}^{- p} \;\mathrm{if}\; R_{\mathrm{r}} > R_{\mathrm{x}}\right.`$ | roughness length for temperature | `coare36_roughness_length_heat` |
+| 6 | $`u_* = \frac{S k}{- \psi_{\mathrm{u}}\left(\frac{z_{\mathrm{u}}}{L}\right) + \ln{\left(\frac{z_{\mathrm{u}}}{z_0} \right)}}`$ | friction velocity, **unknown** | `coare36_friction_velocity` |
+| 7 | $`q_* = - \frac{k \left(- q + q_0\right)}{- \psi_{\mathrm{t}}\left(\frac{z_{\mathrm{q}}}{L}\right) + \ln{\left(\frac{z_{\mathrm{q}}}{z_{0q}} \right)}}`$ | humidity scale, **unknown** | `coare36_humidity_scale` |
+| 8 | $`\theta_* = - \frac{k \left(- T + T_0 - \frac{g z_{\mathrm{t}}}{c_{\mathrm{pa}}}\right)}{- \psi_{\mathrm{t}}\left(\frac{z_{\mathrm{t}}}{L}\right) + \ln{\left(\frac{z_{\mathrm{t}}}{z_{0\theta}} \right)}}`$ | temperature scale, **unknown** | `coare36_temperature_scale` |
+| 9 | $`Q_{\mathrm{0v}} = - u_* \left(T c q_* + \theta_* \left(c q + 1\right)\right)`$ | virtual temperature flux | `coare36_virtual_temperature_flux` |
+| 10 | $`w_g = \left\{\beta \left(\frac{Q_{\mathrm{0v}} g z_{\mathrm{i}}}{T}\right)^{0.333} \;\mathrm{if}\; Q_{\mathrm{0v}} > 0,\; u_{0} \;\mathrm{if}\; Q_{\mathrm{0v}} \leq 0\right.`$ | gustiness velocity | `coare36_convective_gust` |
+| 11 | $`S = \sqrt{U^{2} + w_g^{2}}`$ | wind speed with gustiness, **unknown** | `coare36_wind_speed_with_gust` |
+| 12 | $`U_{\mathrm{10N}} = \frac{U u_* \ln{\left(\frac{z_{10}}{z_0} \right)}}{S k}`$ | neutral wind at 10 m | `coare36_equivalent_neutral_wind_10m` |
+| 13 | $`\alpha = \left\{U_{\mathrm{10N}} a_{1} + a_{2} \;\mathrm{if}\; U_{\mathrm{10N}} \leq U_{\mathrm{max}},\; U_{\mathrm{max}} a_{1} + a_{2} \;\mathrm{if}\; U_{\mathrm{10N}} > U_{\mathrm{max}}\right.`$ | Charnock coefficient, **unknown** | `coare36_charnock_coefficient` |
 
-The five variables in bold are read before they are computed in a pass:
-they are the unknowns of the system. The other eight follow from them and
-from the eleven inputs: the temperature and humidity of the air and of
-the sea surface, the wind, the heights of measurement, the height of the
-boundary layer, the viscosity of air and the gravity.
+Five variables are read before they are computed in a pass: the
+friction velocity $`u_*`$, the scales $`q_*`$ and $`\theta_*`$, the wind
+speed with gustiness $`S`$ and the Charnock coefficient $`\alpha`$. They
+are the unknowns of the system. The other eight follow from them and
+from the eleven inputs: the temperature and humidity of the air ($`T`$,
+$`q`$) and of the sea surface ($`T_0`$, $`q_0`$), the wind $`U`$, the
+heights of measurement, the height of the boundary layer, the viscosity
+of air $`\nu`$ and the gravity $`g`$.
 
 ## Its solution
 
 Solving the system means finding the five unknowns for which the
 thirteen equations hold together. nomogram finds them by Newton's
-method, in four steps at most on the test data, until every equation
-holds to 10⁻¹² of the size of its terms; the ten passes of the code stop
-at about 10⁻¹⁰ in median
-([figure](images/coare-system.png)).
+method in three steps for most measurements, four at most, until every
+equation holds to 10⁻¹² of the size of its terms; the ten passes of the
+code stop at about 10⁻¹⁰.
+
+![The median relative residual of the equations along the Newton steps and along the passes of the code](images/coare-system.png)
 
 ## Against the code
 
-The relative deviations from the outputs of the code, over its 109 rows,
-given the inputs the code computes itself (its humidity, with the
-enhancement factor of Buck, its gravity and its viscosity of air):
+The values of the code and of nomogram for the first measurement of the
+test data (wind 12.1 m/s), and the relative deviations over its 109
+measurements, given the inputs the code computes itself (its humidity,
+with the enhancement factor of Buck, its gravity and its viscosity of
+air):
 
-| Variable | In the code | Largest deviation | Median deviation |
-|---|---|---|---|
-| friction velocity u\* | `usr` | 5.6 × 10⁻⁷ | 1.3 × 10⁻⁷ |
-| humidity scale q\* | `qsr` | 1.8 × 10⁻⁶ | 4.2 × 10⁻⁷ |
-| temperature scale θ\* | `tsr` | 5.3 × 10⁻⁵ | 3.4 × 10⁻⁶ |
-| Obukhov length L | `L` | 7.4 × 10⁻⁶ | 1.3 × 10⁻⁶ |
-| roughness length z₀ | `zo` | 1.5 × 10⁻⁶ | 2.3 × 10⁻⁷ |
-| gustiness velocity | `gust` | 2.6 × 10⁻⁶ | 5.5 × 10⁻⁷ |
+| Variable | In the code | COARE, first measurement | nomogram, first measurement | Largest deviation | Median deviation |
+|---|---|---|---|---|---|
+| friction velocity u\* (m/s) | `usr` | 0.4491899 | 0.4491901 | 5.6 × 10⁻⁷ | 1.3 × 10⁻⁷ |
+| humidity scale q\* (kg/kg) | `qsr` | −0.00017966 | −0.00017966 | 1.8 × 10⁻⁶ | 4.2 × 10⁻⁷ |
+| temperature scale θ\* (K) | `tsr` | −0.01448473 | −0.01448485 | 5.3 × 10⁻⁵ | 3.4 × 10⁻⁶ |
+| Obukhov length L (m) | `L` | −326.2426 | −326.2422 | 7.4 × 10⁻⁶ | 1.3 × 10⁻⁶ |
+| roughness length z₀ (m) | `zo` | 0.0003085017 | 0.0003085021 | 1.5 × 10⁻⁶ | 2.3 × 10⁻⁷ |
+| gustiness velocity (m/s) | `gust` | 0.897408 | 0.897409 | 2.6 × 10⁻⁶ | 5.5 × 10⁻⁷ |
 
 The temperature scale, from −0.10 K to −0.002 K, small against the
 differences of temperature it comes from, follows the skin temperature

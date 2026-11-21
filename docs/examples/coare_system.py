@@ -23,6 +23,7 @@ import numpy as np
 
 import nomogram as nomo
 from nomogram.catalog import catalog
+from nomogram.model import Notation
 from nomogram.systems import ConvergenceWarning
 from nomogram.units import Q_
 
@@ -44,6 +45,46 @@ COMPARED = {
 }
 #: Newton steps and passes of the code drawn on the figure.
 STEPS, PASSES = 4, 10
+#: The symbols of the page, those of the literature of COARE, for the
+#: identifiers of the catalog.
+NOTATION = Notation(
+    key="coare-system",
+    label="Symbols of docs/coare-system.md",
+    symbols={
+        "u_s": "u_*",
+        "T_s": r"\theta_*",
+        "q_s": "q_*",
+        "T_surf": "T_0",
+        "q_surf": "q_0",
+        "z_0M": "z_0",
+        "z_0Q": "z_{0q}",
+        "z_0T": r"z_{0\theta}",
+        "u_g": "w_g",
+    },
+    reference=None,
+)
+#: The measurement whose values the page shows, the first of the data.
+EXAMPLE = 0
+
+
+def equations() -> list[str]:
+    """The equations of the system in LaTeX, in its order, as the page
+    shows them: the symbols of the page, juxtaposition for products."""
+    return [e.formulation.latex(NOTATION, mul_symbol=None) for e in SYSTEM.equations]
+
+
+def digits(value: float, reference: str) -> str:
+    """A value written with as many significant digits as the reference."""
+    significant = len(reference.lstrip("-").replace(".", "").lstrip("0"))
+    return f"{value:.{significant}g}"
+
+
+def raw(column: str) -> list[str]:
+    """A column of the data as written in the file."""
+    lines = DATA.read_text(encoding="utf-8").splitlines()
+    rows = [line.split(",") for line in lines if not line.startswith("#")]
+    index = rows[0].index(column)
+    return [row[index] for row in rows[1:]]
 
 
 def measurements() -> dict[str, np.ndarray]:
@@ -92,11 +133,13 @@ def compute() -> dict[str, Any]:
     m = measurements()
     inputs = code_inputs(m)
     solution = SYSTEM.evaluate(**inputs)
-    deviations = {}
+    deviations, example = {}, {}
     for name, (column, unit) in COMPARED.items():
         mine = solution[name].to(unit).magnitude
         relative = np.abs(mine / m[column] - 1.0)
         deviations[name] = (float(np.max(relative)), float(np.median(relative)))
+        code = raw(column)[EXAMPLE]
+        example[name] = (code, digits(float(mine[EXAMPLE]), code))
     newton, passes = [], []
     with warnings.catch_warnings():
         # Stopped before convergence on purpose: the residual is what counts.
@@ -111,6 +154,7 @@ def compute() -> dict[str, Any]:
         "m": m,
         "solution": solution,
         "deviations": deviations,
+        "example": example,
         "newton": newton,
         "passes": passes,
     }

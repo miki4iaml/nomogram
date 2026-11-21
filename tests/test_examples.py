@@ -504,19 +504,31 @@ def test_coare_guide_gives_the_values_it_states(
     import numpy as np
 
     text = COARE_GUIDE.read_text(encoding="utf-8")
-    # The equations of the table, in the order of the system.
-    rows = re.findall(r"^\| `([a-z0-9_]+)` \|", text, flags=re.MULTILINE)
+    # The equations of the table, in the order of the system, as nomogram
+    # writes them in the notation of the page.
+    rows = re.findall(r"\| `([a-z0-9_]+)` \|$", text, flags=re.MULTILINE)
     assert rows == [e.formulation.key for e in coare.SYSTEM.equations]
+    for equation in coare.equations():
+        assert f"$`{equation}`$" in text, equation
     assert len(coare.SYSTEM.unknowns) == 5
+    assert text.count("**unknown**") == 5
     assert len(coare.SYSTEM.inputs) == 11
     m, solution = coare_results["m"], coare_results["solution"]
     assert m["u"].size == 109
-    assert int(np.max(solution.iterations)) == 4
+    assert round(float(m["u"][coare.EXAMPLE]), 1) == 12.1
+    # Three steps for most measurements, four at most.
+    steps = np.asarray(solution.iterations)
+    assert int(steps.max()) == 4
+    assert np.sum(steps == 3) > np.sum(steps == 4)
     assert float(np.max(solution.residual)) <= 1e-12
     assert round(math.log10(coare_results["passes"][-1])) == -10
     for name, (column, _) in coare.COMPARED.items():
         largest, median = coare_results["deviations"][name]
-        row = f"| `{column}` | {scientific(largest)} | {scientific(median)} |"
+        code, mine = (v.replace("-", "\u2212") for v in coare_results["example"][name])
+        row = (
+            f"| `{column}` | {code} | {mine} | {scientific(largest)} | "
+            f"{scientific(median)} |"
+        )
         assert row in text, row
     assert (round(float(m["tsr"].min()), 2), round(float(m["tsr"].max()), 3)) == (
         -0.10,
@@ -528,7 +540,7 @@ def test_coare_guide_gives_the_values_it_states(
 def test_coare_guide_points_to_its_script_and_figure() -> None:
     text = COARE_GUIDE.read_text(encoding="utf-8")
     assert "(examples/coare_system.py)" in text
-    assert "(images/coare-system.png)" in text
+    assert re.search(r"!\[[^]]+\]\(images/coare-system\.png\)", text)
     assert (ROOT / "docs" / "images" / "coare-system.png").exists()
     assert python_blocks(COARE_GUIDE) == []
 
