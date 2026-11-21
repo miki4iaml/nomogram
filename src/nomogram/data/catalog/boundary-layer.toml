@@ -361,7 +361,7 @@ cf_standard_names = [{ name = "magnitude_of_surface_friction_velocity_in_air", r
 [kinds.ConvectiveVelocityScale]
 label = "Convective Velocity Scale"
 specialization_of = "Speed"
-description = "Velocity scale of the large eddies of free convection (Deardorff), w_* = (z_i g Q_0v / T)^(1/3), from the virtual temperature flux at the surface and a height of the boundary layer: the free convection velocity scale of the IFS (CY49R1, Part IV, equation 3.20), which it adds to the wind (3.19), and the convective velocity scale W_* of COARE (Fairall et al. 1996, equation 17). Not the gustiness velocity beta W_* of the bulk formulas (GustinessVelocity), which it feeds through beta."
+description = "Velocity scale of the large eddies of free convection, the Deardorff velocity, formerly called the convective velocity scale, w_* = (z_i g Q_0v / T)^(1/3), from the virtual temperature flux at the surface and a height of the boundary layer: the free convection velocity scale of the IFS (CY49R1, Part IV, equation 3.20), which it adds to the wind (3.19), and the convective velocity scale W_* of COARE (Fairall et al. 1996, equation 17). Not the gustiness velocity beta W_* of the bulk formulas (GustinessVelocity), which it feeds through beta."
 
 [kinds.GustinessVelocity]
 label = "Gustiness Velocity"
