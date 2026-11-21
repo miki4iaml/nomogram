@@ -1180,7 +1180,7 @@ criterion = "The range of the fit to equation 2, -100 to 100 degC, within 0.3 mK
 label = "Frost point from the vapour pressure, Hardy (1998) inverse of Wexler's formulation over ice on ITS-90"
 expression = "(c0 + c1 * ln(e) + c2 * ln(e) ** 2) / (d0 + d1 * ln(e) + d2 * ln(e) ** 2 + d3 * ln(e) ** 3)"
 fixed_units = true
-note = "Equation 5, fitted to equation 3 (hardy1998_ice) from -150 to 0.01 degC, which it reproduces within 0.1 mK, the range of the frost point, which the domain of the citation bounds. The vapour pressure in Pa, the frost point in K."
+note = "Equation 5, fitted to a table of equation 3 (hardy1998_ice) from -150 to 10 degC, which it reproduces within 0.1 mK from -150 to 0.01 degC, the range of the frost point, which the domain of the citation bounds. The vapour pressure in Pa, the frost point in K."
 output = { identifier = "T_f", kind = "FrostPointTemperature", unit = "K", description = "Frost point temperature" }
 inputs = [
   { identifier = "e", kind = "VapourPressure", unit = "PA", description = "Vapour pressure" },
@@ -1205,7 +1205,7 @@ scales = { T_f = "its90" }
 [[formulations.hardy1998_frost_point.citations.domains]]
 bounds = { T_f = [123.15, 273.16] }
 tolerance = { T_f = 0.0001 }
-criterion = "The range of the fit to equation 3, -150 to 0.01 degC, within 0.1 mK."
+criterion = "The range over which the fit reproduces equation 3 within 0.1 mK, -150 to 0.01 degC (section 4.2; the table fitted runs from -150 to 10 degC)."
 
 [formulations.sonntag1994_dew_point]
 label = "Dew point from the vapour pressure, Sonntag (1994) inverse of his formulation over water on ITS-90"

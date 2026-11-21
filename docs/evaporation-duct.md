@@ -4,9 +4,9 @@
   outputs, Python version (NOAA-PSL/COARE-algorithm, commit `bd1cac8` of
   2026-03-17, MIT licence). Thanks to the NOAA Physical Sciences
   Laboratory for publishing the algorithm with the data that test it.
-- Computed with nomogram 0.7.0 on 2026-11-08; the tests
-  compute every value of this page again for each later version, and fail
-  if one changes.
+- Computed with the development version of nomogram 0.8 on 2026-11-21;
+  the tests compute every value of this page again for each later
+  version, and fail if one changes.
 
 Over the sea, the humidity falls quickly with height in the first metres,
 and with it the radio refractivity N. A horizontal wave whose refraction
@@ -98,16 +98,31 @@ Newton's method, in four steps at most (`nomogram.systems`):
 ```python
 system = CATALOG.systems["coare36_surface_layer"]
 solution = system.evaluate(
+    T=a["T"],
+    T_surf=a["T_surf"],
+    q=a["q"],
+    q_surf=a["q_surf"],
+    U=Q_(m["u"], "m/s"),
+    z_u=Q_(m["zu"], "m"),
+    z_t=Q_(m["zt"], "m"),
+    z_q=Q_(m["zq"], "m"),
+    z_i=Q_(m["zi"], "m"),
+    nu=a["nu"],
+    g=a["g"],
+)
+units = {"u_s": "m/s", "T_s": "K", "q_s": "kg/kg", "L": "m", "z_0M": "m"}
+return {k: np.asarray(solution[k].to(u).magnitude) for k, u in units.items()}
 ```
 
 It gives back the outputs of COARE: the median deviations are 0.02 % on
 u\*, 0.04 % on the roughness length, 0.5 % on L, 0.8 % on q\* and 0.01 %
-on θ\* (2 × 10⁻⁵ K at most). They come from what the script takes
+on θ\* (2.3 × 10⁻⁵ K at most). They come from what the script takes
 otherwise, the humidity at 17 m and the gravity: given those the code
 computes itself (its saturation humidity, with the enhancement factor of
 Buck, and its gravity), the system gives back its outputs to about 10⁻⁶,
-as the tests check. The ten passes the code iterates give the same values
-(`method="fixed-point"`).
+10⁻⁵ for L and 5 × 10⁻⁵ for θ\*, the value nearest 0, which follows the
+skin temperature of the data, given to seven digits. The ten passes the
+code iterates give the same values (`method="fixed-point"`).
 
 On the same measurements, the IFS departs from COARE: its roughness
 length is twice COARE's (a Charnock coefficient of 0.018, where the line
@@ -194,6 +209,7 @@ catalog (`Catalog.uses`) and written by the script:
 - Edson, J. B., Jampana, V., Weller, R. A., Bigorre, S. P., Plueddemann, A. J., Fairall, C. W., Miller, S. D., Mahrt, L., Vickers, D. and Hersbach, H. (2013). *On the exchange of momentum over the open ocean*. Journal of Physical Oceanography, 43, 1589-1610. <https://doi.org/10.1175/JPO-D-12-0173.1>
 - Fairall, C. W., Bradley, E. F., Hare, J. E., Grachev, A. A. and Edson, J. B. (2003). *Bulk parameterization of air-sea fluxes: updates and verification for the COARE algorithm*. Journal of Climate, 16, 571-591. <https://doi.org/10.1175/1520-0442(2003)016<0571:BPOASF>2.0.CO;2>
 - Fairall, C. W., Davidson, K. L., Schacher, G. E. and Houlihan, T. M. (1978). *Evaporation duct height measurements in the Mid-Atlantic: final report*. Naval Postgraduate School, Monterey, California, report NPS61-78-005, 15 August 1978. <https://hdl.handle.net/10945/29858>
+- Fairall, C. W.; Bradley, E. F.; Rogers, D. P.; Edson, J. B.; Young, G. S. (1996). *Bulk parameterization of air-sea fluxes for Tropical Ocean-Global Atmosphere Coupled-Ocean Atmosphere Response Experiment*. Journal of Geophysical Research 101(C2), 3747-3764. <https://doi.org/10.1029/95JC03205>
 - Frederickson, P. A., Davidson, K. L. and Jones, F. K. (1994). *The effect of infrared sea surface temperature measurements on evaporation duct height estimation*. Naval Postgraduate School, Monterey, California, report NPS-MR-94-003, November 1994. <https://hdl.handle.net/10945/28715>
 - Holtslag, A. A. M. and De Bruin, H. A. R. (1988). *Applied modeling of the nighttime surface energy balance over land*. Journal of Applied Meteorology, 27, 689-704. <https://doi.org/10.1175/1520-0450(1988)027<0689:AMOTNS>2.0.CO;2>
 - ITU-R (2019). *Recommendation ITU-R P.453-14: The radio refractive index: its formula and refractivity data*. <https://www.itu.int/rec/R-REC-P.453-14-201908-I>

@@ -101,6 +101,25 @@ def test_the_system_gives_back_the_outputs_of_the_code() -> None:
         assert solution[name].to(unit).magnitude == pytest.approx(M[column], rel=rtol)
 
 
+def test_air_and_surface_alike() -> None:
+    # The first guess of the humidity scale is 0, that of the temperature
+    # scale too where the lapse g z_t / c_pa is in the air temperature: an
+    # infinite Obukhov length, where Newton's method starts from a few
+    # passes of the loop and converges where the loop does.
+    given = code_inputs({k: v[5:6] for k, v in M.items()})
+    given["q"] = given["q_surf"]
+    lapse = (given["g"] * given["z_t"]).to("m**2/s**2").magnitude / 1004.67
+    for warmer in (0.0, lapse):
+        given["T"] = given["T_surf"] - Q_(warmer, "K")
+        newton = SYSTEM.evaluate(**given)
+        passes = SYSTEM.evaluate(method="fixed-point", **given)
+        assert (newton.status == CONVERGED).all()
+        assert (passes.status == ITERATED).all()
+        assert newton["u_s"].magnitude == pytest.approx(
+            passes["u_s"].magnitude, rel=1e-6
+        )
+
+
 def test_the_passes_of_the_code_are_a_loop_over_its_formulations() -> None:
     # Ten passes in the order of the code, from the first guess of the
     # system, as a loop over the formulations writes them.
@@ -113,7 +132,15 @@ def test_the_passes_of_the_code_are_a_loop_over_its_formulations() -> None:
     known: dict[str, Any] = {
         "u_s": 0.035 * u,
         "q_s": 0.033 * (given["q"] - given["q_surf"]),
-        "T_s": Q_(0.033 * (given["T"].magnitude - given["T_surf"].magnitude), "K"),
+        "T_s": Q_(
+            0.033
+            * (
+                given["T"].magnitude
+                + given["g"].magnitude * given["z_t"].magnitude / 1004.67
+                - given["T_surf"].magnitude
+            ),
+            "K",
+        ),
         "alpha": Q_(np.full(u.shape, 0.011), one),
         "S": Q_(np.sqrt(u.magnitude**2 + 0.25), "m/s"),
     }

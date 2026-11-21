@@ -2965,7 +2965,7 @@ note = "Lines 318 and 517 to 535."
 label = "Wind speed with the convective gustiness (COARE 3.6 code)"
 expression = "sqrt(U ** 2 + u_g ** 2)"
 fixed_units = false
-note = "Line 537 of the code, ut = sqrt(du^2 + gust^2), du = u - us the wind relative to the surface current (us = 0 in the test data); line 417 for the first guess, with a gustiness of 0.5 m/s. The code cites no paper for it: its comment calls the gustiness that of the original code (lines 519 to 530). The scales take this speed (coare36_friction_velocity), and the neutral wind at 10 m the ratio U/S (coare36_equivalent_neutral_wind_10m)."
+note = "Line 537 of the code, ut = sqrt(du^2 + gust^2), du = u - us, with us = 0 set by the code for every input (line 299): u is taken relative to the surface current. Line 417 for the first guess, with a gustiness of 0.5 m/s. The same speed as Fairall et al. (1996), equation 15, S^2 = u^2 + w_g^2, after Schumann (1988) and Godfrey and Beljaars (1991), which the code points to at lines 650 to 655 (its friction velocity u_* = C_d^(1/2) S, their equation 18). The scales take this speed (coare36_friction_velocity), and the neutral wind at 10 m the ratio U/S (coare36_equivalent_neutral_wind_10m)."
 output = { identifier = "S", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface, gustiness included" }
 inputs = [
   { identifier = "U", kind = "Speed", unit = "M-PER-SEC", description = "Mean wind speed relative to the sea surface" },
@@ -2976,6 +2976,12 @@ keywords = ["gustiness", "wind speed", "COARE"]
 [[formulations.coare36_wind_speed_with_gust.citations]]
 reference = "coare36"
 note = "Lines 417 and 537."
+
+[[formulations.coare36_wind_speed_with_gust.citations]]
+reference = "fairall1996"
+equation = "15"
+note = "p. 3751, the mean wind speed with the gustiness w_g = beta W_* (equation 16), u the magnitude of the mean wind vector."
+notation = { S = 'S', U = 'u', u_g = 'w_g' }
 
 # --- Flux-profile relations with the profile function as an input -------
 
@@ -3585,10 +3591,10 @@ equations = [
   { formulation = "coare36_equivalent_neutral_wind_10m" },
   { formulation = "coare36_charnock_coefficient", outside = "ignore" },
 ]
-start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
+start = { u_s = "0.035 * U", q_s = "0.033 * (q - q_surf)", T_s = "0.033 * (T + g * z_t / 1004.67 - T_surf)", alpha = "0.011", S = "sqrt(U ** 2 + 0.25)" }
 iterations = 10
 reference = "coare36"
-note = "The loop of the code (lines 480 to 595) over the formulations of the catalog, in the order of the code: the Obukhov length from the scales of the previous pass, the roughness lengths, the scales, the gustiness, the wind with it, the neutral wind at 10 m and the Charnock coefficient. Its unknowns, read before they are computed in a pass, are the three scales, the Charnock coefficient and the wind with gustiness. The code runs 10 passes without a test of convergence (line 473); Newton's method solves the equations themselves. The first guess is simpler than the code's (lines 380 to 477, which take psiu_40 and a relation from the bulk Richardson number, not in the catalog): the scales of a neutral profile, k / ln(17 m / 1e-4 m) = 0.033 times the differences between air and surface, and a gustiness of 0.5 m/s. The cool skin and the warm layer, which the code computes in the loop, are left out: the surface temperature and humidity are inputs (the skin temperature and Qs of the output of the code, in its test data). Over ice, the code takes z_0 = 5e-4 m (line 484): not here. Below 2.94 m/s the Charnock coefficient is negative, beyond the bounds of its kind; the code takes it, its smooth-flow term keeping the roughness length positive (outside = ignore for both)."
+note = "The loop of the code (lines 480 to 595) over the formulations of the catalog, in the order of the code: the Obukhov length from the scales of the previous pass, the roughness lengths, the scales, the gustiness, the wind with it, the neutral wind at 10 m and the Charnock coefficient. Its unknowns, read before they are computed in a pass, are the three scales, the Charnock coefficient and the wind with gustiness. The code runs 10 passes without a test of convergence (line 473); Newton's method solves the equations themselves. The first guess is simpler than the code's (lines 380 to 477, which take psiu_40 and a relation from the bulk Richardson number, not in the catalog): the scales of a neutral profile, k / ln(17 m / 1e-4 m) = 0.033 times the differences between air and surface (for the temperature with the lapse g z_t / c_pa, as dT of line 383), a gustiness of 0.5 m/s, and a Charnock coefficient of 0.011, which the code sets at line 452 and replaces by a1 u10 + a2 at line 457. Left out: the cool skin, which the code computes in the loop, and the warm layer, which a separate function computes before calling it (line 35), the surface temperature and humidity being inputs (the skin temperature and Qs of the output of the code, in its test data); the Charnock coefficient from the waves where they are given (lines 463 to 477 and 592 to 595), the system being the code run without them; and, where its first guess gives zeta_u > 50 (line 431), the scales of the first pass and the Obukhov length it started from, which the code keeps (lines 578 to 586 and 600 to 607), where the system gives the solution of its equations. Over ice, the code takes z_0 = 5e-4 m (line 484): not here. Below 2.94 m/s the Charnock coefficient is negative, beyond the bounds of its kind; the code takes it, its smooth-flow term keeping the roughness length positive (outside = ignore for both)."
 
 # --- Cross-checks -----------------------------------------------------------
 

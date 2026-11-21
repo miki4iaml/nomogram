@@ -4,6 +4,8 @@
 """Systems of equations: unknowns, Newton's method, the fixed point, domains."""
 
 import math
+import sys
+import threading
 import warnings
 from typing import Any
 
@@ -152,6 +154,14 @@ F = formulations(
         ["u"],
         output_kind='kind = "CelsiusTemperature", unit = "DEG_C"',
         input_kinds={"u": 'kind = "CelsiusTemperature", unit = "DEG_C"'},
+    ),
+    entry("ga", "b + c", "a", ["b", "c"]),
+    entry(
+        "vapour_a",
+        "a - x",
+        "y",
+        ["a", "x"],
+        input_kinds={"a": 'kind = "VapourPressure", unit = "HectoPA"'},
     ),
     entry(
         "bounded",
@@ -316,6 +326,27 @@ def test_the_root_found_depends_on_the_start() -> None:
     assert near_zero == pytest.approx(0.0, abs=1e-12)
     with pytest.raises(ValueError, match="not an unknown: x"):
         system.evaluate(start={"x": one(0.2)})
+
+
+def test_an_infinite_derivative_is_never_converged() -> None:
+    # At the first guess b = 1, a = 2 = d: the derivative of sqrt(d - a)
+    # is infinite, and so are the terms. The residual relative to them is
+    # not 0: undefined, Newton's method starts again from passes of the
+    # fixed point, and finds the solution, b = (sqrt(5) - 1) / 2.
+    system = System(
+        "infinite",
+        "a = b + c, b = sqrt(d - a)",
+        (
+            Equation(F["ga"]),
+            Equation(F["root"], bind={"c": "d", "y": "a", "x": "b"}),
+        ),
+        start={"b": "1"},
+    )
+    solution = system.evaluate(c=one(1.0), d=one(2.0))
+    assert solution.status == CONVERGED
+    b = solution["b"].magnitude
+    assert b == pytest.approx((math.sqrt(5.0) - 1.0) / 2.0, rel=1e-12)
+    assert b == pytest.approx(math.sqrt(2.0 - (b + 1.0)), rel=1e-12)
 
 
 def test_an_undefined_start_is_reported() -> None:
@@ -594,6 +625,35 @@ def test_trial_points_raise_no_root_warning() -> None:
     assert solution["x"].to("hPa").magnitude == pytest.approx(1.0, rel=1e-12)
 
 
+def test_concurrent_systems_change_no_warning_filter() -> None:
+    # No filter is set to keep trial points quiet: a filter set and reset
+    # by one thread while another runs would stay.
+    system = System(
+        "intermediate",
+        "An implicit intermediate",
+        (Equation(F["square_root_of"]), Equation(F["two_less"])),
+        start={"y": "100"},
+    )
+    filters = list(warnings.filters)
+    interval = sys.getswitchinterval()
+
+    def work() -> None:
+        for _ in range(20):
+            system.evaluate()
+            system.evaluate(method="fixed-point", iterations=3, start={"y": one(1.5)})
+
+    sys.setswitchinterval(1e-5)
+    try:
+        threads = [threading.Thread(target=work) for _ in range(4)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+    finally:
+        sys.setswitchinterval(interval)
+    assert warnings.filters == filters
+
+
 def test_scale_slopes_near_the_bounds_of_a_scale() -> None:
     from nomogram.catalog import catalog
     from nomogram.systems import _back, _link
@@ -632,6 +692,18 @@ def test_links_and_first_guesses_are_checked_when_built() -> None:
     )
     assert isinstance(system.equations, tuple)
     assert system.start["y"] == "0.0"
+    # One input, two kinds that cannot stand for each other.
+    with pytest.raises(
+        ValueError,
+        match="the input a is taken as DimensionlessRatio in UNITLESS by fx, "
+        "as VapourPressure in HectoPA by vapour_a",
+    ):
+        System(
+            "mixed",
+            "An input of two kinds",
+            (Equation(F["fx"]), Equation(F["vapour_a"])),
+            start={"y": "0"},
+        )
     with pytest.raises(TypeError, match="not an expression"):
         System("s", "s", system.equations, start={"y": [0]})  # type: ignore[dict-item]
     with pytest.raises(ValueError, match="not in the shape of the inputs"):

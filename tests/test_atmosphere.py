@@ -251,8 +251,8 @@ def test_pressure_altitude_by_inversion_and_from_the_nws() -> None:
     assert (proof.status, proof.direction) == ("refuted", "decreasing")
     assert proof.steps[11.0] == pytest.approx(8.89e-6, rel=1e-3)
     assert max(proof.steps.values()) < STEP_BACK_TOLERANCE
-    # In altitude, 5.6 cm at 11 km and 10.3 cm at 71 km, where the slope
-    # is gentler.
+    # In altitude, 5.6 cm at 11 km and 10.3 cm at 71 km, where the step
+    # back is larger (1.6e-5) for a nearly equal relative slope.
     assert proof.widths[11.0] == pytest.approx(5.6e-5, rel=1e-2)
     assert proof.widths[71.0] == pytest.approx(1.03e-4, rel=1e-2)
 

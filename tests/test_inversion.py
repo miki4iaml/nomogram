@@ -268,6 +268,46 @@ inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", descr
 
 [[formulations.pole.citations]]
 reference = "src"
+
+[formulations.pole_off]
+label = "Decreasing on either side of a pole between samples"
+expression = "1 / (t - pi / 10)"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.pole_off.citations]]
+reference = "src"
+
+[formulations.root_of]
+label = "Undefined below -1"
+expression = "sqrt(t + 1)"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.root_of.citations]]
+reference = "src"
+
+[formulations.gap]
+label = "No branch between 0 and 1"
+expression = "piecewise((t, t < 0), (t + 1, t >= 1))"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.gap.citations]]
+reference = "src"
+
+[formulations.back_at_end]
+label = "A step back at t = 1"
+expression = "piecewise((t + 100, t < 1), (t, t >= 1))"
+fixed_units = true
+output = { identifier = "p", kind = "VapourPressure", unit = "PA", description = "out" }
+inputs = [{ identifier = "t", kind = "CelsiusTemperature", unit = "DEG_C", description = "in" }]
+
+[[formulations.back_at_end.citations]]
+reference = "src"
 """
 TESTS = load_catalog([DECREASING]).formulations
 TEMPERATURE = Variable("t", "CelsiusTemperature", "DEG_C", "temperature")
@@ -315,12 +355,37 @@ def test_no_numerical_inverse_where_samples_show_no_monotonicity() -> None:
         InversionError, match=r"not monotonic in t over .* on \d+ samples"
     ):
         invert(
-            TESTS["pole"],
+            TESTS["pole_off"],
             "t",
             output=TEMPERATURE,
             input=PRESSURE,
             method="numerical",
             search=(-1.0, 1.0),
+        )
+
+
+@pytest.mark.parametrize(
+    ("key", "search", "message"),
+    [
+        # Infinite at the sample t = 0.
+        ("pole", (-1.0, 1.0), r"undefined at 1 of \d+ samples over"),
+        ("gap", (-1.0, 2.0), r"undefined at \d+ of \d+ samples over"),
+        ("root_of", (-2.0, 3.0), "undefined at an end of the search interval"),
+        # The end t = 1 belongs to the second branch, 100 below.
+        ("back_at_end", (0.0, 1.0), "steps back by 0.99 of its value at t = 1.0"),
+    ],
+)
+def test_no_numerical_inverse_where_its_source_is_undefined_or_steps_back(
+    key: str, search: tuple[float, float], message: str
+) -> None:
+    with pytest.raises(InversionError, match=message):
+        invert(
+            TESTS[key],
+            "t",
+            output=TEMPERATURE,
+            input=PRESSURE,
+            method="numerical",
+            search=search,
         )
 
 

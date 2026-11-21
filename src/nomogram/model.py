@@ -1850,11 +1850,15 @@ class Formulation:
         values: Mapping[str, Any],
         search: tuple[float, float] | None,
         skip: Any = None,
+        quiet: bool = False,
     ) -> Any:
         """The root of an implicit equation for each set of inputs, NaN without one.
 
         Neither sought nor reported where an input is NaN, or where
         ``skip`` holds (inputs outside a domain, their result NaN anyway).
+        With ``quiet``, a NaN is not reported (a caller that reports it
+        itself, a system at its trial points): no warning filter changed,
+        which would act on every thread.
         """
         from nomogram._roots import NONE, SEVERAL, UNDETERMINED, solve
 
@@ -1893,7 +1897,7 @@ class Formulation:
             for code, text in reasons
             if np.any(status == code)
         ]
-        if found:
+        if found and not quiet:
             message = f"{self.key}: NaN for " + "; ".join(found)
             warnings.warn(message, RootWarning, stacklevel=4)
         return roots
@@ -2288,14 +2292,16 @@ class Formulation:
         values: Mapping[str, Any],
         search: tuple[float, float] | None = None,
         skip: Any = None,
+        quiet: bool = False,
     ) -> Any:
         """The result in the output unit, inputs in their units and scales.
 
-        For an implicit equation, its root, not sought where ``skip`` holds
-        (see :meth:`_solve` and :meth:`evaluate`).
+        For an implicit equation, its root, not sought where ``skip`` holds,
+        a NaN not reported with ``quiet`` (see :meth:`_solve` and
+        :meth:`evaluate`).
         """
         if self.implicit:
-            return self._solve(values, search, skip)
+            return self._solve(values, search, skip, quiet)
         arguments: list[Any] = [values[v.identifier] for v in self.inputs]
         arguments += [c.value for c in self.coefficients]
         arguments += [k.value for k in self.constants]

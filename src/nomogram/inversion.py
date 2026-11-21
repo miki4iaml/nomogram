@@ -346,15 +346,24 @@ def _checked_monotonicity(
     Proven, or refuted by steps back at junctions only, none beyond
     :data:`STEP_BACK_TOLERANCE` of the value, or none wider than
     ``step_back`` on the input; otherwise checked on samples, which a step
-    back beyond the rounding refutes.
+    back beyond the rounding refutes, as does a sample where the source is
+    undefined.
 
     Raises
     ------
     InversionError
-        If the source is not monotonic over the interval.
+        If the source is not monotonic over the interval, or undefined at
+        one of its ends or of the samples.
     """
     low, high = interval
     where = f"over [{low!r}, {high!r}]"
+    ends = _forward(formulation)(np.array(interval, dtype=float))
+    if not np.isfinite(ends).all():
+        msg = (
+            f"{formulation.key} is undefined at an end of the search interval "
+            f"{where}: give a search interval where it is defined"
+        )
+        raise InversionError(msg)
     verdict = monotonicity(formulation, solve_for, interval)
     if verdict.direction is not None:
         limit = STEP_BACK_TOLERANCE if step_back is None else step_back
@@ -386,13 +395,18 @@ def _checked_monotonicity(
         raise InversionError(msg)
     points = np.union1d(grid(low, high), np.linspace(low, high, _SAMPLES))
     values = _forward(formulation)(points)
-    values = values[np.isfinite(values)]
-    if values.size >= 2:
-        overall = np.sign(values[-1] - values[0])
-        noise = 1e-9 * float(np.max(np.abs(values)))
-        if overall != 0 and not np.any(overall * np.diff(values) < -noise):
-            method = f"{verdict.method}; monotonic on {points.size} samples"
-            return replace(verdict, method=method)
+    undefined = int(np.sum(~np.isfinite(values)))
+    if undefined:
+        msg = (
+            f"{formulation.key} is undefined at {undefined} of {points.size} "
+            f"samples {where}: give a search interval where it is defined"
+        )
+        raise InversionError(msg)
+    overall = np.sign(values[-1] - values[0])
+    noise = 1e-9 * float(np.max(np.abs(values)))
+    if overall != 0 and not np.any(overall * np.diff(values) < -noise):
+        method = f"{verdict.method}; monotonic on {points.size} samples"
+        return replace(verdict, method=method)
     msg = (
         f"{formulation.key} is not monotonic in {solve_for} {where} on "
         f"{points.size} samples: give a search interval where it is"
