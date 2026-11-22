@@ -136,6 +136,7 @@ references. The guides:
 | [Rosetta](docs/rosetta.md) | the vocabulary across QUDT, SI, pint, SymPy, CF, OM |
 | [Shared vocabularies](docs/shared-vocabularies.md) | QUDT, CF, Wikidata: what nomogram takes and gives back |
 | [Displaying formulas](docs/display.md) | notebooks, Markdown, plots |
+| [Graphs of kinds and systems](docs/graphs.md) | the tree of kinds and the equations of a system, as JSON to draw |
 | **Case studies** | |
 | [Sea water](docs/sea-water.md) | salinity scales, the 2 % lowering of vapour pressure |
 | [Humidity aloft](docs/humidity-aloft.md) | a radiosonde's formula against its users', along a profile |
