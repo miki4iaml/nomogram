@@ -8,6 +8,19 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Graphs of the catalog** (`nomogram.graph`), as node-link documents
+  of NetworkX to exchange and draw, with the conventions
+  `protee-node-link/0` agreed with protee
+  ([the guide](docs/graphs.md)). `kind_graph` gives the tree of quantity
+  kinds a search finds, with the kinds they specialize and their matches
+  in CF and Wikidata; `system_graph` gives the equations and variables of
+  a system, each variable with its role (input, unknown, intermediate),
+  and the reads that close its loops.
+  No new dependency: the documents are plain `dict`s, ready for
+  `json.dumps`.
+
 ## [0.8.0] - 2026-11-21
 
 Numerical results that nomogram proves and that can be reproduced. Three

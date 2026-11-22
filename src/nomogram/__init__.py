@@ -10,7 +10,7 @@ light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
 :mod:`nomogram.dimensions`, :mod:`nomogram.comparison`,
 :mod:`nomogram.inversion`, :mod:`nomogram.monotonicity`,
 :mod:`nomogram.systems`, :mod:`nomogram.similarity`,
-:mod:`nomogram.relations`,
+:mod:`nomogram.relations`, :mod:`nomogram.graph`,
 :mod:`nomogram.search`, :mod:`nomogram.display` and :mod:`nomogram.plot`.
 
 Each is also an attribute of the package, imported the first time it is
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from nomogram import dimensions as dimensions
     from nomogram import display as display
     from nomogram import expression as expression
+    from nomogram import graph as graph
     from nomogram import inversion as inversion
     from nomogram import model as model
     from nomogram import monotonicity as monotonicity
@@ -49,6 +50,7 @@ __all__ = [
     "dimensions",
     "display",
     "expression",
+    "graph",
     "inversion",
     "model",
     "monotonicity",

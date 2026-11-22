@@ -140,6 +140,7 @@ Chaque formulation garde ses unités, son domaine de validité, son
 | [Rosetta](docs/rosetta.md) | le vocabulaire de QUDT, du SI, de pint, de SymPy, de CF et d'OM mis en correspondance |
 | [Shared vocabularies](docs/shared-vocabularies.md) | QUDT, CF, Wikidata : ce que nomogram en reprend et leur rend |
 | [Displaying formulas](docs/display.md) | notebooks, Markdown, graphiques |
+| [Graphs of kinds and systems](docs/graphs.md) | l'arbre des genres et les équations d'un système, en JSON à dessiner |
 | **Études de cas** | |
 | [Sea water](docs/sea-water.md) | échelles de salinité, abaissement de 2 % de la pression de vapeur |
 | [Humidity aloft](docs/humidity-aloft.md) | la formule d'un fabricant de radiosondes face à celles de ses utilisateurs, le long d'un profil |

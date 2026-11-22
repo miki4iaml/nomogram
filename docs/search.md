@@ -158,7 +158,11 @@ its names, and the function then answers for the box given. A numerical
 inverse carries the verdict of its source over the interval it searches
 (`NumericalInverse.monotonicity`). A profile function derived from a
 gradient function (`nomogram.similarity`) is built on demand, like an
-inverse: a search finds the gradient function it comes from.
+inverse: a search finds the gradient function it comes from. So is a
+graph of the catalog ([Graphs of kinds and systems](graphs.md)):
+`kind_graph` takes the kinds a search finds
+(`kind_graph(c.search("humid*", section="kinds"))`), `system_graph` a
+system.
 
 ## What grows without changing searches
 

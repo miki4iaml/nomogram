@@ -17,6 +17,7 @@ SUBMODULES = [
     "dimensions",
     "display",
     "expression",
+    "graph",
     "inversion",
     "model",
     "monotonicity",
