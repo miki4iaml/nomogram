@@ -69,6 +69,12 @@ The first command also installs the optional extras (`viz`), which the
 tests cover. The second command installs the hooks at all three stages
 (pre-commit, commit-msg, pre-push).
 
+The development group also brings protee, with Graphviz embedded
+through pygraphviz (nothing to install on the workstation), and
+jsonschema: the tests check the documents of `nomogram.graph` with
+protee's own check and JSON schema. Neither is a dependency of the
+package.
+
 ## Local checks
 
 | Stage | Checks |

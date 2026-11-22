@@ -20,6 +20,10 @@ and this project adheres to
   and the reads that close its loops.
   No new dependency: the documents are plain `dict`s, ready for
   `json.dumps`.
+- **Development dependencies** `protee[viz]` and `jsonschema`: the
+  tests check the documents of `nomogram.graph` with protee's own check,
+  its JSON schema and its reading and writing back. Neither is a
+  dependency of the package.
 
 ## [0.8.0] - 2026-11-21
 

@@ -322,3 +322,29 @@ def test_graphs_guide_code_runs(
     }
     written = json.loads((tmp_path / "coare36.json").read_text(encoding="utf-8"))
     assert written == namespace["coare"]
+
+
+def test_documents_pass_the_checks_of_protee() -> None:
+    # The format belongs to protee (protee-node-link/0): its own check, its
+    # JSON schema and its reading and writing back, from the development
+    # group, as a consumer of these documents would use them.
+    jsonschema = pytest.importorskip("jsonschema")
+    node_link = pytest.importorskip("protee.io")
+    schema = node_link.node_link_schema()
+    for document in (
+        kind_graph(),
+        kind_graph(["RelativeHumidity", "RelativeHumidityWithRespectToIce"]),
+        system_graph("coare36_surface_layer"),
+    ):
+        assert node_link.check_node_link(document) == ()
+        jsonschema.validate(document, schema)
+        table = node_link.from_node_link(document)
+        written = node_link.to_node_link(
+            table.graph,
+            table.arcs,
+            table.nodes,
+            attributes=table.attributes,
+            multigraph=table.multigraph,
+            ids=table.ids,
+        )
+        assert written == document
