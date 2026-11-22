@@ -249,11 +249,27 @@ def test_system_graph_of_coare() -> None:
     assert [(e["source"], e["target"]) for e in gives] == [
         (f"equations.{e.output}", f"variables.{e.output}") for e in system.equations
     ]
-    assert [v["id"] for v in graph["vocabulary"]["role"]] == [
-        "nomogram:input",
-        "nomogram:unknown",
-        "nomogram:intermediate",
+    assert [(v["id"], v["on"]) for v in graph["vocabulary"]["role"]] == [
+        ("nomogram:input", "node"),
+        ("nomogram:unknown", "node"),
+        ("nomogram:intermediate", "node"),
+        ("nomogram:closing", "edge"),
     ]
+    rank = {e.output: i for i, e in enumerate(system.equations)}
+    closing = {
+        (name, e.output)
+        for i, e in enumerate(system.equations)
+        for name in e.reads
+        if rank.get(name, -1) >= i
+    }
+    assert {
+        (e["source"].removeprefix("variables."), e["target"].removeprefix("equations."))
+        for e in reads
+        if e.get("role") == "nomogram:closing"
+    } == closing
+    assert ("u_s", "L") in closing
+    assert ("u_s", "Q_0v") not in closing
+    assert {name for name, _ in closing} == set(system.unknowns)
 
 
 def test_system_graph_takes_a_system_a_reference_or_an_entry() -> None:

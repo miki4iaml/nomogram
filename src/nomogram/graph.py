@@ -130,6 +130,15 @@ _VOCABULARY: Mapping[str, Mapping[str, dict[str, Any]]] = {
             "label": "intermediate",
             "description": "a variable given by an equation and read only after it",
         },
+        "nomogram:closing": {
+            "on": "edge",
+            "label": "closes a loop",
+            "description": (
+                "a read of a variable by an equation that comes before the "
+                "equation giving it, or is that equation: what the source "
+                "iterates on"
+            ),
+        },
     },
 }
 
@@ -255,8 +264,10 @@ def system_graph(
         ``nomogram:intermediate``), the reference of their ``kind``, their
         ``unit`` (its QUDT name) and its symbol (``unit_symbol``), and their
         description. An edge ``nomogram:reads`` goes from a
-        variable to each equation that takes it, an edge ``nomogram:gives``
-        from an equation to its variable.
+        variable to each equation that takes it, with the role
+        ``nomogram:closing`` where the equation comes before the one giving
+        the variable, or is that one (the reads the source iterates); an
+        edge ``nomogram:gives`` from an equation to its variable.
 
     Raises
     ------
@@ -279,6 +290,7 @@ def system_graph(
         **dict.fromkeys(system.intermediates, "nomogram:intermediate"),
         **dict.fromkeys(system.unknowns, "nomogram:unknown"),
     }
+    giver = {e.output: rank for rank, e in enumerate(system.equations, start=1)}
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
     variables: dict[str, dict[str, Any]] = {}
@@ -297,14 +309,15 @@ def system_graph(
         for name in (*equation.reads, equation.output):
             if name not in variables:
                 variables[name] = _variable_node(system, name, roles[name])
-        edges.extend(
-            {
+        for name in equation.reads:
+            edge = {
                 "source": f"variables.{name}",
                 "target": f"equations.{equation.output}",
                 "type": "nomogram:reads",
             }
-            for name in equation.reads
-        )
+            if giver.get(name, 0) >= rank:
+                edge["role"] = "nomogram:closing"
+            edges.append(edge)
         edges.append(
             {
                 "source": f"equations.{equation.output}",

@@ -16,7 +16,8 @@ and this project adheres to
   ([the guide](docs/graphs.md)). `kind_graph` gives the tree of quantity
   kinds a search finds, with the kinds they specialize and their matches
   in CF and Wikidata; `system_graph` gives the equations and variables of
-  a system, each variable with its role (input, unknown, intermediate).
+  a system, each variable with its role (input, unknown, intermediate),
+  and the reads that close its loops.
   No new dependency: the documents are plain `dict`s, ready for
   `json.dumps`.
 

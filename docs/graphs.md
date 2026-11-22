@@ -91,8 +91,11 @@ variables follow, `variables.` and their name, each with its `role`:
 | `nomogram:intermediate` | an equation gives it, and it is read only after |
 
 An edge `nomogram:reads` goes from a variable to each equation that takes
-it, an edge `nomogram:gives` from an equation to its variable. The cycles
-of the graph are the loops of the source: for the loop of
+it, an edge `nomogram:gives` from an equation to its variable. A read by
+an equation that comes before the equation giving the variable, or is
+that equation, has the role `nomogram:closing`: it closes a loop, and the
+source iterates on it. The cycles of the graph are the loops of the
+source: for the loop of
 [COARE 3.6](coare-system.md), NetworkX finds one strongly connected
 component of 26 nodes, which holds the thirteen equations.
 
@@ -103,7 +106,8 @@ agreed with protee:
 
 - `graph` names the format, the producer (nomogram and its version), the
   language of the labels (`en`), the prefixes used, and the values each
-  attribute takes (`vocabulary`: `type`, `origin`, `role`), each with its
+  attribute takes (`vocabulary`: `type`, `origin`, `role`, the last for
+  variables and reads), each with its
   label, its description and, for an edge, whether it is symmetric; a
   system's graph also has its `label`, its `description` (the note of the
   system) and its `reference`;
