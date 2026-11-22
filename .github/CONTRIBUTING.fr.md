@@ -76,6 +76,12 @@ La première commande installe aussi les extras optionnels (`viz`),
 couverts par les tests. La seconde commande installe les hooks aux trois stades (pre-commit,
 commit-msg, pre-push).
 
+Le groupe de développement apporte aussi protee, avec Graphviz embarqué
+par pygraphviz (rien à installer sur le poste), et jsonschema : les
+tests contrôlent les documents de `nomogram.graph` par le contrôle et
+le schéma JSON de protee. Ni l'un ni l'autre n'est une dépendance du
+paquet.
+
 ## Contrôles locaux
 
 | Stade | Contrôles |
