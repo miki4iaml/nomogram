@@ -264,3 +264,11 @@ def test_a_temperature_feeds_one_in_the_other_unit_and_a_dew_point_a_temperature
     # A difference never feeds a point, nor a pressure a temperature.
     with pytest.raises(ValueError, match="but t is CelsiusTemperature"):
         compose(SONNTAG, {"t": FORMULATIONS["sonntag1990_magnus"]})
+
+
+def test_kinds_given_are_those_a_result_may_feed_through() -> None:
+    from nomogram.comparison import _may_feed
+
+    kinds = catalog().kinds
+    assert _may_feed("SaturationVapourPressure", "VapourPressure", kinds)
+    assert not _may_feed("VapourPressure", "SaturationVapourPressure", kinds)
