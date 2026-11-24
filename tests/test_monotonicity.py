@@ -7,9 +7,12 @@ import math
 import sys
 import threading
 import warnings
+from typing import NoReturn
 
 import pytest
+import sympy
 
+import nomogram.monotonicity as engine
 from nomogram.catalog import catalog, load_catalog
 from nomogram.model import Formulation
 from nomogram.monotonicity import (
@@ -222,6 +225,10 @@ def test_a_face_of_the_box_held_by_another_branch() -> None:
     assert (found.status, found.direction) == ("refuted", None)
     found = monotonicity(f, "t", {"t": (0.0, 1.0), "p": (0.0, 0.5)})
     assert found.status == "proven"
+    # Held by the branch inside the box: the face adds nothing.
+    f = one("piecewise((t, p <= 1), (-t, p > 1))", f"{T}, {P}")
+    found = monotonicity(f, "t", {"t": (0.0, 1.0), "p": (0.0, 1.0)})
+    assert (found.status, found.direction) == ("proven", "increasing")
 
 
 def test_concurrent_calls_change_no_global_state() -> None:
@@ -314,6 +321,13 @@ def test_an_implicit_equation_is_proven_over_the_unknown_too() -> None:
     assert found.status == "unproven"
 
 
+def test_a_piecewise_implicit_equation_is_not_tried() -> None:
+    f = one("y ** 3 + y == piecewise((t, t < 1), (2 * t, t >= 1))")
+    found = monotonicity(f, "t", {"t": (0.0, 2.0), "y": (-10.0, 10.0)})
+    assert (found.status, found.direction) == ("unproven", None)
+    assert "a piecewise implicit equation is not tried" in found.method
+
+
 def test_an_implicit_equation_needs_a_finite_interval_of_its_unknown() -> None:
     f = catalog().formulations["businger1971_keyps"]
     if math.isfinite(f._search_interval(None)[1]):
@@ -342,3 +356,61 @@ def test_a_pair_needs_a_single_input_and_a_positive_budget() -> None:
         monotonicity(one("t * p", f"{T}, {P}"), "t", (0.0, 1.0))
     with pytest.raises(ValueError, match="budget must be positive"):
         monotonicity(one("t"), "t", (0.0, 1.0), budget=0)
+
+
+def fail(*_: object) -> NoReturn:
+    """A function of intervals that cannot be evaluated."""
+    raise ValueError("no value")
+
+
+def test_a_junction_that_cannot_be_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(engine, "_junction", lambda *_: None)
+    found = monotonicity(one("piecewise((t, t < 1), (t + 5, t >= 1))"), "t", (0.0, 2.0))
+    assert (found.status, found.direction) == ("unproven", None)
+    assert "the junction t = 1.0 cannot be bounded" in found.method
+
+
+def test_the_bounds_of_a_junction_that_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    t, p = sympy.symbols("t p", real=True)
+    cell = ((0.0, 1.0), (1.0, 2.0))
+    # Over the other inputs: a search out of budget, then a largest step
+    # with no finite bound.
+    assert engine._junction(t * p, t * p - p, cell, 0, 1.0, 1, (t, p), 0) is None
+    monkeypatch.setattr(engine, "_largest", lambda *_: None)
+    assert engine._junction(t * p, t * p - p, cell, 0, 1.0, 1, (t, p), 100) is None
+    # One input: the step at the point itself, with no finite bound.
+    monkeypatch.setattr(engine, "_enclosure", lambda *_: (-math.inf, math.inf))
+    assert engine._junction(t, t - 1, ((0.0, 1.0),), 0, 1.0, 1, (t,), 100) is None
+
+
+def test_what_cannot_be_differentiated_or_bounded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    t = sympy.Symbol("t", real=True)
+    g = sympy.Function("g")
+    # A function of its own has no derivative to bound: no slope, no sign.
+    assert engine._slope((g(t), t), (t,), 0, (1.0,)) == 0.0
+    sign, at, reason = engine._sign_of(g(t), (t,), t, None, ((0.0, 1.0),), 10)
+    assert (sign, at, reason) == (None, None, "a function it cannot differentiate")
+    # Its value as a factor stays in the derivative.
+    assert engine._derivative(t * g(1), t, None) is None
+    monkeypatch.setattr(engine, "_interval_function", fail)
+    sign, at, reason = engine._sign_of(t**2, (t,), t, None, ((1.0, 2.0),), 10)
+    assert (sign, at, reason) == (None, None, "a function it cannot bound")
+    monkeypatch.setattr(sympy, "diff", fail)
+    assert engine._derivative.__wrapped__(t**3, t, None) is None
+
+
+def test_the_interval_search_at_its_limits() -> None:
+    t = sympy.Symbol("t", real=True)
+    square = engine._interval_function((t,), (t, t**2))
+    assert engine._enclosure(fail, ((0.0, 1.0),)) == (-math.inf, math.inf)
+    # Over a point, nothing to halve: the value there.
+    assert engine._largest(square, ((2.0, 2.0),), 10) == (4.0, (2.0,))
+    # Out of budget at once: the upper bound, or nothing where none is finite.
+    assert engine._largest(square, ((0.0, 2.0),), 0) == (4.0, (1.0,))
+    assert engine._largest(fail, ((0.0, 2.0),), 0) is None
+    # Decades of negative values are halved geometrically.
+    low, high = engine._halves(((-1000.0, -1.0),), 0)
+    assert low == ((-1000.0, -math.sqrt(1000.0)),)
+    assert high == ((-math.sqrt(1000.0), -1.0),)

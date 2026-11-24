@@ -765,3 +765,53 @@ def test_frost_point_lies_above_the_dew_point() -> None:
     t_f = frost.evaluate(e=vapour.to("Pa")).to("degC").magnitude
     t_d = dew.evaluate(e=vapour, outside="ignore").to("degC").magnitude
     assert (t_f > t_d).all()
+
+
+def test_no_closed_form_where_the_images_of_branches_overlap() -> None:
+    # Each branch is monotonic, the first increasing, the second
+    # decreasing: their images (-inf, 1) and (-inf, 2] overlap.
+    source = load_catalog(
+        [
+            DECREASING.replace("[formulations.jump]", "[formulations.overlap]")
+            .replace("(t + 1, t >= 1)", "(3 - t, t >= 1)")
+            .replace("formulations.jump.citations", "formulations.overlap.citations")
+        ]
+    ).formulations["overlap"]
+    with pytest.raises(InversionError, match="no closed form"):
+        invert(source, "t", output=TEMPERATURE, input=PRESSURE, method="symbolic")
+
+
+def test_the_direction_of_a_branch() -> None:
+    from nomogram.inversion import _branch_direction
+
+    inside = np.linspace(-1.0, 1.0, 9)
+    # Unproven, its derivative vanishing at 0: the samples decide.
+    cube = TESTS["cube"]
+    assert _branch_direction(cube, "t", -1.0, 1.0, inside, lambda x: x**3) == 1
+    # Refuted: a step back at t = 1.
+    back = TESTS["back_at_end"]
+    assert _branch_direction(back, "t", 0.0, 2.0, inside, lambda x: x) is None
+    # No interval to prove over: the samples alone.
+    assert _branch_direction(cube, "t", 1.0, 1.0, inside, lambda x: -x) == -1
+    assert _branch_direction(cube, "t", 1.0, 1.0, inside, lambda x: x**2) is None
+
+
+def test_a_domain_open_on_one_side_is_carried_as_it_is() -> None:
+    # The loader takes finite bounds on an input; a domain built otherwise
+    # may leave one end open, which has no image to carry.
+    from types import MappingProxyType
+
+    from nomogram.inversion import _carried_domains
+    from nomogram.model import DomainBasis, ValidityDomain
+
+    domain = ValidityDomain(
+        DomainBasis.STATED,
+        MappingProxyType({"t": (0.0, math.inf), "p": (1.0, 8.0)}),
+        "stated",
+        None,
+    )
+    (carried,) = _carried_domains(
+        (domain,), TESTS["cube"], "p", "t", lambda x: x**3, 0.0
+    )
+    assert dict(carried.bounds) == {"t": (0.0, math.inf), "p": (1.0, 8.0)}
+    assert not carried.tolerance
