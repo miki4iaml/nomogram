@@ -28,9 +28,9 @@ nomogram does not hard-code functions: it catalogs formulas, each one
 - **checked**: dimensions and units on loading, equivalences proved
   symbolically, monotonicity proved by interval arithmetic, values
   cross-checked against references;
-- **ready to use**: compute, compose, invert, solve with others as a
-  system of equations, plot, compare with its alternatives, and draw
-  with its system as a graph.
+- **ready to use**: compute, compose, invert, differentiate, solve with
+  others as a system of equations, plot, compare with its alternatives,
+  and draw with its system as a graph.
 
 Built for trust, not for speed: to show that a calculation is right, and
 where it comes from.

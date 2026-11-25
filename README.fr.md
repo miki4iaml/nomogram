@@ -29,9 +29,9 @@ chacune
 - **vérifiée** : dimensions et unités au chargement, équivalences
   prouvées symboliquement, monotonie prouvée par arithmétique
   d'intervalles, valeurs recoupées avec des références ;
-- **prête à l'emploi** : calculer, composer, inverser, résoudre avec
-  d'autres en système d'équations, tracer, comparer à ses alternatives,
-  et dessiner avec son système en graphe.
+- **prête à l'emploi** : calculer, composer, inverser, dériver,
+  résoudre avec d'autres en système d'équations, tracer, comparer à ses
+  alternatives, et dessiner avec son système en graphe.
 
 Conçu pour la confiance, pas pour la vitesse : montrer qu'un calcul est
 juste, et d'où il vient.
