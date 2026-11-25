@@ -674,7 +674,7 @@ def contrail_results(contrails: Any) -> dict[str, Any]:
 def test_contrails_guide_shows_lines_of_its_script() -> None:
     script = code_lines(CONTRAILS.read_text(encoding="utf-8"))
     blocks = python_blocks(CONTRAILS_GUIDE)
-    assert len(blocks) == 3
+    assert len(blocks) == 4
     for block in blocks:
         ast.parse(block)
         for line in code_lines(block):
@@ -689,7 +689,7 @@ def test_contrails_example_writes_its_plots(
 ) -> None:
     monkeypatch.setattr(contrails, "compute", lambda: contrail_results)
     contrails.main(str(tmp_path))
-    for name in ("diagram", "profile", "appleman"):
+    for name in ("diagram", "profile", "persistence", "appleman"):
         figure = tmp_path / f"contrails-{name}.png"
         assert figure.read_bytes().startswith(b"\x89PNG")
         assert f"images/contrails-{name}.png" in CONTRAILS_GUIDE.read_text(
@@ -721,6 +721,13 @@ def test_contrails_guide_gives_the_values_it_states(
         0.6: 9.6,
         1.0: 8.2,
     }
+    s = contrail_results["persistence"]
+    assert {t: round(100 * u, 1) for t, u in s["ice_saturation_at"].items()} == {
+        -30.0: 74.5,
+        -40.0: 67.4,
+        -50.0: 61.1,
+    }
+    assert (round(s["meet"], 1), round(s["dry"], 1)) == (-49.5, -52.3)
     a = contrail_results["appleman"]
     gap = {f_w: a["highest"][f_w] - a["tangent"][f_w] for f_w in (0, 60, 90, 100)}
     assert max(float(np.abs(v).max()) for v in gap.values()) < 0.23

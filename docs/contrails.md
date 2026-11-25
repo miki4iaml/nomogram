@@ -134,6 +134,36 @@ the air is colder than the threshold: in dry air from 10.1 to 14.0 km,
 9.9 km, at 60 % from 9.6 km, and at 100 % from 8.2 km, where Schumann
 writes "above 8.4 km", 0.2 km higher.
 
+## Where contrails persist
+
+A contrail that forms evaporates within seconds or minutes unless the
+ambient air is supersaturated with respect to ice: "Persistent contrails
+are expected to form in regions where contrails lead to water saturation
+and where the ambient humidity exceeds ice saturation" (Schumann 1996,
+p. 10). Over water, ice saturation is a relative humidity of
+e_I(T)/e_L(T): 74.5 % at −30 °C, 67.4 % at −40 °C, 61.1 % at −50 °C. With
+the critical relative humidity of the formation, the two curves divide
+the plane of temperature and humidity:
+
+```python
+ambient = Q_(np.linspace(-70.0, -35.0, 3501), "degC")
+formation = f["schumann2012_critical_relative_humidity"].evaluate(
+    T=ambient, T_LM=liquid["T_LM"], G=Q_(1.49, "Pa/K")
+)
+ice_saturation = (p_ice.evaluate(T=ambient) / p_liq.evaluate(T=ambient)).to("")
+```
+
+![The critical relative humidity of contrail formation and the relative humidity of ice saturation against the ambient temperature, for kerosene at G = 1.49 Pa/K, with the regions of persistent contrails, short-lived contrails, and air supersaturated over ice without contrail](images/contrails-persistence.png)
+
+For the kerosene of Table 3, the formation threshold meets ice saturation
+at −49.5 °C. Between −49.5 °C and T_LM, −42.91 °C, every contrail that
+forms persists, while air supersaturated over ice but drier than the
+threshold gets none; colder, contrails also form in air subsaturated over
+ice, and vanish quickly; below −52.3 °C, even dry air gives contrails.
+Above T_LM, no humidity gives contrails. The persistence is a margin here,
+read on the figure: a predicate of the catalog, an inequality, awaits the
+solution sets of a later version.
+
 ## Appleman's criterion, 1953
 
 Appleman (1953) reasons in mixing ratios. Each gram of fuel burnt gives

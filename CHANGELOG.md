@@ -63,9 +63,10 @@ and this project adheres to
   declared by nomogram for `InverseTemperature`.
 - **A guide to contrails** ([docs/contrails.md](docs/contrails.md)): the
   criterion in brief, the diagram of Schmidt and Appleman, the threshold
-  along the standard atmosphere (Figure 4a of Schumann 1996), Figure 4 of
-  Appleman (1953) computed again against the tangent criterion, the fits
-  side by side, and the graph of the kinds of the family.
+  along the standard atmosphere (Figure 4a of Schumann 1996), where
+  contrails persist, Figure 4 of Appleman (1953) computed again against
+  the tangent criterion, the fits side by side, the chain of formulations
+  and the graph of the kinds of the family.
 - The saturation vapour pressures of Sonntag (1994) in pascals as
   Schumann (2012) writes them (A1, A2), proved equivalent to `sonntag1990`
   and `sonntag1990_ice`, and their derivatives, the slopes of saturation

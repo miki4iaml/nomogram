@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """Contrail formation from aircraft exhaust: the diagram of Schmidt and
-Appleman, the threshold temperature along the standard atmosphere, and
-Figure 4 of Appleman (1953) computed again.
+Appleman, the threshold temperature along the standard atmosphere, where
+contrails persist, and Figure 4 of Appleman (1953) computed again.
 
 ``docs/contrails.md`` shows lines of ``compute`` and states the values it
-computes (a test checks them); ``main`` only formats and saves the three
+computes (a test checks them); ``main`` only formats and saves the four
 figures besides.
 
 Run from the repository (extra ``viz`` installed)::
@@ -189,6 +189,37 @@ def compute() -> dict[str, Any]:
         layers[u] = (float(h.magnitude[forming[0]]), float(h.magnitude[forming[-1]]))
     profile = {"H": h.magnitude, "T": air, "T_LC": by_humidity, "layers": layers}
 
+    # Persistence: the ambient air supersaturated with respect to ice.
+    ambient = Q_(np.linspace(-70.0, -35.0, 3501), "degC")
+    formation = f["schumann2012_critical_relative_humidity"].evaluate(
+        T=ambient, T_LM=liquid["T_LM"], G=Q_(1.49, "Pa/K")
+    )
+    ice_saturation = (p_ice.evaluate(T=ambient) / p_liq.evaluate(T=ambient)).to("")
+    u_lc = formation.to("").magnitude
+    u_ice = ice_saturation.magnitude
+    below = ~np.isnan(u_lc)  # NaN above T_LM, where no humidity gives contrails
+    gap = u_lc[below] - u_ice[below]
+    meet = np.flatnonzero(np.diff(np.sign(gap)))[0]
+    dry = np.flatnonzero(np.diff(np.sign(u_lc[below])))[0]
+    temperatures = ambient.magnitude[below]
+    at = {
+        t: float(
+            (p_ice.evaluate(T=Q_(t, "degC")) / p_liq.evaluate(T=Q_(t, "degC")))
+            .to("")
+            .magnitude
+        )
+        for t in (-30.0, -40.0, -50.0)
+    }
+    persistence = {
+        "T": ambient.magnitude,
+        "U_LC": u_lc,
+        "U_ice": u_ice,
+        "T_LM": t_lm - 273.15,
+        "meet": float(temperatures[meet]),
+        "dry": float(temperatures[dry]),
+        "ice_saturation_at": at,
+    }
+
     # Figure 4 of Appleman (1953): the highest critical temperature over the
     # mixing, Delta T from 0.5 to 60 degrees as his tables; below -50 degC,
     # where the Goff-Gratch equation stops, outside="ignore" goes on.
@@ -230,6 +261,7 @@ def compute() -> dict[str, Any]:
     return {
         "diagram": diagram,
         "profile": profile,
+        "persistence": persistence,
         "appleman": appleman,
         "called": CALLED,
     }
@@ -309,6 +341,56 @@ def main(directory: str) -> None:
     axes.set_ylabel(label("Geopotential height", "H", "km", options=documentation))
     axes.set_title("Kerosene, η = 0.3: contrails form left of the dashed curves")
     _finish(figure, axes, folder / "contrails-profile.png")
+
+    s = results["persistence"]
+    figure, axes = plt.subplots()
+    t, u_lc, u_ice = s["T"], 100 * s["U_LC"], 100 * s["U_ice"]
+    forming = np.where(np.isnan(u_lc), np.inf, np.clip(u_lc, 0, None))
+    axes.fill_between(
+        t,
+        np.maximum(forming, u_ice),
+        100,
+        where=forming <= 100,
+        color="C2",
+        alpha=0.3,
+        label="persistent contrails",
+    )
+    axes.fill_between(
+        t,
+        forming,
+        u_ice,
+        where=forming < u_ice,
+        color="C1",
+        alpha=0.3,
+        label="short-lived contrails",
+    )
+    axes.fill_between(
+        t,
+        u_ice,
+        np.minimum(forming, 100),
+        where=u_ice < forming,
+        color="C0",
+        alpha=0.2,
+        label="supersaturated over ice, no contrail",
+    )
+    axes.plot(t, u_lc, color="C3", label=r"formation threshold, $U_\mathrm{LC}$")
+    axes.plot(t, u_ice, color="C0", label="saturation over ice")
+    axes.axvline(s["T_LM"], color="grey", linewidth=1, linestyle=":")
+    axes.annotate(
+        r"$T_\mathrm{LM}$",
+        (s["T_LM"], 4),
+        textcoords="offset points",
+        xytext=(4, 0),
+    )
+    axes.text(-41, 30, "no contrail", ha="center")
+    axes.set_xlim(-70, -35)
+    axes.set_ylim(0, 100)
+    axes.set_xlabel(label("Ambient temperature", "T", "°C", options=documentation))
+    axes.set_ylabel(
+        label("Relative humidity over water", "U", "%", options=documentation)
+    )
+    axes.set_title("Kerosene, G = 1.49 Pa/K: where contrails form and persist")
+    _finish(figure, axes, folder / "contrails-persistence.png")
 
     a = results["appleman"]
     figure, axes = plt.subplots()
