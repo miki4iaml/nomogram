@@ -248,8 +248,10 @@ Pour le mainteneur, dans cet ordre :
    local dans la même PR, avec une entrée au CHANGELOG. La même PR
    vérifie la PR de chaque genre provisoire (`LOCAL_KINDS`) : fusionnée et
    publiée, le genre de QUDT le remplace, sous son nom et sa définition,
-   avec une entrée « Changed » qui nomme les deux ; fermée sans fusion, le
-   genre est retiré ou repris ; encore ouverte, il reste.
+   avec une entrée « Changed » qui nomme les deux ; fusionnée mais dans
+   aucune version encore, il reste, sa PR notée fusionnée, jusqu'à la
+   version qui le contient ; fermée sans fusion, le genre est retiré ou
+   repris ; encore ouverte, il reste.
 2. PR vers `develop` (squash) : version dans `pyproject.toml` et
    `CITATION.cff`, section `[Unreleased]` du `CHANGELOG.md` devenue
    `[x.y.z] - date`, titre `chore: release x.y.z`. La même PR met à

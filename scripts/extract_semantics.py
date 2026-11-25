@@ -586,11 +586,14 @@ class LocalUnit(NamedTuple):
 #: Provisional quantity kinds, by the local name the pull request adding
 #: them to QUDT gives them, with the reason.
 LOCAL_KINDS: dict[str, LocalKind] = {
-    # The slope G of the mixing line of aircraft exhaust and ambient air in
-    # a diagram of water vapour partial pressure versus temperature, in
-    # Pa/K (Schumann 1996, equation 8; Gierens 2021, equation 1). Pa/K
-    # carries only PressureCoefficient in QUDT 3.5.4, (dp/dT) at constant
-    # volume, which G is not.
+    # The slope G of the mixing line in a diagram of water vapour partial
+    # pressure versus temperature, along which the state of a mixture of two
+    # air masses lies when they mix isobarically; in the criterion of
+    # contrail formation, aircraft exhaust and ambient air, in Pa/K
+    # (Schumann 1996, equation 8; Gierens 2021, equation 1). Pa/K carries
+    # only PressureCoefficient in QUDT 3.5.4, (dp/dT) at constant volume,
+    # which G is not. Merged by QUDT on 2026-11-25, in no release yet: it
+    # stays until the release that holds it.
     "MixingLineSlope": LocalKind(
         label="Mixing Line Slope",
         dimension_vector="A0E0L-1I0M1H-1T-2D0",
@@ -625,7 +628,7 @@ LOCAL_UNITS: dict[str, LocalUnit] = {
     # MOL-PER-KiloGM-K, not this one; written as PPM-PER-K.
     "GM-PER-KiloGM-K": LocalUnit(
         label="Gram per Kilogram Kelvin",
-        symbol="g/(kg⋅K)",
+        symbol="g/(kg·K)",
         dimension_vector="A0E0L0I0M0H-1T0D0",
         multiplier=0.001,
         ucum="g.kg-1.K-1",

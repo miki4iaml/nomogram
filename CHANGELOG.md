@@ -67,7 +67,7 @@ and this project adheres to
   Goff-Gratch equation the tables imply. Their oracles are Tables I and
   II, the inset of Figure 1, Figure 4 and the example of a flight at
   200 mb. The family `contrail` requires `moist-air`.
-- The unit g/(kg⋅K), `GM-PER-KiloGM-K`, which QUDT 3.5.4 does not have,
+- The unit g/(kg·K), `GM-PER-KiloGM-K`, which QUDT 3.5.4 does not have,
   declared by nomogram for `InverseTemperature`.
 - **A guide to contrails** ([docs/contrails.md](docs/contrails.md)): the
   criterion in brief, the diagram of Schmidt and Appleman, the threshold
@@ -83,8 +83,10 @@ and this project adheres to
   `HeatingValue`, `Thrust` and `MassFlowRate` (with `Force` and
   `MassPerTime`), the newton, the kilonewton, kg/s, MJ/kg and g/mol; two
   provisional kinds, `MixingLineSlope` and `SaturationVapourPressureSlope`,
-  in Pa/K, hPa/K and kPa/K, pending their pull requests to QUDT
-  (qudt/qudt-public-repo#1621 and #1622).
+  in Pa/K, hPa/K and kPa/K, until QUDT releases them: the first is merged
+  (qudt/qudt-public-repo#1621), the second pending (#1622). A provisional
+  kind whose pull request is merged stays until the QUDT release that
+  holds it (AGENTS.md, CONTRIBUTING).
 - A table of differences may lead to another scale (`base`,
   `ConventionalScale.base`), which leads to the reference scale
   ([the catalog guide](docs/catalog.md#conventional-scales)).

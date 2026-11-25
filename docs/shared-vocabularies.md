@@ -232,14 +232,16 @@ A violation fails the CI; a warning is counted in the report.
   define yet) is declared in that script, never hidden in the data, and
   listed in the data notice.
 - A kind of nomogram's own must specialize a QUDT kind or a
-  provisional one: the loader checks it. A kind with no QUDT kind to specialize enters only as a
-  *provisional* kind, while a pull request adding it to QUDT is open: the
+  provisional one: the loader checks it. A kind with no QUDT kind to
+  specialize enters only as a *provisional* kind, while a pull request
+  adding it to QUDT is open, or merged and awaiting a QUDT release: the
   kind records that pull request (`QuantityKind.pending`, origin
   `provisional`), and each minor version checks its state. The kinematic
   heat flux in K m/s was one until QUDT 3.5.4 added it; two now, the slope
   of the mixing line of contrail formation, `MixingLineSlope`
-  (qudt/qudt-public-repo#1621), and the slope of a saturation vapour
-  pressure, `SaturationVapourPressureSlope` (#1622).
+  (qudt/qudt-public-repo#1621, merged, awaiting a release), and the slope
+  of a saturation vapour pressure, `SaturationVapourPressureSlope`
+  (#1622, open).
 - **For the authors of personal catalogs**: QUDT may adopt a provisional
   kind under another name or definition, as its reviewers improve the
   proposal. nomogram then takes QUDT's kind, and the changelog of that
