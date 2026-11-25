@@ -8,6 +8,108 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-25
+
+The catalog drawn as graphs, on a vocabulary QUDT now holds whole. Three
+results:
+
+- A system of the catalog is drawn from itself: the loop of COARE 3.6,
+  its equations numbered as in the table of
+  [its guide](docs/coare-system.md), the reads that close the loop
+  dashed and the driver that iterates it, in a light and a dark variant;
+  the tree of quantity kinds a search finds is drawn the same way
+  ([the guide](docs/graphs.md)).
+- QUDT 3.5.4 holds thirteen pull requests from nomogram: the extraction
+  script declares no kind and no unit of its own any more, the
+  provisional kind included, and 23 kinds and units of the bundled
+  subset carry an exact match to the SI Digital Framework of the BIPM.
+- The pressure altitude, the geopotential height of the standard
+  atmosphere at a pressure, is found and compared as a geopotential
+  height but feeds none of its inputs, although QUDT 3.5.4 makes it a
+  specialization of it: compositions and systems do not take a standard
+  height for an actual one.
+
+### Added
+
+- **Graphs of the catalog** (`nomogram.graph`), as node-link documents
+  of NetworkX to exchange and draw, with the conventions
+  `protee-node-link/0` agreed with protee
+  ([the guide](docs/graphs.md)). `kind_graph` gives the tree of quantity
+  kinds a search finds, with the kinds they specialize and their matches
+  in CF, Wikidata and the SI Digital Framework of the BIPM; `system_graph` gives the equations and variables of
+  a system, each variable with its role (input, unknown, intermediate),
+  and the reads that close its loops.
+  No new dependency: the documents are plain `dict`s, ready for
+  `json.dumps`. The guide and the page on the loop of COARE 3.6 draw
+  them, in a light and a dark variant: the loop with its equations
+  numbered as in the page's table, the reads that close it dashed and the
+  driver that iterates it
+  ([`graph_figures.py`](docs/examples/graph_figures.py)).
+- **Development dependencies** `protee[viz]` and `jsonschema`: the
+  tests check the documents of `nomogram.graph` with protee's own check,
+  its JSON schema and its reading and writing back. Neither is a
+  dependency of the package.
+- `QuantityKind.organized_under`: the kind under which QUDT organizes a
+  kind (`qudt:organizedUnder`) without making it a specialization, such
+  as the gradient of radio refractivity under `InverseLength`. A search
+  by kind follows it (`search(kind="InverseLength")`); feeding an input
+  does not, the two kinds not being commensurable.
+- Exact matches to the SI Digital Framework of the BIPM, imported from
+  QUDT's `siExactMatch`, on 23 of the bundled kinds and units.
+- `QuantityKind.never_feeds`: the kinds a kind specializes in QUDT whose
+  inputs its values do not feed, a departure declared in the extraction
+  script. The pressure altitude, the geopotential height of the standard
+  atmosphere at a pressure, which QUDT makes a specialization of the
+  geopotential height, feeds no geopotential height input in compositions,
+  those of a catalog included, and in systems: such an input may be of an
+  actual atmosphere. It is still found under it by a search, and compared
+  as one by `compare(kind=...)`.
+
+### Changed
+
+- **QUDT 3.5.4** (23 November 2026) replaces 3.5.3 in the bundled
+  subset; the CF standard name table stays at 95, its latest version.
+  The release holds thirteen pull requests from nomogram, and its kinds
+  and units now replace those nomogram declared:
+  - `KinematicHeatFlux`, provisional until now, and `LapseRate`,
+    `DensityOfDryAir`, `DensityOfMoistAir`, `SpecificLatentHeat`,
+    `Geopotential`, `GeopotentialHeight` and `PressureAltitude`, local
+    kinds of nomogram, are QUDT's, under the same names; no provisional
+    kind is left;
+  - `VerticalRadioRefractivityGradient` becomes QUDT's
+    `RefractivityGradient`, organized under `InverseLength`: a personal
+    catalog that names the former needs the new name;
+  - the unit `PPM-PER-M` is QUDT's;
+  - the surface downward flux of water vapour specializes
+    `MassFluxDensity`, which QUDT now labels in English, instead of
+    `MassPerAreaTime`;
+  - the units nomogram added are dropped where QUDT now declares them:
+    the per mille, g/kg and kg/kg for `MassFraction`, g/kg and kg/kg for
+    the humidity mixing ratio, the percent for `RelativePartialPressure`;
+  - the links imported from QUDT are dated 25 November 2026, the date
+    they were read in 3.5.4; the Wikidata link of `SpecificLatentHeat`,
+    now imported from QUDT, is a close match; `KinematicViscosity` now
+    matches Q12793663, no longer Q15106259, and `SpecificHumidity` gains
+    Q2253551, as QUDT 3.5.4 gives them;
+  - `MassPerAreaTime` leaves the bundled subset, no kind of the catalog
+    specializing it any more: a personal catalog that names it needs
+    another parent, such as `MassFluxDensity`;
+  - `RefractivityGradient` takes the N-units per metre only (`PPM-PER-M`):
+    QUDT organizes it under `InverseLength` without making it a
+    specialization, so the reciprocal metre and kilometre no longer apply
+    to it.
+
+### Fixed
+
+- The Wikidata link of the per mille is the per mille's (Q181011), no
+  longer the percent's, which QUDT 3.5.3 had copied onto it.
+- `CFStandardName.pint` is a pint unit for the CF names whose canonical
+  unit is 1e-3, the per mille (`permille`), so that a conversion keeps the
+  factor of 1000; it was the number itself.
+- A kind of a catalog under a temperature in degrees Celsius may carry a
+  CF standard name: loading no longer stops on a pint error about offset
+  units.
+
 ## [0.8.0] - 2026-11-21
 
 Numerical results that nomogram proves and that can be reproduced. Three
@@ -2016,7 +2118,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.9.0...develop
+[0.9.0]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0

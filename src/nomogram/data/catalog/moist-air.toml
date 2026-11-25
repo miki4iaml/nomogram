@@ -49,16 +49,6 @@ specialization_of = "Pressure"
 bounds = { low = 0, high = inf, unit = "PA", criterion = "A partial pressure of a gas, never negative by its definition." }
 description = "Partial pressure of the dry air in moist air: the total pressure minus the vapour pressure."
 
-# Merged into QUDT on 2026-10-25 (qudt-public-repo pull request 1578),
-# not yet in a release.
-[kinds.SpecificLatentHeat]
-label = "Specific Latent Heat"
-specialization_of = "SpecificEnergy"
-description = "Latent heat of a phase transition per unit mass: vaporization, sublimation or fusion."
-matches = [
-  { target = "http://www.wikidata.org/entity/Q104217205", relation = "exact", verified = 2026-10-25 },
-]
-
 [kinds.SpecificLatentHeatOfVaporization]
 label = "Specific Latent Heat of Vaporization"
 specialization_of = "SpecificLatentHeat"
@@ -134,29 +124,10 @@ matches = [
   { target = "http://www.wikidata.org/entity/Q3055058", relation = "exact", verified = 2026-10-26 },
 ]
 
-[kinds.DensityOfMoistAir]
-label = "Density of Moist Air"
-specialization_of = "Density"
-description = "Mass of moist air, dry air and water vapour, per unit volume."
-cf_standard_names = [{ name = "air_density", relation = "exact", verified = 2026-10-26 }]
-# The Wikidata item is the density of the Earth's atmosphere, moist or
-# dry: broader than this kind and than DensityOfDryAir.
-matches = [
-  { target = "http://www.wikidata.org/entity/Q1511415", relation = "broad", verified = 2026-11-04 },
-]
-
-# Siblings under Density: the density of a dry air, without water vapour,
-# never feeds an input of the density of moist air, nor the reverse. The
-# partial density of dry air within moist air, its mass per volume of
-# moist air, is a third quantity, not entered.
-
-[kinds.DensityOfDryAir]
-label = "Density of Dry Air"
-specialization_of = "Density"
-description = "Mass per unit volume of air without water vapour, p / (R_d T) at the pressure of the dry air alone: the air of the ISO standard atmosphere, free from moisture and dust (ISO 2533, 2.1). Not the partial density of dry air within moist air, its mass per volume of moist air."
-matches = [
-  { target = "http://www.wikidata.org/entity/Q1511415", relation = "broad", verified = 2026-11-04 },
-]
+# The densities of dry and of moist air are QUDT's (3.5.4), siblings
+# under Density: neither feeds an input of the other. The partial
+# density of dry air within moist air, its mass per volume of moist
+# air, is a third quantity, not entered.
 
 [kinds.MassRatioOfTotalWaterToDryGas]
 label = "Mass Ratio of Total Water to Dry Gas"

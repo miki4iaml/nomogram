@@ -50,6 +50,20 @@ $`q`$) and of the sea surface ($`T_0`$, $`q_0`$), the wind $`U`$, the
 heights of measurement, the height of the boundary layer, the viscosity
 of air $`\nu`$ and the gravity $`g`$.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/coare-loop-dark.svg">
+  <img alt="The loop of COARE 3.6: the thirteen equations in the order of the code, numbered as in the table, the reads that close the loop dashed, and the driver of the loop on top" src="images/coare-loop.svg">
+</picture>
+
+Each box is an equation, numbered as in the table, with the variable it
+gives, by its name in the catalog ($`u_*`$ is `u_s`), and its unit: the
+five unknowns in blue, the eight intermediate variables in green. An
+arrow goes from an equation to each equation that reads its variable,
+dashed when the reader comes before it: a read that closes the loop. The
+driver on top says how the loop is iterated, by the ten passes of the
+code or by Newton's method in nomogram. The figure is drawn from
+`system_graph` (see [Graphs of kinds and systems](graphs.md#a-system)).
+
 ## Its solution
 
 Solving the system means finding the five unknowns for which the

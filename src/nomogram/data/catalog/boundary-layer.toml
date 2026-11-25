@@ -563,7 +563,7 @@ cf_standard_names = [{ name = "surface_downward_latent_heat_flux", relation = "e
 
 [kinds.SurfaceDownwardWaterVapourFlux]
 label = "Surface Downward Water Vapour Flux"
-specialization_of = "MassPerAreaTime"
+specialization_of = "MassFluxDensity"
 description = "Mass flux of water vapour across the surface, positive toward it, as the IFS and Large and Yeager (2004) write it: negative over an evaporating sea, the opposite of the evaporation; CF names the upward flux, surface_upward_water_vapor_flux_in_air, of the opposite sign."
 
 [kinds.MagnitudeOfSurfaceDownwardStress]
@@ -637,7 +637,7 @@ assumptions = ["The turbulent fluxes are constant with height in the surface lay
 label = "Virtual temperature flux of the surface layer (IFS)"
 expression = "u_s * s_s / c_pd + (R_v / R_d - 1) * T_n * u_s * q_s"
 fixed_units = false
-note = "Equation 3.10, Q_0v = u_* s_*/c_p + epsilon T_n u_* q_*, epsilon = R_vap/R_dry - 1, positive upward as 3.10 and 3.20 need (SurfaceLayerScaleOfSpecificHumidity), written out in ecmwf_ifs_obukhov_length; a kinematic heat flux, of the provisional kind KinematicHeatFlux."
+note = "Equation 3.10, Q_0v = u_* s_*/c_p + epsilon T_n u_* q_*, epsilon = R_vap/R_dry - 1, positive upward as 3.10 and 3.20 need (SurfaceLayerScaleOfSpecificHumidity), written out in ecmwf_ifs_obukhov_length; a kinematic heat flux, of the kind KinematicHeatFlux (QUDT 3.5.4)."
 output = { identifier = "Q_0v", kind = "KinematicHeatFlux", unit = "K-M-PER-SEC", description = "Virtual temperature flux in the surface layer" }
 inputs = [
   { identifier = "u_s", kind = "FrictionVelocity", unit = "M-PER-SEC", description = "Friction velocity" },

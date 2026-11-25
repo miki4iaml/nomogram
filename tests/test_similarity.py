@@ -428,3 +428,140 @@ def test_a_domain_without_0_is_carried_and_said() -> None:
     assert (citation.equation, citation.accuracy) == (None, None)
     assert citation.note is not None
     assert "from which nomogram derived" in citation.note
+
+
+def with_domains(expression: str, domains: str) -> Formulation:
+    """A synthetic gradient function whose citation states domains (TOML)."""
+    document = (
+        SOURCE
+        + f"""
+[formulations.f]
+label = "f"
+expression = "{expression}"
+fixed_units = true
+output = {{ identifier = "y", kind = "GradientFunctionForMomentum", unit = "UNITLESS", description = "y" }}
+inputs = [{{ identifier = "zeta", kind = "StabilityParameter", unit = "UNITLESS", description = "zeta" }}]
+
+[[formulations.f.citations]]
+reference = "test_source"
+{domains}
+"""
+    )
+    return load_catalog([document]).formulations["f"]
+
+
+def test_a_coefficient_that_is_no_simple_fraction_keeps_its_decimal() -> None:
+    # No fraction of denominator up to 1e8 stands for 0.00123456789123 within
+    # 1e-15: SymPy integrates its decimal.
+    derived = profile_function(synthetic("1 + 0.00123456789123 * zeta"))
+    zeta = np.linspace(0.1, 1.0, 5)
+    assert_same(values(derived, zeta), -0.00123456789123 * zeta)
+
+
+def test_sympy_failures_become_derivation_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sympy
+
+    from nomogram import similarity
+
+    def refuse(*args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError("refused for the test")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(sympy, "limit", refuse)
+        with pytest.raises(DerivationError, match="no limit of its gradient function"):
+            profile_function(synthetic("1 + 4 * zeta"))
+    with monkeypatch.context() as patched:
+        patched.setattr(similarity, "_integrate", refuse)
+        with pytest.raises(DerivationError, match="no closed-form integral"):
+            profile_function(synthetic("1 + 4 * zeta"))
+    with monkeypatch.context() as patched:
+        # An integral SymPy leaves unevaluated is no closed form either.
+        patched.setattr(
+            similarity, "_integrate", lambda phi, z, *_: sympy.Integral(phi, z)
+        )
+        with pytest.raises(DerivationError, match="no closed-form integral"):
+            profile_function(synthetic("1 + 4 * zeta"))
+
+
+def test_closed_forms_the_syntax_cannot_write(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sympy
+
+    from nomogram.similarity import _text
+
+    source = synthetic("1 + 4 * zeta")
+    z = sympy.Symbol("zeta", real=True)
+    with pytest.raises(DerivationError, match="outside the syntax"):
+        _text(source, sympy.zoo + z, ("zeta",))
+
+    def refuse(expression: Any) -> Any:
+        raise ValueError("refused for the test")
+
+    # A simplification that fails is skipped; a form on complex numbers stays one.
+    monkeypatch.setattr(sympy, "gammasimp", refuse)
+    with pytest.raises(DerivationError, match="complex numbers"):
+        _text(source, sympy.I * z, ("zeta",))
+
+
+def test_branches_on_each_side_integrate_from_their_neighbour() -> None:
+    # The branch holding 0 starts at 0; the others start where their
+    # neighbour ends, with its value there: psi stays continuous.
+    derived = profile_function(
+        synthetic(
+            "piecewise((1 - 2 * zeta, zeta < -1), (1 - zeta, -1 <= zeta < 1), (1 + 3 * zeta, zeta >= 1))"
+        )
+    )
+    zeta = np.array([-2.0, -1.0, 0.5, 1.0, 2.0])
+    # psi = zeta on [-1, 1); 2 zeta + 1 below -1 (-1 at -1); -3 zeta + 4 above 1.
+    assert values(derived, zeta) == pytest.approx([-3.0, -1.0, 0.5, 1.0, -2.0])
+
+
+def test_a_closed_form_that_disagrees_with_the_quadrature(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from nomogram import similarity
+
+    monkeypatch.setattr(similarity, "_text", lambda *_: "2 * zeta")
+    with pytest.raises(DerivationError, match="the closed form gives"):
+        profile_function(synthetic("1 + 4 * zeta"))
+
+
+def test_no_point_to_check_when_the_quadrature_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def refuse(*args: Any, **kwargs: Any) -> Any:
+        raise ValueError("refused for the test")
+
+    monkeypatch.setattr(mpmath, "quad", refuse)
+    with pytest.raises(DerivationError, match="no point to check the closed form"):
+        profile_function(synthetic("1 + 4 * zeta"))
+
+
+def test_domains_that_leave_a_branch_out_or_bound_another_variable() -> None:
+    # The domain on zeta leaves the branch above 1 out: it is not checked
+    # there. The domain on the output is not carried, and says nothing of
+    # the start of the integral.
+    derived = profile_function(
+        with_domains(
+            "piecewise((1 + zeta, zeta <= 1), (2 + zeta, zeta > 1))",
+            "[[formulations.f.citations.domains]]\nbounds = { zeta = [-1.0, 0.5] }\n"
+            "[[formulations.f.citations.domains]]\nbounds = { y = [0.0, 10.0] }\n"
+            "criterion = 'stated for the test'",
+        )
+    )
+    assert [dict(d.bounds) for d in derived.domains] == [{"zeta": (-1.0, 0.5)}]
+
+
+def test_pieces_the_syntax_cannot_split(monkeypatch: pytest.MonkeyPatch) -> None:
+    from nomogram import similarity
+    from nomogram.expression import ExpressionError
+
+    def refuse(*args: Any) -> Any:
+        raise ExpressionError("no branches to split, for the test")
+
+    monkeypatch.setattr(similarity, "_pieces", refuse)
+    with pytest.raises(DerivationError, match="no branches to split"):
+        profile_function(
+            synthetic("piecewise((1 - zeta, zeta < 0), (1 + zeta, zeta >= 0))")
+        )

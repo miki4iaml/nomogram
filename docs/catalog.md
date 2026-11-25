@@ -135,8 +135,8 @@ All sections are optional; a key may be defined in one file only.
 
 - **`output` and `inputs`** are variables: `identifier` (used in the
   expression), `kind` (a quantity kind), `unit` (a QUDT unit name, or
-  one of the few units QUDT lacks that the extraction script declares,
-  such as `PPM-PER-M`) and `description`. The unit must apply to the
+  one of the units QUDT lacks that the extraction script would declare,
+  none since QUDT 3.5.4) and `description`. The unit must apply to the
   kind.
 - **`fixed_units`**: `true` when the coefficients only hold in the
   declared units (most empirical fits, such as the Magnus form). Inputs
@@ -878,8 +878,12 @@ One rule keeps the kinds consistent over time, whoever adds them:
 
 - **A kind specializes another only when every value of it can feed
   every input of the other.** A dew point is a temperature; a relative
-  humidity over ice is not a relative humidity over water, nor a pressure
-  altitude the geopotential height of the actual atmosphere.
+  humidity over ice is not a relative humidity over water. Where QUDT
+  makes a kind the specialization of one whose inputs its values would
+  only approximate, nomogram keeps the taxonomy and declares that the kind
+  does not feed the other (`never_feeds`): a pressure altitude, the
+  geopotential height of the standard atmosphere, feeds no geopotential
+  height input, which may be of the actual atmosphere.
 - **A quantity that only resembles another gets a sibling kind** under
   their nearest common parent, so that neither feeds the other. It may
   share the name, the dimension or the unit, and differ by its
@@ -889,7 +893,6 @@ One rule keeps the kinds consistent over time, whoever adds them:
   - `DensityOfDryAir` and `DensityOfMoistAir`;
   - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
   - `LapseRate` and `VerticalTemperatureGradient`;
-  - `PressureAltitude` and `GeopotentialHeight`;
   - `AltimetricAltitude` and `Altitude`.
 - **A kind is neutral as to the medium**, as QUDT's are: a potential
   temperature, a friction velocity, an Obukhov length are those of a

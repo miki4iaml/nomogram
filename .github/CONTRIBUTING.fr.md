@@ -76,6 +76,12 @@ La première commande installe aussi les extras optionnels (`viz`),
 couverts par les tests. La seconde commande installe les hooks aux trois stades (pre-commit,
 commit-msg, pre-push).
 
+Le groupe de développement apporte aussi protee, avec Graphviz embarqué
+par pygraphviz (rien à installer sur le poste), et jsonschema : les
+tests contrôlent les documents de `nomogram.graph` par le contrôle et
+le schéma JSON de protee. Ni l'un ni l'autre n'est une dépendance du
+paquet.
+
 ## Contrôles locaux
 
 | Stade | Contrôles |
@@ -269,7 +275,11 @@ Pour le mainteneur, dans cet ordre :
    construction et la SBOM CycloneDX, et publie exactement ces fichiers
    sur PyPI par Trusted Publishing (OIDC, aucun jeton stocké), après
    approbation de l'environnement protégé `pypi`.
-6. Vérifier : `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+6. Vérifier les deux attestations de la wheel et du sdist : la
+   provenance du build, `gh attestation verify <fichier> --repo
+   miki4iaml/nomogram`, et le SBOM, la même commande avec
+   `--predicate-type https://cyclonedx.org/bom` (sans elle, seule la
+   provenance est vérifiée).
 
 Répétition : lancer le workflow de publication à la main
 (`workflow_dispatch`). Il publie une version unique `x.y.z.devN` sur

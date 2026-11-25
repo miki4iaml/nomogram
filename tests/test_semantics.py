@@ -41,9 +41,9 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 
 
 def test_sources_are_recorded() -> None:
-    assert CATALOG.qudt_version == "3.5.3"
+    assert CATALOG.qudt_version == "3.5.4"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 11, 4)
+    assert CATALOG.extracted == datetime.date(2026, 11, 25)
 
 
 def test_catalog_is_read_once() -> None:
@@ -51,7 +51,7 @@ def test_catalog_is_read_once() -> None:
 
 
 def test_unit_symbols_follow_the_si_brochure() -> None:
-    # SI Brochure, 9th ed., 2.3.3 and 5.4.7; QUDT writes the unit one U+4E00.
+    # SI Brochure, 9th ed., 2.3.3 and 5.4.7, as QUDT writes them since 3.5.4.
     assert CATALOG.units["UNITLESS"].symbol == "1"
     assert CATALOG.units["PPM"].symbol == "ppm"
     assert CATALOG.units["PERCENT"].symbol == "%"
@@ -98,7 +98,9 @@ def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
 
 #: Interval-scale kinds whose zero is a reference surface rather than a
 #: unit: multiplicative units (``offset_units=False`` in the extraction).
-SURFACE_ZERO = frozenset({"Altitude"})
+SURFACE_ZERO = frozenset(
+    {"Altitude", "Geopotential", "GeopotentialHeight", "PressureAltitude"}
+)
 
 #: Temperature points written with or without an offset, in degC or in K
 #: (``offset_units="any"`` in the extraction).
@@ -128,7 +130,7 @@ def test_radio_refractivity_kinds_and_units() -> None:
     }
     assert set(kinds["Height"].applicable_units) == {"M", "KiloM", "FT"}
     assert kinds["Height"].cf_standard_names == ("height",)
-    # QUDT writes PPM; nomogram displays ppm, as ITU-R P.453 does.
+    # ppm, as ITU-R P.453 and QUDT (since 3.5.4) write it.
     assert units["PPM"].symbol == "ppm"
     assert units["PPM"].multiplier == 1e-6
 
@@ -193,11 +195,36 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
     cf = CATALOG.cf_standard_names["mass_concentration_of_water_vapor_in_air"]
     assert cf.canonical_units == "kg m-3"
     assert ureg.Quantity(1, cf.pint).to("g/m^3").magnitude == pytest.approx(1000)
+    # A scale factor of CF is the pint unit it is: 1e-3, the per mille.
+    salinity = CATALOG.cf_standard_names["sea_water_salinity"]
+    assert (salinity.canonical_units, salinity.pint) == ("1e-3", "permille")
+    assert Q_(0.035, "dimensionless").to(salinity.pint).magnitude == pytest.approx(35.0)
+
+
+def test_links_of_qudt_to_the_si_and_to_wikidata() -> None:
+    si = "https://si-digital-framework.org/"
+    pressure = [
+        m for m in CATALOG.quantity_kinds["Pressure"].matches if m.target.startswith(si)
+    ]
+    assert [(m.target, m.relation) for m in pressure] == [
+        (f"{si}quantities/PRES", MatchRelation.EXACT)
+    ]
+    kelvin = [m for m in CATALOG.units["K"].matches if m.target.startswith(si)]
+    assert [(m.target, m.relation) for m in kelvin] == [
+        (f"{si}SI/units/kelvin", MatchRelation.EXACT)
+    ]
+    links = [m for k in CATALOG.quantity_kinds.values() for m in k.matches]
+    links += [m for u in CATALOG.units.values() for m in u.matches]
+    assert sum(m.target.startswith(si) for m in links) == 23
+    # The per mille's own item since QUDT 3.5.4, no longer the percent's.
+    assert [m.target for m in CATALOG.units["PERMILLE"].matches] == [
+        "http://www.wikidata.org/entity/Q181011"
+    ]
 
 
 def test_external_links_carry_their_relation_and_verification_date() -> None:
     kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
-    checked = datetime.date(2026, 11, 4)
+    checked = datetime.date(2026, 11, 25)
     assert kind.matches == (
         ExternalMatch(
             "http://www.wikidata.org/entity/Q76378808", MatchRelation.CLOSE, checked
@@ -246,18 +273,39 @@ def test_invalid_dimension_vector_is_rejected() -> None:
 
 
 def test_a_provisional_kind_waits_for_its_pull_request_in_qudt() -> None:
-    kind = CATALOG.quantity_kinds["KinematicHeatFlux"]
-    assert kind.origin == "provisional"
-    assert kind.iri is None
-    assert kind.specialization_of is None
-    assert kind.pending is not None
-    assert kind.pending.pull_request.endswith("/qudt-public-repo/pull/1612")
-    assert kind.pending.opened == datetime.date(2026, 11, 8)
-    assert kind.applicable_units == ("K-M-PER-SEC",)
+    from nomogram.semantics import _kind
+
+    # The kinematic heat flux, provisional until QUDT 3.5.4, is QUDT's.
+    kinematic = CATALOG.quantity_kinds["KinematicHeatFlux"]
+    assert (kinematic.origin, kinematic.pending) == ("qudt", None)
+    assert kinematic.iri == "http://qudt.org/vocab/quantitykind/KinematicHeatFlux"
+    assert kinematic.applicable_units == ("K-M-PER-SEC",)
     assert Q_(1.0, CATALOG.units["K-M-PER-SEC"].pint).to("K*m/s").magnitude == 1.0
-    assert all(
-        k.pending is None for k in CATALOG.quantity_kinds.values() if k.iri is not None
-    )
+    assert all(k.pending is None for k in CATALOG.quantity_kinds.values())
+    # A provisional kind as the extraction writes one.
+    data = {
+        "bounds": None,
+        "iri": None,
+        "label": "Kinematic Heat Flux",
+        "dimension_vector": "A0E0L1I0M0H1T-1D0",
+        "specialization_of": None,
+        "organized_under": None,
+        "scale_type": "ratio",
+        "delta": False,
+        "applicable_units": ["K-M-PER-SEC"],
+        "added_units": ["K-M-PER-SEC"],
+        "matches": [],
+        "pending": {
+            "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612",
+            "opened": "2026-11-08",
+        },
+    }
+    kind = _kind("KinematicHeatFlux", data)
+    assert kind.origin == "provisional"
+    assert kind.pending is not None
+    assert kind.pending.opened == datetime.date(2026, 11, 8)
+    with pytest.raises(ValueError, match="admitted only while a pull request"):
+        _kind("KinematicHeatFlux", {**data, "pending": None})
 
 
 def test_a_kind_absent_from_qudt_without_pull_request_is_refused() -> None:

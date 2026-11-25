@@ -7,7 +7,7 @@ import math
 import sys
 import threading
 import warnings
-from typing import Any
+from typing import Any, NoReturn
 
 import numpy as np
 import pytest
@@ -810,3 +810,102 @@ def test_invalid_systems_of_a_catalog(system: str, message: str) -> None:
 
     with pytest.raises(CatalogError, match=message):
         load_catalog([SOURCE + SYSTEM_ENTRIES + system])
+
+
+# --- Coverage of the 0.8 modules -------------------------------------------
+
+
+def test_domains_of_the_values_solved_apply_once_solved() -> None:
+    # y = (2 b - a) / 5: 0.8 for a = 4, inside the domain [0.5, 1] the first
+    # equation states on it; 0.2 for a = 7, outside.
+    stated = formulations(
+        entry("fx_y", "(a - y) / 2", "x", ["a", "y"], stated="y = [0.5, 1.0]")
+    )["fx_y"]
+    system = System(
+        "linear",
+        "Two linear equations",
+        (Equation(stated), Equation(F["fy"])),
+        start={"y": "0"},
+    )
+    with pytest.raises(OutOfDomainError, match="linear: fx_y"):
+        system.evaluate(outside="raise", a=one(7.0), b=one(4.0))
+    blank = system.evaluate(a=one(np.array([4.0, 7.0])), b=one(4.0))
+    assert np.isnan(blank["y"].magnitude).tolist() == [False, True]
+    assert blank["y"].magnitude[0] == pytest.approx(0.8, rel=1e-12)
+
+
+def test_inputs_beyond_the_conversion_of_their_scale() -> None:
+    # Weiss and Price take T on IPTS-48, converted up to 30 degC only. The
+    # system holds S as Reference Salinity, a mass fraction (S_P about 35).
+    from bundled_catalog import with_families
+
+    document = SOURCE.replace("references.src", "references.test_source") + entry(
+        "salinity_of",
+        "0.035 + p / 100",
+        "S",
+        ["p"],
+        output_kind='kind = "SeaWaterSalinity", unit = "UNITLESS"',
+        input_kinds={
+            "p": 'kind = "SaturationVapourPressureOverSeaWater", unit = "ATM"'
+        },
+    ).replace('reference = "src"', 'reference = "test_source"')
+    loaded = with_families(("sea-water",), document).formulations
+    system = System(
+        "sea",
+        "A salinity from the vapour pressure",
+        (
+            Equation(loaded["weiss_price1980_vapour_pressure"]),
+            Equation(loaded["salinity_of"]),
+        ),
+        start={"S": "0.035"},
+    )
+    with pytest.raises(OutOfDomainError, match="T beyond the conversion of scale"):
+        system.evaluate(outside="raise", T=Q_(305.0, "K"))
+    assert system.evaluate(T=Q_(290.0, "K")).status == CONVERGED
+
+
+def test_an_equation_by_branches_takes_an_input_of_the_system() -> None:
+    from nomogram.catalog import catalog
+
+    psi = catalog().formulations["coare36_profile_function_momentum"]
+    system = System(
+        "with_branches",
+        "Two linear equations and a profile function",
+        (Equation(psi), Equation(F["fx"]), Equation(F["fy"])),
+        start={"y": "0"},
+    )
+    solution = system.evaluate(zeta=one(0.5), a=one(7.0), b=one(4.0))
+    assert solution.status == CONVERGED
+    expected = psi.evaluate(zeta=one(0.5)).magnitude
+    assert solution["Psi_M"].magnitude == pytest.approx(expected, rel=1e-12)
+
+
+def test_an_implicit_unknown_takes_an_input_of_the_system() -> None:
+    # x**3 + x = y + c with y = k x: x**3 = 8 for k = 1 and c = 8.
+    cubic = formulations(entry("cubic_c", "x ** 3 + x == y + c", "x", ["y", "c"]))[
+        "cubic_c"
+    ]
+    system = System(
+        "cubic",
+        "An implicit unknown",
+        (Equation(F["line"]), Equation(cubic)),
+        start={"x": "1"},
+    )
+    assert system.unknowns == ("x",)
+    solution = system.evaluate(c=one(8.0), k=one(1.0))
+    assert solution.status == CONVERGED
+    assert solution["x"].magnitude == pytest.approx(2.0, rel=1e-12)
+
+
+def test_units_of_no_common_dimension_are_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Kinds check the dimension first; the conversion is the last guard.
+    from pint.errors import DimensionalityError
+
+    def refuse(*_: object) -> NoReturn:
+        raise DimensionalityError("1", "K")
+
+    monkeypatch.setattr("nomogram.systems.convert", refuse)
+    with pytest.raises(ValueError, match="linear: the input a is taken"):
+        linear()

@@ -24,10 +24,10 @@ the terms each community uses in `trade_terms`.
 | Altitude (geometric) | `Altitude` (QUDT) | the geoid, about mean sea level | `altitude` | CF |
 | Altitude of the surface, elevation of a station | `SurfaceAltitude` | the geoid | `surface_altitude` | CF; WMO-No. 8, Volume I, 1.3.3.2 |
 | Height above the surface | `Height` (QUDT) | the surface | `height` | CF |
-| Geopotential | `Geopotential` | the geoid | `geopotential` (m² s⁻²) | CF; IFS CY49R1, Part III, equation 2.6 |
-| Geopotential height | `GeopotentialHeight` | the geoid | `geopotential_height` | CF; WMO-No. 8, Volume I, equation 12.12 |
+| Geopotential | `Geopotential` (QUDT) | the geoid | `geopotential` (m² s⁻²) | CF; IFS CY49R1, Part III, equation 2.6 |
+| Geopotential height | `GeopotentialHeight` (QUDT) | the geoid | `geopotential_height` | CF; WMO-No. 8, Volume I, equation 12.12 |
 | Thickness of a layer | `GeopotentialThickness` | its lower level | `atmosphere_layer_thickness_expressed_as_geopotential_height_difference` | CF |
-| Pressure altitude, flight level | `PressureAltitude` | the standard atmosphere | none | SERA, Art. 2, points 101 and 78 |
+| Pressure altitude, flight level | `PressureAltitude` (QUDT) | the standard atmosphere | none | SERA, Art. 2, points 101 and 78 |
 | Altitude of aviation (altimeter set to QNH) | `AltimetricAltitude` | mean sea level, through the standard atmosphere | none | SERA, Art. 2, point 39, and its GM1 |
 | Height of aviation (altimeter set to QFE) | `AltimetricHeight` | the QFE datum, through the standard atmosphere | none | SERA, Art. 2, point 84, and its GM1 |
 | Ellipsoidal height (satellite positioning) | `EllipsoidalHeight` | a reference ellipsoid | `height_above_reference_ellipsoid` | CF |
@@ -57,9 +57,15 @@ geopotential height, dT/dH (ISO 2533, equation 11).
   to that pressure in the Standard Atmosphere" (SERA, Art. 2, point 101):
   a geopotential height of the standard atmosphere, not of the actual
   one, from which it departs by about 8 m per hectopascal of departure
-  from the standard atmosphere near the ground. A sibling of the
-  geopotential height, as in QUDT: it feeds neither a geopotential
-  height nor an altitude input.
+  from the standard atmosphere near the ground. QUDT 3.5.4 makes it a
+  specialization of the geopotential height, and a search for that kind
+  finds it; but its values only approximate the geopotential height of
+  an actual atmosphere, so nomogram keeps it from feeding a geopotential
+  height input, and an altitude input, in compositions and systems
+  (`QuantityKind.never_feeds`, a departure declared in the extraction
+  script). Evaluating a formulation of the standard atmosphere at a
+  pressure altitude stays possible: its geopotential height is the
+  pressure altitude.
 - **The altitude and the height of aviation.** SERA's altitude and
   height are "altimetric rather than geometric" (GM1 to Article 2,
   points 39 and 84): what an altimeter calibrated in the standard

@@ -37,7 +37,8 @@ def test_a_kind_feeds_the_inputs_of_its_ancestors(output: str, input: str) -> No
         # Apart by gravity: 25 m at 8 km at 22°N (WMO-No. 8, table 12.10).
         ("GeopotentialHeight", "Altitude"),
         # A geopotential height of the standard atmosphere, not of the
-        # actual one; siblings, as in QUDT.
+        # actual one: a specialization in QUDT, kept from feeding
+        # (QuantityKind.never_feeds).
         ("PressureAltitude", "GeopotentialHeight"),
         ("PressureAltitude", "Altitude"),
         # Aviation's altitude and height are altimetric (SERA, GM1).
@@ -55,6 +56,50 @@ def test_a_kind_feeds_the_inputs_of_its_ancestors(output: str, input: str) -> No
 )
 def test_vertical_kinds_never_mix(output: str, input: str) -> None:
     assert not feeds(output, input)
+
+
+def test_a_pressure_altitude_is_found_under_the_geopotential_height() -> None:
+    # The geopotential height of the standard atmosphere at a pressure, a
+    # specialization in QUDT 3.5.4 (qudt/qudt-public-repo#1594): found under
+    # it, but feeding none of its inputs, which may be of an actual
+    # atmosphere; it still feeds a length.
+    kind = CATALOG.kinds["PressureAltitude"]
+    assert kind.specialization_of == "GeopotentialHeight"
+    assert kind.never_feeds == ("GeopotentialHeight",)
+    assert "kinds.PressureAltitude" in CATALOG.search(kind="GeopotentialHeight").refs
+    assert feeds("PressureAltitude", "Length")
+    assert not feeds("GeopotentialHeight", "PressureAltitude")
+
+
+def test_a_catalog_composition_obeys_never_feeds() -> None:
+    from nomogram.catalog import CatalogError
+
+    document = """
+[catalog]
+name = "mine"
+format = 2
+requires = ["atmosphere"]
+
+[formulations."mine:standard"]
+label = "Geometric altitude of a pressure altitude, taken for a geopotential height"
+composition = { outer = "era5_geometric_altitude", inner = { Z = "iso2533_pressure_altitude" } }
+"""
+    with pytest.raises(CatalogError, match="computes PressureAltitude, but Z is"):
+        with_families(("atmosphere",), document)
+
+
+def test_pressure_altitudes_compare_as_geopotential_heights() -> None:
+    from nomogram.comparison import compare
+
+    standard = CATALOG.formulations["iso2533_pressure_altitude"]
+    nws = CATALOG.formulations["nws_pressure_altitude"]
+    found = compare(
+        [standard, nws],
+        standard,
+        {"Pressure": Q_(500.0, "hPa")},
+        kind="GeopotentialHeight",
+    )
+    assert abs(float(found.relative_deviations[nws.key])) < 1e-3
 
 
 def test_kinds_of_vertical_coordinates() -> None:
@@ -97,7 +142,8 @@ def test_search_reaches_vertical_coordinates() -> None:
     assert "kinds.GeopotentialHeight" in CATALOG.search("Q12432978").refs
     terms = CATALOG.search("pressure", "altitude").refs
     assert {"kinds.PressureAltitude", "trade_terms.pressure_altitude"} <= set(terms)
-    assert "kinds.LapseRate" in CATALOG.search(family="atmosphere").refs
+    lapse = CATALOG.search("air_temperature_lapse_rate", section="kinds").refs
+    assert "kinds.LapseRate" in lapse
     assert "trade_terms.elevation" in CATALOG.used_by("references.wmo2024").refs
 
 

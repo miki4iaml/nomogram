@@ -22,13 +22,15 @@
 
 nomogram does not hard-code functions: it catalogs formulas, each one
 
-- **meaningful**: QUDT quantity kinds and units, links to CF and
-  Wikidata, its source, its validity domain when stated;
+- **meaningful**: QUDT quantity kinds and units, links to CF,
+  Wikidata and the SI Digital Framework, its source, its validity domain
+  when stated;
 - **checked**: dimensions and units on loading, equivalences proved
   symbolically, monotonicity proved by interval arithmetic, values
   cross-checked against references;
 - **ready to use**: compute, compose, invert, solve with others as a
-  system of equations, plot, and compare with its alternatives.
+  system of equations, plot, compare with its alternatives, and draw
+  with its system as a graph.
 
 Built for trust, not for speed: to show that a calculation is right, and
 where it comes from.
@@ -136,11 +138,12 @@ references. The guides:
 | [Rosetta](docs/rosetta.md) | the vocabulary across QUDT, SI, pint, SymPy, CF, OM |
 | [Shared vocabularies](docs/shared-vocabularies.md) | QUDT, CF, Wikidata: what nomogram takes and gives back |
 | [Displaying formulas](docs/display.md) | notebooks, Markdown, plots |
+| [Graphs of kinds and systems](docs/graphs.md) | the tree of kinds and the equations of a system, as JSON to draw |
 | **Case studies** | |
 | [Sea water](docs/sea-water.md) | salinity scales, the 2 % lowering of vapour pressure |
 | [Humidity aloft](docs/humidity-aloft.md) | a radiosonde's formula against its users', along a profile |
 | [The evaporation duct](docs/evaporation-duct.md) | from a ship's measurements to the duct height, four ways |
-| [COARE 3.6 as a system](docs/coare-system.md) | the loop of the code solved by Newton's method |
+| [COARE 3.6 as a system](docs/coare-system.md) | the loop of the code solved by Newton's method, and drawn |
 | **Using it in a laboratory** | |
 | [Security and compliance](docs/security-and-compliance.md) | how it is developed, checked, published; a checklist |
 | [The logo](docs/logo.md) | a working nomogram |
@@ -161,7 +164,7 @@ their canonical units, from the CF standard name table. The package
 bundles a subset of each source:
 
 - QUDT — Quantities, Units, Dimensions and Types, by QUDT.org
-  (<https://qudt.org>), release 3.5.3, licensed under
+  (<https://qudt.org>), release 3.5.4, licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
 - the [CF standard name table](https://cfconventions.org/Data/cf-standard-names/95/build/cf-standard-name-table.html),
   version 95, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/);

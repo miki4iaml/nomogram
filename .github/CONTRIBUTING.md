@@ -69,6 +69,12 @@ The first command also installs the optional extras (`viz`), which the
 tests cover. The second command installs the hooks at all three stages
 (pre-commit, commit-msg, pre-push).
 
+The development group also brings protee, with Graphviz embedded
+through pygraphviz (nothing to install on the workstation), and
+jsonschema: the tests check the documents of `nomogram.graph` with
+protee's own check and JSON schema. Neither is a dependency of the
+package.
+
 ## Local checks
 
 | Stage | Checks |
@@ -255,7 +261,11 @@ For the maintainer, in this order:
    SBOM, and publishes exactly those files to PyPI through Trusted
    Publishing (OIDC, no stored token), after approval of the protected
    `pypi` environment.
-6. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+6. Verify both attestations of the wheel and of the sdist: the build
+   provenance, `gh attestation verify <file> --repo miki4iaml/nomogram`,
+   and the SBOM, the same command with
+   `--predicate-type https://cyclonedx.org/bom` (without it, only the
+   provenance is checked).
 
 Rehearsal: run the release workflow manually (`workflow_dispatch`). It
 publishes a unique `x.y.z.devN` version to TestPyPI without creating a

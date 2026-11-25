@@ -228,6 +228,30 @@ def test_invalid_domains_are_refused(
         load_catalog([VALID + domain])
 
 
+@pytest.mark.parametrize(
+    ("domain", "message"),
+    [
+        # A domain a citation states is stated by the reference of the citation.
+        ('{ reference = "src", bounds = { t = [0, 1] } }', "unknown keys: reference"),
+        (
+            '{ bounds = { t = [0, 1] }, tolerance = 0.1, criterion = "rounded" }',
+            "expected a table of bounded identifier",
+        ),
+        (
+            '{ bounds = { e = [1.0] }, criterion = "physical" }',
+            r"e: expected \[low, high\], not \[1.0\]",
+        ),
+    ],
+)
+def test_invalid_domains_of_a_citation_are_refused(domain: str, message: str) -> None:
+    document = VALID.replace(
+        'citations = [{ reference = "src" }]',
+        f'citations = [{{ reference = "src", domains = [{domain}] }}]',
+    )
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
 QUANTITY = """
 [constants.k]
 identifier = "k"
@@ -356,6 +380,33 @@ specialization_of = "{parent}"
 def test_invalid_kinds_are_refused(name: str, parent: str, message: str) -> None:
     with pytest.raises(CatalogError, match=message):
         load_catalog([KIND.format(name=name, parent=parent)])
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        ('units = "UNITLESS"\n', "units: expected a list of unit names"),
+        (
+            'bounds = { low = 0.0, high = 1.0, unit = "UNITLESS", criterion = "" }\n',
+            "criterion: expected the reason, as text",
+        ),
+    ],
+)
+def test_invalid_units_and_bounds_of_a_local_kind(extra: str, message: str) -> None:
+    document = KIND.format(name="Local", parent="DimensionlessRatio") + extra
+    with pytest.raises(CatalogError, match=message):
+        load_catalog([document])
+
+
+def test_a_kind_in_degrees_celsius_may_carry_a_cf_name() -> None:
+    # Its units have an offset: their dimension is read without the
+    # arithmetic pint refuses on them.
+    document = KIND.format(name="Probe", parent="CelsiusTemperature") + (
+        'cf_standard_names = [{ name = "air_temperature", relation = "narrow", '
+        "verified = 2026-11-25 }]\n"
+    )
+    kind = load_catalog([document]).kinds["Probe"]
+    assert kind.cf_standard_names == ("air_temperature",)
 
 
 def test_a_local_kind_may_specialize_one_written_after_it() -> None:
@@ -1271,5 +1322,3 @@ def test_every_kind_of_the_bundled_catalog_is_tied_to_qudt(
         line.rsplit(": ", 1)[1].split(" of ") for line in lines[:2]
     )
     assert int(tied) + int(provisional) == int(total)
-    for name in ("KinematicHeatFlux",):
-        assert CATALOG.kinds[name].pending is not None
