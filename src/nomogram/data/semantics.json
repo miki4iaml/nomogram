@@ -753,6 +753,7 @@
     "InverseTemperature": {
       "added_units": [],
       "applicable_units": [
+        "GM-PER-KiloGM-K",
         "PER-K"
       ],
       "bounds": null,
@@ -2046,6 +2047,18 @@
       "pint": "g/kg",
       "symbol": "g/kg",
       "ucum": "g.kg-1",
+      "udunits": null
+    },
+    "GM-PER-KiloGM-K": {
+      "dimension_vector": "A0E0L0I0M0H-1T0D0",
+      "iri": null,
+      "label": "Gram per Kilogram Kelvin",
+      "matches": [],
+      "multiplier": 0.001,
+      "offset": 0.0,
+      "pint": "g/kg/K",
+      "symbol": "g/(kg\u22c5K)",
+      "ucum": "g.kg-1.K-1",
       "udunits": null
     },
     "GM-PER-M3": {

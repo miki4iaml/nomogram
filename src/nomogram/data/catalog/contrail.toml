@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Contrail formation from aircraft exhaust: the criterion of Schmidt and
-# Appleman as Schumann (1996, 2000, 2012) and Gierens (2021) write it, its
+# Appleman as Appleman (1953), Schumann (1996, 2000, 2012) and Gierens
+# (2021) write it, its
 # formulas: the overall propulsion efficiency, the emission index of water
 # vapour, the slope of the mixing line, the contrail factor, the maximum
 # threshold temperatures and the threshold temperatures over liquid water
@@ -15,7 +16,7 @@
 name = "contrail"
 label = "Contrail formation from aircraft exhaust"
 format = 2
-requires = ["water-vapour"]
+requires = ["moist-air"]
 keywords = ["contrail", "Schmidt-Appleman", "threshold temperature", "critical temperature", "mixing line", "critical relative humidity"]
 matches = [
   { target = "http://www.wikidata.org/entity/Q207546", relation = "broad", verified = 2026-11-25 },
@@ -58,6 +59,15 @@ container = "Journal of Geophysical Research: Atmospheres, 107(D13), 4164"
 doi = "10.1029/2001JD000429"
 status = "verified"
 note = "Read on its page ACL 2-3 only: equations 6 to 8 and the criterion of section 2.3, quoted briefly."
+
+[references.appleman1953]
+authors = "Appleman, H."
+year = 1953
+title = "The formation of exhaust condensation trails by jet aircraft"
+container = "Bulletin of the American Meteorological Society, 34(1), 14-20"
+doi = "10.1175/1520-0477-34.1.14"
+status = "verified"
+note = "Read on its pages 15 and 16: the ratio 0.0336 g kg-1 per degree, section 4, Tables I and II, the inset of Figure 1; quoted briefly."
 
 # --- Quantity kinds ---------------------------------------------------
 
@@ -113,6 +123,16 @@ label = "Critical Relative Humidity of Contrail Formation"
 specialization_of = "DimensionlessRatio"
 units = ["UNITLESS"]
 description = "U_LC (Schumann 2012, equation 12), r_contr (Ponater et al. 2002, equation 8): the relative humidity over liquid water the ambient air must exceed for contrails to form at an ambient temperature below the maximum threshold temperature T_LM; 1 at T_LM, negative where even dry air gives contrails (about -4.5 at -59 degC for G = 1.49 Pa/K). Not a relative humidity, which it bounds, since it may be negative; not the critical relative humidity of cloud schemes (r_crit), the grid-box humidity above which clouds form."
+
+[kinds.ContrailAvailableMoisturePerDegree]
+label = "Moisture Available from the Exhaust per Degree of Temperature Rise"
+specialization_of = "InverseTemperature"
+description = "(Delta w)/(Delta T) of Appleman (1953, section 4): the mixing ratio the exhaust adds to the air it mixes with, 0.0336 g kg-1 per degree of the temperature rise of the mixture, less what raises the relative humidity of that air to 100 % at its temperature, per degree; in g kg-1 K-1. Not the contrail factor of Schumann (2000), the whole moisture the exhaust adds per kelvin."
+
+[kinds.ContrailCriticalTemperatureAtFixedMixing]
+label = "Critical Temperature of Contrail Formation at a Given Mixing"
+specialization_of = "Temperature"
+description = "T_c of Appleman (1953, section 5): the highest ambient temperature at which the exhaust, mixed with the ambient air in a given ratio N, or for a given temperature rise Delta T of the mixture, leaves it saturated with respect to water; colder, the mixture is supersaturated. Its highest value over the mixing ratios is the threshold temperature of contrail formation (Figure 4). The critical temperature of Appleman, not the temperature of a critical point. A point at which a saturation vapour pressure is evaluated."
 
 [trade_terms.contrail_factor]
 term = "contrail factor"
@@ -566,6 +586,60 @@ accuracy = "maximum error of 0.13 K"
 [[formulations.schumann2012_threshold_temperature_fit.citations.domains]]
 bounds = { U = [0.0, 1.0], G = [0.24, 23.0] }
 criterion = "The full range 0 <= U <= 1 and 0.24 Pa/K < G < 23 Pa/K, over which the fit has a maximum error of 0.13 K (appendix A5, Fig. A2)."
+
+# --- Appleman (1953) --------------------------------------------------
+
+[formulations.appleman1953_available_moisture]
+label = "Moisture available from the exhaust per degree of temperature rise (Appleman 1953)"
+expression = "C_A - w_sw * (1 - f_w / 100) / dT"
+fixed_units = true
+note = "The moisture the exhaust adds per degree of temperature rise of the mixture, 'independent of the value of N', less what raises the relative humidity of the ambient air to 100 % at its temperature, spread over the temperature rise Delta T. Table II prints 0 where this value is negative: the exhaust cannot saturate that environment. Its counterpart, the moisture a saturated mixture needs per degree to stay saturated, [w_s(T + Delta T) - w_s(T)] / Delta T, is Table I; where they are equal, the critical temperature (appleman1953_critical_temperature_fixed_mixing). Appleman tabulates it from 1000 to 100 mb, down to -80 degC, for Delta T from 0.5 to 60 degrees (section 3)."
+output = { identifier = "r_A", kind = "ContrailAvailableMoisturePerDegree", unit = "GM-PER-KiloGM-K", description = "Moisture available from the exhaust per degree of temperature rise" }
+inputs = [
+  { identifier = "w_sw", kind = "SaturationMixingRatioOverWater", unit = "GM-PER-KiloGM", description = "Saturation mixing ratio over water of the ambient air" },
+  { identifier = "f_w", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity of the ambient air over water" },
+  { identifier = "dT", kind = "TemperatureDifference", unit = "K", description = "Temperature rise of the mixture of exhaust and ambient air" },
+]
+coefficients = { C_A = { value = 0.0336, note = "Burning 1 g of fuel gives 1.4 g of water and 10 000 cal; with N grams of air per 12 g of exhaust gas and c_p = 0.24 cal g-1 per degree, the mixing ratio rises by 0.0336 g/kg per degree (p. 15)." } }
+keywords = ["contrail", "Appleman", "available moisture"]
+
+[[formulations.appleman1953_available_moisture.citations]]
+reference = "appleman1953"
+equation = "section 4"
+note = "p. 15; Table II (p. 16) for 1000, 500 and 100 mb, -40 to -80 degC, Delta T = 5 and 40 degrees, f_w = 100 and 0 %."
+notation = { r_A = '\Delta w/\Delta T', w_sw = 'w_{sw}', f_w = 'f_w', dT = '\Delta T' }
+units = { C_A = "GM-PER-KiloGM-K" }
+
+[formulations.appleman1953_critical_temperature_fixed_mixing]
+label = "Critical temperature of contrail formation for a given mixing (Appleman 1953)"
+expression = "f_w / 100 * 1000 * eps * e_w(T=T_c) / (p - e_w(T=T_c)) + C_A * dT == 1000 * eps * e_w(T=T_c + dT) / (p - e_w(T=T_c + dT))"
+calls = { e_w = "goff_gratch1946" }
+fixed_units = true
+note = "The ambient temperature at which the moisture available from the exhaust per degree (appleman1953_available_moisture) equals the moisture a saturated mixture needs per degree to stay saturated: the mixing ratio of the ambient air plus what the exhaust adds over the temperature rise Delta T is the saturation mixing ratio of the mixture. One root: the difference of the two members increases with T_c for f_w up to 100 %. Under the default evaluation, NaN below -50 degC, where the Goff-Gratch equation over water stops; Appleman's tables go down to -80 degC. Its highest value over Delta T is the threshold temperature of Figure 4. Where the boiling temperature of water at p, less Delta T, falls below 273.16 K (about 100 hPa with Delta T = 60 K), the pole of the saturation mixing ratio enters the interval searched and the equation gives NaN: search= narrows it."
+output = { identifier = "T_c", kind = "ContrailCriticalTemperatureAtFixedMixing", unit = "K", description = "Critical temperature of contrail formation for a given mixing", scale = "ipts48", scale_basis = "inferred-from-date" }
+inputs = [
+  { identifier = "f_w", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity of the ambient air over water" },
+  { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Ambient pressure" },
+  { identifier = "dT", kind = "TemperatureDifference", unit = "K", description = "Temperature rise of the mixture of exhaust and ambient air" },
+]
+coefficients = { C_A = { value = 0.0336, note = "As in appleman1953_available_moisture (p. 15)." }, eps = { value = 0.622, unit = "UNITLESS", unit_basis = "added", note = "The ratio of the molar masses of water and dry air in the mixing ratio w_s = eps e / (p - e), which Appleman does not give: a pure number." } }
+keywords = ["contrail", "Appleman", "critical temperature"]
+assumptions = [
+  { text = "The critical temperature is where the moisture available equals the moisture required, the intersection of the curves Appleman draws (section 5, Figure 1); he prints no equation for it.", status = "deduced" },
+  { text = "The saturation vapour pressure over water is that of Goff and Gratch (1946), which Appleman does not name: it reproduces Table I within 1.2 % and the inset of Figure 1 within 0.1 K, better than Sonntag (1994).", status = "suspected" },
+  { text = "The saturation mixing ratio is eps e / (p - e) with eps = 0.622; Appleman gives neither.", status = "suspected" },
+]
+
+[[formulations.appleman1953_critical_temperature_fixed_mixing.domains]]
+bounds = { T_c = [0.0, 273.16] }
+criterion = "The exhaust saturates the mixture only where the saturation mixing ratio rises by less than C_A = 0.0336 g/kg per degree, a necessary condition of the equation, the saturation mixing ratio being convex; below about 8000 hPa, this happens only below the triple point of water. The bound keeps the search for the root away from the boiling of water, where the saturation mixing ratio has a pole."
+
+[[formulations.appleman1953_critical_temperature_fixed_mixing.citations]]
+reference = "appleman1953"
+equation = "section 5"
+note = "pp. 15-16; the inset of Figure 1 (p. 16) prints T_c for P = 500 mb and Delta T = 5 degrees (N = 700): -39.1, -40.0, -40.7, -41.9, -44.0, -45.6 and -48.2 degC for f_w = 100, 95, 90, 80, 60, 40 and 0 %."
+notation = { T_c = 'T_c', f_w = 'f_w', dT = '\Delta T', eps = '\varepsilon' }
+units = { C_A = "GM-PER-KiloGM-K" }
 
 # --- Systems ----------------------------------------------------------
 

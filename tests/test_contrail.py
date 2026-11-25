@@ -492,3 +492,150 @@ def test_the_systems_of_the_threshold_temperature() -> None:
     )
     gap = fit["T_LC"].to("K").magnitude - exact["T_LC"].to("K").magnitude
     assert np.abs(gap).max() < 0.08
+
+
+def appleman_saturation(t_celsius: npt.ArrayLike, p_hpa: float) -> Array:
+    """The saturation mixing ratio over water in g/kg, as Appleman's tables
+    imply it: Goff-Gratch, eps e / (p - e) with eps = 0.622."""
+    e = value(
+        "goff_gratch1946",
+        "hPa",
+        outside="ignore",
+        T=Q_(np.asarray(t_celsius, dtype=float) + 273.15, "K"),
+    )
+    return np.asarray(1000 * 0.622 * e / (p_hpa - e), dtype=float)
+
+
+APPLEMAN_T = np.array([-40.0, -50.0, -60.0, -70.0, -80.0])
+
+
+def test_the_saturation_of_appleman_reproduces_table_1() -> None:
+    # Table I: the moisture a saturated mixture needs per degree of
+    # temperature rise to stay saturated, in g kg-1 per degree.
+    table_1 = {
+        (1000, 5): [0.0154, 0.0059, 0.0020, 0.0006, 0.0002],
+        (1000, 40): [0.0926, 0.0436, 0.0192, 0.0078, 0.0029],
+        (500, 5): [0.0308, 0.0117, 0.0040, 0.0013, 0.0004],
+        (500, 40): [0.1864, 0.0875, 0.0384, 0.0156, 0.0058],
+        (100, 5): [0.1544, 0.0587, 0.0201, 0.0062, 0.0017],
+        (100, 40): [0.9822, 0.4466, 0.1935, 0.0778, 0.0291],
+    }
+    for (p, d_t), printed in table_1.items():
+        required = (
+            appleman_saturation(APPLEMAN_T + d_t, p)
+            - appleman_saturation(APPLEMAN_T, p)
+        ) / d_t
+        # Within 1.2 % where the table prints two figures or more, within
+        # its last figure below.
+        assert required == pytest.approx(printed, rel=0.012, abs=1.2e-4)
+
+
+def test_the_moisture_available_of_table_2() -> None:
+    key = "appleman1953_available_moisture"
+    table_2 = {
+        (1000, 5): [0.0102, 0.0257, 0.0312, 0.0330, 0.0335],
+        (1000, 40): [0.0307, 0.0326, 0.0333, 0.0335, 0.0336],
+        (500, 5): [0.0, 0.0178, 0.0288, 0.0324, 0.0333],
+        (500, 40): [0.0278, 0.0316, 0.0330, 0.0334, 0.0336],
+        (100, 5): [0.0, 0.0, 0.0098, 0.0273, 0.0321],
+        (100, 40): [0.0044, 0.0237, 0.0306, 0.0328, 0.0334],
+    }
+    for (p, d_t), printed in table_2.items():
+        available = value(
+            key,
+            "g/kg/K",
+            w_sw=Q_(appleman_saturation(APPLEMAN_T, p), "g/kg"),
+            f_w=Q_(0.0, "percent"),
+            dT=Q_(d_t, "K"),
+        )
+        positive = np.array(printed) > 0
+        assert available[positive] == pytest.approx(
+            np.array(printed)[positive], abs=5e-4
+        )
+        # The table prints 0 where the formula gives less.
+        assert (available[~positive] < 0).all()
+    # Saturated air keeps the whole 0.0336 g kg-1 per degree.
+    saturated = value(
+        key,
+        "g/kg/K",
+        w_sw=Q_(0.5, "g/kg"),
+        f_w=Q_(100.0, "percent"),
+        dT=Q_(5.0, "K"),
+    )
+    assert saturated == pytest.approx(0.0336)
+
+
+def test_the_critical_temperatures_of_figure_1() -> None:
+    # The inset of Figure 1: P = 500 mb, Delta T = 5 degrees (N = 700).
+    found = value(
+        "appleman1953_critical_temperature_fixed_mixing",
+        "degC",
+        f_w=Q_([100, 95, 90, 80, 60, 40, 0], "percent"),
+        p=Q_(500, "hPa"),
+        dT=Q_(5, "K"),
+    )
+    printed = [-39.1, -40.0, -40.7, -41.9, -44.0, -45.6, -48.2]
+    assert found.tolist() == pytest.approx(printed, abs=0.11)
+    # Its scale is IPTS-48, inferred from the date: the result on ITS-90
+    # differs from the formula as written by t90 - t48, +0.03 K here.
+    as_written = value(
+        "appleman1953_critical_temperature_fixed_mixing",
+        "degC",
+        scale="ignore",
+        f_w=Q_(100, "percent"),
+        p=Q_(500, "hPa"),
+        dT=Q_(5, "K"),
+    )
+    assert found[0] - as_written == pytest.approx(0.03, abs=0.005)
+
+
+def test_the_highest_critical_temperature_is_that_of_figure_4() -> None:
+    # Figure 4, read to 0.3 K: the highest critical temperature over the
+    # mixing ratios, for Delta T from 0.5 to 60 degrees as Appleman's
+    # tables. Below -50 degC the Goff-Gratch equation over water stops,
+    # and the default evaluation gives NaN: outside="ignore" goes on.
+    d_t = Q_(np.geomspace(0.5, 60, 241), "K")
+    read = {
+        1000: [-39.35, -36.27, -32.95, -28.87],
+        100: [-61.30, -58.87, -56.24, -53.08],
+    }
+    for p, values in read.items():
+        highest = [
+            float(
+                np.nanmax(
+                    value(
+                        "appleman1953_critical_temperature_fixed_mixing",
+                        "degC",
+                        outside="ignore",
+                        f_w=Q_(f_w, "percent"),
+                        p=Q_(p, "hPa"),
+                        dT=d_t,
+                    )
+                )
+            )
+            for f_w in (0, 60, 90, 100)
+        ]
+        assert highest == pytest.approx(values, abs=0.3)
+    assert np.isnan(
+        value(
+            "appleman1953_critical_temperature_fixed_mixing",
+            "degC",
+            f_w=Q_(0, "percent"),
+            p=Q_(100, "hPa"),
+            dT=Q_(5, "K"),
+        )
+    )
+
+
+def test_the_example_of_appleman() -> None:
+    # p. 19: at 200 mb, 60 % and -60 degC, a trail forms where the
+    # environment/exhaust ratio is 150:1, Delta T = 10 000 / (12 N 0.24).
+    found = value(
+        "appleman1953_critical_temperature_fixed_mixing",
+        "degC",
+        outside="ignore",
+        f_w=Q_(60, "percent"),
+        p=Q_(200, "hPa"),
+        dT=Q_(10000 / (12 * 150 * 0.24), "K"),
+    )
+    assert found == pytest.approx(-60.0, abs=0.1)
