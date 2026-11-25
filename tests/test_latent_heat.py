@@ -97,7 +97,8 @@ def test_each_latent_heat_has_its_kind_under_specific_latent_heat() -> None:
 def test_the_specific_latent_heat_is_linked_to_wikidata() -> None:
     (match,) = CATALOG.kinds["SpecificLatentHeat"].matches
     assert match.target == "http://www.wikidata.org/entity/Q104217205"
-    assert match.relation.value == "exact"
+    # Imported from QUDT's wikidataMatch, a plain annotation: a close match.
+    assert match.relation.value == "close"
 
 
 def test_the_latent_heats_are_found_by_name_and_by_source() -> None:

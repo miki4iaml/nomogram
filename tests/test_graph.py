@@ -117,14 +117,14 @@ def test_kind_graph_of_a_branch() -> None:
             "target": wikidata,
             "key": 0,
             "type": "skos:closeMatch",
-            "verified": "2026-11-04",
+            "verified": "2026-11-25",
         },
         {
             "source": "kinds.RelativeHumidity",
             "target": cf,
             "key": 0,
             "type": "skos:exactMatch",
-            "verified": "2026-11-04",
+            "verified": "2026-11-25",
         },
         {
             "source": "kinds.RelativeHumidityWithRespectToIce",
@@ -179,12 +179,33 @@ def test_kind_graph_of_every_kind() -> None:
     assert _deviations(document) == []
     kinds = [n for n in document["nodes"] if n["type"] == "qudt:QuantityKind"]
     assert [n["id"] for n in kinds] == [f"kinds.{name}" for name in c.kinds]
-    provisional = next(n for n in kinds if n["origin"] == "provisional")
-    assert provisional["pending"].startswith("https://github.com/qudt/")
-    assert {"qudt", "nomogram", "provisional"} == {n["origin"] for n in kinds}
+    assert {"qudt", "nomogram"} == {n["origin"] for n in kinds}
     assert all("iri" not in n for n in kinds if n["origin"] != "qudt")
     relations = {e["type"] for e in document["edges"]}
     assert {"skos:exactMatch", "skos:closeMatch", "skos:narrowMatch"} <= relations
+
+
+def test_a_provisional_kind_gives_its_pull_request() -> None:
+    import dataclasses
+    import datetime
+
+    from nomogram.graph import _kind_node
+    from nomogram.semantics import PendingPullRequest
+
+    # None is left since QUDT 3.5.4: one made from a kind of QUDT.
+    pending = PendingPullRequest(
+        "https://github.com/qudt/qudt-public-repo/pull/1612", datetime.date(2026, 11, 8)
+    )
+    kind = dataclasses.replace(
+        catalog().kinds["KinematicHeatFlux"],
+        origin="provisional",
+        iri=None,
+        pending=pending,
+    )
+    node = _kind_node("KinematicHeatFlux", kind, None)
+    assert node["origin"] == "provisional"
+    assert node["pending"] == pending.pull_request
+    assert "iri" not in node
 
 
 def test_kind_graph_labels_other_external_concepts_by_iri() -> None:

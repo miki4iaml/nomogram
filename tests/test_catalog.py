@@ -1311,5 +1311,3 @@ def test_every_kind_of_the_bundled_catalog_is_tied_to_qudt(
         line.rsplit(": ", 1)[1].split(" of ") for line in lines[:2]
     )
     assert int(tied) + int(provisional) == int(total)
-    for name in ("KinematicHeatFlux",):
-        assert CATALOG.kinds[name].pending is not None

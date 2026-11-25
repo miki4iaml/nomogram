@@ -563,7 +563,7 @@ cf_standard_names = [{ name = "surface_downward_latent_heat_flux", relation = "e
 
 [kinds.SurfaceDownwardWaterVapourFlux]
 label = "Surface Downward Water Vapour Flux"
-specialization_of = "MassPerAreaTime"
+specialization_of = "MassFluxDensity"
 description = "Mass flux of water vapour across the surface, positive toward it, as the IFS and Large and Yeager (2004) write it: negative over an evaporating sea, the opposite of the evaporation; CF names the upward flux, surface_upward_water_vapor_flux_in_air, of the opposite sign."
 
 [kinds.MagnitudeOfSurfaceDownwardStress]

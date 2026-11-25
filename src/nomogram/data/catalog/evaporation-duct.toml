@@ -544,7 +544,7 @@ label = "Vertical gradient of radio refractivity in the surface layer, Monin-Obu
 expression = "c_0 + Phi_H / (alpha_T * kappa * z) * (c_q * q_s - c_T * T_s)"
 fixed_units = true
 note = "Equation 24: equation 2 with the hydrostatic term C_1 dP/dZ = -0.032 m-1 (equation 4) and the gradients of mixing ratio and potential temperature of equation 8; C_2 = 7.2 and C_3 = -1.3 are approximate (equation 2). The evaporation duct height Z_* is the height where it reaches the critical gradient, -0.157 m-1 (equation 3), which the source solves iteratively (equation 25)."
-output = { identifier = "dN_dz", kind = "VerticalRadioRefractivityGradient", unit = "PPM-PER-M", description = "Vertical gradient of radio refractivity" }
+output = { identifier = "dN_dz", kind = "RefractivityGradient", unit = "PPM-PER-M", description = "Vertical gradient of radio refractivity" }
 inputs = [
   { identifier = "Phi_H", kind = "GradientFunctionForHeat", unit = "UNITLESS", description = "Gradient function for heat at Z/L" },
   { identifier = "z", kind = "Height", unit = "M", description = "Height above the sea surface" },

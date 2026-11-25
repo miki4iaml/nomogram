@@ -28,6 +28,49 @@ and this project adheres to
   tests check the documents of `nomogram.graph` with protee's own check,
   its JSON schema and its reading and writing back. Neither is a
   dependency of the package.
+- `QuantityKind.organized_under`: the kind under which QUDT organizes a
+  kind (`qudt:organizedUnder`) without making it a specialization, such
+  as the gradient of radio refractivity under `InverseLength`. A search
+  by kind follows it (`search(kind="InverseLength")`); feeding an input
+  does not, the two kinds not being commensurable.
+- Exact matches to the SI Digital Framework of the BIPM, imported from
+  QUDT's `siExactMatch`, on 23 of the bundled kinds and units.
+- `QuantityKind.never_feeds`: the kinds a kind specializes in QUDT whose
+  inputs its values do not feed, a departure declared in the extraction
+  script. The pressure altitude, the geopotential height of the standard
+  atmosphere at a pressure, which QUDT makes a specialization of the
+  geopotential height, feeds no geopotential height input in compositions
+  and systems: such an input may be of an actual atmosphere.
+
+### Changed
+
+- **QUDT 3.5.4** (23 November 2026) replaces 3.5.3 in the bundled
+  subset; the CF standard name table stays at 95, its latest version.
+  The release holds thirteen pull requests from nomogram, and its kinds
+  and units now replace those nomogram declared:
+  - `KinematicHeatFlux`, provisional until now, and `LapseRate`,
+    `DensityOfDryAir`, `DensityOfMoistAir`, `SpecificLatentHeat`,
+    `Geopotential`, `GeopotentialHeight` and `PressureAltitude`, local
+    kinds of nomogram, are QUDT's, under the same names; no provisional
+    kind is left;
+  - `VerticalRadioRefractivityGradient` becomes QUDT's
+    `RefractivityGradient`, organized under `InverseLength`: a personal
+    catalog that names the former needs the new name;
+  - the unit `PPM-PER-M` is QUDT's;
+  - the surface downward flux of water vapour specializes
+    `MassFluxDensity`, which QUDT now labels in English, instead of
+    `MassPerAreaTime`;
+  - the units nomogram added are dropped where QUDT now declares them:
+    the per mille, g/kg and kg/kg for `MassFraction`, g/kg and kg/kg for
+    the humidity mixing ratio, the percent for `RelativePartialPressure`;
+  - the links imported from QUDT are dated 25 November 2026, the date
+    they were read in 3.5.4; the Wikidata link of `SpecificLatentHeat`,
+    now imported from QUDT, is a close match.
+
+### Fixed
+
+- The Wikidata link of the per mille is the per mille's (Q181011), no
+  longer the percent's, which QUDT 3.5.3 had copied onto it.
 
 ## [0.8.0] - 2026-11-21
 

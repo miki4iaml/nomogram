@@ -12,8 +12,8 @@ neither rdflib nor any network access is needed then.
 Never edit ``semantics.json`` by hand: change the selection below and run
 the script again. Sources (download them into a local folder first):
 
-- QUDT 3.5.3 (CC BY 4.0),
-  ``https://raw.githubusercontent.com/qudt/qudt-public-repo/v3.5.3/src/main/rdf/``
+- QUDT 3.5.4 (CC BY 4.0),
+  ``https://raw.githubusercontent.com/qudt/qudt-public-repo/v3.5.4/src/main/rdf/``
   + ``vocab/quantitykinds/VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl`` and
   ``vocab/unit/VOCAB_QUDT-UNITS-ALL.ttl``;
 - CF standard name table 95 (CC0 1.0),
@@ -21,7 +21,7 @@ the script again. Sources (download them into a local folder first):
 
 Usage::
 
-    uv run python scripts/extract_semantics.py --qudt-version 3.5.3 \\
+    uv run python scripts/extract_semantics.py --qudt-version 3.5.4 \\
         --kinds VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl \\
         --units VOCAB_QUDT-UNITS-ALL.ttl \\
         --cf cf-standard-name-table.xml \\
@@ -79,6 +79,13 @@ class KindSpec(NamedTuple):
     #: The values the kind admits by its definition, which QUDT does not
     #: state: (low, high, unit, criterion), None for an open end.
     bounds: tuple[float | None, float | None, str, str] | None = None
+    #: Wikidata items nomogram links to a kind QUDT gives no
+    #: ``wikidataMatch``, by their identifier, with their SKOS relation.
+    wikidata: tuple[tuple[str, str], ...] = ()
+    #: Kinds the kind specializes in QUDT whose inputs its values must not
+    #: feed (nomogram's departure): their inputs take other values of the
+    #: same quantity, which the kind's would only approximate.
+    never_feeds: tuple[str, ...] = ()
 
 
 class LocalKind(NamedTuple):
@@ -178,12 +185,12 @@ KINDS: dict[str, KindSpec] = {
     # p / p_sat over either phase, the parent of the relative humidity (with
     # respect to water, as QUDT defines it) under which the catalog declares
     # the relative humidity with respect to ice as its sibling: one must
-    # not feed an input of the other. QUDT 3.5.3 gives it no unit; a ratio,
-    # it takes 1 and %.
+    # not feed an input of the other. QUDT 3.5.4 gives it % and FRACTION,
+    # through PressureRatio; a ratio, it takes 1 as well.
     "RelativePartialPressure": KindSpec(
         "ratio",
         delta=False,
-        added_units=("UNITLESS", "PERCENT"),
+        added_units=("UNITLESS",),
         bounds=(
             0.0,
             None,
@@ -226,13 +233,12 @@ KINDS: dict[str, KindSpec] = {
             _NEVER_NEGATIVE.format(what="mass per volume"),
         ),
     ),
-    # QUDT gives this kind no specializationOf MassRatio, so the mass
-    # ratio units do not reach it; g/kg is its usual unit.
+    # A specialization of MassRatio since QUDT 3.5.4, from which it takes
+    # g/kg, its usual unit, and kg/kg.
     "MassRatioOfWaterVapourToDryGas": KindSpec(
         "ratio",
         delta=False,
         cf_standard_names=(("humidity_mixing_ratio", "exact"),),
-        added_units=("GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
         bounds=(
             0.0,
             None,
@@ -263,6 +269,19 @@ KINDS: dict[str, KindSpec] = {
     # J/kg for it. The parent of the geopotential (catalog), which CF
     # gives in m2 s-2: QUDT declares that unit for SpecificModulus only.
     "SpecificEnergy": KindSpec("ratio", delta=False, added_units=("M2-PER-SEC2",)),
+    # The geopotential (CF), on an interval scale whose zero is the geoid,
+    # in m2 s-2 (declared by QUDT): a local kind of nomogram until QUDT 3.5.4
+    # (qudt/qudt-public-repo#1594).
+    "Geopotential": KindSpec(
+        "interval",
+        delta=False,
+        cf_standard_names=(("geopotential", "exact"),),
+        offset_units=False,
+    ),
+    # Latent heat per unit mass, the parent of the latent heats of
+    # vaporization, sublimation and fusion (catalog): a local kind of
+    # nomogram until QUDT 3.5.4 (qudt/qudt-public-repo#1578).
+    "SpecificLatentHeat": KindSpec("ratio", delta=False),
     # Radio refractivity (ITU-R P.453): the refractive index, the parent of
     # the dimensionless kinds nomogram defines, and heights above the
     # surface (CF: "the vertical distance above the surface").
@@ -285,12 +304,11 @@ KINDS: dict[str, KindSpec] = {
     ),
     # Salinity and chlorinity of sea water are mass fractions; QUDT has no
     # kind for either (nomogram defines them in the sea-water family). QUDT
-    # 3.5.3 gives MassFraction FRACTION, PERCENT and UNITLESS;
-    # CF writes salinities in 1e-3 (per mille) and g/kg, added here.
+    # 3.5.4 gives MassFraction the per mille and g/kg in which CF writes
+    # salinities (qudt/qudt-public-repo#1564).
     "MassFraction": KindSpec(
         "ratio",
         delta=False,
-        added_units=("PERMILLE", "GM-PER-KiloGM", "KiloGM-PER-KiloGM"),
         bounds=(
             0.0,
             1.0,
@@ -355,6 +373,19 @@ KINDS: dict[str, KindSpec] = {
             _NEVER_NEGATIVE.format(what="mass per volume"),
         ),
     ),
+    # The densities of dry and of moist air: local kinds of nomogram until
+    # QUDT 3.5.4 (qudt/qudt-public-repo#1600), which links them to no
+    # Wikidata item; the item of the density of the atmosphere, moist or
+    # dry, is broader than either.
+    "DensityOfDryAir": KindSpec(
+        "ratio", delta=False, wikidata=(("Q1511415", "broad"),)
+    ),
+    "DensityOfMoistAir": KindSpec(
+        "ratio",
+        delta=False,
+        cf_standard_names=(("air_density", "exact"),),
+        wikidata=(("Q1511415", "broad"),),
+    ),
     # WMO-No. 8: the psychrometer coefficient A, in K-1 (4.1, 4.2), and the
     # specific heats of dry air and water vapour of the wet-bulb
     # temperature (4.A.19).
@@ -383,6 +414,29 @@ KINDS: dict[str, KindSpec] = {
     # (catalog), which must not feed an altitude input: the two differ by
     # 19 m at 11 km.
     "Length": KindSpec("ratio", delta=False),
+    # The geopotential over the standard acceleration of free fall, in
+    # metres, on an interval scale: under Length, not Altitude, which it
+    # must not feed. Local kinds of nomogram until QUDT 3.5.4
+    # (qudt/qudt-public-repo#1594), as the pressure altitude, the
+    # geopotential height of the standard atmosphere at a pressure.
+    "GeopotentialHeight": KindSpec(
+        "interval",
+        delta=False,
+        cf_standard_names=(("geopotential_height", "exact"),),
+        offset_units=False,
+    ),
+    # A pressure altitude is the geopotential height of the standard
+    # atmosphere at a pressure: equal to the geopotential height within the
+    # standard atmosphere, it only approximates that of an actual one, about
+    # 8 m per hectopascal of departure near the ground. QUDT makes it a
+    # specialization of GeopotentialHeight; nomogram keeps it from feeding
+    # a geopotential height input, which may be of an actual atmosphere.
+    "PressureAltitude": KindSpec(
+        "interval",
+        delta=False,
+        offset_units=False,
+        never_feeds=("GeopotentialHeight",),
+    ),
     # The acceleration of free fall, local or conventional (g_n).
     "AccelerationOfGravity": KindSpec(
         "ratio",
@@ -394,9 +448,17 @@ KINDS: dict[str, KindSpec] = {
             "The magnitude of the acceleration of free fall, never negative.",
         ),
     ),
-    # A temperature difference per length, without a sign; the catalog
-    # specializes it in two siblings, the lapse rate -dT/dz and dT/dz.
+    # A temperature difference per length, without a sign. Its children:
+    # QUDT's lapse rate, -dT/dz, and the catalog's dT/dz, siblings of
+    # opposite signs.
     "TemperatureGradient": KindSpec("ratio", delta=False),
+    # The lapse rate of air temperature, -dT/dz as CF writes it: a local
+    # kind of nomogram until QUDT 3.5.4 (qudt/qudt-public-repo#1597).
+    "LapseRate": KindSpec(
+        "ratio",
+        delta=False,
+        cf_standard_names=(("air_temperature_lapse_rate", "exact"),),
+    ),
     # The wind: the components of the velocity of the air, and its speed.
     # QUDT's Velocity is an exact match of LinearVelocity.
     "Velocity": KindSpec(
@@ -460,7 +522,6 @@ KINDS: dict[str, KindSpec] = {
     "AttenuationCoefficient": KindSpec(
         "ratio",
         delta=False,
-        checked="2026-11-04",
         bounds=(
             0.0,
             None,
@@ -468,18 +529,28 @@ KINDS: dict[str, KindSpec] = {
             "An attenuation, never negative in a passive medium.",
         ),
     ),
-    # The parent of the vertical gradient of radio refractivity (catalog),
-    # in N-units per metre (Fairall et al. 1978).
-    "InverseLength": KindSpec("ratio", delta=False, checked="2026-11-07"),
+    # Under which QUDT organizes the gradient of radio refractivity.
+    "InverseLength": KindSpec("ratio", delta=False),
+    # dN/dh, in N-units per metre (Fairall et al. 1978), h increasing
+    # upward: organized under InverseLength, not commensurable with its
+    # other children. A local kind of nomogram,
+    # VerticalRadioRefractivityGradient, until QUDT 3.5.4
+    # (qudt/qudt-public-repo#1613).
+    "RefractivityGradient": KindSpec("ratio", delta=False),
     # Surface fluxes of the IFS and of Large and Yeager (2004), signed as
     # their sources write them: the parent of the sensible heat flux
-    # (catalog), in W/m2; of the flux of water vapour (catalog), in
-    # kg m-2 s-1 (MassPerAreaTime, since QUDT 3.5.3 labels its
-    # MassFluxDensity in en-US only); of the magnitude of the surface
-    # stress (catalog), in Pa.
-    "HeatFluxDensity": KindSpec("ratio", delta=False, checked="2026-11-08"),
-    "MassPerAreaTime": KindSpec("ratio", delta=False, checked="2026-11-08"),
-    "Stress": KindSpec("ratio", delta=False, checked="2026-11-08"),
+    # (catalog), in W/m2; of the magnitude of the surface stress
+    # (catalog), in Pa.
+    "HeatFluxDensity": KindSpec("ratio", delta=False),
+    # The parent of the flux of water vapour (catalog), in kg m-2 s-1, since
+    # QUDT 3.5.4 labels it in English (qudt/qudt-public-repo#1614).
+    "MassFluxDensity": KindSpec("ratio", delta=False),
+    "Stress": KindSpec("ratio", delta=False),
+    # A heat flux density over rho c_p, in K m/s: the flux of the Obukhov
+    # length and of the convective velocity scale w* of the IFS (CY49R1,
+    # Part IV, equations 3.10, 3.19 and 3.20). A provisional kind until
+    # QUDT 3.5.4 (qudt/qudt-public-repo#1612).
+    "KinematicHeatFlux": KindSpec("ratio", delta=False),
 }
 
 
@@ -498,40 +569,11 @@ class LocalUnit(NamedTuple):
 
 #: Provisional quantity kinds, by the local name the pull request adding
 #: them to QUDT gives them, with the reason.
-LOCAL_KINDS: dict[str, LocalKind] = {
-    # A heat flux density over rho c_p, in K m/s: the flux of the Obukhov
-    # length and of the convective velocity scale w* of the IFS (CY49R1,
-    # Part IV, equations 3.10, 3.19 and 3.20). No QUDT kind has its
-    # dimension; QUDT 3.5.3 files unit:K-M-PER-SEC under
-    # quantitykind:Unknown (qudt/qudt-public-repo#1601, #1091).
-    "KinematicHeatFlux": LocalKind(
-        label="Kinematic Heat Flux",
-        dimension_vector="A0E0L1I0M0H1T-1D0",
-        scale_type="ratio",
-        delta=False,
-        units=("K-M-PER-SEC",),
-        pull_request="https://github.com/qudt/qudt-public-repo/pull/1612",
-        opened="2026-11-08",
-    ),
-}
+LOCAL_KINDS: dict[str, LocalKind] = {}
 
 #: Units absent from QUDT, declared by nomogram, with the reason; written
 #: as QUDT writes its neighbours (PPM-PER-K, PERCENT-PER-M).
-LOCAL_UNITS: dict[str, LocalUnit] = {
-    # The vertical gradient of radio refractivity in N-units per metre:
-    # the critical gradient for ducting, -0.157 m-1 of N (Fairall et al.
-    # 1978, NPS61-78-005, equation 3); -0.125 m-1 of potential refractivity
-    # (Paulus 1989, NOSC TD 1596, step 5). Absent from QUDT 3.5.3.
-    "PPM-PER-M": LocalUnit(
-        label="Parts per Million per Metre",
-        symbol="ppm/m",
-        dimension_vector="A0E0L-1I0M0H0T0D0",
-        multiplier=1e-6,
-        ucum="[ppm].m-1",
-        pint="ppm/m",
-        kinds=("InverseLength",),
-    ),
-}
+LOCAL_UNITS: dict[str, LocalUnit] = {}
 
 #: Units kept, by QUDT local name, with their pint expression.
 UNITS: dict[str, str] = {
@@ -598,17 +640,15 @@ UNITS: dict[str, str] = {
     # Paulus (1989), NOSC TD 1596: the wind speed of the evaporation duct
     # height, in knots.
     "KN": "knot",
-    # The kinematic heat flux, a provisional kind (LOCAL_KINDS).
+    # The kinematic heat flux.
     "K-M-PER-SEC": "K*m/s",
+    # The vertical gradient of radio refractivity, in N-units per metre.
+    "PPM-PER-M": "ppm/m",
 }
 
 #: Date the links of a unit added after the extraction date of the
 #: others were read; the extraction date for the others.
-UNITS_CHECKED: dict[str, str] = {
-    "PER-M": "2026-11-04",
-    "PER-KiloM": "2026-11-04",
-    "KN": "2026-11-07",
-}
+UNITS_CHECKED: dict[str, str] = {}
 
 #: CF standard names of conventional scales (catalog `[scales]`), kept
 #: in the frozen subset so that the catalog can check them.
@@ -627,15 +667,11 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
     "virtual_temperature",
     "air_potential_temperature",
     "air_equivalent_potential_temperature",
-    "air_density",
     "mole_fraction_of_water_vapor_in_air",
     "sea_water_salinity",
     "surface_altitude",
     # Vertical coordinates (atmosphere family).
-    "geopotential",
-    "geopotential_height",
     "atmosphere_layer_thickness_expressed_as_geopotential_height_difference",
-    "air_temperature_lapse_rate",
     "surface_air_pressure",
     "air_pressure_at_mean_sea_level",
     "height_above_reference_ellipsoid",
@@ -682,6 +718,9 @@ SYMBOLS: dict[str, str] = {
 #: QUDT's ``wikidataMatch`` is a plain annotation, not a SKOS mapping
 #: property: its links are imported as close matches.
 WIKIDATA_RELATION = "close"
+#: QUDT's ``siExactMatch`` names the same unit or quantity in the SI
+#: Digital Framework of the BIPM: its links are imported as exact matches.
+SI_RELATION = "exact"
 
 #: UDUNITS names CF gives to angles of a direction: latitudes are in
 #: degree_north, longitudes in degree_east (CF conventions, 4.1 and 4.2).
@@ -750,10 +789,17 @@ def _english_label(graph: Graph, subject: URIRef) -> str:
     return candidates[0]
 
 
-def _matches(wikidata: str | None, date: str) -> list[dict[str, str]]:
-    if wikidata is None:
-        return []
-    return [{"target": wikidata, "relation": WIKIDATA_RELATION, "verified": date}]
+def _matches(graph: Graph, subject: URIRef, date: str) -> list[dict[str, str]]:
+    """The Wikidata and SI links QUDT gives an entry, read at ``date``."""
+    found = [
+        {"target": target, "relation": WIKIDATA_RELATION, "verified": date}
+        for target in sorted(str(o) for o in graph.objects(subject, QUDT.wikidataMatch))
+    ]
+    found += [
+        {"target": target, "relation": SI_RELATION, "verified": date}
+        for target in sorted(str(o) for o in graph.objects(subject, QUDT.siExactMatch))
+    ]
+    return found
 
 
 def _require(graph: Graph, subject: URIRef) -> None:
@@ -805,10 +851,7 @@ def extract_units(graph: Graph, date: str) -> dict[str, dict[str, Any]]:
             "ucum": _value(graph, subject, QUDT.ucumCode),
             "udunits": _value(graph, subject, QUDT.udunitsCode),
             "pint": pint_expression,
-            "matches": _matches(
-                _value(graph, subject, QUDT.wikidataMatch),
-                UNITS_CHECKED.get(name, date),
-            ),
+            "matches": _matches(graph, subject, UNITS_CHECKED.get(name, date)),
         }
     for name, local in LOCAL_UNITS.items():
         if (UNIT[name], None, None) in graph:
@@ -875,13 +918,21 @@ def extract_kinds(
             "label": _english_label(graph, subject),
             "dimension_vector": _local(_value(graph, subject, QUDT.hasDimensionVector)),
             "specialization_of": _local(_value(graph, subject, QUDT.specializationOf)),
+            "organized_under": _local(_value(graph, subject, QUDT.organizedUnder)),
+            "never_feeds": list(spec.never_feeds),
             "scale_type": spec.scale_type,
             "delta": spec.delta,
             "applicable_units": sorted(applicable | added),
             "added_units": sorted(added),
-            "matches": _matches(
-                _value(graph, subject, QUDT.wikidataMatch), spec.checked or date
-            )
+            "matches": _matches(graph, subject, spec.checked or date)
+            + [
+                {
+                    "target": f"http://www.wikidata.org/entity/{item}",
+                    "relation": relation,
+                    "verified": spec.checked or date,
+                }
+                for item, relation in spec.wikidata
+            ]
             + [
                 {
                     "target": f"{CF_NAMESPACE}{cf}/",
@@ -917,6 +968,8 @@ def provisional_kinds(
             "label": spec.label,
             "dimension_vector": spec.dimension_vector,
             "specialization_of": None,
+            "organized_under": None,
+            "never_feeds": [],
             "scale_type": spec.scale_type,
             "delta": spec.delta,
             "applicable_units": sorted(spec.units),
@@ -998,7 +1051,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--date",
         default=datetime.datetime.now(tz=datetime.UTC).date().isoformat(),
-        help="extraction date, recorded as the verification date of links",
+        help=(
+            "extraction date, recorded as the verification date of links: "
+            "a link imported from QUDT was read in the QUDT version given, "
+            "on that date"
+        ),
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)

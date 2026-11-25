@@ -214,6 +214,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/AbsoluteHumidity",
       "label": "Absolute Humidity",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Density"
     },
@@ -236,9 +238,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q30006",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Acceleration"
     },
@@ -258,19 +262,21 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q190200",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/altitude/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "close",
           "target": "http://vocab.nerc.ac.uk/standard_name/height_above_mean_sea_level/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "interval",
       "specialization_of": "Length"
     },
@@ -293,9 +299,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q104946",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/AMSU",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -319,9 +332,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q902086",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -340,14 +355,21 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q74758530",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/TEMC",
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/air_temperature/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "interval",
       "specialization_of": "Temperature"
     },
@@ -371,11 +393,69 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q29539",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/DENS",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
+    },
+    "DensityOfDryAir": {
+      "added_units": [],
+      "applicable_units": [
+        "GM-PER-M3",
+        "KiloGM-PER-M3"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/DensityOfDryAir",
+      "label": "Density of Dry Air",
+      "matches": [
+        {
+          "relation": "broad",
+          "target": "http://www.wikidata.org/entity/Q1511415",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "ratio",
+      "specialization_of": "Density"
+    },
+    "DensityOfMoistAir": {
+      "added_units": [],
+      "applicable_units": [
+        "GM-PER-M3",
+        "KiloGM-PER-M3"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-3I0M1H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/DensityOfMoistAir",
+      "label": "Density of Moist Air",
+      "matches": [
+        {
+          "relation": "broad",
+          "target": "http://www.wikidata.org/entity/Q1511415",
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "http://vocab.nerc.ac.uk/standard_name/air_density/",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "ratio",
+      "specialization_of": "Density"
     },
     "DewPointTemperature": {
       "added_units": [],
@@ -393,9 +473,11 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/dew_point_temperature/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "interval",
       "specialization_of": "Temperature"
     },
@@ -413,6 +495,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/DimensionlessRatio",
       "label": "Dimensionless Ratio",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": "Dimensionless",
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -435,11 +519,76 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q15152757",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/DYVI",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
+    },
+    "Geopotential": {
+      "added_units": [],
+      "applicable_units": [
+        "J-PER-KiloGM",
+        "KiloJ-PER-KiloGM",
+        "M2-PER-SEC2"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L2I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/Geopotential",
+      "label": "Geopotential",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q1423347",
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "http://vocab.nerc.ac.uk/standard_name/geopotential/",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "interval",
+      "specialization_of": "SpecificEnergy"
+    },
+    "GeopotentialHeight": {
+      "added_units": [],
+      "applicable_units": [
+        "FT",
+        "KiloM",
+        "M"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/GeopotentialHeight",
+      "label": "Geopotential Height",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q12432978",
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "http://vocab.nerc.ac.uk/standard_name/geopotential_height/",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "interval",
+      "specialization_of": "Length"
     },
     "HeatFluxDensity": {
       "added_units": [],
@@ -451,7 +600,15 @@
       "dimension_vector": "A0E0L0I0M1H0T-3D0",
       "iri": "http://qudt.org/vocab/quantitykind/HeatFluxDensity",
       "label": "Heat Flux Density",
-      "matches": [],
+      "matches": [
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/HEFD",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "PowerPerArea"
     },
@@ -471,14 +628,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q208826",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/height/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Length"
     },
@@ -498,9 +657,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1028259",
-          "verified": "2026-11-07"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -515,6 +676,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/InverseSquareTime",
       "label": "Inverse Square Time",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -532,29 +695,27 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q107028650",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
     "KinematicHeatFlux": {
-      "added_units": [
-        "K-M-PER-SEC"
-      ],
+      "added_units": [],
       "applicable_units": [
         "K-M-PER-SEC"
       ],
       "bounds": null,
       "delta": false,
       "dimension_vector": "A0E0L1I0M0H1T-1D0",
-      "iri": null,
+      "iri": "http://qudt.org/vocab/quantitykind/KinematicHeatFlux",
       "label": "Kinematic Heat Flux",
       "matches": [],
-      "pending": {
-        "opened": "2026-11-08",
-        "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612"
-      },
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -576,12 +737,41 @@
       "matches": [
         {
           "relation": "close",
-          "target": "http://www.wikidata.org/entity/Q15106259",
-          "verified": "2026-11-04"
+          "target": "http://www.wikidata.org/entity/Q12793663",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": "AreaPerTime",
       "scale_type": "ratio",
       "specialization_of": null
+    },
+    "LapseRate": {
+      "added_units": [],
+      "applicable_units": [
+        "K-PER-M"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M0H1T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/LapseRate",
+      "label": "Lapse Rate",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q66900467",
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "http://vocab.nerc.ac.uk/standard_name/air_temperature_lapse_rate/",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "ratio",
+      "specialization_of": "TemperatureGradient"
     },
     "Length": {
       "added_units": [],
@@ -599,9 +789,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q36253",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/LENG",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -625,9 +822,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11423",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/MASS",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -651,28 +855,43 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q76378808",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/mass_concentration_of_water_vapor_in_air/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "MassConcentration"
     },
-    "MassFraction": {
-      "added_units": [
-        "GM-PER-KiloGM",
-        "KiloGM-PER-KiloGM",
-        "PERMILLE"
+    "MassFluxDensity": {
+      "added_units": [],
+      "applicable_units": [
+        "KiloGM-PER-M2-SEC"
       ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-2I0M1H0T-1D0",
+      "iri": "http://qudt.org/vocab/quantitykind/MassFluxDensity",
+      "label": "Mass Flux Density",
+      "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "ratio",
+      "specialization_of": "MassPerAreaTime"
+    },
+    "MassFraction": {
+      "added_units": [],
       "applicable_units": [
         "GM-PER-KiloGM",
         "KiloGM-PER-KiloGM",
         "PERCENT",
         "PERMILLE",
+        "PPM",
         "UNITLESS"
       ],
       "bounds": {
@@ -689,23 +908,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q899138",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
-      "scale_type": "ratio",
-      "specialization_of": null
-    },
-    "MassPerAreaTime": {
-      "added_units": [],
-      "applicable_units": [
-        "KiloGM-PER-M2-SEC"
-      ],
-      "bounds": null,
-      "delta": false,
-      "dimension_vector": "A0E0L-2I0M1H0T-1D0",
-      "iri": "http://qudt.org/vocab/quantitykind/MassPerAreaTime",
-      "label": "Mass per Area Time",
-      "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -729,17 +936,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1563068",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
     "MassRatioOfWaterVapourToDryGas": {
-      "added_units": [
-        "GM-PER-KiloGM",
-        "KiloGM-PER-KiloGM"
-      ],
+      "added_units": [],
       "applicable_units": [
         "GM-PER-KiloGM",
         "KiloGM-PER-KiloGM",
@@ -759,16 +965,18 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q17232415",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/humidity_mixing_ratio/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
-      "specialization_of": null
+      "specialization_of": "MassRatio"
     },
     "MolalityOfSolute": {
       "added_units": [],
@@ -786,6 +994,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/MolalityOfSolute",
       "label": "Molality of Solute",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "AmountOfSubstancePerMass"
     },
@@ -811,9 +1021,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q125264",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": "DimensionlessRatio",
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -831,9 +1043,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5776102",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -848,7 +1062,15 @@
       "dimension_vector": "A0E0L0I0M0H0T0D1",
       "iri": "http://qudt.org/vocab/quantitykind/PlaneAngle",
       "label": "Plane Angle",
-      "matches": [],
+      "matches": [
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/ANGP",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -870,16 +1092,49 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q39552",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/PRES",
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/air_pressure/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "ForcePerArea"
+    },
+    "PressureAltitude": {
+      "added_units": [],
+      "applicable_units": [
+        "FT",
+        "KiloM",
+        "M"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/PressureAltitude",
+      "label": "Pressure Altitude",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q17130615",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [
+        "GeopotentialHeight"
+      ],
+      "organized_under": null,
+      "scale_type": "interval",
+      "specialization_of": "GeopotentialHeight"
     },
     "RefractiveIndex": {
       "added_units": [],
@@ -895,9 +1150,27 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q174102",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": "DimensionlessRatio",
+      "scale_type": "ratio",
+      "specialization_of": null
+    },
+    "RefractivityGradient": {
+      "added_units": [],
+      "applicable_units": [
+        "PPM-PER-M"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L-1I0M0H0T0D0",
+      "iri": "http://qudt.org/vocab/quantitykind/RefractivityGradient",
+      "label": "Refractivity Gradient",
+      "matches": [],
+      "never_feeds": [],
+      "organized_under": "InverseLength",
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -918,14 +1191,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q2499617",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/relative_humidity/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "RelativePartialPressure"
     },
@@ -951,9 +1226,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q76379414",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -976,6 +1253,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/RelativePartialPressure",
       "label": "Relative Partial Pressure",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "PressureRatio"
     },
@@ -997,9 +1276,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3023293",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/SENG",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1023,9 +1309,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q75774282",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "SpecificHeatCapacity"
     },
@@ -1050,13 +1338,43 @@
       "label": "Specific Humidity",
       "matches": [
         {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q2253551",
+          "verified": "2026-11-25"
+        },
+        {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/specific_humidity/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "MassRatio"
+    },
+    "SpecificLatentHeat": {
+      "added_units": [],
+      "applicable_units": [
+        "J-PER-KiloGM",
+        "KiloJ-PER-KiloGM"
+      ],
+      "bounds": null,
+      "delta": false,
+      "dimension_vector": "A0E0L2I0M0H0T-2D0",
+      "iri": "http://qudt.org/vocab/quantitykind/SpecificLatentHeat",
+      "label": "Specific Latent Heat",
+      "matches": [
+        {
+          "relation": "close",
+          "target": "http://www.wikidata.org/entity/Q104217205",
+          "verified": "2026-11-25"
+        }
+      ],
+      "never_feeds": [],
+      "organized_under": null,
+      "scale_type": "ratio",
+      "specialization_of": "SpecificEnergy"
     },
     "Speed": {
       "added_units": [
@@ -1080,14 +1398,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3711325",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/wind_speed/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1105,14 +1425,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q124003",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/speed_of_sound_in_air/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Speed"
     },
@@ -1134,9 +1456,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q206175",
-          "verified": "2026-11-08"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "ForcePerArea"
     },
@@ -1161,9 +1485,11 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11466",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "interval",
       "specialization_of": null
     },
@@ -1178,6 +1504,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/TemperatureDifference",
       "label": "Temperature Difference",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Temperature"
     },
@@ -1192,6 +1520,8 @@
       "iri": "http://qudt.org/vocab/quantitykind/TemperatureGradient",
       "label": "Temperature Gradient",
       "matches": [],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1214,9 +1544,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q487005",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/TCON",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1234,14 +1571,21 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q264647",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/TEMT",
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/air_temperature/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Temperature"
     },
@@ -1268,9 +1612,11 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/water_vapor_partial_pressure_in_air/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": "Pressure"
     },
@@ -1289,19 +1635,26 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11465",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/VELO",
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/eastward_wind/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         },
         {
           "relation": "narrow",
           "target": "http://vocab.nerc.ac.uk/standard_name/northward_wind/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1325,9 +1678,16 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q39297",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/quantities/VOLU",
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "ratio",
       "specialization_of": null
     },
@@ -1347,9 +1707,11 @@
         {
           "relation": "exact",
           "target": "http://vocab.nerc.ac.uk/standard_name/wet_bulb_temperature/",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
+      "never_feeds": [],
+      "organized_under": null,
       "scale_type": "interval",
       "specialization_of": "Temperature"
     }
@@ -1360,11 +1722,11 @@
       "license": "CC0-1.0",
       "version": "95"
     },
-    "extracted": "2026-11-04",
+    "extracted": "2026-11-25",
     "qudt": {
       "attribution": "QUDT.org, https://qudt.org/",
       "license": "CC-BY-4.0",
-      "version": "3.5.3"
+      "version": "3.5.4"
     }
   },
   "units": {
@@ -1376,7 +1738,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q177974",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 101325.0,
@@ -1394,7 +1756,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q28390",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/degree",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.017453292519943295,
@@ -1412,7 +1779,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q25267",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/degreeCelsius",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1430,7 +1802,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q42289",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.5555555555555556,
@@ -1448,7 +1820,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3710",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.3048,
@@ -1466,7 +1838,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q41803",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.001,
@@ -1484,7 +1856,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21061369",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.001,
@@ -1502,7 +1874,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21604951",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.001,
@@ -1520,7 +1892,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q5139563",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 100.0,
@@ -1538,7 +1910,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21393312",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1556,7 +1928,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q57175225",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1574,7 +1946,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3085309",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1592,7 +1964,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q20966455",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1610,7 +1982,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1709783",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1628,7 +2000,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11579",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/kelvin",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1670,7 +2047,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q128822",
-          "verified": "2026-11-07"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.5144444444444445,
@@ -1688,7 +2065,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11570",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/kilogram",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1706,7 +2088,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q106645216",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1736,7 +2118,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q844211",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1754,7 +2136,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q28924753",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1772,7 +2154,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21077849",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1000.0,
@@ -1790,7 +2172,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q108834064",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1000.0,
@@ -1808,7 +2190,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q828224",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1000.0,
@@ -1826,7 +2208,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21064807",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1000.0,
@@ -1844,7 +2226,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11582",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/litre",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.001,
@@ -1862,7 +2249,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11573",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/metre",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1880,7 +2272,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q182429",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1898,7 +2290,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1051665",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1916,7 +2308,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3332099",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1946,7 +2338,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q25517",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1964,7 +2356,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q41509",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/mole",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -1982,7 +2379,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q88957663",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2000,7 +2397,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q6859652",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 133.322387415,
@@ -2018,7 +2415,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q44395",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/pascal",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2036,7 +2438,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21016931",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2054,7 +2456,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q107028673",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2072,7 +2474,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q107244557",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.001,
@@ -2090,7 +2492,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11547251",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2108,7 +2510,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q68712008",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2126,7 +2528,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q106680668",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2144,7 +2546,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.01,
@@ -2161,8 +2563,8 @@
       "matches": [
         {
           "relation": "close",
-          "target": "http://www.wikidata.org/entity/Q11229",
-          "verified": "2026-11-04"
+          "target": "http://www.wikidata.org/entity/Q181011",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 0.001,
@@ -2180,7 +2582,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21006887",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1e-06,
@@ -2192,7 +2594,7 @@
     },
     "PPM-PER-M": {
       "dimension_vector": "A0E0L-1I0M0H0T0D0",
-      "iri": null,
+      "iri": "http://qudt.org/vocab/unit/PPM-PER-M",
       "label": "Parts per Million per Metre",
       "matches": [],
       "multiplier": 1e-06,
@@ -2210,7 +2612,12 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q33680",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
+        },
+        {
+          "relation": "exact",
+          "target": "https://si-digital-framework.org/SI/units/radian",
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2228,7 +2635,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q199",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2246,7 +2653,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q1463969",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2264,7 +2671,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q3566737",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,
@@ -2282,7 +2689,7 @@
         {
           "relation": "close",
           "target": "http://www.wikidata.org/entity/Q21395834",
-          "verified": "2026-11-04"
+          "verified": "2026-11-25"
         }
       ],
       "multiplier": 1.0,

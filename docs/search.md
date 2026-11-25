@@ -56,7 +56,7 @@ each matching a word.
 | Field | Matches |
 |---|---|
 | `key` | the key of the entry |
-| `kind` | the output kind of a formulation, a kind a system gives, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well |
+| `kind` | the output kind of a formulation, a kind a system gives, or a quantity kind itself; with `specializations=True` (default), the kinds specializing it as well, and those QUDT organizes under it (`organizedUnder`: `kind="InverseLength"` finds the gradient of radio refractivity) |
 | `unit` | a unit an entry works in, as its links give it (see below), or a unit itself; by its QUDT name, symbol, UCUM code, label or pint expression: `hPa`, `HectoPA`, `hectopascal` are one unit. The pattern is compared whole with each form, so `K` does not match `J-PER-KiloGM-K`. A form written exactly as the pattern comes first, case included (`mPa` is not `MPa`), and is taken literally (UCUM's `[ppm]`); then a form equal without case or accents; then wildcards |
 | `output` | the output variable of a formulation: identifier, symbols in every notation, kind (name, label, CF names), description |
 | `input` | an input variable, likewise |
@@ -116,8 +116,8 @@ conditions use the identifiers of its expression (an input, coefficients,
 constants), already found as variables, coefficients and constants.
 A quantity kind is found by its name, label, CF standard names and
 links, and by its origin: `search("provisional")` finds the provisional
-kinds, and the number of the pull request adding one to QUDT finds it
-(`search("pull", "1612")`); the pull request itself is read on the kind
+kinds (none since QUDT 3.5.4), and the number of the pull request adding
+one to QUDT finds it; the pull request itself is read on the kind
 (`Catalog.kinds[name].pending`).
 Nor does an expression passed to a formulation called (`psi_H(zeta=z_t /
 L)`): `uses` links the caller to the formulation called, whose input
@@ -191,5 +191,5 @@ et al. (1994) join the alternatives of their kinds:
 `formulations_of("GradientFunctionForHeat")` sets their gradient
 functions beside those of the IFS, `formulations_of("ObukhovLength")`
 their lengths beside Jeske's and the IFS's, and
-`formulations_of("VerticalRadioRefractivityGradient")` the gradient
+`formulations_of("RefractivityGradient")` the gradient
 whose critical value defines the duct height.

@@ -41,9 +41,9 @@ def expected_dimensions(dimensions: dict[str, int]) -> dict[str, int]:
 
 
 def test_sources_are_recorded() -> None:
-    assert CATALOG.qudt_version == "3.5.3"
+    assert CATALOG.qudt_version == "3.5.4"
     assert CATALOG.cf_version == "95"
-    assert CATALOG.extracted == datetime.date(2026, 11, 4)
+    assert CATALOG.extracted == datetime.date(2026, 11, 25)
 
 
 def test_catalog_is_read_once() -> None:
@@ -98,7 +98,9 @@ def test_offset_units_are_the_qudt_units_with_an_offset(name: str) -> None:
 
 #: Interval-scale kinds whose zero is a reference surface rather than a
 #: unit: multiplicative units (``offset_units=False`` in the extraction).
-SURFACE_ZERO = frozenset({"Altitude"})
+SURFACE_ZERO = frozenset(
+    {"Altitude", "Geopotential", "GeopotentialHeight", "PressureAltitude"}
+)
 
 #: Temperature points written with or without an offset, in degC or in K
 #: (``offset_units="any"`` in the extraction).
@@ -197,7 +199,7 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
 
 def test_external_links_carry_their_relation_and_verification_date() -> None:
     kind = CATALOG.quantity_kinds["MassConcentrationOfWaterVapour"]
-    checked = datetime.date(2026, 11, 4)
+    checked = datetime.date(2026, 11, 25)
     assert kind.matches == (
         ExternalMatch(
             "http://www.wikidata.org/entity/Q76378808", MatchRelation.CLOSE, checked
@@ -246,18 +248,39 @@ def test_invalid_dimension_vector_is_rejected() -> None:
 
 
 def test_a_provisional_kind_waits_for_its_pull_request_in_qudt() -> None:
-    kind = CATALOG.quantity_kinds["KinematicHeatFlux"]
-    assert kind.origin == "provisional"
-    assert kind.iri is None
-    assert kind.specialization_of is None
-    assert kind.pending is not None
-    assert kind.pending.pull_request.endswith("/qudt-public-repo/pull/1612")
-    assert kind.pending.opened == datetime.date(2026, 11, 8)
-    assert kind.applicable_units == ("K-M-PER-SEC",)
+    from nomogram.semantics import _kind
+
+    # The kinematic heat flux, provisional until QUDT 3.5.4, is QUDT's.
+    kinematic = CATALOG.quantity_kinds["KinematicHeatFlux"]
+    assert (kinematic.origin, kinematic.pending) == ("qudt", None)
+    assert kinematic.iri == "http://qudt.org/vocab/quantitykind/KinematicHeatFlux"
+    assert kinematic.applicable_units == ("K-M-PER-SEC",)
     assert Q_(1.0, CATALOG.units["K-M-PER-SEC"].pint).to("K*m/s").magnitude == 1.0
-    assert all(
-        k.pending is None for k in CATALOG.quantity_kinds.values() if k.iri is not None
-    )
+    assert all(k.pending is None for k in CATALOG.quantity_kinds.values())
+    # A provisional kind as the extraction writes one.
+    data = {
+        "bounds": None,
+        "iri": None,
+        "label": "Kinematic Heat Flux",
+        "dimension_vector": "A0E0L1I0M0H1T-1D0",
+        "specialization_of": None,
+        "organized_under": None,
+        "scale_type": "ratio",
+        "delta": False,
+        "applicable_units": ["K-M-PER-SEC"],
+        "added_units": ["K-M-PER-SEC"],
+        "matches": [],
+        "pending": {
+            "pull_request": "https://github.com/qudt/qudt-public-repo/pull/1612",
+            "opened": "2026-11-08",
+        },
+    }
+    kind = _kind("KinematicHeatFlux", data)
+    assert kind.origin == "provisional"
+    assert kind.pending is not None
+    assert kind.pending.opened == datetime.date(2026, 11, 8)
+    with pytest.raises(ValueError, match="admitted only while a pull request"):
+        _kind("KinematicHeatFlux", {**data, "pending": None})
 
 
 def test_a_kind_absent_from_qudt_without_pull_request_is_refused() -> None:

@@ -101,9 +101,14 @@ class ExternalMatch:
         IRI of the external object, for example a Wikidata entity.
     relation : MatchRelation
         How close the two objects are. Links imported from QUDT's
-        ``wikidataMatch``, a plain annotation, are close matches.
+        ``wikidataMatch``, a plain annotation, are close matches; those
+        imported from its ``siExactMatch``, to the SI Digital Framework of
+        the BIPM, are exact matches.
     verified : datetime.date
-        Date the link was last verified against its source.
+        Date the link was last verified against its source. For a link
+        imported from QUDT, the date it was read in the QUDT version the
+        subset records (``semantic_catalog().qudt_version``), not a check of the
+        target itself.
     """
 
     target: str
@@ -223,6 +228,18 @@ class QuantityKind:
         bounds it inherits.
     pending : PendingPullRequest or None
         For a provisional kind, the pull request that adds it to QUDT.
+    organized_under : str or None
+        QUDT local name of the kind under which QUDT organizes this one
+        (``organizedUnder``) without making it a specialization: the
+        gradient of radio refractivity under ``InverseLength``. A search
+        by kind follows it; feeding an input does not, the two kinds not
+        being commensurable.
+    never_feeds : tuple of str
+        Kinds this one specializes in QUDT whose inputs its values do not
+        feed (nomogram's departure, declared in the extraction script):
+        the pressure altitude, the geopotential height of the standard
+        atmosphere at a pressure, feeds no geopotential height input, which
+        may be of an actual atmosphere.
     """
 
     name: str
@@ -238,6 +255,8 @@ class QuantityKind:
     matches: tuple[ExternalMatch, ...]
     bounds: KindBounds | None = None
     pending: PendingPullRequest | None = None
+    organized_under: str | None = None
+    never_feeds: tuple[str, ...] = ()
 
     @property
     def cf_standard_names(self) -> tuple[str, ...]:
@@ -405,6 +424,8 @@ def _kind(name: str, data: dict[str, Any]) -> QuantityKind:
         matches=_matches(data["matches"]),
         bounds=_bounds(data.get("bounds")),
         pending=pending,
+        organized_under=data.get("organized_under"),
+        never_feeds=tuple(data.get("never_feeds") or ()),
     )
 
 

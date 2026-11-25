@@ -57,10 +57,10 @@ humidity:
   {"source": "kinds.RelativeHumidity", "target": "kinds.RelativePartialPressure", "key": 0,
    "type": "qudt:specializationOf"},
   {"source": "kinds.RelativeHumidity", "target": "http://www.wikidata.org/entity/Q2499617",
-   "key": 0, "type": "skos:closeMatch", "verified": "2026-11-04"},
+   "key": 0, "type": "skos:closeMatch", "verified": "2026-11-25"},
   {"source": "kinds.RelativeHumidity",
    "target": "http://vocab.nerc.ac.uk/standard_name/relative_humidity/",
-   "key": 0, "type": "skos:exactMatch", "verified": "2026-11-04"},
+   "key": 0, "type": "skos:exactMatch", "verified": "2026-11-25"},
   {"source": "kinds.RelativeHumidityWithRespectToIce", "target": "kinds.RelativePartialPressure",
    "key": 0, "type": "qudt:specializationOf"}
 ]
