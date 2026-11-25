@@ -2057,7 +2057,7 @@
       "multiplier": 0.001,
       "offset": 0.0,
       "pint": "g/kg/K",
-      "symbol": "g/(kg\u22c5K)",
+      "symbol": "g/(kg\u00b7K)",
       "ucum": "g.kg-1.K-1",
       "udunits": null
     },
