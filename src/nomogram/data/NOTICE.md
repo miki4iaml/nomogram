@@ -35,7 +35,9 @@ air); the kinds a kind does not feed although QUDT makes it their
 specialization (`never_feeds`: the pressure altitude, for the geopotential
 height); and, when QUDT lacks them, units (`LOCAL_UNITS`) and provisional
 kinds (`LOCAL_KINDS`, with the pull request that proposes each to QUDT,
-`pending`), written with `"iri": null`, none since QUDT 3.5.4.
+`pending`), written with `"iri": null`: no unit since QUDT 3.5.4, and
+the two slopes of the criterion of contrail formation, `MixingLineSlope`
+and `SaturationVapourPressureSlope`, pending their pull requests.
 
 ## UCUM codes
 

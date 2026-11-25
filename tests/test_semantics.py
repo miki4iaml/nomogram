@@ -165,7 +165,12 @@ def test_kinds_of_vertical_coordinates_and_of_the_wind() -> None:
 
 def test_specific_energy_is_in_joules_per_kilogram() -> None:
     kind = CATALOG.quantity_kinds["SpecificEnergy"]
-    assert kind.applicable_units == ("J-PER-KiloGM", "KiloJ-PER-KiloGM", "M2-PER-SEC2")
+    assert kind.applicable_units == (
+        "J-PER-KiloGM",
+        "KiloJ-PER-KiloGM",
+        "M2-PER-SEC2",
+        "MegaJ-PER-KiloGM",
+    )
     # CF gives the geopotential in m2 s-2, a unit QUDT declares elsewhere.
     assert kind.added_units == ("M2-PER-SEC2",)
 
@@ -215,7 +220,9 @@ def test_links_of_qudt_to_the_si_and_to_wikidata() -> None:
     ]
     links = [m for k in CATALOG.quantity_kinds.values() for m in k.matches]
     links += [m for u in CATALOG.units.values() for m in u.matches]
-    assert sum(m.target.startswith(si) for m in links) == 23
+    # 23 with QUDT 3.5.4, and those of Force and the newton, kept for the
+    # thrust of the criterion of contrail formation.
+    assert sum(m.target.startswith(si) for m in links) == 25
     # The per mille's own item since QUDT 3.5.4, no longer the percent's.
     assert [m.target for m in CATALOG.units["PERMILLE"].matches] == [
         "http://www.wikidata.org/entity/Q181011"
@@ -281,7 +288,24 @@ def test_a_provisional_kind_waits_for_its_pull_request_in_qudt() -> None:
     assert kinematic.iri == "http://qudt.org/vocab/quantitykind/KinematicHeatFlux"
     assert kinematic.applicable_units == ("K-M-PER-SEC",)
     assert Q_(1.0, CATALOG.units["K-M-PER-SEC"].pint).to("K*m/s").magnitude == 1.0
-    assert all(k.pending is None for k in CATALOG.quantity_kinds.values())
+    # The provisional kinds of the criterion of contrail formation, each
+    # with the pull request adding it to QUDT.
+    pending = {
+        name: k.pending.pull_request
+        for name, k in CATALOG.quantity_kinds.items()
+        if k.pending is not None
+    }
+    assert pending == {
+        "MixingLineSlope": "https://github.com/qudt/qudt-public-repo/pull/1621",
+        "SaturationVapourPressureSlope": "https://github.com/qudt/qudt-public-repo/pull/1622",
+    }
+    slope = CATALOG.quantity_kinds["MixingLineSlope"]
+    assert (slope.origin, slope.iri, slope.applicable_units) == (
+        "provisional",
+        None,
+        ("HectoPA-PER-K", "PA-PER-K"),
+    )
+    assert Q_(1.0, CATALOG.units["HectoPA-PER-K"].pint).to("Pa/K").magnitude == 100.0
     # A provisional kind as the extraction writes one.
     data = {
         "bounds": None,

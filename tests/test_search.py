@@ -67,8 +67,11 @@ def test_terms_are_wildcards_matched_against_words() -> None:
     }
     assert "kinds.Altitude" in CATALOG.search("Q190200").refs  # a Wikidata item
     assert "references.itu_r_p453_14" in (CATALOG.search("*453*", section="ref*")).refs
-    # No provisional kind is left since QUDT 3.5.4.
-    assert not CATALOG.search("provisional", section="kinds").refs
+    # The provisional kinds, each pending a pull request to QUDT.
+    assert CATALOG.search("provisional", section="kinds").refs == (
+        "kinds.MixingLineSlope",
+        "kinds.SaturationVapourPressureSlope",
+    )
     # A kind is found under the kind QUDT organizes it under, as under
     # those it specializes.
     assert "kinds.RefractivityGradient" in CATALOG.search(kind="InverseLength").refs
