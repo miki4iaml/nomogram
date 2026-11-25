@@ -34,8 +34,9 @@ lacks, declared as a specialization of a QUDT kind) or `provisional` (a
 kind awaiting a pull request to QUDT, given by `pending`). An edge
 `qudt:specializationOf` goes from a kind to the kind it specializes. Each
 match in an external vocabulary is a node whose `id` is the IRI of the
-entity, a CF standard name or a Wikidata item, linked by its SKOS
-relation and the date of its last verification. The branch of relative
+entity, a CF standard name, a Wikidata item or a quantity of the SI
+Digital Framework of the BIPM (labelled by its code, such as `PRES`),
+linked by its SKOS relation and the date of its last verification. The branch of relative
 humidity:
 
 ```json

@@ -51,7 +51,7 @@ def test_catalog_is_read_once() -> None:
 
 
 def test_unit_symbols_follow_the_si_brochure() -> None:
-    # SI Brochure, 9th ed., 2.3.3 and 5.4.7; QUDT writes the unit one U+4E00.
+    # SI Brochure, 9th ed., 2.3.3 and 5.4.7, as QUDT writes them since 3.5.4.
     assert CATALOG.units["UNITLESS"].symbol == "1"
     assert CATALOG.units["PPM"].symbol == "ppm"
     assert CATALOG.units["PERCENT"].symbol == "%"
@@ -130,7 +130,7 @@ def test_radio_refractivity_kinds_and_units() -> None:
     }
     assert set(kinds["Height"].applicable_units) == {"M", "KiloM", "FT"}
     assert kinds["Height"].cf_standard_names == ("height",)
-    # QUDT writes PPM; nomogram displays ppm, as ITU-R P.453 does.
+    # ppm, as ITU-R P.453 and QUDT (since 3.5.4) write it.
     assert units["PPM"].symbol == "ppm"
     assert units["PPM"].multiplier == 1e-6
 
@@ -195,6 +195,31 @@ def test_cf_canonical_units_keep_the_udunits_syntax() -> None:
     cf = CATALOG.cf_standard_names["mass_concentration_of_water_vapor_in_air"]
     assert cf.canonical_units == "kg m-3"
     assert ureg.Quantity(1, cf.pint).to("g/m^3").magnitude == pytest.approx(1000)
+    # A scale factor of CF is the pint unit it is: 1e-3, the per mille.
+    salinity = CATALOG.cf_standard_names["sea_water_salinity"]
+    assert (salinity.canonical_units, salinity.pint) == ("1e-3", "permille")
+    assert Q_(0.035, "dimensionless").to(salinity.pint).magnitude == pytest.approx(35.0)
+
+
+def test_links_of_qudt_to_the_si_and_to_wikidata() -> None:
+    si = "https://si-digital-framework.org/"
+    pressure = [
+        m for m in CATALOG.quantity_kinds["Pressure"].matches if m.target.startswith(si)
+    ]
+    assert [(m.target, m.relation) for m in pressure] == [
+        (f"{si}quantities/PRES", MatchRelation.EXACT)
+    ]
+    kelvin = [m for m in CATALOG.units["K"].matches if m.target.startswith(si)]
+    assert [(m.target, m.relation) for m in kelvin] == [
+        (f"{si}SI/units/kelvin", MatchRelation.EXACT)
+    ]
+    links = [m for k in CATALOG.quantity_kinds.values() for m in k.matches]
+    links += [m for u in CATALOG.units.values() for m in u.matches]
+    assert sum(m.target.startswith(si) for m in links) == 23
+    # The per mille's own item since QUDT 3.5.4, no longer the percent's.
+    assert [m.target for m in CATALOG.units["PERMILLE"].matches] == [
+        "http://www.wikidata.org/entity/Q181011"
+    ]
 
 
 def test_external_links_carry_their_relation_and_verification_date() -> None:

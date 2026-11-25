@@ -81,9 +81,9 @@ flowchart LR
 
 Some examples:
 - **Missing notions**: the geopotential, the geopotential height, the
-  pressure altitude, the lapse rate, the specific latent heat. All
-  entered QUDT at nomogram's request; the density of dry air and of
-  moist air is under review (qudt/qudt-public-repo#1600).
+  pressure altitude, the lapse rate, the specific latent heat, the
+  densities of dry and of moist air. All entered QUDT at nomogram's
+  request, and are in its release 3.5.4.
 - **Errors**: in QUDT, the per mille pointed to the Wikidata item of the
   percent; in Wikidata, the pressure altitude and the QNH were both
   labelled "QNE" in French; in the CF table, a typo mars the definition
@@ -112,7 +112,8 @@ Wikidata; one typo reported to CF.
 
 QUDT is written in **Turtle**, a text format of RDF, which describes
 every piece of information as **triples**, *subject - predicate -
-object*. An abridged excerpt of the proposal under review:
+object*. An abridged excerpt of the proposal for the densities of the
+air (qudt/qudt-public-repo#1600), merged:
 
 ```turtle
 quantitykind:DensityOfDryAir

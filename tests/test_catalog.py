@@ -398,6 +398,17 @@ def test_invalid_units_and_bounds_of_a_local_kind(extra: str, message: str) -> N
         load_catalog([document])
 
 
+def test_a_kind_in_degrees_celsius_may_carry_a_cf_name() -> None:
+    # Its units have an offset: their dimension is read without the
+    # arithmetic pint refuses on them.
+    document = KIND.format(name="Probe", parent="CelsiusTemperature") + (
+        'cf_standard_names = [{ name = "air_temperature", relation = "narrow", '
+        "verified = 2026-11-25 }]\n"
+    )
+    kind = load_catalog([document]).kinds["Probe"]
+    assert kind.cf_standard_names == ("air_temperature",)
+
+
 def test_a_local_kind_may_specialize_one_written_after_it() -> None:
     # Families load in the order of their names, not of their requirements.
     child = KIND.format(name="Child", parent="Parent")

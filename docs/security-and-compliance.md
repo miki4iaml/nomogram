@@ -273,10 +273,12 @@ The maintainer keeps a log of the alerts and of how each was handled
   and the environment `pypi`.
 - Each published version is archived on Zenodo, with its own DOI.
 
-**Verification** [user, on a connected workstation]:
+**Verification** [user, on a connected workstation], the provenance and
+then the SBOM, which the first command alone does not check:
 
 ```
 gh attestation verify nomogram-0.8.0-py3-none-any.whl --repo miki4iaml/nomogram
+gh attestation verify nomogram-0.8.0-py3-none-any.whl --repo miki4iaml/nomogram --predicate-type https://cyclonedx.org/bom
 ```
 
 ## 7. Installation on a network without Internet access

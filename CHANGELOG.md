@@ -15,7 +15,7 @@ and this project adheres to
   `protee-node-link/0` agreed with protee
   ([the guide](docs/graphs.md)). `kind_graph` gives the tree of quantity
   kinds a search finds, with the kinds they specialize and their matches
-  in CF and Wikidata; `system_graph` gives the equations and variables of
+  in CF, Wikidata and the SI Digital Framework of the BIPM; `system_graph` gives the equations and variables of
   a system, each variable with its role (input, unknown, intermediate),
   and the reads that close its loops.
   No new dependency: the documents are plain `dict`s, ready for
@@ -39,8 +39,10 @@ and this project adheres to
   inputs its values do not feed, a departure declared in the extraction
   script. The pressure altitude, the geopotential height of the standard
   atmosphere at a pressure, which QUDT makes a specialization of the
-  geopotential height, feeds no geopotential height input in compositions
-  and systems: such an input may be of an actual atmosphere.
+  geopotential height, feeds no geopotential height input in compositions,
+  those of a catalog included, and in systems: such an input may be of an
+  actual atmosphere. It is still found under it by a search, and compared
+  as one by `compare(kind=...)`.
 
 ### Changed
 
@@ -65,12 +67,27 @@ and this project adheres to
     the humidity mixing ratio, the percent for `RelativePartialPressure`;
   - the links imported from QUDT are dated 25 November 2026, the date
     they were read in 3.5.4; the Wikidata link of `SpecificLatentHeat`,
-    now imported from QUDT, is a close match.
+    now imported from QUDT, is a close match; `KinematicViscosity` now
+    matches Q12793663, no longer Q15106259, and `SpecificHumidity` gains
+    Q2253551, as QUDT 3.5.4 gives them;
+  - `MassPerAreaTime` leaves the bundled subset, no kind of the catalog
+    specializing it any more: a personal catalog that names it needs
+    another parent, such as `MassFluxDensity`;
+  - `RefractivityGradient` takes the N-units per metre only (`PPM-PER-M`):
+    QUDT organizes it under `InverseLength` without making it a
+    specialization, so the reciprocal metre and kilometre no longer apply
+    to it.
 
 ### Fixed
 
 - The Wikidata link of the per mille is the per mille's (Q181011), no
   longer the percent's, which QUDT 3.5.3 had copied onto it.
+- `CFStandardName.pint` is a pint unit for the CF names whose canonical
+  unit is 1e-3, the per mille (`permille`), so that a conversion keeps the
+  factor of 1000; it was the number itself.
+- A kind of a catalog under a temperature in degrees Celsius may carry a
+  CF standard name: loading no longer stops on a pint error about offset
+  units.
 
 ## [0.8.0] - 2026-11-21
 

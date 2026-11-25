@@ -71,6 +71,37 @@ def test_a_pressure_altitude_is_found_under_the_geopotential_height() -> None:
     assert not feeds("GeopotentialHeight", "PressureAltitude")
 
 
+def test_a_catalog_composition_obeys_never_feeds() -> None:
+    from nomogram.catalog import CatalogError
+
+    document = """
+[catalog]
+name = "mine"
+format = 2
+requires = ["atmosphere"]
+
+[formulations."mine:standard"]
+label = "Geometric altitude of a pressure altitude, taken for a geopotential height"
+composition = { outer = "era5_geometric_altitude", inner = { Z = "iso2533_pressure_altitude" } }
+"""
+    with pytest.raises(CatalogError, match="computes PressureAltitude, but Z is"):
+        with_families(("atmosphere",), document)
+
+
+def test_pressure_altitudes_compare_as_geopotential_heights() -> None:
+    from nomogram.comparison import compare
+
+    standard = CATALOG.formulations["iso2533_pressure_altitude"]
+    nws = CATALOG.formulations["nws_pressure_altitude"]
+    found = compare(
+        [standard, nws],
+        standard,
+        {"Pressure": Q_(500.0, "hPa")},
+        kind="GeopotentialHeight",
+    )
+    assert abs(float(found.relative_deviations[nws.key])) < 1e-3
+
+
 def test_kinds_of_vertical_coordinates() -> None:
     kinds = CATALOG.kinds
     height = kinds["GeopotentialHeight"]
