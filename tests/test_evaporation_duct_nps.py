@@ -118,12 +118,13 @@ def test_the_gradient_reaches_the_critical_one_at_the_neutral_duct_height() -> N
     assert gradient.to("1/km").magnitude == pytest.approx(-0.157e-3, rel=1e-12)
 
 
-def test_n_units_per_metre_are_declared_by_nomogram() -> None:
+def test_n_units_per_metre_come_from_qudt() -> None:
+    # A local unit of nomogram until QUDT 3.5.4 (qudt/qudt-public-repo#1613).
     unit = semantic_catalog().units["PPM-PER-M"]
-    assert unit.iri is None  # absent from QUDT 3.5.3
+    assert unit.iri == "http://qudt.org/vocab/unit/PPM-PER-M"
     assert unit.multiplier == 1e-6
-    kind = semantic_catalog().quantity_kinds["InverseLength"]
-    assert "PPM-PER-M" in kind.applicable_units
+    for name in ("RefractivityGradient", "InverseLength"):
+        assert "PPM-PER-M" in semantic_catalog().quantity_kinds[name].applicable_units
 
 
 def test_the_profile_scales_feed_no_look_alike() -> None:
@@ -139,8 +140,10 @@ def test_the_profile_scales_feed_no_look_alike() -> None:
         for other in others:
             assert not feeds(kind, other)
             assert not feeds(other, kind)
-    assert feeds("VerticalRadioRefractivityGradient", "InverseLength")
-    assert not feeds("VerticalRadioRefractivityGradient", "RadioRefractivity")
+    # QUDT organizes the gradient under InverseLength, without making it a
+    # specialization: the two are not commensurable.
+    assert not feeds("RefractivityGradient", "InverseLength")
+    assert not feeds("RefractivityGradient", "RadioRefractivity")
 
 
 def test_the_nps_formulas_are_found_by_search() -> None:
@@ -172,9 +175,9 @@ def test_the_nps_formulas_are_found_by_search() -> None:
         "fairall1978_obukhov_length",
         "frederickson1994_obukhov_length",
     } <= lengths
-    assert [
-        f.key for f in CATALOG.formulations_of("VerticalRadioRefractivityGradient")
-    ] == ["fairall1978_vertical_refractivity_gradient"]
+    assert [f.key for f in CATALOG.formulations_of("RefractivityGradient")] == [
+        "fairall1978_vertical_refractivity_gradient"
+    ]
     assert "formulations.fairall1978_vertical_refractivity_gradient" in set(
         CATALOG.search("refractivity gradient").refs
     )

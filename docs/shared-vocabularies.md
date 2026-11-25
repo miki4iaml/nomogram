@@ -219,22 +219,23 @@ A violation fails the CI; a warning is counted in the report.
 
 - nomogram does not read QUDT online: it works offline. A development
   script, `scripts/extract_semantics.py`, reads a frozen release of QUDT
-  (3.5.3) and of the CF table (95), and writes
+  (3.5.4) and of the CF table (95), and writes
   `src/nomogram/data/semantics.json`: the kinds, units and CF standard
   names the catalog needs, and nothing more.
 - Each minor version of nomogram re-extracts it from the latest official
   releases of QUDT and CF; a kind or a unit that QUDT comes to define,
-  often after a contribution of nomogram, then replaces the local one.
+  often after a contribution of nomogram, then replaces the local one:
+  nine kinds and a unit with QUDT 3.5.4.
 - What nomogram adds to the sources (scale typing, added units, pint
   expressions, bounds of kinds, units and provisional kinds QUDT does not
   define yet) is declared in that script, never hidden in the data, and
   listed in the data notice.
 - A kind of nomogram's own must specialize a QUDT kind: the loader
-  checks it. A kind with no QUDT kind to specialize, such as the
-  kinematic heat flux in K m/s, enters only as a *provisional* kind,
-  while a pull request adding it to QUDT is open: the kind records that
-  pull request (`QuantityKind.pending`, origin `provisional`), and each
-  minor version checks its state.
+  checks it. A kind with no QUDT kind to specialize enters only as a
+  *provisional* kind, while a pull request adding it to QUDT is open: the
+  kind records that pull request (`QuantityKind.pending`, origin
+  `provisional`), and each minor version checks its state. The kinematic
+  heat flux in K m/s was one until QUDT 3.5.4 added it; none is left.
 - **For the authors of personal catalogs**: QUDT may adopt a provisional
   kind under another name or definition, as its reviewers improve the
   proposal. nomogram then takes QUDT's kind, and the changelog of that
@@ -287,7 +288,7 @@ Several tools help to browse it:
   and the date it was checked.
 - **Offline and consistent.** The same principle lets nomogram work
   offline: each of its versions embeds a frozen extract of an official,
-  dated and declared release of each ontology (QUDT 3.5.3 and the CF
+  dated and declared release of each ontology (QUDT 3.5.4 and the CF
   table 95 today), and stays consistent with it.
 
 ## Useful links

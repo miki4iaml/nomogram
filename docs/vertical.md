@@ -57,9 +57,15 @@ geopotential height, dT/dH (ISO 2533, equation 11).
   to that pressure in the Standard Atmosphere" (SERA, Art. 2, point 101):
   a geopotential height of the standard atmosphere, not of the actual
   one, from which it departs by about 8 m per hectopascal of departure
-  from the standard atmosphere near the ground. A sibling of the
-  geopotential height, as in QUDT: it feeds neither a geopotential
-  height nor an altitude input.
+  from the standard atmosphere near the ground. QUDT 3.5.4 makes it a
+  specialization of the geopotential height, and a search for that kind
+  finds it; but its values only approximate the geopotential height of
+  an actual atmosphere, so nomogram keeps it from feeding a geopotential
+  height input, and an altitude input, in compositions and systems
+  (`QuantityKind.never_feeds`, a departure declared in the extraction
+  script). Evaluating a formulation of the standard atmosphere at a
+  pressure altitude stays possible: its geopotential height is the
+  pressure altitude.
 - **The altitude and the height of aviation.** SERA's altitude and
   height are "altimetric rather than geometric" (GM1 to Article 2,
   points 39 and 84): what an altimeter calibrated in the standard

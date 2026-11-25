@@ -889,7 +889,6 @@ One rule keeps the kinds consistent over time, whoever adds them:
   - `DensityOfDryAir` and `DensityOfMoistAir`;
   - `PsychrometerWetBulbTemperature` and `WetBulbTemperature`;
   - `LapseRate` and `VerticalTemperatureGradient`;
-  - `PressureAltitude` and `GeopotentialHeight`;
   - `AltimetricAltitude` and `Altitude`.
 - **A kind is neutral as to the medium**, as QUDT's are: a potential
   temperature, a friction velocity, an Obukhov length are those of a

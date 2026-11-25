@@ -647,12 +647,23 @@ def index(catalog: Catalog) -> _Index:
     for ref, targets in catalog.links.items():
         for target in targets:
             used_by.setdefault(target, []).append(ref)
-    parents = {name: kind.specialization_of for name, kind in catalog.kinds.items()}
+    # A kind is found under those it specializes and those QUDT organizes it
+    # under (organizedUnder): a search for InverseLength finds the gradient
+    # of radio refractivity, which never feeds one of its inputs.
+    parents = {
+        name: {p for p in (kind.specialization_of, kind.organized_under) if p}
+        for name, kind in catalog.kinds.items()
+    }
     descendants: dict[str, set[str]] = {name: {name} for name in parents}
-    for name, parent in parents.items():
-        while parent is not None and parent in descendants:
+    for name, ups in parents.items():
+        pending, seen = list(ups), set()
+        while pending:
+            parent = pending.pop()
+            if parent in seen or parent not in descendants:
+                continue
+            seen.add(parent)
             descendants[parent].add(name)
-            parent = parents[parent]
+            pending.extend(parents[parent])
     return _Index(
         records=records,
         by_ref=by_ref,

@@ -199,40 +199,11 @@ specialization_of = "Altitude"
 description = "Altitude of the surface of the Earth, the lower boundary of the atmosphere (CF). The elevation of a WMO station is the altitude of the ground beneath its raingauge or its thermometer screen (WMO-No. 8, Volume I, 1.3.3.2)."
 cf_standard_names = [{ name = "surface_altitude", relation = "exact", verified = 2026-10-26 }]
 
-[kinds.Geopotential]
-label = "Geopotential"
-specialization_of = "SpecificEnergy"
-scale_type = "interval"
-description = "Sum of the specific gravitational potential energy relative to the geoid and the specific centripetal potential energy (CF); the IFS defines it by the hydrostatic equation (Part III, equation 2.6). Its zero is the geoid, about the mean sea level: an interval scale."
-matches = [
-  { target = "http://www.wikidata.org/entity/Q1423347", relation = "close", verified = 2026-10-28 },
-]
-cf_standard_names = [{ name = "geopotential", relation = "exact", verified = 2026-10-28 }]
-
-[kinds.GeopotentialHeight]
-label = "Geopotential Height"
-specialization_of = "Length"
-scale_type = "interval"
-description = "Geopotential divided by the standard acceleration of free fall, 9.80665 m s-2 (CF; WMO-No. 8, Volume I, equation 12.12). Numerically close to the altitude, not to the height above the surface (CF); the difference follows gravity, so latitude and height: 25 m at 8 km and 220 m at 32 km at 22°N (WMO-No. 8, Volume I, table 12.10), about 32 m at 8 km at the Equator, none near 60°, the geopotential height the larger poleward (WMO-No. 8, equations 12.15 and 12.16). WMO writes it in standard geopotential metres, 0.980665 dynamic metre; nomogram in metres, the kind carrying the meaning."
-matches = [
-  { target = "http://www.wikidata.org/entity/Q12432978", relation = "close", verified = 2026-10-28 },
-]
-cf_standard_names = [{ name = "geopotential_height", relation = "exact", verified = 2026-10-28 }]
-
 [kinds.GeopotentialThickness]
 label = "Geopotential Thickness"
 specialization_of = "Length"
 description = "Difference of geopotential height between two levels of the atmosphere (CF): the thickness of a layer, which the hypsometric equation gives."
 cf_standard_names = [{ name = "atmosphere_layer_thickness_expressed_as_geopotential_height_difference", relation = "exact", verified = 2026-10-28 }]
-
-[kinds.PressureAltitude]
-label = "Pressure Altitude"
-specialization_of = "Length"
-scale_type = "interval"
-description = "An atmospheric pressure expressed in terms of the altitude that corresponds to it in the standard atmosphere (SERA, Article 2, point 101): a geopotential height of the standard atmosphere, not of the actual one, from which it departs by about 8 m per hectopascal of departure from the standard atmosphere near the ground. A sibling of the geopotential height, as in QUDT: it feeds neither a geopotential height nor an altitude input. Flight levels are surfaces of constant pressure related to 1013.2 hPa (point 78)."
-matches = [
-  { target = "http://www.wikidata.org/entity/Q17130615", relation = "close", verified = 2026-10-28 },
-]
 
 [kinds.AltimetricAltitude]
 label = "Altimetric Altitude"
@@ -269,18 +240,10 @@ matches = [
 ]
 cf_standard_names = [{ name = "latitude", relation = "broad", verified = 2026-10-28 }]
 
-# Temperature gradients: QUDT's TemperatureGradient carries no sign; CF's
-# lapse rate is -dT/dz, the vertical gradient dT/dz. Siblings under it, so
-# that one never feeds an input of the other: their signs are opposite.
-
-[kinds.LapseRate]
-label = "Lapse Rate of Air Temperature"
-specialization_of = "TemperatureGradient"
-description = "Negative derivative of the air temperature with respect to height, -dT/dz (CF): positive when the temperature decreases upwards. A temperature difference per length; never fed by a vertical temperature gradient, of opposite sign."
-matches = [
-  { target = "http://www.wikidata.org/entity/Q66900467", relation = "close", verified = 2026-10-28 },
-]
-cf_standard_names = [{ name = "air_temperature_lapse_rate", relation = "exact", verified = 2026-10-28 }]
+# Temperature gradients: QUDT's TemperatureGradient carries no sign; its
+# LapseRate (QUDT 3.5.4) is -dT/dz, as CF writes it, and the vertical
+# gradient dT/dz is its sibling here, so that one never feeds an input of
+# the other: their signs are opposite.
 
 [kinds.VerticalTemperatureGradient]
 label = "Vertical Gradient of Air Temperature"

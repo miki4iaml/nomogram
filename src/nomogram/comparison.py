@@ -88,9 +88,11 @@ def feeds(
     It may when the kinds are the same, or when the result's kind
     specializes the input's (QUDT ``specializationOf``, directly or not):
     a saturation vapour pressure is a vapour pressure. Never the other
-    way round, and never a difference for a point, though QUDT makes a
-    temperature difference a temperature. ``kinds`` are those of the
-    bundled catalog by default, loaded only for two different kinds.
+    way round, never a difference for a point, though QUDT makes a
+    temperature difference a temperature, and never for a kind a kind on
+    the way declares it does not feed (``QuantityKind.never_feeds``: a
+    pressure altitude for a geopotential height). ``kinds`` are those of
+    the bundled catalog by default, loaded only for two different kinds.
     """
     if output_kind == input_kind:
         return True
@@ -106,6 +108,8 @@ def feeds(
     while kind is not None and kind.name not in seen:
         if kind.name == input_kind:
             return True
+        if input_kind in getattr(kind, "never_feeds", ()):
+            return False
         seen.add(kind.name)
         kind = kinds.get(kind.specialization_of or "")
     return output_kind == input_kind
