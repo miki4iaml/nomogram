@@ -22,13 +22,15 @@
 
 nomogram does not hard-code functions: it catalogs formulas, each one
 
-- **meaningful**: QUDT quantity kinds and units, links to CF and
-  Wikidata, its source, its validity domain when stated;
+- **meaningful**: QUDT quantity kinds and units, links to CF,
+  Wikidata and the SI Digital Framework, its source, its validity domain
+  when stated;
 - **checked**: dimensions and units on loading, equivalences proved
   symbolically, monotonicity proved by interval arithmetic, values
   cross-checked against references;
 - **ready to use**: compute, compose, invert, solve with others as a
-  system of equations, plot, and compare with its alternatives.
+  system of equations, plot, compare with its alternatives, and draw
+  with its system as a graph.
 
 Built for trust, not for speed: to show that a calculation is right, and
 where it comes from.
@@ -141,7 +143,7 @@ references. The guides:
 | [Sea water](docs/sea-water.md) | salinity scales, the 2 % lowering of vapour pressure |
 | [Humidity aloft](docs/humidity-aloft.md) | a radiosonde's formula against its users', along a profile |
 | [The evaporation duct](docs/evaporation-duct.md) | from a ship's measurements to the duct height, four ways |
-| [COARE 3.6 as a system](docs/coare-system.md) | the loop of the code solved by Newton's method |
+| [COARE 3.6 as a system](docs/coare-system.md) | the loop of the code solved by Newton's method, and drawn |
 | **Using it in a laboratory** | |
 | [Security and compliance](docs/security-and-compliance.md) | how it is developed, checked, published; a checklist |
 | [The logo](docs/logo.md) | a working nomogram |

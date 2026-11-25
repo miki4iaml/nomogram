@@ -8,6 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-25
+
+The catalog drawn as graphs, on a vocabulary QUDT now holds whole. Three
+results:
+
+- A system of the catalog is drawn from itself: the loop of COARE 3.6,
+  its equations numbered as in the table of
+  [its guide](docs/coare-system.md), the reads that close the loop
+  dashed and the driver that iterates it, in a light and a dark variant;
+  the tree of quantity kinds a search finds is drawn the same way
+  ([the guide](docs/graphs.md)).
+- QUDT 3.5.4 holds thirteen pull requests from nomogram: the extraction
+  script declares no kind and no unit of its own any more, the
+  provisional kind included, and 23 kinds and units of the bundled
+  subset carry an exact match to the SI Digital Framework of the BIPM.
+- The pressure altitude, the geopotential height of the standard
+  atmosphere at a pressure, is found and compared as a geopotential
+  height but feeds none of its inputs, although QUDT 3.5.4 makes it a
+  specialization of it: compositions and systems do not take a standard
+  height for an actual one.
+
 ### Added
 
 - **Graphs of the catalog** (`nomogram.graph`), as node-link documents
@@ -2097,7 +2118,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.9.0...develop
+[0.9.0]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/miki4iaml/nomogram/compare/v0.5.0...v0.6.0

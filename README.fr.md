@@ -23,14 +23,15 @@
 nomogram ne code pas de fonctions en dur : il catalogue des formules,
 chacune
 
-- **signifiante** : kinds et unités de QUDT, liens vers CF et Wikidata,
-  sa source, son domaine de validité quand il est indiqué ;
+- **signifiante** : kinds et unités de QUDT, liens vers CF, Wikidata et
+  le SI Digital Framework du BIPM, sa source, son domaine de validité
+  quand il est indiqué ;
 - **vérifiée** : dimensions et unités au chargement, équivalences
   prouvées symboliquement, monotonie prouvée par arithmétique
   d'intervalles, valeurs recoupées avec des références ;
 - **prête à l'emploi** : calculer, composer, inverser, résoudre avec
-  d'autres en système d'équations, tracer, et comparer à ses
-  alternatives.
+  d'autres en système d'équations, tracer, comparer à ses alternatives,
+  et dessiner avec son système en graphe.
 
 Conçu pour la confiance, pas pour la vitesse : montrer qu'un calcul est
 juste, et d'où il vient.
@@ -145,7 +146,7 @@ Chaque formulation garde ses unités, son domaine de validité, son
 | [Sea water](docs/sea-water.md) | échelles de salinité, abaissement de 2 % de la pression de vapeur |
 | [Humidity aloft](docs/humidity-aloft.md) | la formule d'un fabricant de radiosondes face à celles de ses utilisateurs, le long d'un profil |
 | [The evaporation duct](docs/evaporation-duct.md) | des mesures d'un navire à la hauteur du conduit, de quatre manières |
-| [COARE 3.6 as a system](docs/coare-system.md) | la boucle du code résolue par la méthode de Newton |
+| [COARE 3.6 as a system](docs/coare-system.md) | la boucle du code résolue par la méthode de Newton, et dessinée |
 | **En laboratoire** | |
 | [Security and compliance](docs/security-and-compliance.md) | comment il est développé, vérifié, publié ; une liste de contrôle |
 | [The logo](docs/logo.md) | un vrai nomogramme |
