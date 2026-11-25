@@ -790,6 +790,11 @@ class FormulaTable:
                 variable = variables.get(identifier)
                 text = _with_unit(bounds, variable.unit if variable else None)
                 parts.append(f"${label}$: {text} ({domain.basis.value})")
+            for sign, table in ((r"\leq", domain.at_most), (r"\geq", domain.at_least)):
+                for identifier, other in table.items():
+                    label = _identifier(identifier, symbols, options)
+                    bound = _identifier(other, symbols, options)
+                    parts.append(f"${label} {sign} {bound}$ ({domain.basis.value})")
         return "; ".join(parts)
 
     def to_markdown(self) -> str:

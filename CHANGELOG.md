@@ -50,6 +50,22 @@ and this project adheres to
   in Pa/K, hPa/K and kPa/K, pending their pull requests to QUDT
   (qudt/qudt-public-repo#1621 and #1622).
 
+- **Relative bounds**: a validity domain may bound a variable by another
+  variable of the formulation, `at_most = { T_LC = "T_LM" }` or
+  `at_least`, in the same unit and on the same scale, closed and applied
+  value by value; a bound involving the output is written on it. A
+  physical one on the output of an implicit equation ends the interval
+  its root is sought in, value by value, whatever the basis of the
+  evaluation, and a root on that end without a change of sign (a double
+  root, T_LC = T_LM at U = 1) is taken inside the interval searched.
+  Compositions keep them under the composed names, closed-form inverses
+  on their output; the table of formulations shows them, T_LC ≤ T_LM
+  ([the catalog guide](docs/catalog.md#formulations)).
+- **Systems without a loop**: a chain of equations in which no equation
+  reads a variable before the one giving it is a system, with no unknown
+  and no first guess, solved in order, an implicit equation by the search
+  of its root.
+
 ### Changed
 
 - The threshold temperatures of contrail formation are points at which a
@@ -64,6 +80,13 @@ and this project adheres to
 - In the inference of the units of coefficients, a branch 0 of a
   piecewise definition no longer makes the other branches pure numbers:
   zero has every dimension.
+- The units of a formulation calling others are checked as written, each
+  call in the unit of the output called, the coefficients of the
+  formulation called in the units inferred where it is written: a call of
+  a formulation in fixed units whose exponential holds the unit (Sonntag,
+  in Pa) no longer reads as a pure number beside coefficients, which
+  refused an equation equating the slope of a saturation curve to an
+  input. The units inferred in the catalog are unchanged.
 
 ## [0.9.0] - 2026-11-25
 

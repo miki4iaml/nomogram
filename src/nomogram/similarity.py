@@ -653,6 +653,13 @@ def _carried(
     them (see :func:`_beyond_start`)."""
     carried = []
     for domain in domains:
+        if domain.at_most or domain.at_least:
+            # One input: a relative bound names the output, which the
+            # derived function does not have.
+            msg = (
+                "a relative bound of the source is not carried to the derived function"
+            )
+            raise DerivationError(msg)
         if identifier not in domain.bounds:
             continue
         low, high = domain.bounds[identifier]

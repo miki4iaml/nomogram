@@ -3,6 +3,8 @@
 
 """Profile functions derived from gradient functions, and back."""
 
+import dataclasses
+from types import MappingProxyType
 from typing import Any
 
 import mpmath
@@ -10,7 +12,7 @@ import numpy as np
 import pytest
 
 from nomogram.catalog import catalog, load_catalog
-from nomogram.model import Formulation, Variable
+from nomogram.model import DomainBasis, Formulation, ValidityDomain, Variable
 from nomogram.similarity import DerivationError, gradient_function, profile_function
 from nomogram.systems import CONVERGED, Equation, System
 from nomogram.units import Q_
@@ -237,6 +239,21 @@ def test_a_stability_parameter_named_e_keeps_eulers_number() -> None:
         ),
         (lambda: synthetic("piecewise((1 + zeta, zeta > 1))"), "no branch holds"),
         (lambda: synthetic("1 + zeta * exp(zeta ** 2)"), "outside the syntax"),
+        (
+            lambda: dataclasses.replace(
+                synthetic("1 + 5 * zeta"),
+                physical_domains=(
+                    ValidityDomain(
+                        DomainBasis.PHYSICAL,
+                        MappingProxyType({}),
+                        "A probe.",
+                        None,
+                        at_least=MappingProxyType({"y": "zeta"}),
+                    ),
+                ),
+            ),
+            "a relative bound of the source is not carried",
+        ),
     ],
 )
 def test_derivations_refused(formulation: Any, message: str) -> None:

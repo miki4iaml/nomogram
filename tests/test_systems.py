@@ -401,12 +401,12 @@ def test_statuses_are_named() -> None:
             "two equations give x",
         ),
         (
-            lambda: System("s", "s", (Equation(F["fy"]),), start={}),
-            "a composition, not a system",
-        ),
-        (
             lambda: System("s", "s", linear().equations, start={}),
             "missing: y",
+        ),
+        (
+            lambda: System("s", "s", (Equation(F["fy"]),), start={"y": "0"}),
+            "not an unknown: y",
         ),
         (
             lambda: System("s", "s", linear().equations, start={"y": "0", "x": "0"}),
@@ -429,6 +429,19 @@ def test_statuses_are_named() -> None:
 def test_invalid_systems_are_refused(build: Any, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         build()
+
+
+def test_a_chain_without_a_loop_is_a_system() -> None:
+    # No equation reads a variable before the one giving it: no unknown,
+    # no first guess; solved in order.
+    chain = System("s", "s", (Equation(F["fy"]),), start={})
+    assert (chain.unknowns, chain.inputs, chain.outputs) == ((), ("b", "x"), ("y",))
+    solution = chain.evaluate(b=Q_(7.0, ""), x=Q_(1.0, ""))
+    assert solution["y"].magnitude == pytest.approx(2.0)
+    passes = chain.evaluate(
+        b=Q_(7.0, ""), x=Q_(1.0, ""), method="fixed-point", iterations=1
+    )
+    assert passes["y"].magnitude == pytest.approx(2.0)
 
 
 def test_invalid_calls_are_refused() -> None:

@@ -283,12 +283,6 @@ class System:
                 msg = f"{self.key}: two equations give {equation.output}"
                 raise ValueError(msg)
             given[equation.output] = i
-        if not self.unknowns:
-            msg = (
-                f"{self.key}: no equation reads a variable before another gives "
-                "it: a composition, not a system"
-            )
-            raise ValueError(msg)
         self._check_links(kinds)
         start: dict[str, str] = {}
         given_start: Mapping[str, object] = self.start
@@ -647,6 +641,9 @@ class _Run:
             rows = np.arange(self.size)
             for name in system.intermediates:
                 known[name] = self.apply(system._giver[name], known, None, rows)[0]
+        if not self.unknowns:
+            # A chain of explicit equations without a loop: nothing to solve.
+            return np.empty((self.size, 0))
         return np.stack([known[name] for name in self.unknowns], axis=1)
 
     def apply(
@@ -895,7 +892,9 @@ class _Run:
                 active = active[inside]
                 if not active.size:
                     break
-            error = _relative(residual, terms).max(axis=1)
+            relative = _relative(residual, terms)
+            # A chain without a loop has no residual: solved as it stands.
+            error = relative.max(axis=1) if relative.shape[1] else np.zeros(len(active))
             done = np.isfinite(error) & (error <= TOLERANCE)
             status[active[done]] = CONVERGED
             left[active] = error
@@ -930,6 +929,8 @@ class _Run:
         for _ in range(passes):
             for i, equation in enumerate(system.equations):
                 known[equation.output] = self.apply(i, known, None, rows)[0]
+        if not self.unknowns:
+            return np.empty((len(rows), 0))
         return np.stack([known[name] for name in self.unknowns], axis=1)
 
     def _line_search(
@@ -971,9 +972,13 @@ class _Run:
         for _ in range(passes):
             for i, equation in enumerate(system.equations):
                 known[equation.output], _, seen[i], _ = self.apply(i, known, None, rows)
-        x = np.stack([known[name] for name in self.unknowns], axis=1)
-        residual, terms = self.state(x, rows, jacobian=True)[:2]
-        left = _relative(residual, terms).max(axis=1)
+        if self.unknowns:
+            x = np.stack([known[name] for name in self.unknowns], axis=1)
+            residual, terms = self.state(x, rows, jacobian=True)[:2]
+            left = _relative(residual, terms).max(axis=1)
+        else:  # a chain without a loop: no residual left
+            x = np.empty((self.size, 0))
+            left = np.zeros(self.size)
         status = np.where(np.isfinite(x).all(axis=1), ITERATED, UNDEFINED)
         status[self.blank] = UNDEFINED
         status[skip] = OUTSIDE
