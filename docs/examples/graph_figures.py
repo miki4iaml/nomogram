@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Miki
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Figures of two graphs of the catalog, the loop of COARE 3.6 and a branch
-of the tree of kinds, each in a light and a dark variant.
+"""Figures of four graphs of the catalog, the loop of COARE 3.6, a branch
+of the tree of kinds, and the kinds and the chain of formulations of the
+family of contrails, each in a light and a dark variant.
 
 The documents are those of ``nomogram.graph``; this script only shapes the
 figures. In the loop, each equation is merged with the variable it gives
@@ -34,12 +35,41 @@ from protee import viz
 
 from nomogram.catalog import catalog
 from nomogram.graph import kind_graph, system_graph
+from nomogram.systems import Equation, System
 
 ROOT = Path(__file__).resolve().parents[2]
 LOGO = ROOT / "docs" / "images" / "logo.svg"
 SYSTEM = catalog().systems["coare36_surface_layer"]
 #: The kinds of the branch drawn in docs/graphs.md.
 BRANCH = ["RelativeHumidity", "RelativeHumidityWithRespectToIce"]
+#: The kinds the family contrail adds, drawn in docs/contrails.md, with
+#: the provisional kinds it takes.
+CONTRAIL = [
+    "OverallPropulsionEfficiency",
+    "LowerHeatingValue",
+    "EmissionIndexOfWaterVapour",
+    "ContrailFactor",
+    "ContrailAvailableMoisturePerDegree",
+    "MixingLineSlope",
+    "SaturationVapourPressureSlopeOverWater",
+    "SaturationVapourPressureSlopeOverIce",
+    "ContrailMaximumThresholdTemperature",
+    "ContrailMaximumThresholdTemperatureWithRespectToIce",
+    "ContrailThresholdTemperature",
+    "ContrailThresholdTemperatureWithRespectToIce",
+    "ContrailCriticalTemperatureAtFixedMixing",
+    "ContrailCriticalRelativeHumidity",
+]
+#: The chain of formulations of docs/contrails.md, from the engine and the
+#: fuel to the threshold temperature and the critical relative humidity.
+CHAIN = [
+    "schumann1996_overall_propulsion_efficiency",
+    "schumann1996_emission_index_water_vapour",
+    "schumann1996_mixing_line_slope",
+    "schumann1996_maximum_threshold_temperature_liquid",
+    "schumann1996_threshold_temperature_liquid",
+    "schumann2012_critical_relative_humidity",
+]
 #: The colours of each variant: background, ink, and ink on a filled node.
 THEMES: Mapping[str, Mapping[str, str]] = {
     "light": {"background": "#ffffff", "ink": "#1f2937", "on_fill": "#1f2937"},
@@ -122,6 +152,19 @@ def loop_document() -> dict[str, Any]:
     return document
 
 
+def chain_document() -> dict[str, Any]:
+    """The chain of the guide to contrails: its formulations as a system
+    without a loop, built for the figure, each solved in turn."""
+    formulations = catalog().formulations
+    chain = System(
+        key="contrail_chain",
+        label="From the engine and the fuel to the threshold of contrail formation",
+        equations=tuple(Equation(formulations[key]) for key in CHAIN),
+        start={},
+    )
+    return system_graph(chain)
+
+
 def loop_styles(theme: str) -> Styles:
     """The styles of the loop: rounded boxes, the roles in fixed colours,
     the reads that close the loop dashed and free of the ranks."""
@@ -184,9 +227,12 @@ def _defaults(theme: str, splines: str | None = None) -> tuple[str, str, str]:
     return graph, ink, ink
 
 
-def _themed(dot: str, theme: str, splines: str) -> str:
-    """The DOT text of protee, with the attributes of the variant."""
+def _themed(dot: str, theme: str, splines: str, rankdir: str | None = None) -> str:
+    """The DOT text of protee, with the attributes of the variant; a wide
+    tree of many roots is laid out from left to right (``rankdir``)."""
     graph, node, edge = _defaults(theme, splines)
+    if rankdir is not None:
+        dot = re.sub(r'rankdir="[A-Z]+"', f'rankdir="{rankdir}"', dot, count=1)
     dot = dot.replace("  graph [", f"  graph [{graph}, ", 1)
     dot = dot.replace("  node [", f"  node [{node}, ", 1)
     return dot.replace("  edge [", f"  edge [{edge}, ", 1)
@@ -335,25 +381,28 @@ def compose(figure: str, legend: str, theme: str) -> str:
 
 
 def figures() -> dict[str, str]:
-    """The four figures, by file name: light, then dark."""
+    """The eight figures, by file name: light, then dark."""
     drawn: list[
-        tuple[str, dict[str, Any], Callable[[str], Styles], str | None, str]
+        tuple[str, dict[str, Any], Callable[[str], Styles], str | None, str, str | None]
     ] = [
-        ("coare-loop", loop_document(), loop_styles, "rank", "ortho"),
+        ("coare-loop", loop_document(), loop_styles, "rank", "ortho", None),
         (
             "kinds-relative-humidity",
             kind_graph(BRANCH),
             branch_styles,
             None,
             "polyline",
+            None,
         ),
+        ("kinds-contrail", kind_graph(CONTRAIL), branch_styles, None, "polyline", "LR"),
+        ("contrail-chain", chain_document(), loop_styles, "rank", "polyline", None),
     ]
     found: dict[str, str] = {}
-    for name, document, styles_of, order_by, splines in drawn:
+    for name, document, styles_of, order_by, splines, rankdir in drawn:
         for theme in THEMES:
             styles = styles_of(theme)
             dot = viz.to_dot(document, styles=styles, order_by=order_by, legend=False)
-            figure = _render(_themed(dot, theme, splines))
+            figure = _render(_themed(dot, theme, splines, rankdir))
             legend = _render(_legend(document, styles, theme))
             suffix = "" if theme == "light" else "-dark"
             found[f"{name}{suffix}.svg"] = compose(figure, legend, theme)

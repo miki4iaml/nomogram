@@ -1,0 +1,411 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="843.00pt" height="971.00pt" viewBox="0 0 843.00 971.00">
+<rect width="843.00" height="971.00" fill="#0d1117"/>
+<svg x="0.00" y="0.00" width="843.00" height="809.00" viewBox="0.00 0.00 843.00 809.00">
+<g id="figure-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 794.15)">
+<title>From the engine and the fuel to the threshold of contrail formation</title>
+<polygon fill="#0d1117" stroke="none" points="-14.4,14.4 -14.4,-794.15 828.4,-794.15 828.4,14.4 -14.4,14.4"/>
+<text xml:space="preserve" text-anchor="middle" x="407" y="-762.45" font-family="Helvetica,Arial,sans-serif" font-size="14.00" fill="#e6edf3">From the engine and the fuel to the threshold of contrail formation</text>
+<!-- equations.eta -->
+<g id="figure-node1" class="node">
+<title>equations.eta</title>
+<g id="figure-a_node1"><a xlink:title="Overall propulsion efficiency of an aircraft (Schumann 1996)">
+<path fill="none" stroke="#e6edf3" d="M481.88,-684C481.88,-684 204.12,-684 204.12,-684 198.12,-684 192.12,-678 192.12,-672 192.12,-672 192.12,-660 192.12,-660 192.12,-654 198.12,-648 204.12,-648 204.12,-648 481.88,-648 481.88,-648 487.88,-648 493.88,-654 493.88,-660 493.88,-660 493.88,-672 493.88,-672 493.88,-678 487.88,-684 481.88,-684"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-662.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Overall propulsion efficiency of an aircraft (Schumann 1996)</text>
+</a>
+</g>
+</g>
+<!-- equations.EI -->
+<g id="figure-node2" class="node">
+<title>equations.EI</title>
+<g id="figure-a_node2"><a xlink:title="Emission index of water vapour from the hydrogen content of the fuel (Schumann 1996)">
+<path fill="none" stroke="#e6edf3" d="M548.25,-612C548.25,-612 137.75,-612 137.75,-612 131.75,-612 125.75,-606 125.75,-600 125.75,-600 125.75,-588 125.75,-588 125.75,-582 131.75,-576 137.75,-576 137.75,-576 548.25,-576 548.25,-576 554.25,-576 560.25,-582 560.25,-588 560.25,-588 560.25,-600 560.25,-600 560.25,-606 554.25,-612 548.25,-612"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-590.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Emission index of water vapour from the hydrogen content of the fuel (Schumann 1996)</text>
+</a>
+</g>
+</g>
+<!-- equations.eta&#45;&gt;equations.EI -->
+<!-- variables.eta -->
+<g id="figure-node11" class="node">
+<title>variables.eta</title>
+<g id="figure-a_node11"><a xlink:title="Overall propulsion efficiency">
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M620,-612C620,-612 590,-612 590,-612 584,-612 578,-606 578,-600 578,-600 578,-588 578,-588 578,-582 584,-576 590,-576 590,-576 620,-576 620,-576 626,-576 632,-582 632,-588 632,-588 632,-600 632,-600 632,-606 626,-612 620,-612"/>
+<text xml:space="preserve" text-anchor="middle" x="605" y="-590.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">eta</text>
+</a>
+</g>
+</g>
+<!-- equations.eta&#45;&gt;variables.eta -->
+<g id="figure-edge1" class="edge">
+<title>equations.eta&#45;&gt;variables.eta</title>
+<path fill="none" stroke="#e69f00" d="M417.31,-647.57C471.86,-634.78 540.09,-618.78 566.88,-611.32"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="567.8,-614.7 576.27,-608.34 565.68,-608.03 567.8,-614.7"/>
+</g>
+<!-- equations.G -->
+<g id="figure-node3" class="node">
+<title>equations.G</title>
+<g id="figure-a_node3"><a xlink:title="Slope of the mixing line of aircraft exhaust and ambient air (Schumann 1996)">
+<path fill="none" stroke="#e6edf3" d="M522,-468C522,-468 164,-468 164,-468 158,-468 152,-462 152,-456 152,-456 152,-444 152,-444 152,-438 158,-432 164,-432 164,-432 522,-432 522,-432 528,-432 534,-438 534,-444 534,-444 534,-456 534,-456 534,-462 528,-468 522,-468"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-446.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Slope of the mixing line of aircraft exhaust and ambient air (Schumann 1996)</text>
+</a>
+</g>
+</g>
+<!-- equations.EI&#45;&gt;equations.G -->
+<!-- variables.EI -->
+<g id="figure-node13" class="node">
+<title>variables.EI</title>
+<g id="figure-a_node13"><a xlink:title="Emission index of water vapour">
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M413,-540C413,-540 383,-540 383,-540 377,-540 371,-534 371,-528 371,-528 371,-516 371,-516 371,-510 377,-504 383,-504 383,-504 413,-504 413,-504 419,-504 425,-510 425,-516 425,-516 425,-528 425,-528 425,-534 419,-540 413,-540"/>
+<text xml:space="preserve" text-anchor="middle" x="398" y="-518.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">EI</text>
+</a>
+</g>
+</g>
+<!-- equations.EI&#45;&gt;variables.EI -->
+<g id="figure-edge2" class="edge">
+<title>equations.EI&#45;&gt;variables.EI</title>
+<path fill="none" stroke="#e69f00" d="M356.6,-575.7C362.92,-567.64 370.58,-557.89 377.59,-548.98"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="380.2,-551.32 383.63,-541.29 374.7,-547 380.2,-551.32"/>
+</g>
+<!-- equations.T_LM -->
+<g id="figure-node4" class="node">
+<title>equations.T_LM</title>
+<g id="figure-a_node4"><a xlink:title="Maximum threshold temperature of contrail formation, exact (Schumann 1996)">
+<path fill="none" stroke="#e6edf3" d="M525.75,-324C525.75,-324 160.25,-324 160.25,-324 154.25,-324 148.25,-318 148.25,-312 148.25,-312 148.25,-300 148.25,-300 148.25,-294 154.25,-288 160.25,-288 160.25,-288 525.75,-288 525.75,-288 531.75,-288 537.75,-294 537.75,-300 537.75,-300 537.75,-312 537.75,-312 537.75,-318 531.75,-324 525.75,-324"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-302.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Maximum threshold temperature of contrail formation, exact (Schumann 1996)</text>
+</a>
+</g>
+</g>
+<!-- equations.G&#45;&gt;equations.T_LM -->
+<!-- variables.G -->
+<g id="figure-node16" class="node">
+<title>variables.G</title>
+<g id="figure-a_node16"><a xlink:title="Slope of the mixing line in a diagram of water vapour partial pressure versus temperature">
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M219,-396C219,-396 189,-396 189,-396 183,-396 177,-390 177,-384 177,-384 177,-372 177,-372 177,-366 183,-360 189,-360 189,-360 219,-360 219,-360 225,-360 231,-366 231,-372 231,-372 231,-384 231,-384 231,-390 225,-396 219,-396"/>
+<text xml:space="preserve" text-anchor="middle" x="204" y="-374.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">G</text>
+</a>
+</g>
+</g>
+<!-- equations.G&#45;&gt;variables.G -->
+<g id="figure-edge3" class="edge">
+<title>equations.G&#45;&gt;variables.G</title>
+<path fill="none" stroke="#e69f00" d="M308.28,-431.52C287.92,-421.26 262.19,-408.31 241.39,-397.83"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="243.17,-394.81 232.66,-393.43 240.02,-401.06 243.17,-394.81"/>
+</g>
+<!-- equations.T_LC -->
+<g id="figure-node5" class="node">
+<title>equations.T_LC</title>
+<g id="figure-a_node5"><a xlink:title="Threshold temperature of contrail formation, exact (Schumann 1996)">
+<path fill="none" stroke="#e6edf3" d="M502.88,-180C502.88,-180 183.12,-180 183.12,-180 177.12,-180 171.12,-174 171.12,-168 171.12,-168 171.12,-156 171.12,-156 171.12,-150 177.12,-144 183.12,-144 183.12,-144 502.88,-144 502.88,-144 508.88,-144 514.88,-150 514.88,-156 514.88,-156 514.88,-168 514.88,-168 514.88,-174 508.88,-180 502.88,-180"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-158.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Threshold temperature of contrail formation, exact (Schumann 1996)</text>
+</a>
+</g>
+</g>
+<!-- equations.T_LM&#45;&gt;equations.T_LC -->
+<!-- variables.T_LM -->
+<g id="figure-node17" class="node">
+<title>variables.T_LM</title>
+<g id="figure-a_node17"><a xlink:title="Maximum threshold temperature of contrail formation">
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M231,-252C231,-252 201,-252 201,-252 195,-252 189,-246 189,-240 189,-240 189,-228 189,-228 189,-222 195,-216 201,-216 201,-216 231,-216 231,-216 237,-216 243,-222 243,-228 243,-228 243,-240 243,-240 243,-246 237,-252 231,-252"/>
+<text xml:space="preserve" text-anchor="middle" x="216" y="-230.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">T_LM</text>
+</a>
+</g>
+</g>
+<!-- equations.T_LM&#45;&gt;variables.T_LM -->
+<g id="figure-edge4" class="edge">
+<title>equations.T_LM&#45;&gt;variables.T_LM</title>
+<path fill="none" stroke="#e69f00" d="M311.28,-287.52C293.76,-277.86 271.88,-265.8 253.51,-255.68"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="255.22,-252.62 244.77,-250.86 251.84,-258.75 255.22,-252.62"/>
+</g>
+<!-- equations.U_LC -->
+<g id="figure-node6" class="node">
+<title>equations.U_LC</title>
+<g id="figure-a_node6"><a xlink:title="Critical relative humidity of contrail formation (Schumann 2012, after Ponater et al. 2002)">
+<path fill="none" stroke="#e6edf3" d="M550.12,-108C550.12,-108 135.88,-108 135.88,-108 129.88,-108 123.88,-102 123.88,-96 123.88,-96 123.88,-84 123.88,-84 123.88,-78 129.88,-72 135.88,-72 135.88,-72 550.12,-72 550.12,-72 556.12,-72 562.12,-78 562.12,-84 562.12,-84 562.12,-96 562.12,-96 562.12,-102 556.12,-108 550.12,-108"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-86.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Critical relative humidity of contrail formation (Schumann 2012, after Ponater et al. 2002)</text>
+</a>
+</g>
+</g>
+<!-- equations.T_LC&#45;&gt;equations.U_LC -->
+<!-- variables.T_LC -->
+<g id="figure-node19" class="node">
+<title>variables.T_LC</title>
+<g id="figure-a_node19"><a xlink:title="Threshold temperature of contrail formation">
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M622,-108C622,-108 592,-108 592,-108 586,-108 580,-102 580,-96 580,-96 580,-84 580,-84 580,-78 586,-72 592,-72 592,-72 622,-72 622,-72 628,-72 634,-78 634,-84 634,-84 634,-96 634,-96 634,-102 628,-108 622,-108"/>
+<text xml:space="preserve" text-anchor="middle" x="607" y="-86.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">T_LC</text>
+</a>
+</g>
+</g>
+<!-- equations.T_LC&#45;&gt;variables.T_LC -->
+<g id="figure-edge5" class="edge">
+<title>equations.T_LC&#45;&gt;variables.T_LC</title>
+<path fill="none" stroke="#e69f00" d="M417.97,-143.57C473,-130.78 541.83,-114.78 568.82,-107.32"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="569.79,-110.69 578.27,-104.34 567.68,-104.01 569.79,-110.69"/>
+</g>
+<!-- variables.U_LC -->
+<g id="figure-node21" class="node">
+<title>variables.U_LC</title>
+<g id="figure-a_node21"><a xlink:title="Critical relative humidity of contrail formation">
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M358,-36C358,-36 328,-36 328,-36 322,-36 316,-30 316,-24 316,-24 316,-12 316,-12 316,-6 322,0 328,0 328,0 358,0 358,0 364,0 370,-6 370,-12 370,-12 370,-24 370,-24 370,-30 364,-36 358,-36"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-14.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">U_LC</text>
+</a>
+</g>
+</g>
+<!-- equations.U_LC&#45;&gt;variables.U_LC -->
+<g id="figure-edge6" class="edge">
+<title>equations.U_LC&#45;&gt;variables.U_LC</title>
+<path fill="none" stroke="#e69f00" d="M343,-71.7C343,-64.41 343,-55.73 343,-47.54"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="346.5,-47.62 343,-37.62 339.5,-47.62 346.5,-47.62"/>
+</g>
+<!-- variables.F -->
+<g id="figure-node7" class="node">
+<title>variables.F</title>
+<g id="figure-a_node7"><a xlink:title="Thrust of the engine">
+<polygon fill="#e69f00" stroke="#e6edf3" points="298,-756 244,-756 244,-720 298,-720 298,-756"/>
+<text xml:space="preserve" text-anchor="middle" x="271" y="-734.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">F</text>
+</a>
+</g>
+</g>
+<!-- variables.F&#45;&gt;equations.eta -->
+<g id="figure-edge7" class="edge">
+<title>variables.F&#45;&gt;equations.eta</title>
+<path fill="none" stroke="#e69f00" d="M288.8,-719.7C297.28,-711.45 307.59,-701.43 316.93,-692.35"/>
+<polygon fill="none" stroke="#e69f00" points="319.34,-694.88 324.07,-685.4 314.46,-689.86 319.34,-694.88"/>
+</g>
+<!-- variables.V -->
+<g id="figure-node8" class="node">
+<title>variables.V</title>
+<g id="figure-a_node8"><a xlink:title="True air speed of the aircraft">
+<polygon fill="#e69f00" stroke="#e6edf3" points="370,-756 316,-756 316,-720 370,-720 370,-756"/>
+<text xml:space="preserve" text-anchor="middle" x="343" y="-734.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">V</text>
+</a>
+</g>
+</g>
+<!-- variables.V&#45;&gt;equations.eta -->
+<g id="figure-edge8" class="edge">
+<title>variables.V&#45;&gt;equations.eta</title>
+<path fill="none" stroke="#e69f00" d="M343,-719.7C343,-712.41 343,-703.73 343,-695.54"/>
+<polygon fill="none" stroke="#e69f00" points="346.5,-695.62 343,-685.62 339.5,-695.62 346.5,-695.62"/>
+</g>
+<!-- variables.Q -->
+<g id="figure-node9" class="node">
+<title>variables.Q</title>
+<g id="figure-a_node9"><a xlink:title="Lower heating value of the fuel">
+<polygon fill="#e69f00" stroke="#e6edf3" points="600,-756 546,-756 546,-720 600,-720 600,-756"/>
+<text xml:space="preserve" text-anchor="middle" x="573" y="-734.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Q</text>
+</a>
+</g>
+</g>
+<!-- variables.Q&#45;&gt;equations.eta -->
+<g id="figure-edge9" class="edge">
+<title>variables.Q&#45;&gt;equations.eta</title>
+<path fill="none" stroke="#e69f00" d="M545.71,-728.7C512.73,-718.66 456.06,-701.41 411.01,-687.7"/>
+<polygon fill="none" stroke="#e69f00" points="412.16,-684.39 401.57,-684.83 410.12,-691.09 412.16,-684.39"/>
+</g>
+<!-- variables.Q&#45;&gt;equations.G -->
+<g id="figure-edge10" class="edge">
+<title>variables.Q&#45;&gt;equations.G</title>
+<path fill="none" stroke="#e69f00" d="M582.46,-719.62C601.14,-685.27 641,-612 641,-612 641,-612 641,-576 641,-576 641,-576 488,-504 488,-504 488,-504 441.46,-486.99 401.11,-472.24"/>
+<polygon fill="none" stroke="#e69f00" points="402.49,-469.02 391.9,-468.87 400.09,-475.59 402.49,-469.02"/>
+</g>
+<!-- variables.m_F -->
+<g id="figure-node10" class="node">
+<title>variables.m_F</title>
+<g id="figure-a_node10"><a xlink:title="Mass flow rate of the fuel burnt by the engine">
+<polygon fill="#e69f00" stroke="#e6edf3" points="442,-756 388,-756 388,-720 442,-720 442,-756"/>
+<text xml:space="preserve" text-anchor="middle" x="415" y="-734.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">m_F</text>
+</a>
+</g>
+</g>
+<!-- variables.m_F&#45;&gt;equations.eta -->
+<g id="figure-edge11" class="edge">
+<title>variables.m_F&#45;&gt;equations.eta</title>
+<path fill="none" stroke="#e69f00" d="M397.2,-719.7C388.72,-711.45 378.41,-701.43 369.07,-692.35"/>
+<polygon fill="none" stroke="#e69f00" points="371.54,-689.86 361.93,-685.4 366.66,-694.88 371.54,-689.86"/>
+</g>
+<!-- variables.eta&#45;&gt;equations.G -->
+<g id="figure-edge12" class="edge">
+<title>variables.eta&#45;&gt;equations.G</title>
+<path fill="none" stroke="#e69f00" d="M577.95,-578.34C532.26,-553.57 439.48,-503.29 385.18,-473.86"/>
+<polygon fill="none" stroke="#e69f00" points="386.97,-470.85 376.51,-469.16 383.64,-477.01 386.97,-470.85"/>
+</g>
+<!-- variables.m_H -->
+<g id="figure-node12" class="node">
+<title>variables.m_H</title>
+<g id="figure-a_node12"><a xlink:title="Mass fraction of hydrogen in the fuel">
+<polygon fill="#e69f00" stroke="#e6edf3" points="174,-684 120,-684 120,-648 174,-648 174,-684"/>
+<text xml:space="preserve" text-anchor="middle" x="147" y="-662.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">m_H</text>
+</a>
+</g>
+</g>
+<!-- variables.m_H&#45;&gt;equations.EI -->
+<g id="figure-edge13" class="edge">
+<title>variables.m_H&#45;&gt;equations.EI</title>
+<path fill="none" stroke="#e69f00" d="M174.29,-652.12C179.31,-649.74 183,-648 183,-648 183,-648 235.02,-630.77 279.73,-615.96"/>
+<polygon fill="none" stroke="#e69f00" points="280.78,-619.3 289.17,-612.83 278.58,-612.65 280.78,-619.3"/>
+</g>
+<!-- variables.EI&#45;&gt;equations.G -->
+<g id="figure-edge14" class="edge">
+<title>variables.EI&#45;&gt;equations.G</title>
+<path fill="none" stroke="#e69f00" d="M384.4,-503.7C378.08,-495.64 370.42,-485.89 363.41,-476.98"/>
+<polygon fill="none" stroke="#e69f00" points="366.3,-475 357.37,-469.29 360.8,-479.32 366.3,-475"/>
+</g>
+<!-- variables.c_p -->
+<g id="figure-node14" class="node">
+<title>variables.c_p</title>
+<g id="figure-a_node14"><a xlink:title="Specific heat capacity of air at constant pressure">
+<polygon fill="#e69f00" stroke="#e6edf3" points="742,-540 688,-540 688,-504 742,-504 742,-540"/>
+<text xml:space="preserve" text-anchor="middle" x="715" y="-518.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">c_p</text>
+</a>
+</g>
+</g>
+<!-- variables.c_p&#45;&gt;equations.G -->
+<g id="figure-edge15" class="edge">
+<title>variables.c_p&#45;&gt;equations.G</title>
+<path fill="none" stroke="#e69f00" d="M687.88,-509.76C680.26,-506.59 674,-504 674,-504 674,-504 557.71,-485.38 462.98,-470.21"/>
+<polygon fill="none" stroke="#e69f00" points="463.76,-466.79 453.33,-468.67 462.66,-473.7 463.76,-466.79"/>
+</g>
+<!-- variables.p -->
+<g id="figure-node15" class="node">
+<title>variables.p</title>
+<g id="figure-a_node15"><a xlink:title="Ambient pressure">
+<polygon fill="#e69f00" stroke="#e6edf3" points="814,-540 760,-540 760,-504 814,-504 814,-540"/>
+<text xml:space="preserve" text-anchor="middle" x="787" y="-518.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">p</text>
+</a>
+</g>
+</g>
+<!-- variables.p&#45;&gt;equations.G -->
+<g id="figure-edge16" class="edge">
+<title>variables.p&#45;&gt;equations.G</title>
+<path fill="none" stroke="#e69f00" d="M759.71,-508.12C754.69,-505.74 751,-504 751,-504 751,-504 605.84,-485.14 488.69,-469.92"/>
+<polygon fill="none" stroke="#e69f00" points="489.31,-466.48 478.94,-468.66 488.41,-473.42 489.31,-466.48"/>
+</g>
+<!-- variables.G&#45;&gt;equations.T_LM -->
+<g id="figure-edge17" class="edge">
+<title>variables.G&#45;&gt;equations.T_LM</title>
+<path fill="none" stroke="#e69f00" d="M231.46,-363.17C250.52,-353.57 276.33,-340.58 298.32,-329.5"/>
+<polygon fill="none" stroke="#e69f00" points="299.73,-332.71 307.09,-325.08 296.58,-326.46 299.73,-332.71"/>
+</g>
+<!-- variables.G&#45;&gt;equations.T_LC -->
+<g id="figure-edge18" class="edge">
+<title>variables.G&#45;&gt;equations.T_LC</title>
+<path fill="none" stroke="#e69f00" d="M182.72,-359.65C163.76,-344.19 139,-324 139,-324 139,-324 139,-288 139,-288 139,-288 180,-216 180,-216 180,-216 233.22,-198.7 278.83,-183.86"/>
+<polygon fill="none" stroke="#e69f00" points="279.76,-187.24 288.19,-180.82 277.6,-180.59 279.76,-187.24"/>
+</g>
+<!-- variables.G&#45;&gt;equations.U_LC -->
+<g id="figure-edge19" class="edge">
+<title>variables.G&#45;&gt;equations.U_LC</title>
+<path fill="none" stroke="#e69f00" d="M181.41,-359.65C161.28,-344.19 135,-324 135,-324 135,-324 135,-288 135,-288 135,-288 158,-144 158,-144 158,-144 219.23,-126.46 271.24,-111.56"/>
+<polygon fill="none" stroke="#e69f00" points="272.06,-114.96 280.71,-108.84 270.14,-108.23 272.06,-114.96"/>
+</g>
+<!-- variables.T_LM&#45;&gt;equations.T_LC -->
+<g id="figure-edge20" class="edge">
+<title>variables.T_LM&#45;&gt;equations.T_LC</title>
+<path fill="none" stroke="#e69f00" d="M243.24,-217.98C260.17,-208.65 282.27,-196.47 301.36,-185.95"/>
+<polygon fill="none" stroke="#e69f00" points="302.93,-189.08 309.99,-181.19 299.55,-182.95 302.93,-189.08"/>
+</g>
+<!-- variables.T_LM&#45;&gt;equations.U_LC -->
+<g id="figure-edge21" class="edge">
+<title>variables.T_LM&#45;&gt;equations.U_LC</title>
+<path fill="none" stroke="#e69f00" d="M198.32,-215.65C182.57,-200.19 162,-180 162,-180 162,-180 162,-144 162,-144 162,-144 221.65,-126.53 272.47,-111.65"/>
+<polygon fill="none" stroke="#e69f00" points="273.42,-115.02 282.03,-108.85 271.45,-108.3 273.42,-115.02"/>
+</g>
+<!-- variables.U -->
+<g id="figure-node18" class="node">
+<title>variables.U</title>
+<g id="figure-a_node18"><a xlink:title="Relative humidity of the ambient air over liquid water">
+<polygon fill="#e69f00" stroke="#e6edf3" points="315,-252 261,-252 261,-216 315,-216 315,-252"/>
+<text xml:space="preserve" text-anchor="middle" x="288" y="-230.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">U</text>
+</a>
+</g>
+</g>
+<!-- variables.U&#45;&gt;equations.T_LC -->
+<g id="figure-edge22" class="edge">
+<title>variables.U&#45;&gt;equations.T_LC</title>
+<path fill="none" stroke="#e69f00" d="M301.6,-215.7C307.92,-207.64 315.58,-197.89 322.59,-188.98"/>
+<polygon fill="none" stroke="#e69f00" points="325.2,-191.32 328.63,-181.29 319.7,-187 325.2,-191.32"/>
+</g>
+<!-- variables.T -->
+<g id="figure-node20" class="node">
+<title>variables.T</title>
+<g id="figure-a_node20"><a xlink:title="Ambient temperature">
+<polygon fill="#e69f00" stroke="#e6edf3" points="54,-180 0,-180 0,-144 54,-144 54,-180"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-158.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">T</text>
+</a>
+</g>
+</g>
+<!-- variables.T&#45;&gt;equations.U_LC -->
+<g id="figure-edge23" class="edge">
+<title>variables.T&#45;&gt;equations.U_LC</title>
+<path fill="none" stroke="#e69f00" d="M54.12,-149.76C61.74,-146.59 68,-144 68,-144 68,-144 163.25,-125.64 241.64,-110.54"/>
+<polygon fill="none" stroke="#e69f00" points="241.93,-114.04 251.09,-108.71 240.61,-107.17 241.93,-114.04"/>
+</g>
+</g>
+</svg>
+<svg x="0.00" y="821.00" width="401.00" height="150.00" viewBox="0.00 0.00 401.00 150.00">
+<g id="legend-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 135.5)">
+<title>legend</title>
+<polygon fill="#0d1117" stroke="none" points="-14.4,14.4 -14.4,-135.5 386.4,-135.5 386.4,14.4 -14.4,14.4"/>
+<g id="legend-clust1" class="cluster">
+<title>cluster_legend</title>
+<polygon fill="#0d1117" stroke="#e6edf3" stroke-dasharray="5,2" points="8,-8 8,-113.1 364,-113.1 364,-8 8,-8"/>
+</g>
+<!-- protee:legend:0 -->
+<g id="legend-node1" class="node">
+<title>protee:legend:0</title>
+<path fill="none" stroke="#e6edf3" d="M61.62,-105.1C61.62,-105.1 28.38,-105.1 28.38,-105.1 22.38,-105.1 16.38,-99.1 16.38,-93.1 16.38,-93.1 16.38,-81.1 16.38,-81.1 16.38,-75.1 22.38,-69.1 28.38,-69.1 28.38,-69.1 61.62,-69.1 61.62,-69.1 67.62,-69.1 73.62,-75.1 73.62,-81.1 73.62,-81.1 73.62,-93.1 73.62,-93.1 73.62,-99.1 67.62,-105.1 61.62,-105.1"/>
+<text xml:space="preserve" text-anchor="middle" x="45" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">equation</text>
+</g>
+<!-- protee:legend:1 -->
+<g id="legend-node2" class="node">
+<title>protee:legend:1</title>
+<polygon fill="none" stroke="#e6edf3" points="146,-105.1 92,-105.1 92,-69.1 146,-69.1 146,-105.1"/>
+<text xml:space="preserve" text-anchor="middle" x="119" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">variable</text>
+</g>
+<!-- protee:legend:2:a -->
+<g id="legend-node3" class="node">
+<title>protee:legend:2:a</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="166" cy="-87.1" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:2:b -->
+<g id="legend-node4" class="node">
+<title>protee:legend:2:b</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="150" cy="-17.8" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:2:a&#45;&gt;protee:legend:2:b -->
+<g id="legend-edge1" class="edge">
+<title>protee:legend:2:a&#45;&gt;protee:legend:2:b</title>
+<path fill="none" stroke="#e69f00" d="M165.39,-85.06C163.03,-80.93 154.4,-65.26 151.25,-51.1 149.83,-44.72 149.45,-37.46 149.45,-31.45"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="152.94,-31.69 149.83,-21.57 145.94,-31.42 152.94,-31.69"/>
+<text xml:space="preserve" text-anchor="middle" x="166.62" y="-40.65" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e69f00"> gives </text>
+</g>
+<!-- protee:legend:3:a -->
+<g id="legend-node5" class="node">
+<title>protee:legend:3:a</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="188" cy="-87.1" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:3:b -->
+<g id="legend-node6" class="node">
+<title>protee:legend:3:b</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="204" cy="-17.8" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:3:a&#45;&gt;protee:legend:3:b -->
+<g id="legend-edge2" class="edge">
+<title>protee:legend:3:a&#45;&gt;protee:legend:3:b</title>
+<path fill="none" stroke="#e69f00" d="M188.28,-84.93C189.78,-78.62 196.99,-48.28 201.11,-30.97"/>
+<polygon fill="none" stroke="#e69f00" points="204.5,-31.81 203.41,-21.27 197.69,-30.19 204.5,-31.81"/>
+<text xml:space="preserve" text-anchor="middle" x="215.77" y="-40.65" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e69f00"> reads </text>
+</g>
+<!-- protee:legend:4 -->
+<g id="legend-node7" class="node">
+<title>protee:legend:4</title>
+<polygon fill="#e69f00" stroke="#e6edf3" points="262,-105.1 208,-105.1 208,-69.1 262,-69.1 262,-105.1"/>
+<text xml:space="preserve" text-anchor="middle" x="235" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">input</text>
+</g>
+<!-- protee:legend:5 -->
+<g id="legend-node8" class="node">
+<title>protee:legend:5</title>
+<path fill="#009e73" stroke="#e6edf3" stroke-dasharray="5,2" d="M343.62,-105.1C343.62,-105.1 292.38,-105.1 292.38,-105.1 286.38,-105.1 280.38,-99.1 280.38,-93.1 280.38,-93.1 280.38,-81.1 280.38,-81.1 280.38,-75.1 286.38,-69.1 292.38,-69.1 292.38,-69.1 343.62,-69.1 343.62,-69.1 349.62,-69.1 355.62,-75.1 355.62,-81.1 355.62,-81.1 355.62,-93.1 355.62,-93.1 355.62,-99.1 349.62,-105.1 343.62,-105.1"/>
+<text xml:space="preserve" text-anchor="middle" x="318" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">intermediate</text>
+</g>
+</g>
+</svg>
+<image x="730.50" y="917.00" width="112.50" height="36.00" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NTAgMTQ0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Im5vbW9ncmFtIj4KICA8dGl0bGU+bm9tb2dyYW08L3RpdGxlPgogIDxzdHlsZT4KICAuaW5rIHsgc3Ryb2tlOiAjMWYyOTM3OyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IHN0cm9rZS1saW5lam9pbjogcm91bmQ7IH0KICAuZmluZSB7IHN0cm9rZTogIzFmMjkzNzsgZmlsbDogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOyBvcGFjaXR5OiAwLjU1OyB9CiAgLnNlYSB7IGZpbGw6ICNkYmVhZmU7IHN0cm9rZTogbm9uZTsgfQogIC5yZWFkIHsgc3Ryb2tlOiAjYzI0MTBjOyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IH0KICAuZG90IHsgZmlsbDogI2MyNDEwYzsgfQogIC5ub2RlIHsgZmlsbDogIzFmMjkzNzsgfQogIAogICAgLmluaywgLmZpbmUgeyBzdHJva2U6ICNlNWU3ZWI7IH0KICAgIC5zZWEgeyBmaWxsOiAjMWUzYTVmOyB9CiAgICAucmVhZCB7IHN0cm9rZTogI2ZiOTIzYzsgfQogICAgLmRvdCB7IGZpbGw6ICNmYjkyM2M7IH0KICAgIC5ub2RlIHsgZmlsbDogI2U1ZTdlYjsgfQogIDwvc3R5bGU+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSIyMiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9Ijg2IiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iMjIiIHgyPSIxOCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMjIiIHgyPSI5OCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iMzIiIHgyPSIxOCIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMTIiIHgyPSI5NSIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iNDIiIHgyPSIxOCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMDIiIHgyPSI5OCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iNTIiIHgyPSIxOCIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI5MiIgeDI9Ijk1IiB5Mj0iOTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMCIgeTE9IjYyIiB4Mj0iMTgiIHkyPSI2MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iODIiIHgyPSI5OCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSI3MiIgeDI9IjE4IiB5Mj0iNzIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI5MCIgeTE9IjcyIiB4Mj0iOTUiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIiIHgyPSIxOCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI2MiIgeDI9Ijk4IiB5Mj0iNjIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMyIgeTE9IjkyIiB4Mj0iMTgiIHkyPSI5MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNTIiIHgyPSI5NSIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMDIiIHgyPSIxOCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNDIiIHgyPSI5OCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSIxMTIiIHgyPSIxOCIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMzIiIHgyPSI5NSIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMjIiIHgyPSIxOCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMjIiIHgyPSI5OCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzguMTciIHkxPSIzOS44NCIgeDI9IjQ0LjkxIiB5Mj0iMzUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI0Ni43IiB5MT0iNTMuMTgiIHgyPSI1My40NCIgeTI9IjQ4Ljg2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNTcuMzciIHkxPSI2OS44NCIgeDI9IjY0LjExIiB5Mj0iNjUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI2OC4wNCIgeTE9Ijg2LjUxIiB4Mj0iNzQuNzciIHkyPSI4Mi4yIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNzYuNTciIHkxPSI5OS44NCIgeDI9IjgzLjMxIiB5Mj0iOTUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjU4LjkyIiBjeT0iNzkuNjkiIHI9IjQuNCIgY2xhc3M9ImRvdCIvPgogIDxsaW5lIHgxPSIxNjIiIHkxPSIzMi43MSIgeDI9IjE4NC45NyIgeTI9IjQyLjk2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTYyIiB5MT0iMzIuNzEiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxMjUuMTYiIHkyPSI2Ni44OCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4NC45NyIgeTE9IjQyLjk2IiB4Mj0iMTc1LjQ1IiB5Mj0iNjAuMDQiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxODQuOTciIHkxPSI0Mi45NiIgeDI9IjIwMS4wOSIgeTI9IjcwLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjEyNS4xNiIgeTI9IjY2Ljg4IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTc1LjQ1IiB5MT0iNjAuMDQiIHgyPSIyMDEuMDkiIHkyPSI3MC4yOSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE3NS40NSIgeTE9IjYwLjA0IiB4Mj0iMTUzLjI3IiB5Mj0iNzcuMTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMjUuMTYiIHkxPSI2Ni44OCIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTI1LjE2IiB5MT0iNjYuODgiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjIwMS4wOSIgeTE9IjcwLjI5IiB4Mj0iMTg2LjQ5IiB5Mj0iODcuMzgiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIyMDEuMDkiIHkxPSI3MC4yOSIgeDI9IjE5My45NyIgeTI9Ijk3LjYyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTUzLjI3IiB5MT0iNzcuMTIiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE1My4yNyIgeTE9Ijc3LjEyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTg2LjQ5IiB5MT0iODcuMzgiIHgyPSIxOTMuOTciIHkyPSI5Ny42MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4Ni40OSIgeTE9Ijg3LjM4IiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjY5IiB5MT0iOTQuMjEiIHgyPSIxNTAuNTciIHkyPSIxMTEuMjkiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMzcuNjkiIHkxPSI5NC4yMSIgeDI9IjE2NS4zNCIgeTI9IjEwNC40NiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE5My45NyIgeTE9Ijk3LjYyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTY1LjM0IiB5MT0iMTA0LjQ2IiB4Mj0iMTUwLjU3IiB5Mj0iMTExLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSIzMi43MSIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy4wNSIgY3k9IjM5LjU0IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTg0Ljk3IiBjeT0iNDIuOTYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNDMuNSIgY3k9IjQ5Ljc5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTc1LjQ1IiBjeT0iNjAuMDQiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxMjUuMTYiIGN5PSI2Ni44OCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjIwMS4wOSIgY3k9IjcwLjI5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTUzLjI3IiBjeT0iNzcuMTIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxODYuNDkiIGN5PSI4Ny4zOCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy42OSIgY3k9Ijk0LjIxIiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTkzLjk3IiBjeT0iOTcuNjIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjUuMzQiIGN5PSIxMDQuNDYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNTAuNTciIGN5PSIxMTEuMjkiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSI3MiIgcj0iNTAiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxwYXRoIGQ9Ik0gMjM4LDEyMiBMIDIzOCwyMiBMIDI3MCw4NCBMIDMwMiwyMiBMIDMwMiwxMjIiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9InNlYSIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjI1IiByeT0iNTAiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjQzLjMiIHJ5PSI1MCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjM3OCIgeTE9IjIyIiB4Mj0iMzc4IiB5Mj0iMTIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMTE1LjMiIHgyPSI0MDMiIHkyPSIxMTUuMyIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iOTciIHgyPSI0MjEuMyIgeTI9Ijk3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzI4IiB5MT0iNzIiIHgyPSI0MjgiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iNDciIHgyPSI0MjEuMyIgeTI9IjQ3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMjguNyIgeDI9IjQwMyIgeTI9IjI4LjciIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIuNzUiIHgyPSI0NDAiIHkyPSI1NS44OCIgY2xhc3M9InJlYWQiIHN0cm9rZS13aWR0aD0iMi42Ii8+CiAgPGNpcmNsZSBjeD0iMjIiIGN5PSI4MiIgcj0iNC40IiBjbGFzcz0iZG90Ii8+CiAgPGNpcmNsZSBjeD0iODYiIGN5PSI3OCIgcj0iNC40IiBjbGFzcz0iZG90Ii8+Cjwvc3ZnPgo="/>
+</svg>
