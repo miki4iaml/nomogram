@@ -8,6 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-25
+
+Contrail formation from aircraft exhaust, and what the model needed for
+it. Three results:
+
+- The criterion of Schmidt and Appleman, from the fits of Schumann (1996,
+  2012) and Gierens (2021) to the implicit equations they approximate,
+  solved as systems over liquid water and over ice, with the criterion of
+  Appleman (1953) beside it. Table 3 of Schumann (1996), the case of the
+  ATTAS aircraft and Tables I and II of Appleman (1953) are reproduced by
+  the tests ([the guide](docs/contrails.md)).
+- A formulation may be the derivative of another, at any order: SymPy
+  gives its closed form and its LaTeX, and its unit follows from the
+  source's. The maximum threshold temperature is written as it is
+  defined, the slope of a saturation vapour pressure curve of the catalog
+  equal to that of the mixing line.
+- A validity domain may bound a variable by another: the threshold
+  temperature stays below its maximum (T_LC ≤ T_LM), which leaves out the
+  second root of its equation without inventing a numerical bound;
+  compositions and closed-form inverses carry such bounds.
+
 ### Added
 
 - **Derivatives of formulations**: a catalog entry may be the derivative
@@ -2251,7 +2272,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.9.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.10.0...develop
+[0.10.0]: https://github.com/miki4iaml/nomogram/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0
