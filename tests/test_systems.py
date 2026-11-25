@@ -869,8 +869,9 @@ def test_domains_of_the_values_solved_apply_once_solved() -> None:
 
 
 def test_inputs_beyond_the_conversion_of_their_scale() -> None:
-    # Weiss and Price take T on IPTS-48, converted up to 30 degC only. The
-    # system holds S as Reference Salinity, a mass fraction (S_P about 35).
+    # Weiss and Price take T on IPTS-48, which is not defined below
+    # 90.188 K. The system holds S as Reference Salinity, a mass fraction
+    # (S_P about 35).
     from bundled_catalog import with_families
 
     document = SOURCE.replace("references.src", "references.test_source") + entry(
@@ -894,7 +895,7 @@ def test_inputs_beyond_the_conversion_of_their_scale() -> None:
         start={"S": "0.035"},
     )
     with pytest.raises(OutOfDomainError, match="T beyond the conversion of scale"):
-        system.evaluate(outside="raise", T=Q_(305.0, "K"))
+        system.evaluate(outside="raise", T=Q_(80.0, "K"))
     assert system.evaluate(T=Q_(290.0, "K")).status == CONVERGED
 
 
