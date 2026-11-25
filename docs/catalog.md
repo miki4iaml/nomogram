@@ -127,7 +127,7 @@ All sections are optional; a key may be defined in one file only.
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension), `units` (units of the parent's dimension it takes besides the parent's), `bounds` (`{ low, high, unit, criterion }`, the values its definition admits) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
-| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
+| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`), `base` (the scale a table or a conversion leads to), `bounds` (of a conversion), `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
 | `[systems.<key>]` | `label`, `equations` (`formulation`), `start` (first guess of each unknown) | `iterations`, `reference`, `note`; per equation `bind`, `outside` |
@@ -781,7 +781,9 @@ reference scale, specializations included, on which inputs are taken and
 results given (`its90` for temperatures). Another scale of the same kinds names its
 reference (`reference_scale`) and gives the conversion as a table of
 `[reference value, reference value - value]` pairs, in a declared
-`unit`, values increasing:
+`unit`, values increasing; with a `base`, a table gives
+`[base value, base value - value]` pairs and holds over its range, as
+IPTS-48 does by the table of Douglas (1969) to IPTS-68, then ITS-90:
 
 ```toml
 [scales.ipts68]

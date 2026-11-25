@@ -52,6 +52,15 @@ url = "https://elischolar.library.yale.edu/journal_of_marine_research/1336"
 status = "verified"
 note = "p. 71: T68 = T - 4.4e-6 T (100 - T), built from the difference between T48 and T68 over -2 to 30 degC; no correction for earlier scale changes. Read on the page image of an archived copy."
 
+[references.douglas1969]
+authors = "Douglas, T. B."
+year = 1969
+title = "Conversion of existing calorimetrically determined thermodynamic properties to the basis of the International Practical Temperature Scale of 1968"
+container = "Journal of Research of the National Bureau of Standards, Section A 73A(5), 451-470"
+doi = "10.6028/jres.073a.035"
+status = "verified"
+note = "Table 4 (pp. 468-470) read on the page images: T68 - T48 and its derivative at round values of T68, 90 to 10 000 K, by 1 or 2 K from 90 to 150 K and by 5 K from 150 to 330 K; section 3.6: the table of the IPTS-68 text (-180 to 4000 degC) and this one 'agree exactly, to the number of significant figures given in each'. Below 90.188 K, the boiling point of oxygen, the IPTS-48 is not defined. A work of the United States Government."
+
 [references.wmo2024]
 authors = "World Meteorological Organization"
 year = 2024
@@ -233,7 +242,105 @@ reference = "saunders1990"
 note = "t68 = 1.00024 t90, the conversion oceanographic algorithms (PSS-78, EOS-80) take; TEOS-10 (eq. A.1.2) recommends it for -2 to 40 degC, within 1 mK of the official conversion. Saunders tabulates -10 to 40 degC and names -2 to 35 degC; Sea-Bird gives -2 to 35 degC."
 
 [scales.ipts48]
-label = "International Practical Temperature Scale of 1948 (IPTS-48), oceanographic conversion"
+label = "International Practical Temperature Scale of 1948 (IPTS-48)"
+kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
+reference_scale = "its90"
+base = "ipts68"
+unit = "DEG_C"
+symbol = "IPTS-48"
+subscript = "48"
+reference = "douglas1969"
+note = "t68 from t48 by Table 4 of Douglas (1969), then IPTS-68 to ITS-90, from 90.188 K (-182.962 degC), below which the IPTS-48 is not defined, to the steam point. Its rows below 0 degC hold the low temperatures of the free atmosphere: t90 - t48 is +0.016 K at -20 degC, +0.032 K at -40 degC, +0.042 K at -60 degC, +0.045 K at -80 degC. Linear interpolation between its rows departs from the smooth curve by less than 0.1 mK, from the curvature its column of derivatives gives. From -2 to 30 degC, the oceanographic conversion of Fofonoff and Bryden (1975, ipts48_fofonoff_bryden1975) is within 0.5 mK of it."
+# Table 4 of Douglas (1969): [t68 / degC, (t68 - t48) / K]; the table
+# gives T68 in kelvins, T = t + 273.15 on both scales (its heading).
+differences = [
+  [-182.962, 0.0080],
+  [-182.15, 0.0095],
+  [-181.15, 0.0110],
+  [-180.15, 0.0121],
+  [-179.15, 0.0127],
+  [-178.15, 0.0130],
+  [-177.15, 0.0130],
+  [-176.15, 0.0128],
+  [-175.15, 0.0123],
+  [-174.15, 0.0116],
+  [-173.15, 0.0108],
+  [-171.15, 0.0088],
+  [-169.15, 0.0064],
+  [-167.15, 0.0038],
+  [-165.15, 0.0012],
+  [-163.15, -0.0013],
+  [-161.15, -0.0038],
+  [-159.15, -0.0060],
+  [-157.15, -0.0080],
+  [-155.15, -0.0097],
+  [-153.15, -0.0111],
+  [-151.15, -0.0122],
+  [-149.15, -0.0129],
+  [-147.15, -0.0134],
+  [-145.15, -0.0135],
+  [-143.15, -0.0134],
+  [-141.15, -0.0129],
+  [-139.15, -0.0122],
+  [-137.15, -0.0113],
+  [-135.15, -0.0102],
+  [-133.15, -0.0088],
+  [-131.15, -0.0073],
+  [-129.15, -0.0057],
+  [-127.15, -0.0039],
+  [-125.15, -0.0020],
+  [-123.15, 0.0000],
+  [-118.15, 0.0050],
+  [-113.15, 0.0102],
+  [-108.15, 0.0152],
+  [-103.15, 0.0197],
+  [-98.15, 0.0238],
+  [-93.15, 0.0272],
+  [-88.15, 0.0299],
+  [-83.15, 0.0318],
+  [-78.15, 0.0331],
+  [-73.15, 0.0336],
+  [-68.15, 0.0335],
+  [-63.15, 0.0328],
+  [-58.15, 0.0316],
+  [-53.15, 0.0299],
+  [-48.15, 0.0278],
+  [-43.15, 0.0254],
+  [-38.15, 0.0227],
+  [-33.15, 0.0198],
+  [-28.15, 0.0168],
+  [-23.15, 0.0137],
+  [-18.15, 0.0105],
+  [-13.15, 0.0074],
+  [-8.15, 0.0044],
+  [-3.15, 0.0016],
+  [0.0, 0.0000],
+  [1.85, -0.0009],
+  [6.85, -0.0031],
+  [11.85, -0.0050],
+  [16.85, -0.0066],
+  [21.85, -0.0079],
+  [25.0, -0.0085],
+  [26.85, -0.0089],
+  [31.85, -0.0096],
+  [36.85, -0.0101],
+  [41.85, -0.0104],
+  [46.85, -0.0105],
+  [51.85, -0.0103],
+  [56.85, -0.0099],
+  [61.85, -0.0093],
+  [66.85, -0.0086],
+  [71.85, -0.0077],
+  [76.85, -0.0066],
+  [81.85, -0.0054],
+  [86.85, -0.0041],
+  [91.85, -0.0026],
+  [96.85, -0.0010],
+  [100.0, 0.0000],
+]
+
+[scales.ipts48_fofonoff_bryden1975]
+label = "IPTS-48 through the oceanographic conversion of Fofonoff and Bryden (1975)"
 kinds = ["Temperature", "ThermodynamicTemperature", "CelsiusTemperature", "DewPointTemperature"]
 reference_scale = "its90"
 base = "ipts68"
@@ -243,7 +350,7 @@ bounds = [-2.0, 30.0]
 symbol = "IPTS-48"
 subscript = "48"
 reference = "fofonoff_bryden1975"
-note = "t68 from t48, then IPTS-68 to ITS-90. Fofonoff and Bryden build the conversion over -2 to 30 degC: above t48 = 30 degC (t90 about 29.98 degC) it is undefined, and a formulation on this scale gives NaN under the default evaluation, inside its stated domain for Weiss and Price (1980, up to 313 K); scale='ignore' evaluates the formula as written, IPTS-48 being about 16 mK above ITS-90 near 30 degC. Bennett (1976, quoted by Perkin and Lewis 1980) and Douglas (1969) give other formulas, within 0.5 mK. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908): ICES calls their conversion uncertain, the TEOS-10 Manual (A.1) points to published conversions of obsolete scales; nomogram holds none."
+note = "t68 from t48, then IPTS-68 to ITS-90. Fofonoff and Bryden build the conversion over -2 to 30 degC: above t48 = 30 degC (t90 about 29.98 degC) it is undefined, and a formulation on this scale gives NaN under the default evaluation, inside its stated domain for Weiss and Price (1980, up to 313 K); scale='ignore' evaluates the formula as written, IPTS-48 being about 16 mK above ITS-90 near 30 degC. Bennett (1976, quoted by Perkin and Lewis 1980) gives another formula, and Table 4 of Douglas (1969, the scale ipts48) is within 0.5 mK of it. Temperatures before IPTS-48 (hydrogen thermometer of Knudsen 1902, Witting 1908): ICES calls their conversion uncertain, the TEOS-10 Manual (A.1) points to published conversions of obsolete scales; nomogram holds none."
 
 [scales.ipts68]
 label = "International Practical Temperature Scale of 1968 (IPTS-68)"

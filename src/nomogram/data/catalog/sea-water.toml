@@ -462,7 +462,7 @@ p_0 = { value = 1.0, note = "The pressure is in atmospheres: ln(p/1 atm)" }
 [[formulations.weiss_price1980_vapour_pressure.citations]]
 reference = "sharqawy2010"
 equation = "32"
-scales = { T = "ipts48", S = "pss78" }
+scales = { T = "ipts48_fofonoff_bryden1975", S = "pss78" }
 accuracy = "+/-0.015 %"
 
 [[formulations.weiss_price1980_vapour_pressure.citations.domains]]

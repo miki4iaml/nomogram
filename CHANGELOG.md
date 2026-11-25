@@ -49,6 +49,8 @@ and this project adheres to
   provisional kinds, `MixingLineSlope` and `SaturationVapourPressureSlope`,
   in Pa/K, hPa/K and kPa/K, pending their pull requests to QUDT
   (qudt/qudt-public-repo#1621 and #1622).
+- A table of differences may lead to another scale (`base`), which leads
+  to the reference scale ([the catalog guide](docs/catalog.md#conventional-scales)).
 
 - **Relative bounds**: a validity domain may bound a variable by another
   variable of the formulation, `at_most = { T_LC = "T_LM" }` or
@@ -74,6 +76,14 @@ and this project adheres to
 - MJ/kg, which QUDT declares for `SpecificEnergy`, applies to it and to
   its specializations; Force and the newton bring two more links to the SI
   Digital Framework (25).
+- The scale `ipts48` converts by Table 4 of Douglas (1969), IPTS-48 to
+  IPTS-68, from 90.188 K to the steam point, the low temperatures of the
+  free atmosphere included (t90 - t48 is +0.032 K at -40 degC); the
+  oceanographic conversion of Fofonoff and Bryden (1975), from -2 to
+  30 degC, within 0.5 mK of it, becomes the scale
+  `ipts48_fofonoff_bryden1975`, which Weiss and Price (1980) take: their
+  values are unchanged. A catalog naming `ipts48` gets the general
+  conversion.
 
 ### Fixed
 
