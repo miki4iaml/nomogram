@@ -563,10 +563,9 @@ class ConventionalScale:
             else self.base.from_reference(values)
         )
         if self.conversion is None:
+            low, high = self._table_extent
             with np.errstate(invalid="ignore"):
-                outside = (
-                    outside | (on_base < self.points[0]) | (on_base > self.points[-1])
-                )
+                outside = outside | (on_base < low) | (on_base > high)
             shift = np.interp(on_base, self.points, self.difference)
             return np.where(outside, np.nan, on_base - shift), outside
         inverse = self._inverse_function
@@ -605,8 +604,9 @@ class ConventionalScale:
         self.check_convertible()
         if self.conversion is None:
             on_base = self._through_table(values)
+            low, high = self._table_extent
             with np.errstate(invalid="ignore"):
-                outside = (on_base < self.points[0]) | (on_base > self.points[-1])
+                outside = (on_base < low) | (on_base > high)
             on_base = np.where(outside, np.nan, on_base)
         else:
             on_base = np.where(self._outside(values), np.nan, self._forward(values))
@@ -647,6 +647,18 @@ class ConventionalScale:
         floor, ceiling = self._reference_extent
         low, high = max(float(converted[0]), floor), min(float(converted[1]), ceiling)
         return (low, high) if low < high else None
+
+    @property
+    def _table_extent(self) -> tuple[float, float]:
+        """The range of the table on the scale it leads to; for a table to a
+        base, widened by the rounding a conversion through the base leaves,
+        as the bounds of a conversion are (an end of the table converted
+        there and back must stay inside)."""
+        low, high = self.points[0], self.points[-1]
+        if self.base is None:
+            return low, high
+        margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+        return low - margin, high + margin
 
     def _through_table(self, values: Any) -> Any:
         """Values on the scale the table leads to, extended beyond it."""
@@ -2135,7 +2147,14 @@ class Formulation:
                 )
                 raise DimensionError(msg)
         target = units[self.output.unit].pint
-        variants = _variants(self.sympy_expression)
+        # A branch 0 (the derivative of a constant branch) has every unit.
+        variants = [
+            v
+            for v in _variants(self.sympy_expression)
+            if getattr(v, "is_zero", None) is not True
+        ]
+        if not variants:
+            return 1.0
         factors = {
             float(Q_(1.0, unit_of(variant)).to(target).magnitude)
             for variant in variants
@@ -2282,7 +2301,9 @@ class Formulation:
                     tolerance = domain.tolerance.get(identifier, (0.0, 0.0))
                     result = result | _beyond(arrays[identifier], low, high, tolerance)
                 for identifier, other, side in relative_of(domain, of_output):
-                    if identifier not in arrays or other not in arrays:
+                    if (
+                        identifier not in arrays or other not in arrays
+                    ):  # pragma: no cover - a bound involving the output is written on it
                         continue  # the output, not given
                     result = result | _beyond_relative(
                         arrays[identifier], arrays[other], side

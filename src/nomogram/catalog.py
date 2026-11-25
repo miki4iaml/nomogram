@@ -778,7 +778,9 @@ def _check_relative_bounds(where: str, formulation: Formulation) -> None:
         for side, table in (("at_most", domain.at_most), ("at_least", domain.at_least)):
             for identifier, other in table.items():
                 w = f"{where}: {side} {identifier} = {other}"
-                if identifier not in variables or other not in variables:
+                if (
+                    identifier not in variables or other not in variables
+                ):  # pragma: no cover - the parser checks the names first
                     msg = f"{w}: not two variables of the formulation"
                     raise CatalogError(msg)
                 bounded, bounding = variables[identifier], variables[other]
@@ -3225,6 +3227,7 @@ class _Builder:
                 order=order,
                 key=key,
                 label=f["label"],
+                kinds=self.kinds,
             )
         except DerivationError as exc:
             msg = f"{place}: {exc}"

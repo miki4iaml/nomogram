@@ -15,16 +15,18 @@ and this project adheres to
   order (`derivative = { of, with_respect_to, order }`), and
   `nomogram.differentiation.derivative` gives one on demand. The
   expression is the closed form of SymPy's `diff`, with its LaTeX; the
-  inputs, coefficients and constants are the source's, the source is its
-  part, so that its domains and the bounds of its kinds apply; the unit
+  inputs are the source's, and the coefficients and constants its
+  expression still uses; the source is its part, so that its domains and
+  the bounds of its kinds apply; the unit
   of a derivative of a formulation in fixed units is that of the source's
   output divided by that of the input, nothing being converted. A
   derivative can be called by other entries, an implicit equation
-  included: the threshold temperature of contrail formation sets the
-  slope of a saturation vapour pressure curve equal to that of a mixing
-  line ([the catalog guide](docs/catalog.md#derivatives)).
-  `Derivation` gains `with_respect_to` and `order`; the coefficients of a
-  derivative keep the units inferred in its source.
+  included: the maximum threshold temperature of contrail formation sets
+  the slope of a saturation vapour pressure curve equal to that of a
+  mixing line ([the catalog guide](docs/catalog.md#derivatives)). The
+  Markdown display names the source and the input ("Derivative of X with
+  respect to Y."). `Derivation` gains `with_respect_to` and `order`; the
+  coefficients of a derivative keep the units inferred in its source.
 - **Contrail formation from aircraft exhaust** (family `contrail`), the
   explicit formulas of the criterion of Schmidt and Appleman: the overall
   propulsion efficiency and the emission index of water vapour (Schumann
@@ -36,8 +38,9 @@ and this project adheres to
   print (efficiency, emission indices and slopes of the mixing line of a
   B747, the factors of Peters); the deviations of the fits from the exact
   solutions are measured and noted beside the accuracy each source
-  states. "Contrail factor" is a trade term with two meanings, C in K-1
-  and G in Pa/K.
+  states; the fit of the maximum threshold temperature is cross-checked
+  against pycontrails 0.66.1. "Contrail factor" is a trade term with two
+  meanings, C in K-1 and G in Pa/K.
 - **Exact threshold temperatures of contrail formation**, implicit
   equations of Schumann (1996) with the saturation vapour pressures of
   Schumann (2012): the maximum threshold temperatures over liquid water
@@ -49,8 +52,13 @@ and this project adheres to
   T_LM as Ponater et al. state; three systems without a loop, exact over
   water and over ice, and by the fits as Schumann (2012) does. The fit of
   the threshold temperature calls the saturation vapour pressure at T_LM.
-  Their oracles are Table 3 of Schumann (1996) and the case of the ATTAS
-  aircraft.
+  The threshold temperatures are points at which a saturation vapour
+  pressure is evaluated, as a dew point is: they feed a temperature input
+  of a formulation called or composed. Their oracles are Table 3 of
+  Schumann (1996) and the case of the ATTAS aircraft. "Critical
+  temperature" (Appleman's, then the threshold temperature) and
+  "threshold temperature" (T_LC for Schumann, T_LM for Gierens) are trade
+  terms with two meanings each.
 - **The criterion of Appleman (1953)**: the moisture the exhaust makes
   available per degree of temperature rise, 0.0336 g kg-1 less what
   saturates the ambient air (Table II), and the critical temperature for
@@ -58,7 +66,7 @@ and this project adheres to
   I), an implicit equation on IPTS-48, inferred from the date, with the
   Goff-Gratch equation the tables imply. Their oracles are Tables I and
   II, the inset of Figure 1, Figure 4 and the example of a flight at
-  200 mb. The family `contrail` now requires `moist-air`.
+  200 mb. The family `contrail` requires `moist-air`.
 - The unit g/(kg⋅K), `GM-PER-KiloGM-K`, which QUDT 3.5.4 does not have,
   declared by nomogram for `InverseTemperature`.
 - **A guide to contrails** ([docs/contrails.md](docs/contrails.md)): the
@@ -77,12 +85,12 @@ and this project adheres to
   provisional kinds, `MixingLineSlope` and `SaturationVapourPressureSlope`,
   in Pa/K, hPa/K and kPa/K, pending their pull requests to QUDT
   (qudt/qudt-public-repo#1621 and #1622).
-- A table of differences may lead to another scale (`base`), which leads
-  to the reference scale ([the catalog guide](docs/catalog.md#conventional-scales)).
-
+- A table of differences may lead to another scale (`base`,
+  `ConventionalScale.base`), which leads to the reference scale
+  ([the catalog guide](docs/catalog.md#conventional-scales)).
 - **Relative bounds**: a validity domain may bound a variable by another
   variable of the formulation, `at_most = { T_LC = "T_LM" }` or
-  `at_least`, in the same unit and on the same scale, closed and applied
+  `at_least` (`ValidityDomain.at_most`, `at_least`), in the same unit and on the same scale, closed and applied
   value by value; a bound involving the output is written on it. A
   physical one on the output of an implicit equation ends the interval
   its root is sought in, value by value, whatever the basis of the
@@ -94,13 +102,12 @@ and this project adheres to
 - **Systems without a loop**: a chain of equations in which no equation
   reads a variable before the one giving it is a system, with no unknown
   and no first guess, solved in order, an implicit equation by the search
-  of its root.
+  of its root; a set of values an equation gives no finite value for is
+  undefined. A system holds two equations at least, each sharing a
+  variable with the others.
 
 ### Changed
 
-- The threshold temperatures of contrail formation are points at which a
-  saturation vapour pressure is evaluated, as a dew point is: they feed a
-  temperature input of a formulation called or composed.
 - MJ/kg, which QUDT declares for `SpecificEnergy`, applies to it and to
   its specializations; Force and the newton bring two more links to the SI
   Digital Framework (25).
@@ -109,9 +116,13 @@ and this project adheres to
   free atmosphere included (t90 - t48 is +0.032 K at -40 degC); the
   oceanographic conversion of Fofonoff and Bryden (1975), from -2 to
   30 degC, within 0.5 mK of it, becomes the scale
-  `ipts48_fofonoff_bryden1975`, which Weiss and Price (1980) take: their
-  values are unchanged. A catalog naming `ipts48` gets the general
-  conversion.
+  `ipts48_fofonoff_bryden1975`. Weiss and Price (1980) take the table of
+  Douglas: their values change by less than 0.5 mK of temperature below
+  30 degC, and they have values up to 40 degC, their stated domain, where
+  they gave NaN. A catalog naming `ipts48` gets the general conversion.
+- The input temperatures of the forms of Schumann (2012) are on ITS-90
+  inferred from their numbers, those of Sonntag (1994), no longer from
+  their date.
 
 ### Fixed
 
@@ -124,7 +135,9 @@ and this project adheres to
   a formulation in fixed units whose exponential holds the unit (Sonntag,
   in Pa) no longer reads as a pure number beside coefficients, which
   refused an equation equating the slope of a saturation curve to an
-  input. The units inferred in the catalog are unchanged.
+  input. The units inferred in the catalog and their origins are
+  unchanged; the reason of a coefficient of a formulation called names
+  it.
 
 ## [0.9.0] - 2026-11-25
 

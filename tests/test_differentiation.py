@@ -3,11 +3,13 @@
 
 """Formulations derived by differentiation (nomogram.differentiation)."""
 
+from typing import Any
+
 import numpy as np
 import pytest
 from bundled_catalog import with_families
 
-from nomogram.catalog import Catalog, CatalogError, load_catalog
+from nomogram.catalog import Catalog, CatalogError, catalog, load_catalog
 from nomogram.differentiation import derivative
 from nomogram.expression import LATEX_COMMANDS, latex_commands
 from nomogram.model import Variable
@@ -198,6 +200,21 @@ def test_a_derivative_is_shown_with_its_source() -> None:
         ),
         # In fixed units, a height in km gives K/km: never converted to K/m.
         ("profile_in_km", "H", GRADIENT_OUTPUT, 1, "holds only in its units"),
+        (
+            "profile",
+            "H",
+            Variable("dT", "Length", "K-PER-M", "x"),
+            1,
+            "K-PER-M does not apply to Length",
+        ),
+        (
+            "profile",
+            "H",
+            Variable("dT", "TemperatureGradient", "NOT-A-UNIT", "x"),
+            1,
+            "NOT-A-UNIT does not apply to TemperatureGradient",
+        ),
+        ("profile", "H", GRADIENT_OUTPUT, 1.0, "whole number of 1 or more"),
     ],
 )
 def test_derivative_refuses(
@@ -282,3 +299,80 @@ reference = "src"
     assert cited.note == "Printed by the source."
     assert cited.keywords == ("gradient",)
     assert [c.reference for c in cited.citations] == ["src"]
+
+
+def test_an_order_of_numpy_is_a_whole_number() -> None:
+    gradient = derivative(
+        CATALOG.formulations["profile"], "H", GRADIENT_OUTPUT, order=np.int64(1)
+    )
+    assert gradient.derivation is not None
+    assert gradient.derivation.order == 1
+
+
+def test_a_bound_of_a_piece_written_as_a_coefficient_stays_declared() -> None:
+    document = """
+[formulations.layers_at]
+label = "Two layers, the tropopause a coefficient"
+expression = "piecewise((T_0 + a * H, H <= H_t), (T_0 + a * H_t, H_t < H))"
+fixed_units = true
+output = { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "T" }
+inputs = [ { identifier = "H", kind = "GeopotentialHeight", unit = "M", description = "H" } ]
+coefficients = { T_0 = 288.15, a = -0.0065, H_t = 11000.0 }
+"""
+    source = load_catalog([document]).formulations["layers_at"]
+    gradient = derivative(source, "H", GRADIENT_OUTPUT)
+    assert [c.identifier for c in gradient.coefficients] == ["a", "H_t"]
+    found = gradient.evaluate(H=Q_([5000.0, 15000.0], "m")).to("K/m").magnitude
+    assert found.tolist() == pytest.approx([-0.0065, 0.0])
+
+
+def test_a_quantity_equation_by_pieces_with_constant_pieces() -> None:
+    # The mixed-phase fraction of the IFS, 0 below T_ice and 1 above T_0:
+    # its derivative has two branches 0, which have every unit.
+    source = catalog().formulations["ecmwf_ifs_mixed_phase_fraction"]
+    output = Variable("dalpha", "InverseTemperature", "PER-K", "d alpha / dT")
+    rate = derivative(source, "T", output)
+    found = rate.evaluate(T=Q_([240.0, 260.0, 280.0], "K")).to("1/K").magnitude
+    step = 1e-4
+    ends = source.evaluate(T=Q_([260.0 - step, 260.0 + step], "K")).magnitude
+    assert found[1] == pytest.approx((ends[1] - ends[0]) / (2 * step), rel=1e-6)
+    assert (found[0], found[2]) == (0.0, 0.0)
+    assert rate.coefficient_units  # the check of the units holds
+
+
+def test_the_derivative_of_a_formulation_calling_another_in_fixed_units() -> None:
+    # The critical relative humidity calls the saturation vapour pressure of
+    # Schumann (2012), whose exponential holds the pascals: the derivative
+    # takes the units of its coefficients from its source.
+    source = catalog().formulations["schumann2012_critical_relative_humidity"]
+    output = Variable("dU", "InverseTemperature", "PER-K", "dU_LC / dT")
+    slope = derivative(source, "T", output)
+    inputs: dict[str, Any] = {"T_LM": Q_(230.24, "K"), "G": Q_(1.49, "Pa/K")}
+    found = slope.evaluate(T=Q_(214.15, "K"), **inputs).to("1/K").magnitude
+    step = 1e-3
+    ends = [
+        source.evaluate(T=Q_(214.15 + d, "K"), **inputs).magnitude
+        for d in (-step, step)
+    ]
+    assert found == pytest.approx((ends[1] - ends[0]) / (2 * step), rel=1e-6)
+    units = slope.coefficient_units
+    called = units["a0__schumann2012_saturation_vapour_pressure_liquid"]
+    assert f"{called.unit:~}" == "K"
+
+
+def test_a_quantity_equation_gives_its_derivative_in_any_unit_of_its_dimension() -> (
+    None
+):
+    document = """
+[formulations.ramp]
+label = "Ramp"
+expression = "k * x"
+fixed_units = false
+output = { identifier = "z", kind = "Height", unit = "M", description = "Height" }
+inputs = [ { identifier = "x", kind = "Length", unit = "M", description = "Distance" } ]
+coefficients = { k = { value = 0.5, unit = "UNITLESS", unit_basis = "added", note = "A slope." } }
+"""
+    source = load_catalog([document]).formulations["ramp"]
+    output = Variable("s", "DimensionlessRatio", "PERCENT", "Slope")
+    slope = derivative(source, "x", output)
+    assert slope.evaluate(x=Q_(3.0, "m")).to("percent").magnitude == pytest.approx(50.0)

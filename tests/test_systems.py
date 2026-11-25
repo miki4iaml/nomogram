@@ -405,8 +405,17 @@ def test_statuses_are_named() -> None:
             "missing: y",
         ),
         (
-            lambda: System("s", "s", (Equation(F["fy"]),), start={"y": "0"}),
-            "not an unknown: y",
+            lambda: System("s", "s", (Equation(F["fy"]),), start={}),
+            "a single equation is a formulation, not a system",
+        ),
+        (
+            lambda: System(
+                "s",
+                "s",
+                (*linear().equations, Equation(F["line"], bind={"y": "w", "x": "v"})),
+                start={"y": "0"},
+            ),
+            "the equations giving w share no variable with the others",
         ),
         (
             lambda: System("s", "s", linear().equations, start={"y": "0", "x": "0"}),
@@ -434,14 +443,26 @@ def test_invalid_systems_are_refused(build: Any, message: str) -> None:
 def test_a_chain_without_a_loop_is_a_system() -> None:
     # No equation reads a variable before the one giving it: no unknown,
     # no first guess; solved in order.
-    chain = System("s", "s", (Equation(F["fy"]),), start={})
-    assert (chain.unknowns, chain.inputs, chain.outputs) == ((), ("b", "x"), ("y",))
+    logarithm = formulations(entry("logarithm", "ln(y)", "z", ["y"]))["logarithm"]
+    chain = System("s", "s", (Equation(F["fy"]), Equation(logarithm)), start={})
+    assert (chain.unknowns, chain.inputs, chain.outputs) == (
+        (),
+        ("b", "x"),
+        ("y", "z"),
+    )
     solution = chain.evaluate(b=Q_(7.0, ""), x=Q_(1.0, ""))
-    assert solution["y"].magnitude == pytest.approx(2.0)
+    assert solution["z"].magnitude == pytest.approx(np.log(2.0))
     passes = chain.evaluate(
         b=Q_(7.0, ""), x=Q_(1.0, ""), method="fixed-point", iterations=1
     )
-    assert passes["y"].magnitude == pytest.approx(2.0)
+    assert passes["z"].magnitude == pytest.approx(np.log(2.0))
+    # A set of values an equation gives no finite value for (the logarithm
+    # of y = -2) is undefined, though nothing is iterated.
+    with pytest.warns(ConvergenceWarning, match="1 undefined"):
+        some = chain.evaluate(b=Q_([7.0, -5.0], ""), x=Q_(1.0, ""))
+    assert some.status.tolist() == [CONVERGED, UNDEFINED]
+    assert np.isnan(some.residual[1])
+    assert np.isnan(some["z"].magnitude[1])
 
 
 def test_invalid_calls_are_refused() -> None:
@@ -883,11 +904,11 @@ def test_an_equation_by_branches_takes_an_input_of_the_system() -> None:
     psi = catalog().formulations["coare36_profile_function_momentum"]
     system = System(
         "with_branches",
-        "Two linear equations and a profile function",
-        (Equation(psi), Equation(F["fx"]), Equation(F["fy"])),
+        "Two linear equations, one fed by a profile function",
+        (Equation(psi), Equation(F["fx"], bind={"a": "Psi_M"}), Equation(F["fy"])),
         start={"y": "0"},
     )
-    solution = system.evaluate(zeta=one(0.5), a=one(7.0), b=one(4.0))
+    solution = system.evaluate(zeta=one(0.5), b=one(4.0))
     assert solution.status == CONVERGED
     expected = psi.evaluate(zeta=one(0.5)).magnitude
     assert solution["Psi_M"].magnitude == pytest.approx(expected, rel=1e-12)

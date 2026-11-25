@@ -182,10 +182,7 @@ def test_scales_of_the_salinity_inputs() -> None:
     )
     assert scale("coare36_salinity_factor", "S") == ("pss78", "stated")
     assert scale("millero_leung1976_vapour_pressure", "S") == ("cox1967", "stated")
-    assert scale("weiss_price1980_vapour_pressure", "T") == (
-        "ipts48_fofonoff_bryden1975",
-        "stated",
-    )
+    assert scale("weiss_price1980_vapour_pressure", "T") == ("ipts48", "stated")
     # Dickson et al. name no scale: S = 35 for Cl = 19.374 is Practical
     # Salinity, and the composed formulations take it from their part.
     for key in (
@@ -212,13 +209,15 @@ def test_where_the_scale_conversions_end() -> None:
     assert np.isnan(coare.evaluate(S=zero).magnitude)
     assert coare.evaluate(S=Q_(0.0), scale="ignore").magnitude == 1.0
     assert "scale='ignore'" in (coare.note or "")
-    # IPTS-48 is converted over -2 to 30 degC: Weiss and Price, stated up
-    # to 313 K, gives NaN beyond, and its note and the scale's say so.
+    # IPTS-48 converts by the table of Douglas over the stated range of
+    # Weiss and Price, up to 313 K; the oceanographic conversion of
+    # Fofonoff and Bryden would stop at 30 degC, within 0.5 mK of it.
     weiss = F["weiss_price1980_vapour_pressure"]
-    t = Q_([302.5, 303.15, 313.0], "K")
+    t = Q_(
+        [302.5, 303.15, 312.9], "K"
+    )  # 313 K is t48 = 313.02 K, beyond the stated 313 K
     found = weiss.evaluate(T=t, S=S_SO).magnitude
-    assert not np.isnan(found[0])
-    assert np.isnan(found[1:]).all()
+    assert not np.isnan(found).any()
     as_written = weiss.evaluate(T=t, S=Q_(35.0), scale="ignore")
     assert not np.isnan(as_written.magnitude).any()
     assert "scale='ignore'" in (weiss.note or "")

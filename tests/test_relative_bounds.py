@@ -164,6 +164,7 @@ def test_relative_bounds_are_shown_with_the_domains() -> None:
             "the same unit, not K and PA-PER-K",
         ),
         ("at_most = { T_LC = 1 }", "expected the identifier of a variable"),
+        ("at_most = 1", "expected a table of variable to the variable bounding it"),
         ('at_least = { U = "T_LM" }', "the same unit, not UNITLESS and K"),
         ('criterion = "nothing"', "a domain gives bounds, at_most or at_least"),
         (
@@ -318,3 +319,29 @@ def test_a_closed_form_inverse_writes_a_relative_bound_on_its_output() -> None:
         search=(0.0, 1000.0),
     )
     assert not isinstance(celsius, Formulation)
+
+
+def test_a_closed_form_inverse_writes_on_its_output_a_bound_of_its_input() -> None:
+    # Built directly, a source may bound its input by its output, x <= y:
+    # the inverse writes it on its output, x, as it is.
+    from types import MappingProxyType
+
+    from nomogram.model import DomainBasis, ValidityDomain
+
+    source = dataclasses.replace(
+        catalog_with(INVERTED).formulations["probe_one_input"],
+        physical_domains=(
+            ValidityDomain(
+                DomainBasis.PHYSICAL,
+                MappingProxyType({}),
+                "A probe: x <= y, that is x >= 300 K.",
+                None,
+                at_most=MappingProxyType({"x": "y"}),
+            ),
+        ),
+    )
+    inverse = invert(
+        source, "x", output=source.inputs[0], input=source.output, search=(0.0, 1000.0)
+    )
+    assert isinstance(inverse, Formulation)
+    assert [dict(d.at_most) for d in inverse.physical_domains] == [{"x": "y"}]

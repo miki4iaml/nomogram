@@ -549,8 +549,11 @@ def test_the_moisture_available_of_table_2() -> None:
             dT=Q_(d_t, "K"),
         )
         positive = np.array(printed) > 0
+        # The largest gap, 2.4e-4 at 100 hPa, -40 degC and Delta T = 40: the
+        # saturation of Appleman's tables is not printed, Goff-Gratch with
+        # 0.622 is an assumption, and its error grows at low pressure.
         assert available[positive] == pytest.approx(
-            np.array(printed)[positive], abs=5e-4
+            np.array(printed)[positive], abs=2.5e-4
         )
         # The table prints 0 where the formula gives less.
         assert (available[~positive] < 0).all()
@@ -639,3 +642,21 @@ def test_the_example_of_appleman() -> None:
         dT=Q_(10000 / (12 * 150 * 0.24), "K"),
     )
     assert found == pytest.approx(-60.0, abs=0.1)
+
+
+def test_critical_and_threshold_temperatures_are_trade_terms() -> None:
+    # Appleman's critical temperature, then the threshold temperature;
+    # the threshold temperature of Schumann, T_LC, and of Gierens, T_LM.
+    terms = CATALOG.trade_terms
+    assert [m.kind for m in terms["critical_temperature"].meanings] == [
+        "ContrailCriticalTemperatureAtFixedMixing",
+        "ContrailThresholdTemperature",
+    ]
+    assert [m.kind for m in terms["threshold_temperature"].meanings] == [
+        "ContrailThresholdTemperature",
+        "ContrailMaximumThresholdTemperature",
+    ]
+    found = CATALOG.search("critical temperature").refs
+    assert "trade_terms.critical_temperature" in found
+    reached = CATALOG.uses("trade_terms.critical_temperature").refs
+    assert "kinds.ContrailThresholdTemperature" in reached

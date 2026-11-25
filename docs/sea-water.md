@@ -74,13 +74,11 @@ lowers the vapour pressure about 9 % too much. These are observations,
 computed by nomogram: no source states them.
 
 Dickson et al. name no salinity scale: their S = 35 for Cl = 19.374 is
-taken as Practical Salinity, inferred from these numbers. Two
-conversions hold over less than some stated domains: IPTS-48 by the
-oceanographic conversion of Fofonoff and Bryden (1975), from -2 to
-30 degC, and PSS-78, from 2 to 42. Beyond them the default
-evaluation gives NaN: Weiss and Price, stated from 0 to 40 degC and
-from S_P = 0, above t90 = 29.98 degC and below S_P = 2; COARE below
-S_P = 2.
+taken as Practical Salinity, inferred from these numbers. PSS-78
+holds over less than some stated domains, from 2 to 42; below, the
+default evaluation gives NaN: Weiss and Price, stated from S_P = 0,
+and COARE. Weiss and Price's IPTS-48 converts by the table of Douglas
+(1969) over their whole stated range, 0 to 40 degC.
 `scale="ignore"` evaluates the formula as written.
 
 ```python

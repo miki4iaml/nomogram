@@ -38,10 +38,14 @@ A catalog entry derives a formulation so (see the catalog guide)::
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any
+import operator
+from typing import TYPE_CHECKING, Any, SupportsIndex
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from nomogram.model import Formulation, Variable
+    from nomogram.semantics import QuantityKind
 
 __all__ = ["derivative"]
 
@@ -51,9 +55,10 @@ def derivative(
     with_respect_to: str,
     output: Variable,
     *,
-    order: int = 1,
+    order: SupportsIndex = 1,
     key: str | None = None,
     label: str | None = None,
+    kinds: Mapping[str, QuantityKind] | None = None,
 ) -> Formulation:
     """The derivative of a formulation with respect to one of its inputs.
 
@@ -67,9 +72,13 @@ def derivative(
         The derivative's output: its identifier, quantity kind and unit,
         which no rule derives from those of the source.
     order : int, default 1
-        Order of the derivative, a whole number of 1 or more.
+        Order of the derivative, a whole number of 1 or more (an int, or
+        numpy's).
     key, label : str, optional
         Identification; derived from the source otherwise.
+    kinds : mapping of str to QuantityKind, optional
+        The quantity kinds against which the unit of ``output`` is checked
+        to apply to its kind; those of the bundled catalog by default.
 
     Returns
     -------
@@ -80,14 +89,14 @@ def derivative(
 
     Raises
     ------
-    DerivationError
+    ~nomogram.similarity.DerivationError
         If the formulation is implicit or holds a piecewise definition
         inside an expression; if ``with_respect_to`` is not one of its
         inputs; if the order is not a whole number of 1 or more; if the
-        unit of ``output`` does not have the dimension of the source's
-        output divided by that of the input, to the order; or, for a
-        formulation that holds only in its units, if it is not that unit
-        itself.
+        unit of ``output`` is unknown, does not apply to its kind, or does
+        not have the dimension of the source's output divided by that of
+        the input, to the order; or, for a formulation that holds only in
+        its units, if it is not that unit itself.
     """
     import sympy
 
@@ -96,12 +105,17 @@ def derivative(
     from nomogram.model import Derivation, Formulation, Part
     from nomogram.similarity import DerivationError, _condition
 
-    if type(order) is not int or order < 1:
+    try:
+        whole = operator.index(order)  # an int, or numpy's
+    except TypeError:
+        whole = 0
+    if isinstance(order, bool) or whole < 1:
         msg = (
             f"{formulation.key}: the order of a derivative is a whole number "
             f"of 1 or more, not {order!r}"
         )
         raise DerivationError(msg)
+    order = whole
     if formulation.implicit:
         msg = f"{formulation.key}: an implicit equation is not differentiated"
         raise DerivationError(msg)
@@ -109,17 +123,27 @@ def derivative(
     if with_respect_to not in inputs:
         msg = f"{formulation.key} has no input {with_respect_to!r}"
         raise DerivationError(msg)
-    _check_unit(formulation, inputs[with_respect_to], output, order)
+    _check_unit(formulation, inputs[with_respect_to], output, order, kinds)
 
     symbol = sympy.Symbol(with_respect_to, real=True)
     expr = formulation.sympy_expression
     if isinstance(expr, sympy.Piecewise):
         try:
             pieces = _pieces(expr, tuple(inputs))
-        except ExpressionError as error:
+        except (
+            ExpressionError
+        ) as error:  # pragma: no cover - the catalog refuses such a condition first
             msg = f"{formulation.key}: {error}"
             raise DerivationError(msg) from error
         derived = [sympy.diff(p.expression, symbol, order) for p in pieces]
+        # The bounds of the conditions are written again: a coefficient or a
+        # constant bounding a piece stays declared.
+        bounds = [
+            end
+            for p in pieces
+            for end in (p.low, p.high)
+            if hasattr(end, "free_symbols")
+        ]
         if any(d.has(sympy.Piecewise) for d in derived):
             msg = f"{formulation.key}: a piecewise definition inside an expression is not differentiated"
             raise DerivationError(msg)
@@ -133,8 +157,9 @@ def derivative(
             msg = f"{formulation.key}: a piecewise definition inside an expression is not differentiated"
             raise DerivationError(msg)
         derived = [sympy.diff(expr, symbol, order)]
+        bounds = []
         text = _source(derived[0])
-    used = {s.name for d in derived for s in d.free_symbols}
+    used = {s.name for d in (*derived, *bounds) for s in d.free_symbols}
 
     of = formulation.output.identifier
     leibniz = (
@@ -168,7 +193,11 @@ def derivative(
 
 
 def _check_unit(
-    source: Formulation, variable: Variable, output: Variable, order: int
+    source: Formulation,
+    variable: Variable,
+    output: Variable,
+    order: int,
+    kinds: Mapping[str, QuantityKind] | None,
 ) -> None:
     """Refuse a unit of the derivative of another dimension, or, for a
     source in fixed units, other than the unit of its output divided by
@@ -176,6 +205,14 @@ def _check_unit(
     from nomogram.dimensions import _pint
     from nomogram.similarity import DerivationError
 
+    if kinds is None:
+        from nomogram.catalog import catalog
+
+        kinds = catalog().kinds
+    kind = kinds.get(output.kind)
+    if kind is None or output.unit not in kind.applicable_units:
+        msg = f"{output.identifier}: {output.unit} does not apply to {output.kind}"
+        raise DerivationError(msg)
     expected = _pint(source.output.unit) / _pint(variable.unit) ** order
     given = _pint(output.unit)
     if expected.dimensionality != given.dimensionality:

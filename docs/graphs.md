@@ -30,7 +30,7 @@ text = json.dumps(branch, ensure_ascii=False, indent=2)
 
 A kind is a node whose `id` is its reference in the catalog, of type
 `qudt:QuantityKind`, with its `origin`: `qudt`, `nomogram` (a kind QUDT
-lacks, declared as a specialization of a QUDT kind) or `provisional` (a
+lacks, declared as a specialization of a QUDT kind or of a provisional one) or `provisional` (a
 kind awaiting a pull request to QUDT, given by `pending`). An edge
 `qudt:specializationOf` goes from a kind to the kind it specializes. Each
 match in an external vocabulary is a node whose `id` is the IRI of the
