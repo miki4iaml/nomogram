@@ -7,6 +7,7 @@ import ast
 import importlib.util
 import math
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -667,7 +668,10 @@ def contrails() -> Any:
 @pytest.fixture(scope="module")
 def contrail_results(contrails: Any) -> dict[str, Any]:
     """The values computed once for the module (some seconds)."""
+    before = list(warnings.filters)
     results: dict[str, Any] = contrails.compute()
+    # No filter of warnings left behind: the rule of the tests holds.
+    assert list(warnings.filters) == before
     return results
 
 
@@ -714,6 +718,30 @@ def test_contrails_guide_gives_the_values_it_states(
         "I2": -58.77,
     }
     assert {name: round(d[name], 2) for name in stated} == stated
+    text = CONTRAILS_GUIDE.read_text(encoding="utf-8")
+    written = (
+        "\u221242.91 \u00b0C",
+        "\u221250.64 \u00b0C",
+        "\u221239.76 \u00b0C",
+        "\u221245.67 \u00b0C",
+        "\u221232.42",
+        "\u221257.93",
+        "\u221227.88",
+        "\u221258.77",
+        "10.1 to 14.0 km",
+        "9.9 km",
+        "9.6 km",
+        "8.2 km",
+        "74.5 %",
+        "67.4 %",
+        "61.1 %",
+        "\u221249.5 \u00b0C",
+        "\u221252.3 \u00b0C",
+        "0.23 K",
+        "0.18 K",
+        "0.22 K",
+    )
+    assert [value for value in written if value not in text] == []
     layers = contrail_results["profile"]["layers"]
     assert tuple(round(v, 1) for v in layers[0.0]) == (10.1, 14.0)
     assert {u: round(layers[u][0], 1) for u in (0.3, 0.6, 1.0)} == {
@@ -744,4 +772,10 @@ def test_contrails_guide_lists_the_references_of_its_formulations(
     section = text.split("\n## References\n", 1)[1]
     listed = [line for line in section.splitlines() if line.startswith("- ")]
     assert listed == contrails.bibliography(contrail_results["called"])
-    assert any("Douglas, T. B." in line for line in listed)
+    for author in (
+        "Appleman, H. (1953)",
+        "Douglas, T. B. (1969)",
+        "Preston-Thomas, H. (1990)",
+        "Schumann, U. (1996)",
+    ):
+        assert any(line.startswith(f"- {author}") for line in listed), author

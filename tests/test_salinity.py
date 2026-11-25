@@ -181,6 +181,11 @@ def test_ipts48_by_the_table_of_douglas() -> None:
     # defined, to the steam point.
     beyond = ipts48.to_reference(np.array([-183.0, 100.1]))
     assert np.isnan(beyond).all()
+    # The lowest row there and back, through IPTS-68: inside, to the rounding.
+    lowest = -182.962 - 0.0080
+    back, outside = ipts48.from_reference(ipts48.to_reference(lowest))
+    assert not outside
+    assert back == pytest.approx(lowest, abs=1e-9)
     low, high = ipts48.interval_to_reference(-273.15, 200.0) or (0.0, 0.0)
     assert low == pytest.approx(-182.954, abs=1e-3)
     assert high == pytest.approx(99.974, abs=1e-3)

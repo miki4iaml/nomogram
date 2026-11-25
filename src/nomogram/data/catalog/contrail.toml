@@ -31,7 +31,7 @@ title = "On conditions for contrail formation from aircraft exhausts"
 container = "Meteorologische Zeitschrift, N. F. 5, 4-23"
 doi = "10.1127/metz/5/1996/4"
 status = "verified"
-note = "Read in the scanned copy: equation 1 (p. 8), equations 6 to 9 (p. 9), Tables 1 to 3 (p. 12-13), appendix 1 (equation 29 and the lower heating value) and appendix 2 (equations 31 and 32, p. 18). Crossref records it under its German title, Ueber Bedingungen zur Bildung von Kondensstreifen aus Flugzeugabgasen; the paper is in English."
+note = "Read in the scanned copy: equation 1 (p. 8), equations 6 to 9 and the dilution factor (p. 9), equations 10 to 12, the double root at U = 1 and the persistence of contrails (p. 10), equations 13 and 14, the crossings L1, L2, I1 and I2 (p. 11), the case of the ATTAS aircraft (p. 12), Tables 1 to 3 (p. 12-13), appendix 1 (equation 29 and the lower heating value) and appendix 2 (equations 31 and 32, p. 18). Crossref records it under its German title, Ueber Bedingungen zur Bildung von Kondensstreifen aus Flugzeugabgasen; the paper is in English."
 
 [references.schumann2000]
 authors = "Schumann, U."
@@ -40,7 +40,7 @@ title = "Influence of propulsion efficiency on contrail formation"
 container = "Aerospace Science and Technology, 4, 391-401"
 doi = "10.1016/S1270-9638(00)01062-2"
 status = "verified"
-note = "Read in the copy of the DLR repository (elib.dlr.de/9247): equation 1 and the nomenclature (p. 392), equation 5 (p. 394), equation 13 (p. 395), equation 14, the contrail factor and the factors of Peters (p. 396)."
+note = "Read in the copy of the DLR repository (elib.dlr.de/9247): equation 1 and the nomenclature (p. 392), equations 5 and 6 (p. 394), equation 13 (p. 395), equation 14, the contrail factor, 'previously defined' by Appleman (1953), its reference [2], and the factors of Peters (p. 396)."
 
 [references.gierens2021]
 authors = "Gierens, K."
@@ -67,7 +67,7 @@ title = "The formation of exhaust condensation trails by jet aircraft"
 container = "Bulletin of the American Meteorological Society, 34(1), 14-20"
 doi = "10.1175/1520-0477-34.1.14"
 status = "verified"
-note = "Read on its pages 15 and 16: the ratio 0.0336 g kg-1 per degree, section 4, Tables I and II, the inset of Figure 1; quoted briefly."
+note = "Read on its pages 14 to 16, 19 and 20: the 12 g of exhaust gases, 1.4 g of water vapour and 10 000 cal of a gram of fuel, and the N grams of air each gram of exhaust gas mixes with (pp. 14-15); the ratio 0.0336 g kg-1 per degree, section 4, Tables I and II, the inset of Figure 1 (pp. 15-16); Figure 4 and the example of a flight at 200 mb (p. 19); the transparent overlay for adiabatic charts (p. 20); quoted briefly."
 
 # --- Quantity kinds ---------------------------------------------------
 
@@ -75,7 +75,7 @@ note = "Read on its pages 15 and 16: the ratio 0.0336 g kg-1 per degree, section
 label = "Overall Propulsion Efficiency"
 specialization_of = "Efficiency"
 units = ["UNITLESS"]
-bounds = { low = 0, high = 1, unit = "UNITLESS", criterion = "The work rate of the thrust over the chemical power of the fuel, F V / (Q m_F): never negative, never above 1, energy being conserved; zero on the ground, where V = 0 (Schumann 2000)." }
+bounds = { low = -inf, high = 1, unit = "UNITLESS", criterion = "The work rate of the thrust over the chemical power of the fuel, F V / (Q m_F): never above 1, energy being conserved; zero on the ground, where V = 0, and at zero thrust (Schumann 2000). No lower bound: a negative net thrust would make it negative." }
 description = "Ratio of the work rate F V of the thrust F at the true air speed V to the chemical power Q m_F of the fuel burnt at the mass flow rate m_F (Schumann 1996, equation 1; Schumann 2000, equation 1): the part of the combustion heat that propels the aircraft, the rest warming the exhaust plume."
 
 [kinds.LowerHeatingValue]
@@ -88,15 +88,13 @@ matches = [
 
 [kinds.EmissionIndexOfWaterVapour]
 label = "Emission Index of Water Vapour"
-specialization_of = "DimensionlessRatio"
-units = ["KiloGM-PER-KiloGM", "GM-PER-KiloGM"]
-bounds = { low = 0, high = inf, unit = "KiloGM-PER-KiloGM", criterion = "A mass of water vapour emitted per mass of fuel burnt, never negative." }
-description = "Mass of water vapour emitted per mass of fuel burnt, EI_H2O (Schumann 1996, equation 29): 1.25 kg/kg for kerosene. Not QUDT's MassRatio, the mass ratio of a rocket."
+specialization_of = "MassRatio"
+description = "Mass of water vapour emitted per mass of fuel burnt, EI_H2O (Schumann 1996, equation 29): 1.25 kg/kg for kerosene; a ratio of two masses, the water emitted and the fuel burnt."
 
 [kinds.ContrailFactor]
 label = "Contrail Factor"
 specialization_of = "InverseTemperature"
-description = "C = c_p Delta q / Delta h_p = G epsilon / p, the water vapour mass fraction the exhaust adds to the plume per kelvin of its temperature excess (Schumann 2000, equation 14), which sources give in g kg-1 K-1 (0.0292 for kerosene at eta = 0), here in K-1. Not the G-factor, which Gierens (2021) also calls contrail factor, a slope in Pa/K."
+description = "C = c_p Delta q / Delta h_p = G epsilon / p, the water vapour mass fraction the exhaust adds to the plume per kelvin of its temperature excess (Schumann 2000, equation 14), which sources give in g kg-1 K-1 (0.0292 for kerosene at eta = 0), here in K-1. Defined first by Appleman (1953), Schumann's reference [2]: 0.0336 g kg-1 K-1 for his fuel (EI = 1.4, c_p = 0.24 cal g-1 K-1, Q = 10 000 cal/g, eta = 0). Not the G-factor, which Gierens (2021) also calls contrail factor, a slope in Pa/K."
 
 [kinds.ContrailMaximumThresholdTemperature]
 label = "Maximum Threshold Temperature of Contrail Formation"
@@ -106,7 +104,7 @@ description = "T_LM (Schumann 1996), T_max (Gierens 2021): the temperature at wh
 [kinds.ContrailThresholdTemperature]
 label = "Threshold Temperature of Contrail Formation"
 specialization_of = "Temperature"
-description = "T_LC (Schumann 1996): the highest ambient temperature at which the mixing line of the exhaust reaches liquid saturation, for the relative humidity of the ambient air over water; contrails form below it. The critical temperature of Appleman (1953), not the temperature of a critical point. Equal to the maximum threshold temperature at U = 1, below it otherwise."
+description = "T_LC (Schumann 1996): the highest ambient temperature at which the mixing line of the exhaust reaches liquid saturation, for the relative humidity of the ambient air over water; contrails form below it. The highest critical temperature of Appleman (1953) over the mixing ratios (his Figure 4), not the temperature of a critical point. Equal to the maximum threshold temperature at U = 1, below it otherwise."
 
 [kinds.ContrailMaximumThresholdTemperatureWithRespectToIce]
 label = "Maximum Threshold Temperature of Contrail Formation with respect to Ice"
@@ -127,7 +125,7 @@ description = "U_LC (Schumann 2012, equation 12), r_contr (Ponater et al. 2002, 
 [kinds.ContrailAvailableMoisturePerDegree]
 label = "Moisture Available from the Exhaust per Degree of Temperature Rise"
 specialization_of = "InverseTemperature"
-description = "(Delta w)/(Delta T) of Appleman (1953, section 4): the mixing ratio the exhaust adds to the air it mixes with, 0.0336 g kg-1 per degree of the temperature rise of the mixture, less what raises the relative humidity of that air to 100 % at its temperature, per degree; in g kg-1 K-1. Not the contrail factor of Schumann (2000), the whole moisture the exhaust adds per kelvin."
+description = "(Delta w)/(Delta T) of Appleman (1953, section 4): the mixing ratio the exhaust adds to the air it mixes with, 0.0336 g kg-1 per degree of the temperature rise of the mixture, less what raises the relative humidity of that air to 100 % at its temperature, per degree; in g kg-1 K-1. Less than the 0.0336 itself, the contrail factor of Schumann (2000) for Appleman's fuel, the whole moisture the exhaust adds per degree."
 
 [kinds.ContrailCriticalTemperatureAtFixedMixing]
 label = "Critical Temperature of Contrail Formation at a Given Mixing"
@@ -148,6 +146,38 @@ sources = ["schumann2000"]
 community = "contrail formation (Gierens 2021)"
 kind = "MixingLineSlope"
 definition = "G = c_p p_a EI_H2O / [epsilon (1 - eta) Q], 'a so-called contrail factor or G-factor' (equation 1), in Pa/K: the slope of the mixing line."
+sources = ["gierens2021"]
+
+[trade_terms.critical_temperature]
+term = "critical temperature"
+language = "en"
+
+[[trade_terms.critical_temperature.meanings]]
+community = "contrail formation (Appleman 1953, section 5)"
+kind = "ContrailCriticalTemperatureAtFixedMixing"
+definition = "T_c, the highest ambient temperature at which the exhaust, mixed with the ambient air in a given ratio N, saturates the mixture with respect to water (Figure 1)."
+sources = ["appleman1953"]
+
+[[trade_terms.critical_temperature.meanings]]
+community = "contrail formation (Appleman 1953, Figure 4; Schumann 1996)"
+kind = "ContrailThresholdTemperature"
+definition = "The highest of these over the mixing ratios, the threshold temperature T_LC: 'the critical temperature increases with eta' (Schumann 1996, p. 11). Not the temperature of a critical point."
+sources = ["appleman1953", "schumann1996"]
+
+[trade_terms.threshold_temperature]
+term = "threshold temperature"
+language = "en"
+
+[[trade_terms.threshold_temperature.meanings]]
+community = "contrail formation (Schumann 1996)"
+kind = "ContrailThresholdTemperature"
+definition = "T_LC, the threshold temperature at the relative humidity U of the ambient air (equation 11); T_LM is its maximum, at U = 1."
+sources = ["schumann1996"]
+
+[[trade_terms.threshold_temperature.meanings]]
+community = "contrail formation (Gierens 2021)"
+kind = "ContrailMaximumThresholdTemperature"
+definition = "T_max: 'The threshold temperature, Tmax, for contrail formation is that temperature where the water vapour saturation curve e(T) has the slope G' (section 2.5), the maximum threshold temperature of Schumann."
 sources = ["gierens2021"]
 
 # --- Constants --------------------------------------------------------
@@ -504,7 +534,7 @@ label = "Threshold temperature of contrail formation with respect to ice, exact 
 expression = "T_IC == T_IM - (p_ice(T=T_IM) - U * p_liq(T=T_IC)) / G"
 calls = { p_ice = "schumann2012_saturation_vapour_pressure_ice", p_liq = "schumann2012_saturation_vapour_pressure_liquid" }
 fixed_units = true
-note = "The ambient temperature at which the mixing line through the ambient air touches the saturation vapour pressure curve over ice at T_IM (equation 12), U being the relative humidity over liquid water, with A1 and A2 of Schumann (2012). The equation has a root at or below T_IM only where the ambient air at T_IM is not supersaturated with respect to ice, U p_liq(T_IM) <= p_ice(T_IM): there the tangent at T_IM lies below the saturation curve over ice; beyond, it gives NaN, the root above T_IM, which the physical domain leaves out, being no threshold."
+note = "The ambient temperature at which the mixing line through the ambient air touches the saturation vapour pressure curve over ice at T_IM (equation 12), U being the relative humidity over liquid water, with A1 and A2 of Schumann (2012). The equation has a root at or below T_IM only where the ambient air at T_IM is not supersaturated with respect to ice, U p_liq(T_IM) <= p_ice(T_IM): there the tangent at T_IM lies below the saturation curve over ice; beyond, it gives NaN, the root above T_IM, which the physical domain leaves out, being no threshold. Schumann (1996, p. 10) writes T_IC = T_IM for U = 1; his equation 12 gives it at U = p_ice/p_liq(T_IM) only, about 0.68 for kerosene at 220 hPa, and no threshold above: the formulation follows the equation."
 output = { identifier = "T_IC", kind = "ContrailThresholdTemperatureWithRespectToIce", unit = "K", description = "Threshold temperature of contrail formation with respect to ice" }
 inputs = [
   { identifier = "T_IM", kind = "ContrailMaximumThresholdTemperatureWithRespectToIce", unit = "K", description = "Maximum threshold temperature of contrail formation with respect to ice" },
@@ -600,7 +630,7 @@ inputs = [
   { identifier = "f_w", kind = "RelativeHumidity", unit = "PERCENT", description = "Relative humidity of the ambient air over water" },
   { identifier = "dT", kind = "TemperatureDifference", unit = "K", description = "Temperature rise of the mixture of exhaust and ambient air" },
 ]
-coefficients = { C_A = { value = 0.0336, note = "Burning 1 g of fuel gives 1.4 g of water and 10 000 cal; with N grams of air per 12 g of exhaust gas and c_p = 0.24 cal g-1 per degree, the mixing ratio rises by 0.0336 g/kg per degree (p. 15)." } }
+coefficients = { C_A = { value = 0.0336, note = "Each gram of fuel burnt gives about 12 g of exhaust gases, 1.4 g of water vapour and 10 000 cal (p. 14); each gram of exhaust gas mixes with N grams of air, 12N per gram of fuel, so that with c_p = 0.24 cal g-1 per degree the mixing ratio rises by 0.0336 g/kg per degree, whatever N (pp. 14-15): the contrail factor of Schumann (2000, equation 14, his reference [2]) for this fuel at eta = 0." } }
 keywords = ["contrail", "Appleman", "available moisture"]
 
 [[formulations.appleman1953_available_moisture.citations]]
@@ -622,7 +652,7 @@ inputs = [
   { identifier = "p", kind = "Pressure", unit = "HectoPA", description = "Ambient pressure" },
   { identifier = "dT", kind = "TemperatureDifference", unit = "K", description = "Temperature rise of the mixture of exhaust and ambient air" },
 ]
-coefficients = { C_A = { value = 0.0336, note = "As in appleman1953_available_moisture (p. 15)." }, eps = { value = 0.622, unit = "UNITLESS", unit_basis = "added", note = "The ratio of the molar masses of water and dry air in the mixing ratio w_s = eps e / (p - e), which Appleman does not give: a pure number." } }
+coefficients = { C_A = { value = 0.0336, note = "As in appleman1953_available_moisture (pp. 14-15)." }, eps = { value = 0.622, unit = "UNITLESS", unit_basis = "added", note = "The ratio of the molar masses of water and dry air in the mixing ratio w_s = eps e / (p - e), which Appleman does not give: a pure number." } }
 keywords = ["contrail", "Appleman", "critical temperature"]
 assumptions = [
   { text = "The critical temperature is where the moisture available equals the moisture required, the intersection of the curves Appleman draws (section 5, Figure 1); he prints no equation for it.", status = "deduced" },

@@ -85,7 +85,8 @@ T_IC = −45.67 °C, where Table 3 prints −42.9, −50.6, −39.8 and −45.7 
 
 The mixing line at the threshold touches the curve over liquid water at
 LM. Ambient air colder than T_LC, here at −59 °C as in Table 3, gives a
-steeper line through a lower point: it crosses the curves twice. The
+line of the same slope G, parallel to the tangent and shifted towards
+colder temperatures: it crosses the curves twice. The
 diluting plume reaches ice saturation at I1, water saturation at L1, and
 stays saturated until its mixing reaches L2 and I2 (Schumann 1996, p. 11).
 These crossings, solutions
@@ -244,8 +245,8 @@ The trade terms "contrail factor" (C in K⁻¹ for Schumann 2000, G in Pa/K
 for Gierens 2021), "critical temperature" (Appleman's, then the
 threshold temperature) and "critical relative humidity" (of contrails,
 and of cloud schemes) have their rows in [the rosetta](rosetta.md); a
-search finds the entries by these words, `search("contrail")` the whole
-family.
+search finds the entries by these words, and `search(family="contrail")`
+the whole family.
 
 ## References
 

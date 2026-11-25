@@ -176,7 +176,7 @@ class _Context:
         if node.is_Symbol:
             return node.name in names
         if isinstance(node, sympy.Piecewise):
-            return all(self.involves(e, names) for e, _ in node.args)
+            return all(self.involves(e, names) for e in _dimensioned(node))
         if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return False
         if node.is_Pow:
@@ -208,8 +208,12 @@ class _Context:
         if node.is_Symbol:
             return self.units.get(node.name)
         if isinstance(node, sympy.Piecewise):
-            # Its branches share one dimension (a constraint): any known one.
-            known = (self.unit(e) for e, _ in node.args)
+            # Its branches share one dimension (a constraint): any known one;
+            # a branch 0 has every dimension.
+            branches = _dimensioned(node)
+            if not branches:
+                return ureg.dimensionless
+            known = (self.unit(e) for e in branches)
             return next((u for u in known if u is not None), None)
         if node.is_Number or node.is_NumberSymbol or isinstance(node, sympy.Function):
             return ureg.dimensionless
@@ -291,6 +295,13 @@ class _Constraint:
         return " = ".join(str(part) for part in self.parts)
 
 
+def _dimensioned(piecewise: Any) -> tuple[Any, ...]:
+    """The branches of a piecewise definition that carry a dimension: a
+    branch 0, the derivative of a constant branch or a source writing zero
+    beyond a bound, has every dimension."""
+    return tuple(e for e, _ in piecewise.args if not (e.is_Number and e == 0))
+
+
 def _constraints(expr: Any) -> Iterator[_Constraint]:
     """The constraints of an expression tree, outermost first.
 
@@ -299,9 +310,7 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
     the unit of T).
     """
     if isinstance(expr, sympy.Piecewise):
-        # A branch 0 has every dimension: the derivative of a constant
-        # branch, or a source writing zero beyond a bound.
-        branches = tuple(e for e, _ in expr.args if not (e.is_Number and e == 0))
+        branches = _dimensioned(expr)
         if len(branches) > 1:
             yield _Constraint("equal", branches, (expr,))
         for relation in _relations(expr):
@@ -434,6 +443,20 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
             if unit is not None:
                 units[name] = unit
                 inherited[name] = f"as in {source.key}, of which it is the derivative"
+    if source is not None and source.calls and all(n in units for n in unknown):
+        # The derivative of a formulation calling others: its developed form
+        # would read a call in fixed units (Sonntag's exponential, in Pa) as
+        # a pure number. The units of its coefficients are those of its
+        # source, checked where it is written, and its own unit is checked
+        # when it is built (nomogram.differentiation).
+        context = _Context(
+            formulation.fixed_units,
+            units,
+            frozenset(unknown),
+            frozenset(c.identifier for c in formulation.coefficients),
+            dict(inherited),
+        )
+        return context, [], formulation.sympy_expression
     written: Any = None
     if formulation.calls and formulation.written is not None:
         # A formulation calling others is checked as written: each call is

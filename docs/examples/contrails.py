@@ -15,7 +15,6 @@ Run from the repository (extra ``viz`` installed)::
 """
 
 import sys
-import warnings
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -122,7 +121,6 @@ def crossings(
 
 def compute() -> dict[str, Any]:
     """The values of the three figures and of the guide."""
-    warnings.simplefilter("ignore")  # NaN where a curve leaves its domain
     c = catalog()
     f = c.formulations
 

@@ -130,14 +130,14 @@ All sections are optional; a key may be defined in one file only.
 | `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`), `base` (the scale a table or a conversion leads to), `bounds` (of a conversion), `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
-| `[systems.<key>]` | `label`, `equations` (`formulation`), `start` (first guess of each unknown) | `iterations`, `reference`, `note`; per equation `bind`, `outside` |
+| `[systems.<key>]` | `label`, `equations` (`formulation`) | `start` (first guess of each unknown; none for a system without a loop), `iterations`, `reference`, `note`; per equation `bind`, `outside` |
 
 ### Formulations
 
 - **`output` and `inputs`** are variables: `identifier` (used in the
   expression), `kind` (a quantity kind), `unit` (a QUDT unit name, or
-  one of the units QUDT lacks that the extraction script would declare,
-  none since QUDT 3.5.4) and `description`. The unit must apply to the
+  one of the units QUDT lacks that the extraction script declares, one
+  since QUDT 3.5.4, g/(kg K), `GM-PER-KiloGM-K`) and `description`. The unit must apply to the
   kind.
 - **`fixed_units`**: `true` when the coefficients only hold in the
   declared units (most empirical fits, such as the Magnus form). Inputs
@@ -151,7 +151,8 @@ All sections are optional; a key may be defined in one file only.
   See [units of coefficients](#units-of-coefficients).
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
-- **`domains`**: physical domains only: `bounds` (closed intervals per
+- **`domains`**: physical domains only: `bounds`, `at_most` or
+  `at_least`, one at least; `bounds` are closed intervals per
   input identifier, in the input's unit, and of the output by its
   identifier, in its unit), and optionally `criterion` and `reference`.
   One end may be open, written `inf` (`{ z = [0, inf] }` for z ≥ 0);
@@ -554,8 +555,8 @@ inputs = [
 
 An entry may be the derivative of an explicit formulation with respect
 to one of its inputs: the slope of a saturation vapour pressure curve,
-de_s/dT, which the threshold temperature of contrail formation equates
-to the slope of a mixing line, or the vertical gradient of a temperature
+de_s/dT, which the maximum threshold temperature of contrail formation
+equates to the slope of a mixing line, or the vertical gradient of a temperature
 profile.
 
 ```toml
@@ -741,8 +742,8 @@ states:
   as a list of texts (see [assumptions](#assumptions));
 - `note`;
 - `domains`: validity domains the source states, as
-  `[[formulations.<key>.citations.domains]]` tables with `bounds` and
-  `criterion`, and optionally `tolerance`: how far beyond an end a value
+  `[[formulations.<key>.citations.domains]]` tables with `bounds`,
+  `at_most` or `at_least`, and `criterion`, and optionally `tolerance`: how far beyond an end a value
   is still inside, per bounded identifier, one number for both ends or
   `[low, high]`, in the variable's unit and taken as a difference. It is
   the maximum deviation of that variable the source states, never a

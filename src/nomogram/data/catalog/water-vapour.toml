@@ -1437,7 +1437,7 @@ fixed_units = true
 note = "The coefficients of sonntag1990, times the factor 100 Schumann prints for pascals; the same values as sonntag1990 converted to Pa, which the relation schumann2012_a1_sonntag1990 proves. pycontrails writes it so (sonntag_e_sat_liquid)."
 output = { identifier = "p_liq", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over liquid water" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { a0 = -6096.9385, a1 = 16.635794, a2 = -2.711193e-2, a3 = 1.673952e-5, a4 = 2.433502 }
 keywords = ["saturation", "contrail"]
@@ -1455,7 +1455,7 @@ fixed_units = true
 note = "The coefficients of sonntag1990_ice, times the factor 100 Schumann prints for pascals, which the relation schumann2012_a2_sonntag1990_ice proves. Schumann (2012) finds it within 1 % of the approximations Murphy and Koop (2005) recommend, down to -100 degC."
 output = { identifier = "p_ice", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
 inputs = [
-  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-numbers" },
 ]
 coefficients = { a0 = -6024.5282, a1 = 24.7219, a2 = 1.0613868e-2, a3 = -1.3198825e-5, a4 = -0.49382577 }
 keywords = ["saturation", "contrail"]

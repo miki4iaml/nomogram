@@ -1,15 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1022.00pt" height="956.00pt" viewBox="0 0 1022.00 956.00">
-<rect width="1022.00" height="956.00" fill="#ffffff"/>
-<svg x="0.00" y="0.00" width="1022.00" height="794.00" viewBox="0.00 0.00 1022.00 794.00">
-<g id="figure-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 779.4)">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1022.00pt" height="969.00pt" viewBox="0 0 1022.00 969.00">
+<rect width="1022.00" height="969.00" fill="#ffffff"/>
+<svg x="0.00" y="0.00" width="1022.00" height="807.00" viewBox="0.00 0.00 1022.00 807.00">
+<g id="figure-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 792.4)">
 <title>graph</title>
-<polygon fill="#ffffff" stroke="none" points="-14.4,14.4 -14.4,-779.4 1007.51,-779.4 1007.51,14.4 -14.4,14.4"/>
+<polygon fill="#ffffff" stroke="none" points="-14.4,14.4 -14.4,-792.4 1007.51,-792.4 1007.51,14.4 -14.4,14.4"/>
 <!-- kinds.DimensionlessRatio -->
 <g id="figure-node1" class="node">
 <title>kinds.DimensionlessRatio</title>
 <g id="figure-a_node1"><a xlink:title="Dimensionless Ratio&#10;http://qudt.org/vocab/quantitykind/DimensionlessRatio">
-<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-45" rx="71.22" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-41.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Dimensionless Ratio</text>
+<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-18" rx="71.22" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-14.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Dimensionless Ratio</text>
 </a>
 </g>
 </g>
@@ -17,364 +17,389 @@
 <g id="figure-node2" class="node">
 <title>kinds.Efficiency</title>
 <g id="figure-a_node2"><a xlink:title="Efficiency&#10;http://qudt.org/vocab/quantitykind/Efficiency">
-<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-126" rx="38.49" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-122.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Efficiency</text>
+<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-72" rx="38.49" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-68.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Efficiency</text>
 </a>
 </g>
 </g>
 <!-- http://www.wikidata.org/entity/Q11945244 -->
-<g id="figure-node22" class="node">
+<g id="figure-node23" class="node">
 <title>http://www.wikidata.org/entity/Q11945244</title>
-<g id="figure-a_node22"><a xlink:title="Q11945244&#10;http://www.wikidata.org/entity/Q11945244">
-<polygon fill="none" stroke="#1f2937" points="852.38,-144 780.88,-144 780.88,-108 852.38,-108 852.38,-144"/>
-<text xml:space="preserve" text-anchor="middle" x="816.63" y="-122.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q11945244</text>
+<g id="figure-a_node23"><a xlink:title="Q11945244&#10;http://www.wikidata.org/entity/Q11945244">
+<polygon fill="none" stroke="#1f2937" points="852.38,-90 780.88,-90 780.88,-54 852.38,-54 852.38,-90"/>
+<text xml:space="preserve" text-anchor="middle" x="816.63" y="-68.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q11945244</text>
 </a>
 </g>
 </g>
 <!-- kinds.Efficiency&#45;&gt;http://www.wikidata.org/entity/Q11945244 -->
 <g id="figure-edge1" class="edge">
 <title>kinds.Efficiency&#45;&gt;http://www.wikidata.org/entity/Q11945244</title>
-<path fill="none" stroke="#009e73" d="M658.87,-126C692.8,-126 738.55,-126 771.87,-126"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="654.76" cy="-126" rx="4" ry="4"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="775.99" cy="-126" rx="4" ry="4"/>
+<path fill="none" stroke="#009e73" d="M658.87,-72C692.8,-72 738.55,-72 771.87,-72"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="654.76" cy="-72" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="775.99" cy="-72" rx="4" ry="4"/>
 </g>
 <!-- kinds.HeatingValue -->
 <g id="figure-node3" class="node">
 <title>kinds.HeatingValue</title>
 <g id="figure-a_node3"><a xlink:title="Calorific Value&#10;http://qudt.org/vocab/quantitykind/HeatingValue">
-<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-234" rx="52.99" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-230.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Calorific Value</text>
+<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-180" rx="52.99" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-176.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Calorific Value</text>
 </a>
 </g>
 </g>
 <!-- kinds.SpecificEnergy -->
-<g id="figure-node7" class="node">
+<g id="figure-node8" class="node">
 <title>kinds.SpecificEnergy</title>
-<g id="figure-a_node7"><a xlink:title="Specific Energy&#10;http://qudt.org/vocab/quantitykind/SpecificEnergy">
-<ellipse fill="#e69f00" stroke="#1f2937" cx="816.63" cy="-234" rx="56.73" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="816.63" y="-230.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Specific Energy</text>
+<g id="figure-a_node8"><a xlink:title="Specific Energy&#10;http://qudt.org/vocab/quantitykind/SpecificEnergy">
+<ellipse fill="#e69f00" stroke="#1f2937" cx="816.63" cy="-180" rx="56.73" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="816.63" y="-176.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Specific Energy</text>
 </a>
 </g>
 </g>
 <!-- kinds.HeatingValue&#45;&gt;kinds.SpecificEnergy -->
 <g id="figure-edge2" class="edge">
 <title>kinds.HeatingValue&#45;&gt;kinds.SpecificEnergy</title>
-<path fill="none" stroke="#e69f00" d="M664.84,-234C690.24,-234 721.07,-234 748.21,-234"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="748.08,-237.5 758.08,-234 748.08,-230.5 748.08,-237.5"/>
+<path fill="none" stroke="#e69f00" d="M664.84,-180C690.24,-180 721.07,-180 748.21,-180"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="748.08,-183.5 758.08,-180 748.08,-176.5 748.08,-183.5"/>
 </g>
 <!-- kinds.InverseTemperature -->
 <g id="figure-node4" class="node">
 <title>kinds.InverseTemperature</title>
 <g id="figure-a_node4"><a xlink:title="Inverse Temperature&#10;http://qudt.org/vocab/quantitykind/InverseTemperature">
-<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-315" rx="71.69" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-311.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Inverse Temperature</text>
+<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-247" rx="71.69" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-243.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Inverse Temperature</text>
 </a>
 </g>
 </g>
 <!-- http://www.wikidata.org/entity/Q107028650 -->
-<g id="figure-node23" class="node">
+<g id="figure-node24" class="node">
 <title>http://www.wikidata.org/entity/Q107028650</title>
-<g id="figure-a_node23"><a xlink:title="Q107028650&#10;http://www.wikidata.org/entity/Q107028650">
-<polygon fill="none" stroke="#1f2937" points="855.76,-333 777.51,-333 777.51,-297 855.76,-297 855.76,-333"/>
-<text xml:space="preserve" text-anchor="middle" x="816.63" y="-311.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q107028650</text>
+<g id="figure-a_node24"><a xlink:title="Q107028650&#10;http://www.wikidata.org/entity/Q107028650">
+<polygon fill="none" stroke="#1f2937" points="855.76,-265 777.51,-265 777.51,-229 855.76,-229 855.76,-265"/>
+<text xml:space="preserve" text-anchor="middle" x="816.63" y="-243.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q107028650</text>
 </a>
 </g>
 </g>
 <!-- kinds.InverseTemperature&#45;&gt;http://www.wikidata.org/entity/Q107028650 -->
 <g id="figure-edge3" class="edge">
 <title>kinds.InverseTemperature&#45;&gt;http://www.wikidata.org/entity/Q107028650</title>
-<path fill="none" stroke="#009e73" d="M692.52,-315C718.24,-315 745.89,-315 768.46,-315"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="688.07" cy="-315" rx="4" ry="4"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="772.66" cy="-315" rx="4" ry="4"/>
+<path fill="none" stroke="#009e73" d="M692.52,-247C718.24,-247 745.89,-247 768.46,-247"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="688.07" cy="-247" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="772.66" cy="-247" rx="4" ry="4"/>
+</g>
+<!-- kinds.MassRatio -->
+<g id="figure-node5" class="node">
+<title>kinds.MassRatio</title>
+<g id="figure-a_node5"><a xlink:title="Mass Ratio&#10;http://qudt.org/vocab/quantitykind/MassRatio">
+<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-328" rx="43.64" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-324.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Mass Ratio</text>
+</a>
+</g>
+</g>
+<!-- http://www.wikidata.org/entity/Q1563068 -->
+<g id="figure-node25" class="node">
+<title>http://www.wikidata.org/entity/Q1563068</title>
+<g id="figure-a_node25"><a xlink:title="Q1563068&#10;http://www.wikidata.org/entity/Q1563068">
+<polygon fill="none" stroke="#1f2937" points="849.76,-346 783.51,-346 783.51,-310 849.76,-310 849.76,-346"/>
+<text xml:space="preserve" text-anchor="middle" x="816.63" y="-324.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q1563068</text>
+</a>
+</g>
+</g>
+<!-- kinds.MassRatio&#45;&gt;http://www.wikidata.org/entity/Q1563068 -->
+<g id="figure-edge4" class="edge">
+<title>kinds.MassRatio&#45;&gt;http://www.wikidata.org/entity/Q1563068</title>
+<path fill="none" stroke="#009e73" d="M664.37,-328C698.62,-328 742.88,-328 774.67,-328"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="660.11" cy="-328" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="778.78" cy="-328" rx="4" ry="4"/>
 </g>
 <!-- kinds.MixingLineSlope -->
-<g id="figure-node5" class="node">
+<g id="figure-node6" class="node">
 <title>kinds.MixingLineSlope</title>
-<g id="figure-a_node5"><a xlink:title="Mixing Line Slope">
-<ellipse fill="#009e73" stroke="#1f2937" stroke-dasharray="1,5" cx="231.59" cy="-369" rx="62.81" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-365.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Mixing Line Slope</text>
+<g id="figure-a_node6"><a xlink:title="Mixing Line Slope">
+<ellipse fill="#009e73" stroke="#1f2937" stroke-dasharray="1,5" cx="231.59" cy="-382" rx="62.81" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-378.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Mixing Line Slope</text>
 </a>
 </g>
 </g>
 <!-- kinds.SaturationVapourPressureSlope -->
-<g id="figure-node6" class="node">
+<g id="figure-node7" class="node">
 <title>kinds.SaturationVapourPressureSlope</title>
-<g id="figure-a_node6"><a xlink:title="Saturation Vapour Pressure Slope">
-<ellipse fill="#009e73" stroke="#1f2937" stroke-dasharray="1,5" cx="611.54" cy="-450" rx="112.36" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-446.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Saturation Vapour Pressure Slope</text>
+<g id="figure-a_node7"><a xlink:title="Saturation Vapour Pressure Slope">
+<ellipse fill="#009e73" stroke="#1f2937" stroke-dasharray="1,5" cx="611.54" cy="-463" rx="112.36" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-459.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Saturation Vapour Pressure Slope</text>
 </a>
 </g>
 </g>
 <!-- http://www.wikidata.org/entity/Q3023293 -->
-<g id="figure-node24" class="node">
+<g id="figure-node26" class="node">
 <title>http://www.wikidata.org/entity/Q3023293</title>
-<g id="figure-a_node24"><a xlink:title="Q3023293&#10;http://www.wikidata.org/entity/Q3023293">
-<polygon fill="none" stroke="#1f2937" points="984.36,-279 918.11,-279 918.11,-243 984.36,-243 984.36,-279"/>
-<text xml:space="preserve" text-anchor="middle" x="951.23" y="-257.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q3023293</text>
+<g id="figure-a_node26"><a xlink:title="Q3023293&#10;http://www.wikidata.org/entity/Q3023293">
+<polygon fill="none" stroke="#1f2937" points="984.36,-225 918.11,-225 918.11,-189 984.36,-189 984.36,-225"/>
+<text xml:space="preserve" text-anchor="middle" x="951.23" y="-203.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q3023293</text>
 </a>
 </g>
 </g>
 <!-- kinds.SpecificEnergy&#45;&gt;http://www.wikidata.org/entity/Q3023293 -->
-<g id="figure-edge4" class="edge">
+<g id="figure-edge5" class="edge">
 <title>kinds.SpecificEnergy&#45;&gt;http://www.wikidata.org/entity/Q3023293</title>
-<path fill="none" stroke="#009e73" d="M873.89,-245.46C885.78,-247.88 898.1,-250.39 909.29,-252.66"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="869.54" cy="-244.57" rx="4" ry="4"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="913.58" cy="-253.54" rx="4" ry="4"/>
+<path fill="none" stroke="#009e73" d="M873.89,-191.46C885.78,-193.88 898.1,-196.39 909.29,-198.66"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="869.54" cy="-190.57" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="913.58" cy="-199.54" rx="4" ry="4"/>
 </g>
 <!-- https://si&#45;digital&#45;framework.org/quantities/SENG -->
-<g id="figure-node25" class="node">
+<g id="figure-node27" class="node">
 <title>https://si&#45;digital&#45;framework.org/quantities/SENG</title>
-<g id="figure-a_node25"><a xlink:title="SENG&#10;https://si&#45;digital&#45;framework.org/quantities/SENG">
-<polygon fill="none" stroke="#1f2937" points="951.23,-225 909.36,-207 951.23,-189 993.11,-207 951.23,-225"/>
-<text xml:space="preserve" text-anchor="middle" x="951.23" y="-203.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">SENG</text>
+<g id="figure-a_node27"><a xlink:title="SENG&#10;https://si&#45;digital&#45;framework.org/quantities/SENG">
+<polygon fill="none" stroke="#1f2937" points="951.23,-171 909.36,-153 951.23,-135 993.11,-153 951.23,-171"/>
+<text xml:space="preserve" text-anchor="middle" x="951.23" y="-149.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">SENG</text>
 </a>
 </g>
 </g>
 <!-- kinds.SpecificEnergy&#45;&gt;https://si&#45;digital&#45;framework.org/quantities/SENG -->
-<g id="figure-edge5" class="edge">
+<g id="figure-edge6" class="edge">
 <title>kinds.SpecificEnergy&#45;&gt;https://si&#45;digital&#45;framework.org/quantities/SENG</title>
-<path fill="none" stroke="#56b4e9" d="M876.02,-222.11C887.85,-219.7 900.03,-217.22 911.01,-214.99"/>
-<polygon fill="none" stroke="#56b4e9" points="875.71,-218.6 866.61,-224.03 877.11,-225.46 875.71,-218.6"/>
-<polygon fill="none" stroke="#56b4e9" points="911.37,-218.49 920.47,-213.06 909.97,-211.63 911.37,-218.49"/>
+<path fill="none" stroke="#56b4e9" d="M876.02,-168.11C887.85,-165.7 900.03,-163.22 911.01,-160.99"/>
+<polygon fill="none" stroke="#56b4e9" points="875.71,-164.6 866.61,-170.03 877.11,-171.46 875.71,-164.6"/>
+<polygon fill="none" stroke="#56b4e9" points="911.37,-164.49 920.47,-159.06 909.97,-157.63 911.37,-164.49"/>
 </g>
 <!-- kinds.Temperature -->
-<g id="figure-node8" class="node">
+<g id="figure-node9" class="node">
 <title>kinds.Temperature</title>
-<g id="figure-a_node8"><a xlink:title="Temperature&#10;http://qudt.org/vocab/quantitykind/Temperature">
-<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-639" rx="47.84" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-635.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Temperature</text>
+<g id="figure-a_node9"><a xlink:title="Temperature&#10;http://qudt.org/vocab/quantitykind/Temperature">
+<ellipse fill="#e69f00" stroke="#1f2937" cx="611.54" cy="-652" rx="47.84" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-648.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Temperature</text>
 </a>
 </g>
 </g>
 <!-- http://www.wikidata.org/entity/Q11466 -->
-<g id="figure-node26" class="node">
+<g id="figure-node28" class="node">
 <title>http://www.wikidata.org/entity/Q11466</title>
-<g id="figure-a_node26"><a xlink:title="Q11466&#10;http://www.wikidata.org/entity/Q11466">
-<polygon fill="none" stroke="#1f2937" points="843.63,-657 789.63,-657 789.63,-621 843.63,-621 843.63,-657"/>
-<text xml:space="preserve" text-anchor="middle" x="816.63" y="-635.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q11466</text>
+<g id="figure-a_node28"><a xlink:title="Q11466&#10;http://www.wikidata.org/entity/Q11466">
+<polygon fill="none" stroke="#1f2937" points="843.63,-670 789.63,-670 789.63,-634 843.63,-634 843.63,-670"/>
+<text xml:space="preserve" text-anchor="middle" x="816.63" y="-648.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q11466</text>
 </a>
 </g>
 </g>
 <!-- kinds.Temperature&#45;&gt;http://www.wikidata.org/entity/Q11466 -->
-<g id="figure-edge6" class="edge">
+<g id="figure-edge7" class="edge">
 <title>kinds.Temperature&#45;&gt;http://www.wikidata.org/entity/Q11466</title>
-<path fill="none" stroke="#009e73" d="M668.37,-639C704.25,-639 749.74,-639 780.6,-639"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="664.14" cy="-639" rx="4" ry="4"/>
-<ellipse fill="#009e73" stroke="#009e73" cx="784.79" cy="-639" rx="4" ry="4"/>
+<path fill="none" stroke="#009e73" d="M668.37,-652C704.25,-652 749.74,-652 780.6,-652"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="664.14" cy="-652" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="784.79" cy="-652" rx="4" ry="4"/>
 </g>
 <!-- kinds.OverallPropulsionEfficiency -->
-<g id="figure-node9" class="node">
+<g id="figure-node10" class="node">
 <title>kinds.OverallPropulsionEfficiency</title>
-<g id="figure-a_node9"><a xlink:title="Overall Propulsion Efficiency">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-126" rx="95.07" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-122.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Overall Propulsion Efficiency</text>
+<g id="figure-a_node10"><a xlink:title="Overall Propulsion Efficiency">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-72" rx="95.07" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-68.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Overall Propulsion Efficiency</text>
 </a>
 </g>
 </g>
 <!-- kinds.OverallPropulsionEfficiency&#45;&gt;kinds.Efficiency -->
-<g id="figure-edge7" class="edge">
+<g id="figure-edge8" class="edge">
 <title>kinds.OverallPropulsionEfficiency&#45;&gt;kinds.Efficiency</title>
-<path fill="none" stroke="#e69f00" d="M326.98,-126C401.39,-126 502.16,-126 561.37,-126"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="561.12,-129.5 571.12,-126 561.12,-122.5 561.12,-129.5"/>
+<path fill="none" stroke="#e69f00" d="M326.98,-72C401.39,-72 502.16,-72 561.37,-72"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="561.12,-75.5 571.12,-72 561.12,-68.5 561.12,-75.5"/>
 </g>
 <!-- kinds.LowerHeatingValue -->
-<g id="figure-node10" class="node">
+<g id="figure-node11" class="node">
 <title>kinds.LowerHeatingValue</title>
-<g id="figure-a_node10"><a xlink:title="Lower Heating Value">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-207" rx="72.62" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-203.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Lower Heating Value</text>
+<g id="figure-a_node11"><a xlink:title="Lower Heating Value">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-136" rx="72.62" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-132.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Lower Heating Value</text>
 </a>
 </g>
 </g>
 <!-- kinds.LowerHeatingValue&#45;&gt;kinds.HeatingValue -->
-<g id="figure-edge8" class="edge">
+<g id="figure-edge9" class="edge">
 <title>kinds.LowerHeatingValue&#45;&gt;kinds.HeatingValue</title>
-<path fill="none" stroke="#e69f00" d="M301.91,-211.95C372.22,-216.97 480.06,-224.68 547.88,-229.52"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="547.49,-233.01 557.72,-230.23 547.99,-226.02 547.49,-233.01"/>
+<path fill="none" stroke="#e69f00" d="M297.99,-143.61C368.84,-151.86 480.95,-164.91 549.89,-172.94"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="549.14,-176.38 559.48,-174.06 549.95,-169.42 549.14,-176.38"/>
 </g>
 <!-- http://www.wikidata.org/entity/Q902126 -->
-<g id="figure-node27" class="node">
+<g id="figure-node29" class="node">
 <title>http://www.wikidata.org/entity/Q902126</title>
-<g id="figure-a_node27"><a xlink:title="Q902126&#10;http://www.wikidata.org/entity/Q902126">
-<polygon fill="none" stroke="#1f2937" points="641.66,-198 581.41,-198 581.41,-162 641.66,-162 641.66,-198"/>
-<text xml:space="preserve" text-anchor="middle" x="611.54" y="-176.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q902126</text>
+<g id="figure-a_node29"><a xlink:title="Q902126&#10;http://www.wikidata.org/entity/Q902126">
+<polygon fill="none" stroke="#1f2937" points="641.66,-144 581.41,-144 581.41,-108 641.66,-108 641.66,-144"/>
+<text xml:space="preserve" text-anchor="middle" x="611.54" y="-122.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Q902126</text>
 </a>
 </g>
 </g>
 <!-- kinds.LowerHeatingValue&#45;&gt;http://www.wikidata.org/entity/Q902126 -->
-<g id="figure-edge9" class="edge">
+<g id="figure-edge10" class="edge">
 <title>kinds.LowerHeatingValue&#45;&gt;http://www.wikidata.org/entity/Q902126</title>
-<path fill="none" stroke="#0072b2" d="M301.91,-202.05C381.33,-196.37 508.64,-187.28 572.06,-182.75"/>
-<ellipse fill="none" stroke="#0072b2" cx="576.45" cy="-182.44" rx="4" ry="4"/>
+<path fill="none" stroke="#0072b2" d="M304.12,-134.11C383.88,-132 509.87,-128.66 572.53,-127.01"/>
+<ellipse fill="none" stroke="#0072b2" cx="576.81" cy="-126.89" rx="4" ry="4"/>
 </g>
 <!-- kinds.EmissionIndexOfWaterVapour -->
-<g id="figure-node11" class="node">
+<g id="figure-node12" class="node">
 <title>kinds.EmissionIndexOfWaterVapour</title>
-<g id="figure-a_node11"><a xlink:title="Emission Index of Water Vapour">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-72" rx="105.82" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-68.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Emission Index of Water Vapour</text>
+<g id="figure-a_node12"><a xlink:title="Emission Index of Water Vapour">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-328" rx="105.82" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-324.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Emission Index of Water Vapour</text>
 </a>
 </g>
 </g>
-<!-- kinds.EmissionIndexOfWaterVapour&#45;&gt;kinds.DimensionlessRatio -->
-<g id="figure-edge10" class="edge">
-<title>kinds.EmissionIndexOfWaterVapour&#45;&gt;kinds.DimensionlessRatio</title>
-<path fill="none" stroke="#e69f00" d="M329.92,-65.05C392.36,-60.59 472.4,-54.87 531.02,-50.68"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="531.21,-54.18 540.93,-49.97 530.71,-47.19 531.21,-54.18"/>
+<!-- kinds.EmissionIndexOfWaterVapour&#45;&gt;kinds.MassRatio -->
+<g id="figure-edge11" class="edge">
+<title>kinds.EmissionIndexOfWaterVapour&#45;&gt;kinds.MassRatio</title>
+<path fill="none" stroke="#e69f00" d="M337.87,-328C408.77,-328 499.38,-328 556.2,-328"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="555.94,-331.5 565.94,-328 555.94,-324.5 555.94,-331.5"/>
 </g>
 <!-- kinds.ContrailFactor -->
-<g id="figure-node12" class="node">
+<g id="figure-node13" class="node">
 <title>kinds.ContrailFactor</title>
-<g id="figure-a_node12"><a xlink:title="Contrail Factor">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-315" rx="54.39" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-311.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Contrail Factor</text>
+<g id="figure-a_node13"><a xlink:title="Contrail Factor">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-264" rx="54.39" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-260.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Contrail Factor</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailFactor&#45;&gt;kinds.InverseTemperature -->
-<g id="figure-edge11" class="edge">
+<g id="figure-edge12" class="edge">
 <title>kinds.ContrailFactor&#45;&gt;kinds.InverseTemperature</title>
-<path fill="none" stroke="#e69f00" d="M286.34,-315C349.4,-315 454.66,-315 528.07,-315"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="528.06,-318.5 538.06,-315 528.06,-311.5 528.06,-318.5"/>
+<path fill="none" stroke="#e69f00" d="M285.94,-261.6C349.32,-258.75 455.74,-253.96 529.36,-250.65"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="529.08,-254.17 538.91,-250.22 528.77,-247.17 529.08,-254.17"/>
 </g>
 <!-- kinds.ContrailMaximumThresholdTemperature -->
-<g id="figure-node13" class="node">
+<g id="figure-node14" class="node">
 <title>kinds.ContrailMaximumThresholdTemperature</title>
-<g id="figure-a_node13"><a xlink:title="Maximum Threshold Temperature of Contrail Formation">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-747" rx="175.48" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-743.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Maximum Threshold Temperature of Contrail Formation</text>
+<g id="figure-a_node14"><a xlink:title="Maximum Threshold Temperature of Contrail Formation">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-760" rx="175.48" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-756.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Maximum Threshold Temperature of Contrail Formation</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailMaximumThresholdTemperature&#45;&gt;kinds.Temperature -->
-<g id="figure-edge12" class="edge">
+<g id="figure-edge13" class="edge">
 <title>kinds.ContrailMaximumThresholdTemperature&#45;&gt;kinds.Temperature</title>
-<path fill="none" stroke="#e69f00" d="M349.57,-733.3C406.65,-726.62 463.17,-720 463.17,-720 463.17,-720 529.85,-683.35 573.5,-659.36"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="575.11,-662.47 582.18,-654.59 571.73,-656.34 575.11,-662.47"/>
+<path fill="none" stroke="#e69f00" d="M349.57,-746.3C406.65,-739.62 463.17,-733 463.17,-733 463.17,-733 529.85,-696.35 573.5,-672.36"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="575.11,-675.47 582.18,-667.59 571.73,-669.34 575.11,-675.47"/>
 </g>
 <!-- kinds.ContrailThresholdTemperature -->
-<g id="figure-node14" class="node">
+<g id="figure-node15" class="node">
 <title>kinds.ContrailThresholdTemperature</title>
-<g id="figure-a_node14"><a xlink:title="Threshold Temperature of Contrail Formation">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-693" rx="144.62" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-689.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Threshold Temperature of Contrail Formation</text>
+<g id="figure-a_node15"><a xlink:title="Threshold Temperature of Contrail Formation">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-706" rx="144.62" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-702.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Threshold Temperature of Contrail Formation</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailThresholdTemperature&#45;&gt;kinds.Temperature -->
-<g id="figure-edge13" class="edge">
+<g id="figure-edge14" class="edge">
 <title>kinds.ContrailThresholdTemperature&#45;&gt;kinds.Temperature</title>
-<path fill="none" stroke="#e69f00" d="M338.77,-680.57C399.29,-673.48 463.17,-666 463.17,-666 463.17,-666 514.54,-656.59 556.62,-648.88"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="557.22,-652.33 566.43,-647.08 555.96,-645.44 557.22,-652.33"/>
+<path fill="none" stroke="#e69f00" d="M338.77,-693.57C399.29,-686.48 463.17,-679 463.17,-679 463.17,-679 514.54,-669.59 556.62,-661.88"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="557.22,-665.33 566.43,-660.08 555.96,-658.44 557.22,-665.33"/>
 </g>
 <!-- kinds.ContrailMaximumThresholdTemperatureWithRespectToIce -->
-<g id="figure-node15" class="node">
+<g id="figure-node16" class="node">
 <title>kinds.ContrailMaximumThresholdTemperatureWithRespectToIce</title>
-<g id="figure-a_node15"><a xlink:title="Maximum Threshold Temperature of Contrail Formation with respect to Ice">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-639" rx="231.59" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-635.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Maximum Threshold Temperature of Contrail Formation with respect to Ice</text>
+<g id="figure-a_node16"><a xlink:title="Maximum Threshold Temperature of Contrail Formation with respect to Ice">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-652" rx="231.59" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-648.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Maximum Threshold Temperature of Contrail Formation with respect to Ice</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailMaximumThresholdTemperatureWithRespectToIce&#45;&gt;kinds.Temperature -->
-<g id="figure-edge14" class="edge">
+<g id="figure-edge15" class="edge">
 <title>kinds.ContrailMaximumThresholdTemperatureWithRespectToIce&#45;&gt;kinds.Temperature</title>
-<path fill="none" stroke="#e69f00" d="M463.6,-639C496.19,-639 527.03,-639 551.95,-639"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="551.82,-642.5 561.82,-639 551.82,-635.5 551.82,-642.5"/>
+<path fill="none" stroke="#e69f00" d="M463.6,-652C496.19,-652 527.03,-652 551.95,-652"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="551.82,-655.5 561.82,-652 551.82,-648.5 551.82,-655.5"/>
 </g>
 <!-- kinds.ContrailThresholdTemperatureWithRespectToIce -->
-<g id="figure-node16" class="node">
+<g id="figure-node17" class="node">
 <title>kinds.ContrailThresholdTemperatureWithRespectToIce</title>
-<g id="figure-a_node16"><a xlink:title="Threshold Temperature of Contrail Formation with respect to Ice">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-585" rx="200.73" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-581.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Threshold Temperature of Contrail Formation with respect to Ice</text>
+<g id="figure-a_node17"><a xlink:title="Threshold Temperature of Contrail Formation with respect to Ice">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-598" rx="200.73" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-594.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Threshold Temperature of Contrail Formation with respect to Ice</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailThresholdTemperatureWithRespectToIce&#45;&gt;kinds.Temperature -->
-<g id="figure-edge15" class="edge">
+<g id="figure-edge16" class="edge">
 <title>kinds.ContrailThresholdTemperatureWithRespectToIce&#45;&gt;kinds.Temperature</title>
-<path fill="none" stroke="#e69f00" d="M356.32,-599.49C411.02,-605.89 463.17,-612 463.17,-612 463.17,-612 514.54,-621.41 556.62,-629.12"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="555.96,-632.56 566.43,-630.92 557.22,-625.67 555.96,-632.56"/>
+<path fill="none" stroke="#e69f00" d="M356.32,-612.49C411.02,-618.89 463.17,-625 463.17,-625 463.17,-625 514.54,-634.41 556.62,-642.12"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="555.96,-645.56 566.43,-643.92 557.22,-638.67 555.96,-645.56"/>
 </g>
 <!-- kinds.ContrailCriticalRelativeHumidity -->
-<g id="figure-node17" class="node">
+<g id="figure-node18" class="node">
 <title>kinds.ContrailCriticalRelativeHumidity</title>
-<g id="figure-a_node17"><a xlink:title="Critical Relative Humidity of Contrail Formation">
+<g id="figure-a_node18"><a xlink:title="Critical Relative Humidity of Contrail Formation">
 <ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-18" rx="149.77" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="231.59" y="-14.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Critical Relative Humidity of Contrail Formation</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailCriticalRelativeHumidity&#45;&gt;kinds.DimensionlessRatio -->
-<g id="figure-edge16" class="edge">
+<g id="figure-edge17" class="edge">
 <title>kinds.ContrailCriticalRelativeHumidity&#45;&gt;kinds.DimensionlessRatio</title>
-<path fill="none" stroke="#e69f00" d="M361.6,-27.22C417.94,-31.24 482.22,-35.83 531.35,-39.34"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="530.8,-42.81 541.03,-40.03 531.3,-35.83 530.8,-42.81"/>
+<path fill="none" stroke="#e69f00" d="M381.69,-18C431.62,-18 485.43,-18 528.33,-18"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="528.33,-21.5 538.33,-18 528.33,-14.5 528.33,-21.5"/>
 </g>
 <!-- kinds.ContrailAvailableMoisturePerDegree -->
-<g id="figure-node18" class="node">
+<g id="figure-node19" class="node">
 <title>kinds.ContrailAvailableMoisturePerDegree</title>
-<g id="figure-a_node18"><a xlink:title="Moisture Available from the Exhaust per Degree of Temperature Rise">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-261" rx="215.69" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-257.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Moisture Available from the Exhaust per Degree of Temperature Rise</text>
+<g id="figure-a_node19"><a xlink:title="Moisture Available from the Exhaust per Degree of Temperature Rise">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-210" rx="215.69" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-206.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Moisture Available from the Exhaust per Degree of Temperature Rise</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailAvailableMoisturePerDegree&#45;&gt;kinds.InverseTemperature -->
-<g id="figure-edge17" class="edge">
+<g id="figure-edge18" class="edge">
 <title>kinds.ContrailAvailableMoisturePerDegree&#45;&gt;kinds.InverseTemperature</title>
-<path fill="none" stroke="#e69f00" d="M359.68,-275.88C413.14,-282.14 463.17,-288 463.17,-288 463.17,-288 503.15,-295.32 541.46,-302.34"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="540.76,-305.77 551.23,-304.13 542.02,-298.89 540.76,-305.77"/>
+<path fill="none" stroke="#e69f00" d="M374.4,-223.88C428.08,-229.14 487.18,-234.92 532.83,-239.39"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="532.34,-242.86 542.63,-240.35 533.02,-235.89 532.34,-242.86"/>
 </g>
 <!-- kinds.ContrailCriticalTemperatureAtFixedMixing -->
-<g id="figure-node19" class="node">
+<g id="figure-node20" class="node">
 <title>kinds.ContrailCriticalTemperatureAtFixedMixing</title>
-<g id="figure-a_node19"><a xlink:title="Critical Temperature of Contrail Formation at a Given Mixing">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-531" rx="188.57" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-527.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Critical Temperature of Contrail Formation at a Given Mixing</text>
+<g id="figure-a_node20"><a xlink:title="Critical Temperature of Contrail Formation at a Given Mixing">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-544" rx="188.57" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-540.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Critical Temperature of Contrail Formation at a Given Mixing</text>
 </a>
 </g>
 </g>
 <!-- kinds.ContrailCriticalTemperatureAtFixedMixing&#45;&gt;kinds.Temperature -->
-<g id="figure-edge18" class="edge">
+<g id="figure-edge19" class="edge">
 <title>kinds.ContrailCriticalTemperatureAtFixedMixing&#45;&gt;kinds.Temperature</title>
-<path fill="none" stroke="#e69f00" d="M353.28,-545.13C409.07,-551.67 463.17,-558 463.17,-558 463.17,-558 529.85,-594.65 573.5,-618.64"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="571.73,-621.66 582.18,-623.41 575.11,-615.53 571.73,-621.66"/>
+<path fill="none" stroke="#e69f00" d="M353.28,-558.13C409.07,-564.67 463.17,-571 463.17,-571 463.17,-571 529.85,-607.65 573.5,-631.64"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="571.73,-634.66 582.18,-636.41 575.11,-628.53 571.73,-634.66"/>
 </g>
 <!-- kinds.SaturationVapourPressureSlopeOverWater -->
-<g id="figure-node20" class="node">
+<g id="figure-node21" class="node">
 <title>kinds.SaturationVapourPressureSlopeOverWater</title>
-<g id="figure-a_node20"><a xlink:title="Slope of the Saturation Vapour Pressure over Water">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-477" rx="165.66" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-473.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Slope of the Saturation Vapour Pressure over Water</text>
+<g id="figure-a_node21"><a xlink:title="Slope of the Saturation Vapour Pressure over Water">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-490" rx="165.66" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-486.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Slope of the Saturation Vapour Pressure over Water</text>
 </a>
 </g>
 </g>
 <!-- kinds.SaturationVapourPressureSlopeOverWater&#45;&gt;kinds.SaturationVapourPressureSlope -->
-<g id="figure-edge19" class="edge">
+<g id="figure-edge20" class="edge">
 <title>kinds.SaturationVapourPressureSlopeOverWater&#45;&gt;kinds.SaturationVapourPressureSlope</title>
-<path fill="none" stroke="#e69f00" d="M371.71,-467.06C412.8,-464.13 457.28,-460.95 496.59,-458.14"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="496.84,-461.63 506.56,-457.43 496.34,-454.65 496.84,-461.63"/>
+<path fill="none" stroke="#e69f00" d="M371.71,-480.06C412.8,-477.13 457.28,-473.95 496.59,-471.14"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="496.84,-474.63 506.56,-470.43 496.34,-467.65 496.84,-474.63"/>
 </g>
 <!-- kinds.SaturationVapourPressureSlopeOverIce -->
-<g id="figure-node21" class="node">
+<g id="figure-node22" class="node">
 <title>kinds.SaturationVapourPressureSlopeOverIce</title>
-<g id="figure-a_node21"><a xlink:title="Slope of the Saturation Vapour Pressure over Ice">
-<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-423" rx="156.78" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="231.59" y="-419.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Slope of the Saturation Vapour Pressure over Ice</text>
+<g id="figure-a_node22"><a xlink:title="Slope of the Saturation Vapour Pressure over Ice">
+<ellipse fill="#56b4e9" stroke="#1f2937" stroke-width="2" cx="231.59" cy="-436" rx="156.78" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="231.59" y="-432.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#1f2937">Slope of the Saturation Vapour Pressure over Ice</text>
 </a>
 </g>
 </g>
 <!-- kinds.SaturationVapourPressureSlopeOverIce&#45;&gt;kinds.SaturationVapourPressureSlope -->
-<g id="figure-edge20" class="edge">
+<g id="figure-edge21" class="edge">
 <title>kinds.SaturationVapourPressureSlopeOverIce&#45;&gt;kinds.SaturationVapourPressureSlope</title>
-<path fill="none" stroke="#e69f00" d="M366.1,-432.54C408.73,-435.58 455.48,-438.92 496.58,-441.86"/>
-<polygon fill="#e69f00" stroke="#e69f00" points="496.28,-445.35 506.51,-442.57 496.78,-438.36 496.28,-445.35"/>
+<path fill="none" stroke="#e69f00" d="M366.1,-445.54C408.73,-448.58 455.48,-451.92 496.58,-454.86"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="496.28,-458.35 506.51,-455.57 496.78,-451.36 496.28,-458.35"/>
 </g>
 </g>
 </svg>
-<svg x="0.00" y="806.00" width="892.00" height="150.00" viewBox="0.00 0.00 892.00 150.00">
+<svg x="0.00" y="819.00" width="892.00" height="150.00" viewBox="0.00 0.00 892.00 150.00">
 <g id="legend-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 135.5)">
 <title>legend</title>
 <polygon fill="#ffffff" stroke="none" points="-14.4,14.4 -14.4,-135.5 877.4,-135.5 877.4,14.4 -14.4,14.4"/>
@@ -490,5 +515,5 @@
 </g>
 </g>
 </svg>
-<image x="909.50" y="902.00" width="112.50" height="36.00" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NTAgMTQ0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Im5vbW9ncmFtIj4KICA8dGl0bGU+bm9tb2dyYW08L3RpdGxlPgogIDxzdHlsZT4KICAuaW5rIHsgc3Ryb2tlOiAjMWYyOTM3OyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IHN0cm9rZS1saW5lam9pbjogcm91bmQ7IH0KICAuZmluZSB7IHN0cm9rZTogIzFmMjkzNzsgZmlsbDogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOyBvcGFjaXR5OiAwLjU1OyB9CiAgLnNlYSB7IGZpbGw6ICNkYmVhZmU7IHN0cm9rZTogbm9uZTsgfQogIC5yZWFkIHsgc3Ryb2tlOiAjYzI0MTBjOyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IH0KICAuZG90IHsgZmlsbDogI2MyNDEwYzsgfQogIC5ub2RlIHsgZmlsbDogIzFmMjkzNzsgfQogIAogIDwvc3R5bGU+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSIyMiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9Ijg2IiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iMjIiIHgyPSIxOCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMjIiIHgyPSI5OCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iMzIiIHgyPSIxOCIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMTIiIHgyPSI5NSIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iNDIiIHgyPSIxOCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMDIiIHgyPSI5OCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iNTIiIHgyPSIxOCIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI5MiIgeDI9Ijk1IiB5Mj0iOTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMCIgeTE9IjYyIiB4Mj0iMTgiIHkyPSI2MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iODIiIHgyPSI5OCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSI3MiIgeDI9IjE4IiB5Mj0iNzIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI5MCIgeTE9IjcyIiB4Mj0iOTUiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIiIHgyPSIxOCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI2MiIgeDI9Ijk4IiB5Mj0iNjIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMyIgeTE9IjkyIiB4Mj0iMTgiIHkyPSI5MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNTIiIHgyPSI5NSIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMDIiIHgyPSIxOCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNDIiIHgyPSI5OCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSIxMTIiIHgyPSIxOCIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMzIiIHgyPSI5NSIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMjIiIHgyPSIxOCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMjIiIHgyPSI5OCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzguMTciIHkxPSIzOS44NCIgeDI9IjQ0LjkxIiB5Mj0iMzUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI0Ni43IiB5MT0iNTMuMTgiIHgyPSI1My40NCIgeTI9IjQ4Ljg2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNTcuMzciIHkxPSI2OS44NCIgeDI9IjY0LjExIiB5Mj0iNjUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI2OC4wNCIgeTE9Ijg2LjUxIiB4Mj0iNzQuNzciIHkyPSI4Mi4yIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNzYuNTciIHkxPSI5OS44NCIgeDI9IjgzLjMxIiB5Mj0iOTUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjU4LjkyIiBjeT0iNzkuNjkiIHI9IjQuNCIgY2xhc3M9ImRvdCIvPgogIDxsaW5lIHgxPSIxNjIiIHkxPSIzMi43MSIgeDI9IjE4NC45NyIgeTI9IjQyLjk2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTYyIiB5MT0iMzIuNzEiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxMjUuMTYiIHkyPSI2Ni44OCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4NC45NyIgeTE9IjQyLjk2IiB4Mj0iMTc1LjQ1IiB5Mj0iNjAuMDQiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxODQuOTciIHkxPSI0Mi45NiIgeDI9IjIwMS4wOSIgeTI9IjcwLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjEyNS4xNiIgeTI9IjY2Ljg4IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTc1LjQ1IiB5MT0iNjAuMDQiIHgyPSIyMDEuMDkiIHkyPSI3MC4yOSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE3NS40NSIgeTE9IjYwLjA0IiB4Mj0iMTUzLjI3IiB5Mj0iNzcuMTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMjUuMTYiIHkxPSI2Ni44OCIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTI1LjE2IiB5MT0iNjYuODgiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjIwMS4wOSIgeTE9IjcwLjI5IiB4Mj0iMTg2LjQ5IiB5Mj0iODcuMzgiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIyMDEuMDkiIHkxPSI3MC4yOSIgeDI9IjE5My45NyIgeTI9Ijk3LjYyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTUzLjI3IiB5MT0iNzcuMTIiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE1My4yNyIgeTE9Ijc3LjEyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTg2LjQ5IiB5MT0iODcuMzgiIHgyPSIxOTMuOTciIHkyPSI5Ny42MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4Ni40OSIgeTE9Ijg3LjM4IiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjY5IiB5MT0iOTQuMjEiIHgyPSIxNTAuNTciIHkyPSIxMTEuMjkiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMzcuNjkiIHkxPSI5NC4yMSIgeDI9IjE2NS4zNCIgeTI9IjEwNC40NiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE5My45NyIgeTE9Ijk3LjYyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTY1LjM0IiB5MT0iMTA0LjQ2IiB4Mj0iMTUwLjU3IiB5Mj0iMTExLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSIzMi43MSIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy4wNSIgY3k9IjM5LjU0IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTg0Ljk3IiBjeT0iNDIuOTYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNDMuNSIgY3k9IjQ5Ljc5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTc1LjQ1IiBjeT0iNjAuMDQiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxMjUuMTYiIGN5PSI2Ni44OCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjIwMS4wOSIgY3k9IjcwLjI5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTUzLjI3IiBjeT0iNzcuMTIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxODYuNDkiIGN5PSI4Ny4zOCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy42OSIgY3k9Ijk0LjIxIiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTkzLjk3IiBjeT0iOTcuNjIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjUuMzQiIGN5PSIxMDQuNDYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNTAuNTciIGN5PSIxMTEuMjkiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSI3MiIgcj0iNTAiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxwYXRoIGQ9Ik0gMjM4LDEyMiBMIDIzOCwyMiBMIDI3MCw4NCBMIDMwMiwyMiBMIDMwMiwxMjIiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9InNlYSIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjI1IiByeT0iNTAiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjQzLjMiIHJ5PSI1MCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjM3OCIgeTE9IjIyIiB4Mj0iMzc4IiB5Mj0iMTIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMTE1LjMiIHgyPSI0MDMiIHkyPSIxMTUuMyIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iOTciIHgyPSI0MjEuMyIgeTI9Ijk3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzI4IiB5MT0iNzIiIHgyPSI0MjgiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iNDciIHgyPSI0MjEuMyIgeTI9IjQ3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMjguNyIgeDI9IjQwMyIgeTI9IjI4LjciIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIuNzUiIHgyPSI0NDAiIHkyPSI1NS44OCIgY2xhc3M9InJlYWQiIHN0cm9rZS13aWR0aD0iMi42Ii8+CiAgPGNpcmNsZSBjeD0iMjIiIGN5PSI4MiIgcj0iNC40IiBjbGFzcz0iZG90Ii8+CiAgPGNpcmNsZSBjeD0iODYiIGN5PSI3OCIgcj0iNC40IiBjbGFzcz0iZG90Ii8+Cjwvc3ZnPgo="/>
+<image x="909.50" y="915.00" width="112.50" height="36.00" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NTAgMTQ0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Im5vbW9ncmFtIj4KICA8dGl0bGU+bm9tb2dyYW08L3RpdGxlPgogIDxzdHlsZT4KICAuaW5rIHsgc3Ryb2tlOiAjMWYyOTM3OyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IHN0cm9rZS1saW5lam9pbjogcm91bmQ7IH0KICAuZmluZSB7IHN0cm9rZTogIzFmMjkzNzsgZmlsbDogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOyBvcGFjaXR5OiAwLjU1OyB9CiAgLnNlYSB7IGZpbGw6ICNkYmVhZmU7IHN0cm9rZTogbm9uZTsgfQogIC5yZWFkIHsgc3Ryb2tlOiAjYzI0MTBjOyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IH0KICAuZG90IHsgZmlsbDogI2MyNDEwYzsgfQogIC5ub2RlIHsgZmlsbDogIzFmMjkzNzsgfQogIAogIDwvc3R5bGU+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSIyMiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9Ijg2IiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iMjIiIHgyPSIxOCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMjIiIHgyPSI5OCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iMzIiIHgyPSIxOCIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMTIiIHgyPSI5NSIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iNDIiIHgyPSIxOCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMDIiIHgyPSI5OCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iNTIiIHgyPSIxOCIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI5MiIgeDI9Ijk1IiB5Mj0iOTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMCIgeTE9IjYyIiB4Mj0iMTgiIHkyPSI2MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iODIiIHgyPSI5OCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSI3MiIgeDI9IjE4IiB5Mj0iNzIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI5MCIgeTE9IjcyIiB4Mj0iOTUiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIiIHgyPSIxOCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI2MiIgeDI9Ijk4IiB5Mj0iNjIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMyIgeTE9IjkyIiB4Mj0iMTgiIHkyPSI5MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNTIiIHgyPSI5NSIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMDIiIHgyPSIxOCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNDIiIHgyPSI5OCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSIxMTIiIHgyPSIxOCIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMzIiIHgyPSI5NSIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMjIiIHgyPSIxOCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMjIiIHgyPSI5OCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzguMTciIHkxPSIzOS44NCIgeDI9IjQ0LjkxIiB5Mj0iMzUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI0Ni43IiB5MT0iNTMuMTgiIHgyPSI1My40NCIgeTI9IjQ4Ljg2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNTcuMzciIHkxPSI2OS44NCIgeDI9IjY0LjExIiB5Mj0iNjUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI2OC4wNCIgeTE9Ijg2LjUxIiB4Mj0iNzQuNzciIHkyPSI4Mi4yIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNzYuNTciIHkxPSI5OS44NCIgeDI9IjgzLjMxIiB5Mj0iOTUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjU4LjkyIiBjeT0iNzkuNjkiIHI9IjQuNCIgY2xhc3M9ImRvdCIvPgogIDxsaW5lIHgxPSIxNjIiIHkxPSIzMi43MSIgeDI9IjE4NC45NyIgeTI9IjQyLjk2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTYyIiB5MT0iMzIuNzEiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxMjUuMTYiIHkyPSI2Ni44OCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4NC45NyIgeTE9IjQyLjk2IiB4Mj0iMTc1LjQ1IiB5Mj0iNjAuMDQiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxODQuOTciIHkxPSI0Mi45NiIgeDI9IjIwMS4wOSIgeTI9IjcwLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjEyNS4xNiIgeTI9IjY2Ljg4IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTc1LjQ1IiB5MT0iNjAuMDQiIHgyPSIyMDEuMDkiIHkyPSI3MC4yOSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE3NS40NSIgeTE9IjYwLjA0IiB4Mj0iMTUzLjI3IiB5Mj0iNzcuMTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMjUuMTYiIHkxPSI2Ni44OCIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTI1LjE2IiB5MT0iNjYuODgiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjIwMS4wOSIgeTE9IjcwLjI5IiB4Mj0iMTg2LjQ5IiB5Mj0iODcuMzgiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIyMDEuMDkiIHkxPSI3MC4yOSIgeDI9IjE5My45NyIgeTI9Ijk3LjYyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTUzLjI3IiB5MT0iNzcuMTIiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE1My4yNyIgeTE9Ijc3LjEyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTg2LjQ5IiB5MT0iODcuMzgiIHgyPSIxOTMuOTciIHkyPSI5Ny42MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4Ni40OSIgeTE9Ijg3LjM4IiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjY5IiB5MT0iOTQuMjEiIHgyPSIxNTAuNTciIHkyPSIxMTEuMjkiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMzcuNjkiIHkxPSI5NC4yMSIgeDI9IjE2NS4zNCIgeTI9IjEwNC40NiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE5My45NyIgeTE9Ijk3LjYyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTY1LjM0IiB5MT0iMTA0LjQ2IiB4Mj0iMTUwLjU3IiB5Mj0iMTExLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSIzMi43MSIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy4wNSIgY3k9IjM5LjU0IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTg0Ljk3IiBjeT0iNDIuOTYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNDMuNSIgY3k9IjQ5Ljc5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTc1LjQ1IiBjeT0iNjAuMDQiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxMjUuMTYiIGN5PSI2Ni44OCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjIwMS4wOSIgY3k9IjcwLjI5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTUzLjI3IiBjeT0iNzcuMTIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxODYuNDkiIGN5PSI4Ny4zOCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy42OSIgY3k9Ijk0LjIxIiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTkzLjk3IiBjeT0iOTcuNjIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjUuMzQiIGN5PSIxMDQuNDYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNTAuNTciIGN5PSIxMTEuMjkiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSI3MiIgcj0iNTAiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxwYXRoIGQ9Ik0gMjM4LDEyMiBMIDIzOCwyMiBMIDI3MCw4NCBMIDMwMiwyMiBMIDMwMiwxMjIiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9InNlYSIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjI1IiByeT0iNTAiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjQzLjMiIHJ5PSI1MCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjM3OCIgeTE9IjIyIiB4Mj0iMzc4IiB5Mj0iMTIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMTE1LjMiIHgyPSI0MDMiIHkyPSIxMTUuMyIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iOTciIHgyPSI0MjEuMyIgeTI9Ijk3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzI4IiB5MT0iNzIiIHgyPSI0MjgiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iNDciIHgyPSI0MjEuMyIgeTI9IjQ3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMjguNyIgeDI9IjQwMyIgeTI9IjI4LjciIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIuNzUiIHgyPSI0NDAiIHkyPSI1NS44OCIgY2xhc3M9InJlYWQiIHN0cm9rZS13aWR0aD0iMi42Ii8+CiAgPGNpcmNsZSBjeD0iMjIiIGN5PSI4MiIgcj0iNC40IiBjbGFzcz0iZG90Ii8+CiAgPGNpcmNsZSBjeD0iODYiIGN5PSI3OCIgcj0iNC40IiBjbGFzcz0iZG90Ii8+Cjwvc3ZnPgo="/>
 </svg>
