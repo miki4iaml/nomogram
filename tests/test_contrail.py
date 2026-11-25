@@ -3,13 +3,14 @@
 
 """Contrail formation from aircraft exhaust (family ``contrail``).
 
-The oracles are the values Schumann (1996, 2000, 2012) and Gierens
-(2021) print. The exact threshold temperatures, solutions of implicit
-equations not in the catalog yet, are computed here by bisection on the
-formulations of the catalog: the slope of the Sonntag form of Schumann
-(2012), A1, for the maximum threshold temperature (Schumann 1996,
-equation 10), and A1 itself for the threshold temperature (equation 11,
-on the root below the maximum threshold temperature).
+The oracles are the values Schumann (1996, 2000, 2012), Ponater et al.
+(2002) and Gierens (2021) print. The exact threshold temperatures, which
+the catalog solves as implicit equations, are also computed here by
+bisection, independently of its search for roots: the slope of the
+Sonntag form of Schumann (2012), A1, for the maximum threshold
+temperature (Schumann 1996, equation 10), and A1 itself for the threshold
+temperature (equation 11, on the root below the maximum threshold
+temperature).
 """
 
 from collections.abc import Callable
@@ -21,6 +22,7 @@ import pytest
 from bundled_catalog import with_families
 
 from nomogram.comparison import compose
+from nomogram.model import RootWarning
 from nomogram.units import Q_
 
 CATALOG = with_families(("contrail",))
@@ -224,12 +226,10 @@ def threshold_fit(g_values: npt.ArrayLike, u_values: npt.ArrayLike) -> Array:
     g, u = np.broadcast_arrays(
         np.asarray(g_values, dtype=float), np.asarray(u_values, dtype=float)
     )
-    t_lm = exact_t_lm(g)
     return value(
         "schumann2012_threshold_temperature_fit",
         "K",
-        T_LM=Q_(t_lm, "K"),
-        p_LM=Q_(p_liq(t_lm), "Pa"),
+        T_LM=Q_(exact_t_lm(g), "K"),
         U=Q_(u, ""),
         G=Q_(g, "Pa/K"),
     )
@@ -267,8 +267,8 @@ def test_the_fit_of_schumann2012_departs_as_measured() -> None:
 
 def test_a_threshold_temperature_is_a_point_where_saturation_is_evaluated() -> None:
     # The maximum threshold temperature feeds the temperature of a
-    # saturation vapour pressure: p_liq(T_LM), the input p_LM of the fit
-    # of Schumann (2012).
+    # saturation vapour pressure: p_liq(T_LM), which the fit of Schumann
+    # (2012) calls.
     at_threshold = compose(
         F["schumann2012_saturation_vapour_pressure_liquid"],
         {"T": F["schumann1996_maximum_threshold_temperature_fit"]},
@@ -287,6 +287,7 @@ def test_the_alternatives_of_the_maximum_threshold_temperature_are_found_togethe
         f.key for f in CATALOG.formulations_of("ContrailMaximumThresholdTemperature")
     }
     assert found == {
+        "schumann1996_maximum_threshold_temperature_liquid",
         "schumann1996_maximum_threshold_temperature_fit",
         "gierens2021_maximum_threshold_temperature_low",
         "gierens2021_maximum_threshold_temperature_cubic",
@@ -333,3 +334,161 @@ def test_the_slopes_of_saturation_are_derivatives_of_the_forms_in_pascals() -> N
     assert units["a0"].reason == (
         "as in schumann2012_saturation_vapour_pressure_liquid, of which it is the derivative"
     )
+
+
+TABLE_3 = Q_([1.49, 2.31, 3.82], "Pa/K")  # kerosene, methane, hydrogen
+U_TABLE_2 = Q_(0.42, "")
+
+
+def test_exact_threshold_temperatures_of_table_3() -> None:
+    t_lm = F["schumann1996_maximum_threshold_temperature_liquid"].evaluate(G=TABLE_3)
+    t_im = F["schumann1996_maximum_threshold_temperature_ice"].evaluate(G=TABLE_3)
+    t_lc = F["schumann1996_threshold_temperature_liquid"].evaluate(
+        T_LM=t_lm, U=U_TABLE_2, G=TABLE_3
+    )
+    t_ic = F["schumann1996_threshold_temperature_ice"].evaluate(
+        T_IM=t_im, U=U_TABLE_2, G=TABLE_3
+    )
+    printed = {
+        "T_LM": (t_lm, [-42.9, -38.3, -32.7]),
+        "T_IM": (t_im, [-39.8, -35.5, -30.4]),
+        "T_LC": (t_lc, [-50.6, -46.3, -41.2]),
+        "T_IC": (t_ic, [-45.7, -41.8, -37.1]),
+    }
+    for found, values in printed.values():
+        assert found.to("degC").magnitude.tolist() == pytest.approx(values, abs=0.06)
+    # The search for roots agrees with the bisection.
+    g = TABLE_3.magnitude
+    assert t_lm.to("K").magnitude == pytest.approx(exact_t_lm(g), abs=1e-6)
+    assert t_lc.to("K").magnitude == pytest.approx(exact_t_lc(g, 0.42), abs=1e-6)
+
+
+def test_the_root_of_equation_11_above_t_lm_is_left_out() -> None:
+    # Equation 11 has a second root above T_LM, about -21.65 degC for
+    # kerosene, which no search reaches: the relative bound ends it at T_LM.
+    g = TABLE_3.magnitude
+    t_lm = exact_t_lm(g)
+    p_lm = p_liq(t_lm)
+    above = bisect(
+        lambda t: -(t - (t_lm - (p_lm - 0.42 * p_liq(t)) / g)),
+        t_lm + 1e-9,
+        np.full(g.shape, 320.0),
+    )
+    assert (above - 273.15).tolist() == pytest.approx([-21.65, -15.96, -9.03], abs=0.01)
+    found = F["schumann1996_threshold_temperature_liquid"].evaluate(
+        T_LM=Q_(t_lm, "K"), U=U_TABLE_2, G=TABLE_3
+    )
+    assert (found.to("K").magnitude < t_lm).all()
+    with pytest.warns(RootWarning, match="no root in the interval searched"):
+        beyond = F["schumann1996_threshold_temperature_liquid"].evaluate(
+            T_LM=Q_(t_lm[0], "K"), U=U_TABLE_2, G=TABLE_3[0], search=(260.0, 300.0)
+        )
+    assert np.isnan(beyond.magnitude)
+
+
+def test_at_liquid_saturation_the_threshold_is_its_maximum() -> None:
+    system = CATALOG.systems["schumann1996_threshold_temperature"]
+    solution = system.evaluate(G=TABLE_3, U=Q_(1.0, ""))
+    # The double root is taken on the end, or found where the members
+    # cross within their rounding, about 1e-6 K below it.
+    assert solution["T_LC"].to("K").magnitude == pytest.approx(
+        solution["T_LM"].to("K").magnitude, abs=2e-6
+    )
+
+
+def test_the_threshold_temperature_of_attas() -> None:
+    # Busen and Schumann (1995), as Schumann (1996) gives them (p. 12):
+    # 302.3 hPa, EI = 1.21, Q = 43 MJ/kg, eta = 0.14: T_LC = -50.4 degC at
+    # 34 %, -49.8 degC at 45 %, "about -51.8" for eta = 0.
+    system = CATALOG.systems["schumann1996_threshold_temperature"]
+    found = []
+    for u, eta in ((0.34, 0.14), (0.45, 0.14), (0.34, 0.0)):
+        g = F["schumann1996_mixing_line_slope"].evaluate(
+            EI=Q_(1.21, "kg/kg"),
+            c_p=Q_(1004, "J/(kg*K)"),
+            p=Q_(302.3, "hPa"),
+            Q=Q_(43, "MJ/kg"),
+            eta=Q_(eta, ""),
+        )
+        found.append(
+            float(system.evaluate(G=g, U=Q_(u, ""))["T_LC"].to("degC").magnitude)
+        )
+    assert found == pytest.approx([-50.4, -49.8, -51.8], abs=0.06)
+
+
+def test_the_fit_of_the_maximum_over_ice_departs_as_measured() -> None:
+    g = np.geomspace(0.15, 23, 241)
+    exact = F["schumann1996_maximum_threshold_temperature_ice"].evaluate(
+        G=Q_(g, "Pa/K")
+    )
+    fit = value(
+        "schumann1996_maximum_threshold_temperature_ice_fit",
+        "K",
+        outside="ignore",
+        G=Q_(g, "Pa/K"),
+    )
+    deviation = np.abs(fit - exact.to("K").magnitude)
+    # 0.036 degC stated; 0.050 K at G = 0.15 Pa/K, the end of the range.
+    assert deviation[0] == pytest.approx(0.0501, abs=5e-4)
+    assert deviation[(g >= 0.3) & (g <= 20)].max() < 0.032
+
+
+def test_the_threshold_over_ice_holds_below_ice_saturation_at_t_im() -> None:
+    t_im = F["schumann1996_maximum_threshold_temperature_ice"].evaluate(G=TABLE_3[0])
+    ratio = (
+        F["schumann2012_saturation_vapour_pressure_ice"].evaluate(T=t_im)
+        / F["schumann2012_saturation_vapour_pressure_liquid"].evaluate(T=t_im)
+    ).to("")
+    u = Q_(float(ratio.magnitude) + np.array([-0.05, 0.0, 0.05]), "")
+    with pytest.warns(RootWarning, match="no root"):
+        found = F["schumann1996_threshold_temperature_ice"].evaluate(
+            T_IM=t_im, U=u, G=TABLE_3[0]
+        )
+    kelvins = found.to("K").magnitude
+    assert kelvins[0] < t_im.to("K").magnitude
+    # Just saturated with respect to ice at T_IM: the double root, T_IM.
+    assert kelvins[1] == pytest.approx(t_im.to("K").magnitude, abs=1e-6)
+    assert np.isnan(kelvins[2])  # supersaturated: no threshold
+
+
+def test_the_critical_relative_humidity() -> None:
+    key = "schumann2012_critical_relative_humidity"
+    t_lm = F["schumann1996_maximum_threshold_temperature_liquid"].evaluate(G=TABLE_3[0])
+    u = Q_(np.array([0.0, 0.2, 0.42, 0.8, 0.99, 1.0]), "")
+    t_lc = F["schumann1996_threshold_temperature_liquid"].evaluate(
+        T_LM=t_lm, U=u, G=TABLE_3[0]
+    )
+    # At the threshold temperature for U, the critical humidity is U.
+    back = F[key].evaluate(T=t_lc, T_LM=t_lm, G=TABLE_3[0])
+    assert back.magnitude == pytest.approx(u.magnitude, abs=1e-9)
+    # Negative where dry air gives contrails; none above T_LM, as Ponater
+    # et al. (2002) state, applied by default.
+    found = F[key].evaluate(T=Q_([-59.0, -30.0], "degC"), T_LM=t_lm, G=TABLE_3[0])
+    assert found.magnitude[0] == pytest.approx(-4.5026, abs=5e-4)
+    assert np.isnan(found.magnitude[1])
+    # Evaluated anyway, the formula gives there a number below 1, which is
+    # no threshold.
+    assert F[key].evaluate(
+        T=Q_(-30.0, "degC"), T_LM=t_lm, G=TABLE_3[0], outside="ignore"
+    ).magnitude == pytest.approx(0.652, abs=5e-4)
+
+
+def test_the_systems_of_the_threshold_temperature() -> None:
+    exact = CATALOG.systems["schumann1996_threshold_temperature"].evaluate(
+        G=TABLE_3, U=U_TABLE_2
+    )
+    assert exact["T_LC"].to("degC").magnitude.tolist() == pytest.approx(
+        [-50.641, -46.346, -41.175], abs=5e-4
+    )
+    ice = CATALOG.systems["schumann1996_threshold_temperature_ice"].evaluate(
+        G=TABLE_3, U=U_TABLE_2
+    )
+    assert ice["T_IC"].to("degC").magnitude.tolist() == pytest.approx(
+        [-45.7, -41.8, -37.1], abs=0.06
+    )
+    # The way of Schumann (2012), by the fits, within 0.13 K of it here.
+    fit = CATALOG.systems["schumann2012_threshold_temperature"].evaluate(
+        G=TABLE_3, U=U_TABLE_2
+    )
+    gap = fit["T_LC"].to("K").magnitude - exact["T_LC"].to("K").magnitude
+    assert np.abs(gap).max() < 0.08

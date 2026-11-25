@@ -3,11 +3,11 @@
 #
 # Contrail formation from aircraft exhaust: the criterion of Schmidt and
 # Appleman as Schumann (1996, 2000, 2012) and Gierens (2021) write it, its
-# explicit formulas: the overall propulsion efficiency, the emission index
-# of water vapour, the slope of the mixing line, the contrail factor, the
-# fits of the maximum threshold temperature and of the threshold
-# temperature. The exact threshold temperatures, solutions of implicit
-# equations, come later.
+# formulas: the overall propulsion efficiency, the emission index of water
+# vapour, the slope of the mixing line, the contrail factor, the maximum
+# threshold temperatures and the threshold temperatures over liquid water
+# and over ice, exact (implicit equations) and fitted, the critical
+# relative humidity, and the systems that chain them.
 # Hand-written, validated when loaded by nomogram.catalog. Entries whose
 # details were not checked against the source carry status = "to-confirm".
 
@@ -16,7 +16,7 @@ name = "contrail"
 label = "Contrail formation from aircraft exhaust"
 format = 2
 requires = ["water-vapour"]
-keywords = ["contrail", "Schmidt-Appleman", "threshold temperature", "critical temperature", "mixing line"]
+keywords = ["contrail", "Schmidt-Appleman", "threshold temperature", "critical temperature", "mixing line", "critical relative humidity"]
 matches = [
   { target = "http://www.wikidata.org/entity/Q207546", relation = "broad", verified = 2026-11-25 },
 ]
@@ -49,6 +49,15 @@ container = "Aerospace, 8, 164"
 doi = "10.3390/aerospace8060164"
 status = "verified"
 note = "Read in the copy of the publisher (CC BY 4.0): equation 1 (p. 2), equations 19 to 21 and Figure 1 (p. 7), the G-factor of kerosene at 1000 hPa (p. 10)."
+
+[references.ponater2002]
+authors = "Ponater, M.; Marquart, S.; Sausen, R."
+year = 2002
+title = "Contrails in a comprehensive global climate model: Parameterization and radiative forcing results"
+container = "Journal of Geophysical Research: Atmospheres, 107(D13), 4164"
+doi = "10.1029/2001JD000429"
+status = "verified"
+note = "Read on its page ACL 2-3 only: equations 6 to 8 and the criterion of section 2.3, quoted briefly."
 
 # --- Quantity kinds ---------------------------------------------------
 
@@ -88,6 +97,22 @@ description = "T_LM (Schumann 1996), T_max (Gierens 2021): the temperature at wh
 label = "Threshold Temperature of Contrail Formation"
 specialization_of = "Temperature"
 description = "T_LC (Schumann 1996): the highest ambient temperature at which the mixing line of the exhaust reaches liquid saturation, for the relative humidity of the ambient air over water; contrails form below it. The critical temperature of Appleman (1953), not the temperature of a critical point. Equal to the maximum threshold temperature at U = 1, below it otherwise."
+
+[kinds.ContrailMaximumThresholdTemperatureWithRespectToIce]
+label = "Maximum Threshold Temperature of Contrail Formation with respect to Ice"
+specialization_of = "Temperature"
+description = "T_IM (Schumann 1996): the temperature at which the mixing line of the exhaust is tangent to the saturation vapour pressure curve over ice, where its slope equals G (equation 10). A point at which a saturation vapour pressure is evaluated. Not the maximum threshold temperature over liquid water, T_LM, a few kelvins colder."
+
+[kinds.ContrailThresholdTemperatureWithRespectToIce]
+label = "Threshold Temperature of Contrail Formation with respect to Ice"
+specialization_of = "Temperature"
+description = "T_IC (Schumann 1996): the highest ambient temperature at which the mixing line of the exhaust reaches ice saturation, for the relative humidity of the ambient air over water (equation 12); equal to T_IM where the ambient air at T_IM is just saturated with respect to ice, below it where it is not. A point at which a saturation vapour pressure is evaluated."
+
+[kinds.ContrailCriticalRelativeHumidity]
+label = "Critical Relative Humidity of Contrail Formation"
+specialization_of = "DimensionlessRatio"
+units = ["UNITLESS"]
+description = "U_LC (Schumann 2012, equation 12), r_contr (Ponater et al. 2002, equation 8): the relative humidity over liquid water the ambient air must exceed for contrails to form at an ambient temperature below the maximum threshold temperature T_LM; 1 at T_LM, negative where even dry air gives contrails (about -4.5 at -59 degC for G = 1.49 Pa/K). Not a relative humidity, which it bounds, since it may be negative; not the critical relative humidity of cloud schemes (r_crit), the grid-box humidity above which clouds form."
 
 [trade_terms.contrail_factor]
 term = "contrail factor"
@@ -348,17 +373,183 @@ reference = "gierens2021"
 equation = "20, 21"
 note = "p. 7: 'For colder conditions (or for G < 2 Pa K-1) the formula of [3] should be used.' At G = 2 Pa/K, the two fits meet within about 0.008 K."
 
+[formulations.schumann1996_maximum_threshold_temperature_ice_fit]
+label = "Maximum threshold temperature of contrail formation with respect to ice, fit in degrees Celsius (Schumann 1996)"
+expression = "a0 + a1 * ln(G - g0) + a2 * ln(G - g0) ** 2"
+fixed_units = true
+note = "A fit of the exact solution of equation 10 of Schumann (1996) over ice, the temperature where the slope of the saturation vapour pressure over ice equals G. Against that solution with the Sonntag form of Schumann (2012), A2, the fit departs by up to 0.050 K, at G = 0.15 Pa/K, the end of its range."
+output = { identifier = "T_IM", kind = "ContrailMaximumThresholdTemperatureWithRespectToIce", unit = "DEG_C", description = "Maximum threshold temperature of contrail formation with respect to ice" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+coefficients = { a0 = -43.36, a1 = 9.08, a2 = 0.49, g0 = 0.02 }
+keywords = ["contrail", "threshold temperature", "ice"]
+
+[[formulations.schumann1996_maximum_threshold_temperature_ice_fit.citations]]
+reference = "schumann1996"
+equation = "32"
+note = "Appendix 2, p. 18, as a first guess of the Newton iteration of equation 10 over ice."
+notation = { T_IM = 'T_\mathrm{IM}' }
+accuracy = "maximum error of 0.036 degC"
+
+[[formulations.schumann1996_maximum_threshold_temperature_ice_fit.citations.domains]]
+bounds = { G = [0.15, 23.0] }
+criterion = "0.15 Pa/K <= G < 23 Pa/K, where the fit gives a maximum error of 0.036 degC (appendix 2)."
+
+# --- Maximum threshold temperatures: exact ----------------------------
+
+[formulations.schumann1996_maximum_threshold_temperature_liquid]
+label = "Maximum threshold temperature of contrail formation, exact (Schumann 1996)"
+expression = "dp_liq(T=T_LM) == G"
+calls = { dp_liq = "schumann2012_saturation_vapour_pressure_slope_liquid" }
+fixed_units = true
+note = "The temperature at which the mixing line touches the saturation vapour pressure curve over liquid water, where their slopes are equal (equation 10); one root, the slope of the saturation vapour pressure increasing with the temperature. Schumann (1996) takes the saturation vapour pressure of Sonntag (1994), here A1 of Schumann (2012), Sonntag's form in Pa. Equation 31 fits it (schumann1996_maximum_threshold_temperature_fit)."
+output = { identifier = "T_LM", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+keywords = ["contrail", "threshold temperature"]
+
+[[formulations.schumann1996_maximum_threshold_temperature_liquid.citations]]
+reference = "schumann1996"
+equation = "10"
+note = "p. 10, de_L(T_LM) / dT = G, solved by a Newton iteration from equation 31 (appendix 2); Table 3 (p. 13) prints T_LM = -42.9, -38.3 and -32.7 degC for G = 1.49, 2.31 and 3.82 Pa/K."
+notation = { T_LM = 'T_\mathrm{LM}' }
+
+[[formulations.schumann1996_maximum_threshold_temperature_liquid.citations]]
+reference = "schumann2012"
+equation = "A5"
+notation = { T_LM = 'T_\mathrm{LM}' }
+
+[formulations.schumann1996_maximum_threshold_temperature_ice]
+label = "Maximum threshold temperature of contrail formation with respect to ice, exact (Schumann 1996)"
+expression = "dp_ice(T=T_IM) == G"
+calls = { dp_ice = "schumann2012_saturation_vapour_pressure_slope_ice" }
+fixed_units = true
+note = "The temperature at which the mixing line touches the saturation vapour pressure curve over ice (equation 10); one root. With A2 of Schumann (2012), Sonntag's form in Pa. Equation 32 fits it (schumann1996_maximum_threshold_temperature_ice_fit)."
+output = { identifier = "T_IM", kind = "ContrailMaximumThresholdTemperatureWithRespectToIce", unit = "K", description = "Maximum threshold temperature of contrail formation with respect to ice" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+keywords = ["contrail", "threshold temperature", "ice"]
+
+[[formulations.schumann1996_maximum_threshold_temperature_ice.domains]]
+bounds = { T_IM = [0.0, 273.16] }
+criterion = "The point of tangency lies on the saturation curve over ice, which holds below the triple point of water, 273.16 K; the Sonntag form of the curve, extrapolated far above it, would give the slope G again."
+
+[[formulations.schumann1996_maximum_threshold_temperature_ice.citations]]
+reference = "schumann1996"
+equation = "10"
+note = "p. 10, de_I(T_IM) / dT = G; Table 3 (p. 13) prints T_IM = -39.8, -35.5 and -30.4 degC for G = 1.49, 2.31 and 3.82 Pa/K."
+notation = { T_IM = 'T_\mathrm{IM}' }
+
+# --- Threshold temperatures: exact ------------------------------------
+
+[formulations.schumann1996_threshold_temperature_liquid]
+label = "Threshold temperature of contrail formation, exact (Schumann 1996)"
+expression = "T_LC == T_LM - (p_liq(T=T_LM) - U * p_liq(T=T_LC)) / G"
+calls = { p_liq = "schumann2012_saturation_vapour_pressure_liquid" }
+fixed_units = true
+note = "The ambient temperature at which the mixing line through the ambient air touches the saturation vapour pressure curve over liquid water at T_LM (equation 11), with A1 of Schumann (2012). The equation has a second root above T_LM, which the physical domain leaves out; at U = 1 the two meet at T_LM, a double root. Both hold for the T_LM of equation 10 with the same G and the same saturation vapour pressure (schumann1996_maximum_threshold_temperature_liquid, and the system schumann1996_threshold_temperature): a fitted T_LM moves the double root off it."
+output = { identifier = "T_LC", kind = "ContrailThresholdTemperature", unit = "K", description = "Threshold temperature of contrail formation" }
+inputs = [
+  { identifier = "T_LM", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" },
+  { identifier = "U", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity of the ambient air over liquid water" },
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+keywords = ["contrail", "threshold temperature"]
+
+[[formulations.schumann1996_threshold_temperature_liquid.domains]]
+at_most = { T_LC = "T_LM" }
+criterion = "The threshold temperature never exceeds its maximum, which it reaches at liquid saturation (U = 1): the root of equation 11 above T_LM is no threshold."
+
+[[formulations.schumann1996_threshold_temperature_liquid.citations]]
+reference = "schumann1996"
+equation = "11"
+note = "p. 10, solved by a Newton iteration (appendix 2); Table 3 (p. 13) prints T_LC = -50.6, -46.3 and -41.2 degC for G = 1.49, 2.31 and 3.82 Pa/K at U = 42 % (Table 2)."
+notation = { T_LC = 'T_\mathrm{LC}', T_LM = 'T_\mathrm{LM}' }
+
+[[formulations.schumann1996_threshold_temperature_liquid.citations]]
+reference = "schumann2000"
+equation = "6"
+notation = { T_LC = 'T_\mathrm{C}', T_LM = 'T_\mathrm{M}' }
+
+[[formulations.schumann1996_threshold_temperature_liquid.citations]]
+reference = "schumann2012"
+equation = "A6"
+notation = { T_LC = 'T_\mathrm{LC}', T_LM = 'T_\mathrm{LM}' }
+
+[formulations.schumann1996_threshold_temperature_ice]
+label = "Threshold temperature of contrail formation with respect to ice, exact (Schumann 1996)"
+expression = "T_IC == T_IM - (p_ice(T=T_IM) - U * p_liq(T=T_IC)) / G"
+calls = { p_ice = "schumann2012_saturation_vapour_pressure_ice", p_liq = "schumann2012_saturation_vapour_pressure_liquid" }
+fixed_units = true
+note = "The ambient temperature at which the mixing line through the ambient air touches the saturation vapour pressure curve over ice at T_IM (equation 12), U being the relative humidity over liquid water, with A1 and A2 of Schumann (2012). The equation has a root at or below T_IM only where the ambient air at T_IM is not supersaturated with respect to ice, U p_liq(T_IM) <= p_ice(T_IM): there the tangent at T_IM lies below the saturation curve over ice; beyond, it gives NaN, the root above T_IM, which the physical domain leaves out, being no threshold."
+output = { identifier = "T_IC", kind = "ContrailThresholdTemperatureWithRespectToIce", unit = "K", description = "Threshold temperature of contrail formation with respect to ice" }
+inputs = [
+  { identifier = "T_IM", kind = "ContrailMaximumThresholdTemperatureWithRespectToIce", unit = "K", description = "Maximum threshold temperature of contrail formation with respect to ice" },
+  { identifier = "U", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity of the ambient air over liquid water" },
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+keywords = ["contrail", "threshold temperature", "ice"]
+
+[[formulations.schumann1996_threshold_temperature_ice.domains]]
+at_most = { T_IC = "T_IM" }
+criterion = "The threshold temperature with respect to ice never exceeds its maximum: the root of equation 12 above T_IM is no threshold."
+
+[[formulations.schumann1996_threshold_temperature_ice.citations]]
+reference = "schumann1996"
+equation = "12"
+note = "p. 10; Table 3 (p. 13) prints T_IC = -45.7, -41.8 and -37.1 degC for G = 1.49, 2.31 and 3.82 Pa/K at U = 42 % (Table 2)."
+notation = { T_IC = 'T_\mathrm{IC}', T_IM = 'T_\mathrm{IM}' }
+
+# --- Critical relative humidity ---------------------------------------
+
+[formulations.schumann2012_critical_relative_humidity]
+label = "Critical relative humidity of contrail formation (Schumann 2012, after Ponater et al. 2002)"
+expression = "(G * (T - T_LM) + p_liq(T=T_LM)) / p_liq(T=T)"
+calls = { p_liq = "schumann2012_saturation_vapour_pressure_liquid" }
+fixed_units = true
+note = "The relative humidity over liquid water at which the mixing line through the ambient air at T touches the saturation vapour pressure curve at T_LM: contrails form where U exceeds it, the threshold temperature at that humidity being T. It avoids solving equation 11 for T_LC. Below T_LM it is at most 1, and negative where even dry air gives contrails; Ponater et al. (2002) write that it 'can range from 0 to 1'."
+output = { identifier = "U_LC", kind = "ContrailCriticalRelativeHumidity", unit = "UNITLESS", description = "Critical relative humidity of contrail formation" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Ambient temperature" },
+  { identifier = "T_LM", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" },
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+keywords = ["contrail", "critical relative humidity"]
+
+[[formulations.schumann2012_critical_relative_humidity.domains]]
+at_most = { T = "T_LM" }
+criterion = "Above T_LM no humidity gives contrails: the tangent of the mixing line meets the saturation curve only above the ambient point."
+
+[[formulations.schumann2012_critical_relative_humidity.citations]]
+reference = "schumann2012"
+equation = "12"
+note = "p. 547: 'Instead of T < T_LC, it requires that the ambient relative humidity U stays above a critical value', with p_liq of Sonntag (1994), A1."
+notation = { U_LC = 'U_\mathrm{LC}', T_LM = 'T_\mathrm{LM}' }
+
+[[formulations.schumann2012_critical_relative_humidity.citations]]
+reference = "ponater2002"
+equation = "8"
+note = "p. ACL 2-3, with T_contr from equation 31 of Schumann (1996), their equation 6."
+notation = { U_LC = 'r_\mathrm{contr}', T_LM = 'T_\mathrm{contr}' }
+
+[[formulations.schumann2012_critical_relative_humidity.citations.domains]]
+at_most = { T = "T_LM" }
+criterion = "'No contrails are possible if T > T_contr' (p. ACL 2-3)."
+
 # --- Threshold temperature: fit ---------------------------------------
 
 [formulations.schumann2012_threshold_temperature_fit]
 label = "Threshold temperature of contrail formation, explicit fit (Schumann 2012)"
-expression = "T_LM - (1 - U) * p_LM / G - (x1 + x3 * ln(G)) * U * ((1 - U ** 2) ** x2 - (1 / 4 - (U - 1 / 2) ** 2) ** 4 * (1 - (1 - U ** 2) ** x2))"
+expression = "T_LM - (1 - U) * p_liq(T=T_LM) / G - (x1 + x3 * ln(G)) * U * ((1 - U ** 2) ** x2 - (1 / 4 - (U - 1 / 2) ** 2) ** 4 * (1 - (1 - U ** 2) ** x2))"
+calls = { p_liq = "schumann2012_saturation_vapour_pressure_liquid" }
 fixed_units = true
-note = "Equation A7 of Schumann (2012), exact for U = 0 and U = 1, with the correction Delta T_c of equations A17 to A19, zero at U = 0 and U = 1. It needs one evaluation of the saturation vapour pressure over water at T_LM, p_liq(T_LM), which Schumann computes with equation A1 (schumann2012_saturation_vapour_pressure_liquid). Against the exact solution of equation A6 with A1 and the exact T_LM, the fit departs by up to 0.18 K near G = 23 Pa/K and U = 0.89, and by up to 0.14 K at G = 0.24 Pa/K (U = 0.88); from 1 to 15 Pa/K, by up to 0.12 K. Figure A2 of Schumann (2012) shows U up to 0.8."
+note = "Equation A7 of Schumann (2012), exact for U = 0 and U = 1, with the correction Delta T_c of equations A17 to A19, zero at U = 0 and U = 1. It needs one evaluation of the saturation vapour pressure over water at T_LM, p_liq(T_LM), with equation A1. Schumann takes T_LM from equation 31 (equation 10 of Schumann 2012), as the system schumann2012_threshold_temperature does. Against the exact solution of equation A6 with A1 and the exact T_LM, the fit departs by up to 0.18 K near G = 23 Pa/K and U = 0.89, and by up to 0.14 K at G = 0.24 Pa/K (U = 0.88); from 1 to 15 Pa/K, by up to 0.12 K. Figure A2 of Schumann (2012) shows U up to 0.8."
 output = { identifier = "T_LC", kind = "ContrailThresholdTemperature", unit = "K", description = "Threshold temperature of contrail formation" }
 inputs = [
   { identifier = "T_LM", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" },
-  { identifier = "p_LM", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over liquid water at T_LM" },
   { identifier = "U", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity of the ambient air over liquid water" },
   { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
 ]
@@ -369,12 +560,41 @@ keywords = ["contrail", "threshold temperature"]
 reference = "schumann2012"
 equation = "A16-A19"
 note = "Appendix A5, p. 571."
-notation = { T_LC = 'T_\mathrm{LC}', T_LM = 'T_\mathrm{LM}', p_LM = 'p_{\mathrm{liq}}(T_\mathrm{LM})' }
+notation = { T_LC = 'T_\mathrm{LC}', T_LM = 'T_\mathrm{LM}' }
 accuracy = "maximum error of 0.13 K"
 
 [[formulations.schumann2012_threshold_temperature_fit.citations.domains]]
 bounds = { U = [0.0, 1.0], G = [0.24, 23.0] }
 criterion = "The full range 0 <= U <= 1 and 0.24 Pa/K < G < 23 Pa/K, over which the fit has a maximum error of 0.13 K (appendix A5, Fig. A2)."
+
+# --- Systems ----------------------------------------------------------
+
+[systems.schumann1996_threshold_temperature]
+label = "Threshold temperature of contrail formation from G and U, exact (Schumann 1996, equations 10 and 11)"
+equations = [
+  { formulation = "schumann1996_maximum_threshold_temperature_liquid" },
+  { formulation = "schumann1996_threshold_temperature_liquid" },
+]
+reference = "schumann1996"
+note = "No loop: T_LM from equation 10, then T_LC from equation 11, each by the search of its root."
+
+[systems.schumann1996_threshold_temperature_ice]
+label = "Threshold temperature of contrail formation with respect to ice from G and U, exact (Schumann 1996, equations 10 and 12)"
+equations = [
+  { formulation = "schumann1996_maximum_threshold_temperature_ice" },
+  { formulation = "schumann1996_threshold_temperature_ice" },
+]
+reference = "schumann1996"
+note = "No loop: T_IM from equation 10 over ice, then T_IC from equation 12."
+
+[systems.schumann2012_threshold_temperature]
+label = "Threshold temperature of contrail formation from G and U, explicit fits (Schumann 2012)"
+equations = [
+  { formulation = "schumann1996_maximum_threshold_temperature_fit" },
+  { formulation = "schumann2012_threshold_temperature_fit" },
+]
+reference = "schumann2012"
+note = "No loop and no root to search: T_LM from equation 10 of Schumann (2012), equation 31 of Schumann (1996), then T_LC from equations A16 to A19, the way of Schumann (2012) for each waypoint."
 
 # --- Cross-checks -----------------------------------------------------
 

@@ -36,9 +36,21 @@ and this project adheres to
   print (efficiency, emission indices and slopes of the mixing line of a
   B747, the factors of Peters); the deviations of the fits from the exact
   solutions are measured and noted beside the accuracy each source
-  states. The exact threshold temperatures, solutions of implicit
-  equations, come later. "Contrail factor" is a trade term with two
-  meanings, C in K-1 and G in Pa/K.
+  states. "Contrail factor" is a trade term with two meanings, C in K-1
+  and G in Pa/K.
+- **Exact threshold temperatures of contrail formation**, implicit
+  equations of Schumann (1996) with the saturation vapour pressures of
+  Schumann (2012): the maximum threshold temperatures over liquid water
+  and over ice (equation 10), the threshold temperatures over liquid
+  water and over ice (equations 11 and 12), each below its maximum by a
+  relative bound that leaves out the second root; the fit of the maximum
+  over ice (equation 32); the critical relative humidity of Schumann
+  (2012, equation 12, after Ponater et al. 2002), signed, applied below
+  T_LM as Ponater et al. state; three systems without a loop, exact over
+  water and over ice, and by the fits as Schumann (2012) does. The fit of
+  the threshold temperature calls the saturation vapour pressure at T_LM.
+  Their oracles are Table 3 of Schumann (1996) and the case of the ATTAS
+  aircraft.
 - The saturation vapour pressures of Sonntag (1994) in pascals as
   Schumann (2012) writes them (A1, A2), proved equivalent to `sonntag1990`
   and `sonntag1990_ice`, and their derivatives, the slopes of saturation
