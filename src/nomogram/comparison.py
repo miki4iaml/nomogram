@@ -94,6 +94,19 @@ def feeds(
     pressure altitude for a geopotential height). ``kinds`` are those of
     the bundled catalog by default, loaded only for two different kinds.
     """
+    return _specializes(output_kind, input_kind, kinds, guard=True)
+
+
+def _specializes(
+    output_kind: str,
+    input_kind: str,
+    kinds: Mapping[str, Any] | None,
+    *,
+    guard: bool,
+) -> bool:
+    """Whether a kind is another or specializes it, never a difference for
+    a point; with ``guard``, never past a kind declaring it does not feed
+    the other (``QuantityKind.never_feeds``), which only feeding obeys."""
     if output_kind == input_kind:
         return True
     if kinds is None:
@@ -108,7 +121,7 @@ def feeds(
     while kind is not None and kind.name not in seen:
         if kind.name == input_kind:
             return True
-        if input_kind in getattr(kind, "never_feeds", ()):
+        if guard and input_kind in getattr(kind, "never_feeds", ()):
             return False
         seen.add(kind.name)
         kind = kinds.get(kind.specialization_of or "")
@@ -231,10 +244,13 @@ def compare(
         give the whole table in one pass.
     kind : str, optional
         A quantity kind every formulation, the reference included,
-        computes or specializes: asked for, it compares formulations of
+        computes or specializes (QUDT ``specializationOf``, never a
+        difference for a point): asked for, it compares formulations of
         sibling kinds, as saturation over ice against saturation over
-        water, both a ``"SaturationVapourPressure"``. By default, every
-        formulation computes the reference's kind.
+        water, both a ``"SaturationVapourPressure"``. A kind that does not
+        feed its parent (``QuantityKind.never_feeds``) still specializes
+        it: the pressure altitudes compare as geopotential heights. By
+        default, every formulation computes the reference's kind.
     outside, basis, scale
         Passed to each evaluation (see
         :meth:`nomogram.model.Formulation.evaluate`). ``"nan"`` keeps
@@ -262,7 +278,7 @@ def compare(
         if kind is None and computed != reference.output.kind:
             msg = f"{formulation.key} computes {computed}, not {reference.output.kind}"
             raise ValueError(msg)
-        if kind is not None and not feeds(computed, kind):
+        if kind is not None and not _specializes(computed, kind, None, guard=False):
             msg = f"{formulation.key} computes {computed}, which does not specialize {kind}"
             raise ValueError(msg)
         result = formulation.evaluate(

@@ -81,7 +81,8 @@ FIELDS: Mapping[str, str] = {
     "kind": (
         "the output kind of a formulation, a kind a system gives, or a "
         "quantity kind itself; with "
-        "specializations=True (default), kinds specializing it as well"
+        "specializations=True (default), kinds specializing it as well, and "
+        "those QUDT organizes under it (organizedUnder)"
     ),
     "unit": (
         "a unit an entry works in (variables, constants and declared coefficients "

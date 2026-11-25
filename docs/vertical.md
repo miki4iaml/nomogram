@@ -24,10 +24,10 @@ the terms each community uses in `trade_terms`.
 | Altitude (geometric) | `Altitude` (QUDT) | the geoid, about mean sea level | `altitude` | CF |
 | Altitude of the surface, elevation of a station | `SurfaceAltitude` | the geoid | `surface_altitude` | CF; WMO-No. 8, Volume I, 1.3.3.2 |
 | Height above the surface | `Height` (QUDT) | the surface | `height` | CF |
-| Geopotential | `Geopotential` | the geoid | `geopotential` (m² s⁻²) | CF; IFS CY49R1, Part III, equation 2.6 |
-| Geopotential height | `GeopotentialHeight` | the geoid | `geopotential_height` | CF; WMO-No. 8, Volume I, equation 12.12 |
+| Geopotential | `Geopotential` (QUDT) | the geoid | `geopotential` (m² s⁻²) | CF; IFS CY49R1, Part III, equation 2.6 |
+| Geopotential height | `GeopotentialHeight` (QUDT) | the geoid | `geopotential_height` | CF; WMO-No. 8, Volume I, equation 12.12 |
 | Thickness of a layer | `GeopotentialThickness` | its lower level | `atmosphere_layer_thickness_expressed_as_geopotential_height_difference` | CF |
-| Pressure altitude, flight level | `PressureAltitude` | the standard atmosphere | none | SERA, Art. 2, points 101 and 78 |
+| Pressure altitude, flight level | `PressureAltitude` (QUDT) | the standard atmosphere | none | SERA, Art. 2, points 101 and 78 |
 | Altitude of aviation (altimeter set to QNH) | `AltimetricAltitude` | mean sea level, through the standard atmosphere | none | SERA, Art. 2, point 39, and its GM1 |
 | Height of aviation (altimeter set to QFE) | `AltimetricHeight` | the QFE datum, through the standard atmosphere | none | SERA, Art. 2, point 84, and its GM1 |
 | Ellipsoidal height (satellite positioning) | `EllipsoidalHeight` | a reference ellipsoid | `height_above_reference_ellipsoid` | CF |

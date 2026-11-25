@@ -80,8 +80,9 @@ class KindSpec(NamedTuple):
     #: state: (low, high, unit, criterion), None for an open end.
     bounds: tuple[float | None, float | None, str, str] | None = None
     #: Wikidata items nomogram links to a kind QUDT gives no
-    #: ``wikidataMatch``, by their identifier, with their SKOS relation.
-    wikidata: tuple[tuple[str, str], ...] = ()
+    #: ``wikidataMatch``: identifier, SKOS relation, and the date nomogram
+    #: last checked the item, which the extraction does not read.
+    wikidata: tuple[tuple[str, str, str], ...] = ()
     #: Kinds the kind specializes in QUDT whose inputs its values must not
     #: feed (nomogram's departure): their inputs take other values of the
     #: same quantity, which the kind's would only approximate.
@@ -266,8 +267,10 @@ KINDS: dict[str, KindSpec] = {
     # ambiguous across trades (see docs/rosetta.md).
     "AbsoluteHumidity": KindSpec("ratio", delta=False),
     # Energy per unit mass, in which latent heats are given; QUDT declares
-    # J/kg for it. The parent of the geopotential (catalog), which CF
-    # gives in m2 s-2: QUDT declares that unit for SpecificModulus only.
+    # J/kg for it. QUDT 3.5.4 declares m2 s-2 for the geopotential and the
+    # specific modulus, not for SpecificEnergy: added for its children of
+    # the catalog, the static energies, written in m2 s-2 as the
+    # geopotential is.
     "SpecificEnergy": KindSpec("ratio", delta=False, added_units=("M2-PER-SEC2",)),
     # The geopotential (CF), on an interval scale whose zero is the geoid,
     # in m2 s-2 (declared by QUDT): a local kind of nomogram until QUDT 3.5.4
@@ -378,13 +381,13 @@ KINDS: dict[str, KindSpec] = {
     # Wikidata item; the item of the density of the atmosphere, moist or
     # dry, is broader than either.
     "DensityOfDryAir": KindSpec(
-        "ratio", delta=False, wikidata=(("Q1511415", "broad"),)
+        "ratio", delta=False, wikidata=(("Q1511415", "broad", "2026-11-04"),)
     ),
     "DensityOfMoistAir": KindSpec(
         "ratio",
         delta=False,
         cf_standard_names=(("air_density", "exact"),),
-        wikidata=(("Q1511415", "broad"),),
+        wikidata=(("Q1511415", "broad", "2026-11-04"),),
     ),
     # WMO-No. 8: the psychrometer coefficient A, in K-1 (4.1, 4.2), and the
     # specific heats of dry air and water vapour of the wet-bulb
@@ -698,13 +701,14 @@ LOCAL_KIND_CF_NAMES: tuple[str, ...] = (
 
 #: Symbols nomogram displays instead of QUDT's, with the reason.
 SYMBOLS: dict[str, str] = {
-    # QUDT writes "PPM"; the SI Brochure (9th ed., 5.4.7) and ITU-R P.453
-    # (its N_wet in ppm) write "ppm", as does UCUM ("[ppm]").
+    # QUDT wrote "PPM" until 3.5.4, which writes "ppm" as the SI Brochure
+    # (9th ed., 5.4.7), ITU-R P.453 (its N_wet in ppm) and UCUM ("[ppm]")
+    # do: kept as a guard.
     "PPM": "ppm",
-    # QUDT writes the CJK sign U+4E00, a deliberate choice
-    # (qudt/qudt-public-repo#712, where "1" and "-" were proposed); the SI
-    # Brochure (9th ed., 2.3.3 and 5.4.7) gives the unit one the symbol 1,
-    # rarely written.
+    # QUDT wrote the CJK sign U+4E00 until 3.5.4, a deliberate choice
+    # (qudt/qudt-public-repo#712, where "1" and "-" were proposed), and
+    # writes 1 since, the symbol the SI Brochure (9th ed., 2.3.3 and 5.4.7)
+    # gives the unit one, rarely written: kept as a guard.
     "UNITLESS": "1",
     # QUDT writes "/mol"; the SI Brochure (9th ed., table 1) writes mol⁻¹,
     # as does UCUM ("mol-1").
@@ -725,6 +729,9 @@ SI_RELATION = "exact"
 #: UDUNITS names CF gives to angles of a direction: latitudes are in
 #: degree_north, longitudes in degree_east (CF conventions, 4.1 and 4.2).
 _UDUNITS_ALIASES: dict[str, str] = {"degree_north": "degree", "degree_east": "degree"}
+
+#: Scale factors CF writes as canonical units, as the pint units they are.
+_UDUNITS_SCALES: dict[str, str] = {"1e-3": "permille", "1e-6": "ppm"}
 
 _UDUNITS_FACTOR = re.compile(r"^([A-Za-z]+)(-?\d+)?$")
 _UDUNITS_NUMBER = re.compile(r"^\d+(\.\d+)?([eE]-?\d+)?$")
@@ -758,7 +765,12 @@ def udunits_to_pint(expression: str) -> str:
     for factor in expression.split():
         factor = _UDUNITS_ALIASES.get(factor, factor)
         if _UDUNITS_NUMBER.match(factor):
-            factors.append(factor)  # a scale factor, such as 1e-3 (per mille)
+            # A scale factor, written as the pint unit it is, since a pint
+            # unit has no numeric factor: 1e-3 is the per mille.
+            if factor not in _UDUNITS_SCALES:
+                msg = f"unsupported UDUNITS scale factor: {factor!r}"
+                raise ValueError(msg)
+            factors.append(_UDUNITS_SCALES[factor])
             continue
         match = _UDUNITS_FACTOR.match(factor)
         if match is None:
@@ -895,6 +907,10 @@ def extract_kinds(
         subject = QK[name]
         _require(graph, subject)
         lineage = {name} | ancestors(graph, name)
+        astray = sorted(set(spec.never_feeds) - lineage)
+        if astray:
+            msg = f"never_feeds of {name}: {', '.join(astray)} is not a kind it specializes"
+            raise ValueError(msg)
         offset = spec.offset_units
         if offset is None:
             offset = spec.scale_type == "interval"
@@ -929,9 +945,9 @@ def extract_kinds(
                 {
                     "target": f"http://www.wikidata.org/entity/{item}",
                     "relation": relation,
-                    "verified": spec.checked or date,
+                    "verified": checked,
                 }
-                for item, relation in spec.wikidata
+                for item, relation, checked in spec.wikidata
             ]
             + [
                 {
@@ -942,6 +958,10 @@ def extract_kinds(
                 for cf, relation in spec.cf_standard_names
             ],
         }
+        targets = [match["target"] for match in kinds[name]["matches"]]
+        if len(targets) != len(set(targets)):
+            msg = f"{name}: a link given twice, by QUDT and by nomogram"
+            raise ValueError(msg)
     return kinds
 
 

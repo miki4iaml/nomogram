@@ -567,7 +567,7 @@ FIGURES = {
 
 def projection(svg: str) -> list[tuple[str, ...]]:
     """What a figure shows, without where: each element with its colours,
-    its dashes and its text. Graphviz measures text with the fonts of the
+    its dashes, its text and its tooltip. Graphviz measures text with the fonts of the
     workstation, so that positions and sizes differ from one system to
     another; what is drawn does not."""
     from xml.etree import ElementTree
@@ -585,6 +585,7 @@ def projection(svg: str) -> list[tuple[str, ...]]:
                 element.get("stroke", ""),
                 element.get("stroke-dasharray", ""),
                 (element.text or "").strip(),
+                element.get("{http://www.w3.org/1999/xlink}title", ""),
             )
         )
     return rows

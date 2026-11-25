@@ -5,7 +5,8 @@
 
 :func:`kind_graph` gives the tree of quantity kinds, each linked to the
 kind it specializes and to its matches in external vocabularies (CF
-standard names, Wikidata items). :func:`system_graph` gives a system of
+standard names, Wikidata items, quantities of the SI Digital Framework of
+the BIPM). :func:`system_graph` gives a system of
 equations: its equations, its variables, which equation gives which
 variable and which variables each equation reads.
 
@@ -57,6 +58,8 @@ _PREFIXES: Mapping[str, str | None] = {
 }
 
 _WIKIDATA = "http://www.wikidata.org/entity/"
+#: The SI Digital Framework of the BIPM, the target of QUDT's siExactMatch.
+_SI_FRAMEWORK = "https://si-digital-framework.org/"
 
 #: Declared values, by attribute and value: where it applies, label and
 #: description.
@@ -163,7 +166,7 @@ def kind_graph(
     kinds : str, Entry, iterable of them, or None
         The kinds to draw: names (``"RelativeHumidity"``), references
         (``"kinds.RelativeHumidity"``) or entries a search found
-        (``catalog().search(kind="*humidity*")``); all the kinds of the
+        (``catalog().search(kind="*humidity*", section="kinds")``); all the kinds of the
         catalog by default. The kinds they specialize, directly or not, are
         added, as far as the catalog holds them, so that the tree is
         connected.
@@ -172,7 +175,9 @@ def kind_graph(
     matches : bool
         Also draw the matches of each kind in external vocabularies, as
         nodes whose ``id`` is their IRI, linked by their SKOS relation and
-        the date of their last verification (``verified``).
+        the date of their last verification (``verified``): a CF standard
+        name, labelled by its name; a Wikidata item, by its identifier; a
+        quantity of the SI Digital Framework, by its code (``PRES``).
 
     Returns
     -------
@@ -190,6 +195,9 @@ def kind_graph(
         For a kind the catalog does not have.
     ValueError
         For an entry of another section than the kinds.
+    TypeError
+        For a kind given as anything else than a name, a reference or an
+        entry.
     """
     found = _catalog(catalog)
     names = _kind_names(kinds, found)
@@ -275,6 +283,9 @@ def system_graph(
         For a system the catalog does not have.
     ValueError
         For an entry of another section than the systems.
+    TypeError
+        For a system given as anything else than a system, a name, a
+        reference or an entry.
     """
     from nomogram.systems import System
 
@@ -405,6 +416,10 @@ def _external_node(match: ExternalMatch) -> dict[str, Any]:
         )
     elif target.startswith(_WIKIDATA):
         label, kind = target.removeprefix(_WIKIDATA), "wikibase:Item"
+    elif target.startswith(_SI_FRAMEWORK):
+        # The quantity or unit of the SI Digital Framework, by its code:
+        # PRES, kelvin.
+        label, kind = target.rstrip("/").rsplit("/", 1)[-1], "skos:Concept"
     else:
         label, kind = target, "skos:Concept"
     return {"id": target, "label": label, "type": kind, "iri": target}

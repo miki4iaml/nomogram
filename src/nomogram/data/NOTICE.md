@@ -18,19 +18,24 @@ units with and without an offset for the temperature points
 DewPointTemperature, WetBulbTemperature and their parent Temperature),
 the units QUDT does not declare for some kinds (`added_units`), the pint
 expression of each unit, and the links from kinds to CF standard names,
-each with its SKOS relation; it replaces some unit symbols with those of
-the SI Brochure (`SYMBOLS`: `1` for UNITLESS, `ppm` for PPM, `mol⁻¹` for
-PER-MOL, `K⁻¹` for PER-K). Links from QUDT's `wikidataMatch` are recorded
-as SKOS close matches; every link takes the extraction date as its
-verification date.
+each with its SKOS relation; it writes some unit symbols as the SI
+Brochure does (`SYMBOLS`: `mol⁻¹` for PER-MOL, `K⁻¹` for PER-K, `s⁻²` for
+PER-SEC2; `1` for UNITLESS and `ppm` for PPM, as QUDT writes them since
+3.5.4). Links from QUDT's `wikidataMatch` are recorded as SKOS close
+matches, those from its `siExactMatch` (the SI Digital Framework of the
+BIPM) as exact matches; the links imported from QUDT take the extraction
+date as their verification date.
 
 nomogram also adds what QUDT does not state, and these entries do not come
 from QUDT: the bounds some kinds admit by definition, each with its
-criterion (`bounds`, such as a mass never negative); units QUDT does not
-define yet (`LOCAL_UNITS`, such as PPM-PER-M), written with `"iri": null`;
-and provisional kinds absent from QUDT (`LOCAL_KINDS`, such as
-KinematicHeatFlux), written with `"iri": null` and the pull request that
-proposes each to QUDT (`pending`).
+criterion (`bounds`, such as a mass never negative); Wikidata items it
+links to kinds QUDT links to none, with the date it checked them (the
+density of the atmosphere, broader than the densities of dry and of moist
+air); the kinds a kind does not feed although QUDT makes it their
+specialization (`never_feeds`: the pressure altitude, for the geopotential
+height); and, when QUDT lacks them, units (`LOCAL_UNITS`) and provisional
+kinds (`LOCAL_KINDS`, with the pull request that proposes each to QUDT,
+`pending`), written with `"iri": null`, none since QUDT 3.5.4.
 
 ## UCUM codes
 

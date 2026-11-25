@@ -329,7 +329,8 @@ their fix.
    reason why nomogram keeps LaTeX symbols in notations rather than in
    the reference data.
 8. Units are declared for general kinds (`qudt:unitForQuantityKind`):
-   `unit:DEG_C` for `Temperature`, no unit for `VapourPressure`.
+   `unit:DEG_C` for `Temperature`, no SI unit for `VapourPressure` (the
+   pascal comes from `Pressure`).
    nomogram makes a unit applicable to a kind when it is declared for
    that kind or one it specializes, then keeps offset units for
    interval-scale kinds only. Without that rule, QUDT would make the
@@ -349,19 +350,21 @@ their fix.
     close match. Its description announces IRIs of the form
     `https://www.wikidata.org/wiki/Q…`; the data uses
     `http://www.wikidata.org/entity/Q…`.
-11. The symbol of `unit:UNITLESS` is `一`, a CJK ideograph, chosen
+11. The symbol of `unit:UNITLESS` was `一`, a CJK ideograph, chosen
     deliberately ([qudt-public-repo#712](https://github.com/qudt/qudt-public-repo/issues/712),
-    where `1` and `-` were proposed). The SI Brochure gives the unit one
-    the symbol 1, "rarely explicitly written" (9th ed., 2.3.3 and 5.4.7).
-    nomogram follows the SI: `1` in its data, an override declared in the
-    extraction script (`SYMBOLS`), and no symbol in its displays.
-12. The symbol of `unit:PPM` is `PPM`; the SI Brochure (5.4.7) and ITU-R
-    P.453 write `ppm`, as UCUM does (`[ppm]`). nomogram displays `ppm`, an
-    override declared with its reason in the extraction script
-    (`SYMBOLS`).
+    where `1` and `-` were proposed), until QUDT 3.5.4, which writes `1`.
+    The SI Brochure gives the unit one the symbol 1, "rarely explicitly
+    written" (9th ed., 2.3.3 and 5.4.7). nomogram writes `1` in its data,
+    keeps the override of the extraction script (`SYMBOLS`) as a guard,
+    and shows no symbol in its displays.
+12. The symbol of `unit:PPM` was `PPM` until QUDT 3.5.4, which writes
+    `ppm`, as the SI Brochure (5.4.7), ITU-R P.453 and UCUM (`[ppm]`) do;
+    nomogram keeps the override of the extraction script (`SYMBOLS`) as a
+    guard.
 13. `quantitykind:RefractiveIndex` and `quantitykind:DimensionlessRatio`
-    specialize no kind: dimensionless kinds share no common parent in
-    QUDT. nomogram uses `DimensionlessRatio` as the parent of the
+    specialize no kind: dimensionless kinds share no common parent by
+    `specializationOf` in QUDT, which organizes them under `Dimensionless`
+    and `DimensionlessRatio` (`qudt:organizedUnder`). nomogram uses `DimensionlessRatio` as the parent of the
     dimensionless kinds it defines. Since QUDT 3.5.4 (pull request #1565),
     `RefractiveIndex` is organized under `DimensionlessRatio`
     (`qudt:organizedUnder`) without specializing it: nomogram reads it as

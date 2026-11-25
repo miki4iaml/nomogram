@@ -238,7 +238,8 @@ def test_cf_names_and_versions_are_recorded() -> None:
         ("K", "K"),
         ("kg m-3", "kg * m ** -3"),
         ("m2 s-2", "m ** 2 * s ** -2"),
-        ("1e-3", "1e-3"),
+        # A scale factor is written as the pint unit it is.
+        ("1e-3", "permille"),
         # CF writes latitudes in degree_north, longitudes in degree_east.
         ("degree_north", "degree"),
         ("degree_east", "degree"),
@@ -248,9 +249,44 @@ def test_udunits_to_pint(udunits: str, pint: str) -> None:
     assert extract_semantics.udunits_to_pint(udunits) == pint
 
 
+def test_links_of_qudt_are_imported_with_their_relation() -> None:
+    from rdflib import Graph, URIRef
+
+    graph = Graph()
+    subject = URIRef("http://qudt.org/vocab/unit/K")
+    graph.add(
+        (
+            subject,
+            extract_semantics.QUDT.wikidataMatch,
+            URIRef("http://www.wikidata.org/entity/Q11579"),
+        )
+    )
+    graph.add(
+        (
+            subject,
+            extract_semantics.QUDT.siExactMatch,
+            URIRef("https://si-digital-framework.org/SI/units/kelvin"),
+        )
+    )
+    assert extract_semantics._matches(graph, subject, "2026-11-25") == [
+        {
+            "target": "http://www.wikidata.org/entity/Q11579",
+            "relation": "close",
+            "verified": "2026-11-25",
+        },
+        {
+            "target": "https://si-digital-framework.org/SI/units/kelvin",
+            "relation": "exact",
+            "verified": "2026-11-25",
+        },
+    ]
+
+
 def test_udunits_outside_the_cf_syntax_is_rejected() -> None:
     with pytest.raises(ValueError, match="unsupported UDUNITS factor"):
         extract_semantics.udunits_to_pint("kg/m3")
+    with pytest.raises(ValueError, match="unsupported UDUNITS scale factor"):
+        extract_semantics.udunits_to_pint("1e3")
 
 
 def test_missing_kind_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:

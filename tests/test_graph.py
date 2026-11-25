@@ -208,6 +208,15 @@ def test_a_provisional_kind_gives_its_pull_request() -> None:
     assert "iri" not in node
 
 
+def test_kind_graph_labels_si_quantities_by_their_code() -> None:
+    document = kind_graph(["Pressure"])
+    si = "https://si-digital-framework.org/quantities/PRES"
+    (node,) = [n for n in document["nodes"] if n["id"] == si]
+    assert node == {"id": si, "label": "PRES", "type": "skos:Concept", "iri": si}
+    (edge,) = [e for e in document["edges"] if e["target"] == si]
+    assert edge["type"] == "skos:exactMatch"
+
+
 def test_kind_graph_labels_other_external_concepts_by_iri() -> None:
     from nomogram.graph import _external_node
     from nomogram.semantics import ExternalMatch, MatchRelation

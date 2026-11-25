@@ -299,7 +299,8 @@ class Catalog:
             Only entries of this section (a pattern too):
             ``"formulations"``, ``"kinds"``, ``"references"``...
         specializations : bool
-            With ``kind=``, also the kinds that specialize the matched ones
+            With ``kind=``, also the kinds that specialize the matched ones,
+            and those QUDT organizes under them (``organizedUnder``)
             (default).
         **fields : str or bool
             Field filters, patterns as well (:data:`nomogram.search.FIELDS`):
@@ -414,8 +415,9 @@ def _number(where: str, value: Any) -> float:
 
 
 def _dimensionality(expression: str) -> Any:
-    """The dimension of a unit expression, a scaling factor left aside (CF 1e-3)."""
-    return (Q_(1.0) * ureg.parse_expression(expression)).dimensionality
+    """The dimension of a unit expression; an offset unit (degC) has that of
+    its scale, without the arithmetic pint refuses on it."""
+    return ureg.get_dimensionality(expression)
 
 
 def _printed_number(where: str, value: Any) -> tuple[float, str | None]:
@@ -2087,18 +2089,14 @@ class _Builder:
     def feeds(self, output_kind: str, input_kind: str) -> bool:
         """Whether a result of one kind may feed an input of another.
 
-        The kinds of this catalog, not those of the bundled one (see
-        :func:`nomogram.comparison.feeds`): never a difference for a point.
+        :func:`nomogram.comparison.feeds` over the kinds of this catalog,
+        not those of the bundled one: never a difference for a point, nor
+        a kind for one a kind on the way declares it does not feed
+        (``QuantityKind.never_feeds``).
         """
-        kind = self.kinds.get(output_kind)
-        target = self.kinds.get(input_kind)
-        if kind is not None and target is not None and kind.delta and not target.delta:
-            return False
-        while kind is not None:
-            if kind.name == input_kind:
-                return True
-            kind = self.kinds.get(kind.specialization_of or "")
-        return False
+        from nomogram.comparison import feeds
+
+        return feeds(output_kind, input_kind, self.kinds)
 
     @staticmethod
     def part(
