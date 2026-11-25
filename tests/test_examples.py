@@ -563,6 +563,7 @@ FIGURES = {
     "coare-loop": ROOT / "docs" / "coare-system.md",
     "kinds-relative-humidity": ROOT / "docs" / "graphs.md",
     "kinds-contrail": ROOT / "docs" / "contrails.md",
+    "contrail-chain": ROOT / "docs" / "contrails.md",
 }
 
 
@@ -727,3 +728,13 @@ def test_contrails_guide_gives_the_values_it_states(
     assert round(below, 2) == 0.18
     assert round(float(gap[100].min()), 2) == -0.22
     assert (gap[100] < 0).all()
+
+
+def test_contrails_guide_lists_the_references_of_its_formulations(
+    contrails: Any, contrail_results: dict[str, Any]
+) -> None:
+    text = CONTRAILS_GUIDE.read_text(encoding="utf-8")
+    section = text.split("\n## References\n", 1)[1]
+    listed = [line for line in section.splitlines() if line.startswith("- ")]
+    assert listed == contrails.bibliography(contrail_results["called"])
+    assert any("Douglas, T. B." in line for line in listed)

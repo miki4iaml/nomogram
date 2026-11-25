@@ -50,6 +50,18 @@ Appleman (1953), Schumann (1996, 2000, 2012) and Gierens (2021) write it.
   default evaluation applies. Negative where even dry air gives contrails:
   not a relative humidity, a kind of its own.
 
+From the engine and the fuel to the threshold, the formulations follow
+one another, each reading what the ones before give; the implicit
+equations also call the saturation vapour pressure of Schumann (2012) and
+its slope, which the figure leaves out. Drawn by protee, as a system
+without a loop built for the figure
+([`graph_figures.py`](examples/graph_figures.py)):
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/contrail-chain-dark.svg">
+  <img alt="The chain of formulations: thrust, speed, fuel flow and heating value give the efficiency; the hydrogen content gives the emission index; with the heat capacity and the pressure they give the slope of the mixing line, which gives the maximum threshold temperature, then with the humidity the threshold temperature, and with the ambient temperature the critical relative humidity" src="images/contrail-chain.svg">
+</picture>
+
 Three systems without a loop chain the equations, each solved in turn:
 exact over liquid water (`schumann1996_threshold_temperature`), over ice
 (`schumann1996_threshold_temperature_ice`), and by the fits, the way of
@@ -204,3 +216,26 @@ threshold temperature) and "critical relative humidity" (of contrails,
 and of cloud schemes) have their rows in [the rosetta](rosetta.md); a
 search finds the entries by these words, `search("contrail")` the whole
 family.
+
+## References
+
+The sources the formulations of this page cite, and those of the
+formulations, constants and temperature scales they use, followed through
+the links of the catalog (`Catalog.uses`) and written by the script:
+
+- Appleman, H. (1953). *The formation of exhaust condensation trails by jet aircraft*. Bulletin of the American Meteorological Society, 34(1), 14-20. <https://doi.org/10.1175/1520-0477-34.1.14>
+- Douglas, T. B. (1969). *Conversion of existing calorimetrically determined thermodynamic properties to the basis of the International Practical Temperature Scale of 1968*. Journal of Research of the National Bureau of Standards, Section A 73A(5), 451-470. <https://doi.org/10.6028/jres.073a.035>
+- Gibbins, C. J. (1990). *A survey and comparison of relationships for the determination of the saturation vapour pressure over plane surfaces of pure water and of pure ice*. Annales Geophysicae 8, 859-885.
+- Gierens, K. (2021). *Theory of contrail formation for fuel cells*. Aerospace, 8, 164. <https://doi.org/10.3390/aerospace8060164>
+- Goff, J. A.; Gratch, S. (1946). *Low-pressure properties of water from -160 to 212 F*. Transactions of the American Society of Heating and Ventilating Engineers 52, 95-122.
+- International Telecommunication Union, Radiocommunication Sector (2024). *Recommendation ITU-R P.835-7: Reference standard atmospheres*. <https://www.itu.int/rec/R-REC-P.835/en>
+- Ponater, M.; Marquart, S.; Sausen, R. (2002). *Contrails in a comprehensive global climate model: Parameterization and radiative forcing results*. Journal of Geophysical Research: Atmospheres, 107(D13), 4164. <https://doi.org/10.1029/2001JD000429>
+- Preston-Thomas, H. (1990). *The International Temperature Scale of 1990 (ITS-90)*. Metrologia 27, 3-10. <https://doi.org/10.1088/0026-1394/27/1/002>
+- Schumann, U. (1996). *On conditions for contrail formation from aircraft exhausts*. Meteorologische Zeitschrift, N. F. 5, 4-23. <https://doi.org/10.1127/metz/5/1996/4>
+- Schumann, U. (2000). *Influence of propulsion efficiency on contrail formation*. Aerospace Science and Technology, 4, 391-401. <https://doi.org/10.1016/S1270-9638(00)01062-2>
+- Schumann, U. (2012). *A contrail cirrus prediction model*. Geoscientific Model Development, 5, 543-580. <https://doi.org/10.5194/gmd-5-543-2012>
+- Smithsonian Institution (1984). *Smithsonian Meteorological Tables*.
+- Vömel, H. (n.d.). *Saturation vapor pressure formulations*. NCAR Earth Observing Laboratory (formerly CIRES), web page. <https://cires1.colorado.edu/~voemel/vp.html>
+
+Schmidt (1941), who stated the criterion first with the Mollier diagram
+of moist air (an i-x diagram), is cited by Schumann (1996) and was not read.

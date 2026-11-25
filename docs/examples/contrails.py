@@ -16,6 +16,7 @@ Run from the repository (extra ``viz`` installed)::
 
 import sys
 import warnings
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,63 @@ G_TABLE_3, U_TABLE_2, T_E = 1.49, 0.42, -59.0
 HUMIDITIES = (0.0, 0.3, 0.6, 1.0)
 #: The relative humidities of Figure 4 of Appleman (1953), in percent.
 APPLEMAN_HUMIDITIES = (0, 60, 90, 100)
+#: The formulations the page names, whose references it lists.
+CALLED = (
+    "schumann1996_overall_propulsion_efficiency",
+    "schumann1996_emission_index_water_vapour",
+    "schumann1996_mixing_line_slope",
+    "schumann1996_maximum_threshold_temperature_liquid",
+    "schumann1996_maximum_threshold_temperature_ice",
+    "schumann1996_threshold_temperature_liquid",
+    "schumann1996_threshold_temperature_ice",
+    "schumann2012_critical_relative_humidity",
+    "schumann1996_maximum_threshold_temperature_fit",
+    "schumann1996_maximum_threshold_temperature_ice_fit",
+    "gierens2021_maximum_threshold_temperature",
+    "schumann2012_threshold_temperature_fit",
+    "appleman1953_available_moisture",
+    "appleman1953_critical_temperature_fixed_mixing",
+    "itu_r_p835_pressure",
+    "itu_r_p835_temperature",
+)
+
+
+def bibliography(called: Iterable[str]) -> list[str]:
+    """The references of the formulations called, and of what they use.
+
+    Followed through the links of the catalog (``Catalog.uses``): the
+    formulations a formulation calls, is made of or derives from, the
+    constants it takes and the scales of its variables, each with its own
+    references; one Markdown line per reference.
+    """
+    c = catalog()
+    queue = [f"formulations.{key}" for key in called]
+    seen: set[str] = set()
+    cited: set[str] = set()
+    while queue:
+        entry = queue.pop()
+        if entry in seen:
+            continue
+        seen.add(entry)
+        for ref in c.uses(entry).refs:
+            section, _, key = ref.partition(".")
+            if section == "references":
+                cited.add(key)
+            elif section in ("formulations", "constants", "scales"):
+                queue.append(ref)
+    lines = []
+    for reference in sorted(
+        (c.references[key] for key in cited),
+        key=lambda r: (r.authors.casefold(), r.year or 0),
+    ):
+        link = f"https://doi.org/{reference.doi}" if reference.doi else reference.url
+        container = f" {reference.container}." if reference.container else ""
+        lines.append(
+            f"- {reference.authors} ({reference.year or 'n.d.'}). "
+            f"*{reference.title}*."
+            f"{container}" + (f" <{link}>" if link else "")
+        )
+    return lines
 
 
 def crossings(
@@ -169,7 +227,12 @@ def compute() -> dict[str, Any]:
         "tangent": tangent,
         "standard": standard,
     }
-    return {"diagram": diagram, "profile": profile, "appleman": appleman}
+    return {
+        "diagram": diagram,
+        "profile": profile,
+        "appleman": appleman,
+        "called": CALLED,
+    }
 
 
 def _finish(figure: Any, axes: Any, output: Path) -> None:
