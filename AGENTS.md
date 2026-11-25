@@ -44,11 +44,12 @@ covers each. They are goals, not comparisons with other tools.
    model, such as piecewise definitions or new functions, goes through
    it.
 5. **Linked to shared vocabularies**: every quantity kind is a QUDT kind
-   or specializes one, which the loader checks; a kind with no QUDT kind
-   to specialize is admitted only while a pull request adding it to QUDT
-   is open, as a provisional kind that records it; CF standard names and
-   Wikidata items are linked where an equivalent exists, with their SKOS
-   relation and date of verification.
+   or specializes one, directly or through a provisional kind, which the
+   loader checks; a kind with no QUDT kind to specialize is admitted only
+   while a pull request adding it to QUDT is open, or merged and awaiting
+   a QUDT release, as a provisional kind that records it; CF standard
+   names and Wikidata items are linked where an equivalent exists, with
+   their SKOS relation and date of verification.
 
 ## Architecture and invariants
 
