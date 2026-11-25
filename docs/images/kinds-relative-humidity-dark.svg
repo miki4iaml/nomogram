@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="864.50pt" height="299.00pt" viewBox="0 0 864.50 299.00">
+<rect width="864.50" height="299.00" fill="#0d1117"/>
+<svg x="177.75" y="0.00" width="509.00" height="137.00" viewBox="0.00 0.00 509.00 137.00">
+<g id="figure-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 122.4)">
+<title>graph</title>
+<polygon fill="#0d1117" stroke="none" points="-14.4,14.4 -14.4,-122.4 494.97,-122.4 494.97,14.4 -14.4,14.4"/>
+<!-- kinds.RelativeHumidity -->
+<g id="figure-node1" class="node">
+<title>kinds.RelativeHumidity</title>
+<g id="figure-a_node1"><a xlink:title="Relative Humidity&#10;http://qudt.org/vocab/quantitykind/RelativeHumidity">
+<ellipse fill="#e69f00" stroke="#e6edf3" cx="317.44" cy="-90" rx="62.34" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="317.44" y="-86.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">Relative Humidity</text>
+</a>
+</g>
+</g>
+<!-- kinds.RelativePartialPressure -->
+<g id="figure-node2" class="node">
+<title>kinds.RelativePartialPressure</title>
+<g id="figure-a_node2"><a xlink:title="Relative Partial Pressure&#10;http://qudt.org/vocab/quantitykind/RelativePartialPressure">
+<ellipse fill="#e69f00" stroke="#e6edf3" cx="137.44" cy="-18" rx="84.31" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="137.44" y="-14.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">Relative Partial Pressure</text>
+</a>
+</g>
+</g>
+<!-- kinds.RelativeHumidity&#45;&gt;kinds.RelativePartialPressure -->
+<g id="figure-edge1" class="edge">
+<title>kinds.RelativeHumidity&#45;&gt;kinds.RelativePartialPressure</title>
+<path fill="none" stroke="#e69f00" d="M281.45,-75C254.49,-64.52 217.28,-50.05 187.44,-38.44"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="188.81,-35.22 178.22,-34.86 186.27,-41.74 188.81,-35.22"/>
+</g>
+<!-- http://www.wikidata.org/entity/Q2499617 -->
+<g id="figure-node4" class="node">
+<title>http://www.wikidata.org/entity/Q2499617</title>
+<g id="figure-a_node4"><a xlink:title="Q2499617&#10;http://www.wikidata.org/entity/Q2499617">
+<polygon fill="none" stroke="#e6edf3" points="307.44,-36 249.04,-18 307.44,0 365.85,-18 307.44,-36"/>
+<text xml:space="preserve" text-anchor="middle" x="307.44" y="-14.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Q2499617</text>
+</a>
+</g>
+</g>
+<!-- kinds.RelativeHumidity&#45;&gt;http://www.wikidata.org/entity/Q2499617 -->
+<g id="figure-edge2" class="edge">
+<title>kinds.RelativeHumidity&#45;&gt;http://www.wikidata.org/entity/Q2499617</title>
+<path fill="none" stroke="#009e73" d="M313.72,-62.94C312.84,-56.8 311.91,-50.26 311.04,-44.16"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="314.33" cy="-67.24" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="310.45" cy="-40.08" rx="4" ry="4"/>
+</g>
+<!-- http://vocab.nerc.ac.uk/standard_name/relative_humidity/ -->
+<g id="figure-node5" class="node">
+<title>http://vocab.nerc.ac.uk/standard_name/relative_humidity/</title>
+<g id="figure-a_node5"><a xlink:title="relative_humidity&#10;http://vocab.nerc.ac.uk/standard_name/relative_humidity/">
+<polygon fill="none" stroke="#e6edf3" points="480.57,-36 384.32,-36 384.32,0 480.57,0 480.57,-36"/>
+<text xml:space="preserve" text-anchor="middle" x="432.44" y="-14.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">relative_humidity</text>
+</a>
+</g>
+</g>
+<!-- kinds.RelativeHumidity&#45;&gt;http://vocab.nerc.ac.uk/standard_name/relative_humidity/ -->
+<g id="figure-edge3" class="edge">
+<title>kinds.RelativeHumidity&#45;&gt;http://vocab.nerc.ac.uk/standard_name/relative_humidity/</title>
+<path fill="none" stroke="#56b4e9" d="M353.01,-67.35C366.05,-59.42 380.85,-50.41 394.11,-42.33"/>
+<polygon fill="none" stroke="#56b4e9" points="351.27,-64.31 344.54,-72.5 354.91,-70.29 351.27,-64.31"/>
+<polygon fill="none" stroke="#56b4e9" points="395.88,-45.35 402.6,-37.16 392.24,-39.37 395.88,-45.35"/>
+</g>
+<!-- kinds.RelativeHumidityWithRespectToIce -->
+<g id="figure-node3" class="node">
+<title>kinds.RelativeHumidityWithRespectToIce</title>
+<g id="figure-a_node3"><a xlink:title="Relative Humidity with respect to Ice">
+<ellipse fill="#56b4e9" stroke="#e6edf3" stroke-width="2" cx="118.44" cy="-90" rx="118.44" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="118.44" y="-86.3" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">Relative Humidity with respect to Ice</text>
+</a>
+</g>
+</g>
+<!-- kinds.RelativeHumidityWithRespectToIce&#45;&gt;kinds.RelativePartialPressure -->
+<g id="figure-edge4" class="edge">
+<title>kinds.RelativeHumidityWithRespectToIce&#45;&gt;kinds.RelativePartialPressure</title>
+<path fill="none" stroke="#e69f00" d="M123.14,-71.7C125.16,-64.24 127.58,-55.32 129.85,-46.97"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="133.16,-48.13 132.4,-37.57 126.41,-46.3 133.16,-48.13"/>
+</g>
+</g>
+</svg>
+<svg x="0.00" y="149.00" width="740.00" height="150.00" viewBox="0.00 0.00 740.00 150.00">
+<g id="legend-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 135.5)">
+<title>legend</title>
+<polygon fill="#0d1117" stroke="none" points="-14.4,14.4 -14.4,-135.5 725.4,-135.5 725.4,14.4 -14.4,14.4"/>
+<g id="legend-clust1" class="cluster">
+<title>cluster_legend</title>
+<polygon fill="#0d1117" stroke="#e6edf3" stroke-dasharray="5,2" points="8,-8 8,-113.1 703,-113.1 703,-8 8,-8"/>
+</g>
+<!-- protee:legend:0 -->
+<g id="legend-node1" class="node">
+<title>protee:legend:0</title>
+<ellipse fill="none" stroke="#e6edf3" cx="63" cy="-87.1" rx="47.38" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="63" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">quantity kind</text>
+</g>
+<!-- protee:legend:1 -->
+<g id="legend-node2" class="node">
+<title>protee:legend:1</title>
+<polygon fill="none" stroke="#e6edf3" points="234,-105.1 128,-105.1 128,-69.1 234,-69.1 234,-105.1"/>
+<text xml:space="preserve" text-anchor="middle" x="181" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">CF standard name</text>
+</g>
+<!-- protee:legend:2 -->
+<g id="legend-node3" class="node">
+<title>protee:legend:2</title>
+<polygon fill="none" stroke="#e6edf3" points="323,-105.1 252.03,-87.1 323,-69.1 393.97,-87.1 323,-105.1"/>
+<text xml:space="preserve" text-anchor="middle" x="323" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e6edf3">Wikidata item</text>
+</g>
+<!-- protee:legend:3:a -->
+<g id="legend-node4" class="node">
+<title>protee:legend:3:a</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="414" cy="-87.1" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:3:b -->
+<g id="legend-node5" class="node">
+<title>protee:legend:3:b</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="355" cy="-17.8" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:3:a&#45;&gt;protee:legend:3:b -->
+<g id="legend-edge1" class="edge">
+<title>protee:legend:3:a&#45;&gt;protee:legend:3:b</title>
+<path fill="none" stroke="#e69f00" d="M413.53,-85.07C412.22,-82.25 408.21,-74.23 403,-69.1 392.26,-58.52 384.79,-61.88 374.25,-51.1 368.37,-45.08 363.53,-36.94 360.17,-30.33"/>
+<polygon fill="#e69f00" stroke="#e69f00" points="363.39,-28.96 356.07,-21.31 357.02,-31.86 363.39,-28.96"/>
+<text xml:space="preserve" text-anchor="middle" x="403.12" y="-40.65" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#e69f00"> specializes </text>
+</g>
+<!-- protee:legend:4:a -->
+<g id="legend-node6" class="node">
+<title>protee:legend:4:a</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="436" cy="-87.1" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:4:b -->
+<g id="legend-node7" class="node">
+<title>protee:legend:4:b</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="436" cy="-17.8" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:4:a&#45;&gt;protee:legend:4:b -->
+<g id="legend-edge2" class="edge">
+<title>protee:legend:4:a&#45;&gt;protee:legend:4:b</title>
+<path fill="none" stroke="#56b4e9" d="M436,-73.44C436,-61.38 436,-43.31 436,-31.3"/>
+<polygon fill="none" stroke="#56b4e9" points="432.5,-73.42 436,-83.42 439.5,-73.42 432.5,-73.42"/>
+<polygon fill="none" stroke="#56b4e9" points="439.5,-31.31 436,-21.31 432.5,-31.31 439.5,-31.31"/>
+<text xml:space="preserve" text-anchor="middle" x="467.88" y="-40.65" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#56b4e9"> exact match </text>
+</g>
+<!-- protee:legend:5:a -->
+<g id="legend-node8" class="node">
+<title>protee:legend:5:a</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="458" cy="-87.1" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:5:b -->
+<g id="legend-node9" class="node">
+<title>protee:legend:5:b</title>
+<ellipse fill="#e6edf3" stroke="#e6edf3" cx="523" cy="-17.8" rx="1.8" ry="1.8"/>
+</g>
+<!-- protee:legend:5:a&#45;&gt;protee:legend:5:b -->
+<g id="legend-edge3" class="edge">
+<title>protee:legend:5:a&#45;&gt;protee:legend:5:b</title>
+<path fill="none" stroke="#009e73" d="M462.15,-77C463.71,-74.24 465.68,-71.34 468,-69.1 480,-57.48 488.62,-62.32 501,-51.1 508.43,-44.37 514.62,-34.64 518.52,-27.62"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="460.29" cy="-80.98" rx="4" ry="4"/>
+<ellipse fill="#009e73" stroke="#009e73" cx="520.41" cy="-23.94" rx="4" ry="4"/>
+<text xml:space="preserve" text-anchor="middle" x="543.53" y="-40.65" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#009e73"> close match </text>
+</g>
+<!-- protee:legend:6 -->
+<g id="legend-node10" class="node">
+<title>protee:legend:6</title>
+<ellipse fill="#e69f00" stroke="#e6edf3" cx="521" cy="-87.1" rx="43.64" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="521" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">QUDT kind</text>
+</g>
+<!-- protee:legend:7 -->
+<g id="legend-node11" class="node">
+<title>protee:legend:7</title>
+<ellipse fill="#56b4e9" stroke="#e6edf3" stroke-width="2" cx="639" cy="-87.1" rx="56.26" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="639" y="-83.4" font-family="Helvetica,Arial,sans-serif" font-size="11.00" fill="#0d1117">nomogram kind</text>
+</g>
+</g>
+</svg>
+<image x="752.00" y="263.00" width="112.50" height="36.00" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NTAgMTQ0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Im5vbW9ncmFtIj4KICA8dGl0bGU+bm9tb2dyYW08L3RpdGxlPgogIDxzdHlsZT4KICAuaW5rIHsgc3Ryb2tlOiAjMWYyOTM3OyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IHN0cm9rZS1saW5lam9pbjogcm91bmQ7IH0KICAuZmluZSB7IHN0cm9rZTogIzFmMjkzNzsgZmlsbDogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOyBvcGFjaXR5OiAwLjU1OyB9CiAgLnNlYSB7IGZpbGw6ICNkYmVhZmU7IHN0cm9rZTogbm9uZTsgfQogIC5yZWFkIHsgc3Ryb2tlOiAjYzI0MTBjOyBmaWxsOiBub25lOyBzdHJva2UtbGluZWNhcDogcm91bmQ7IH0KICAuZG90IHsgZmlsbDogI2MyNDEwYzsgfQogIC5ub2RlIHsgZmlsbDogIzFmMjkzNzsgfQogIAogICAgLmluaywgLmZpbmUgeyBzdHJva2U6ICNlNWU3ZWI7IH0KICAgIC5zZWEgeyBmaWxsOiAjMWUzYTVmOyB9CiAgICAucmVhZCB7IHN0cm9rZTogI2ZiOTIzYzsgfQogICAgLmRvdCB7IGZpbGw6ICNmYjkyM2M7IH0KICAgIC5ub2RlIHsgZmlsbDogI2U1ZTdlYjsgfQogIDwvc3R5bGU+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSIyMiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9Ijg2IiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjIyIiB5MT0iMjIiIHgyPSI4NiIgeTI9IjEyMiIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iMjIiIHgyPSIxOCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMjIiIHgyPSI5OCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iMzIiIHgyPSIxOCIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMTIiIHgyPSI5NSIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iNDIiIHgyPSIxOCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSIxMDIiIHgyPSI5OCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEzIiB5MT0iNTIiIHgyPSIxOCIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI5MiIgeDI9Ijk1IiB5Mj0iOTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMCIgeTE9IjYyIiB4Mj0iMTgiIHkyPSI2MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iODIiIHgyPSI5OCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSI3MiIgeDI9IjE4IiB5Mj0iNzIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI5MCIgeTE9IjcyIiB4Mj0iOTUiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIiIHgyPSIxOCIgeTI9IjgyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iOTAiIHkxPSI2MiIgeDI9Ijk4IiB5Mj0iNjIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMyIgeTE9IjkyIiB4Mj0iMTgiIHkyPSI5MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNTIiIHgyPSI5NSIgeTI9IjUyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMDIiIHgyPSIxOCIgeTI9IjEwMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iNDIiIHgyPSI5OCIgeTI9IjQyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTMiIHkxPSIxMTIiIHgyPSIxOCIgeTI9IjExMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMzIiIHgyPSI5NSIgeTI9IjMyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTAiIHkxPSIxMjIiIHgyPSIxOCIgeTI9IjEyMiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMjIiIHgyPSI5OCIgeTI9IjIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzguMTciIHkxPSIzOS44NCIgeDI9IjQ0LjkxIiB5Mj0iMzUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI0Ni43IiB5MT0iNTMuMTgiIHgyPSI1My40NCIgeTI9IjQ4Ljg2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNTcuMzciIHkxPSI2OS44NCIgeDI9IjY0LjExIiB5Mj0iNjUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSI2OC4wNCIgeTE9Ijg2LjUxIiB4Mj0iNzQuNzciIHkyPSI4Mi4yIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iNzYuNTciIHkxPSI5OS44NCIgeDI9IjgzLjMxIiB5Mj0iOTUuNTMiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjU4LjkyIiBjeT0iNzkuNjkiIHI9IjQuNCIgY2xhc3M9ImRvdCIvPgogIDxsaW5lIHgxPSIxNjIiIHkxPSIzMi43MSIgeDI9IjE4NC45NyIgeTI9IjQyLjk2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTYyIiB5MT0iMzIuNzEiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxNDMuNSIgeTI9IjQ5Ljc5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjA1IiB5MT0iMzkuNTQiIHgyPSIxMjUuMTYiIHkyPSI2Ni44OCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4NC45NyIgeTE9IjQyLjk2IiB4Mj0iMTc1LjQ1IiB5Mj0iNjAuMDQiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxODQuOTciIHkxPSI0Mi45NiIgeDI9IjIwMS4wOSIgeTI9IjcwLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjEyNS4xNiIgeTI9IjY2Ljg4IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTQzLjUiIHkxPSI0OS43OSIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTc1LjQ1IiB5MT0iNjAuMDQiIHgyPSIyMDEuMDkiIHkyPSI3MC4yOSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE3NS40NSIgeTE9IjYwLjA0IiB4Mj0iMTUzLjI3IiB5Mj0iNzcuMTIiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMjUuMTYiIHkxPSI2Ni44OCIgeDI9IjE1My4yNyIgeTI9Ijc3LjEyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTI1LjE2IiB5MT0iNjYuODgiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjIwMS4wOSIgeTE9IjcwLjI5IiB4Mj0iMTg2LjQ5IiB5Mj0iODcuMzgiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIyMDEuMDkiIHkxPSI3MC4yOSIgeDI9IjE5My45NyIgeTI9Ijk3LjYyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTUzLjI3IiB5MT0iNzcuMTIiIHgyPSIxMzcuNjkiIHkyPSI5NC4yMSIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE1My4yNyIgeTE9Ijc3LjEyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTg2LjQ5IiB5MT0iODcuMzgiIHgyPSIxOTMuOTciIHkyPSI5Ny42MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE4Ni40OSIgeTE9Ijg3LjM4IiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTM3LjY5IiB5MT0iOTQuMjEiIHgyPSIxNTAuNTciIHkyPSIxMTEuMjkiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxsaW5lIHgxPSIxMzcuNjkiIHkxPSI5NC4yMSIgeDI9IjE2NS4zNCIgeTI9IjEwNC40NiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjE5My45NyIgeTE9Ijk3LjYyIiB4Mj0iMTY1LjM0IiB5Mj0iMTA0LjQ2IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMTY1LjM0IiB5MT0iMTA0LjQ2IiB4Mj0iMTUwLjU3IiB5Mj0iMTExLjI5IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSIzMi43MSIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy4wNSIgY3k9IjM5LjU0IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTg0Ljk3IiBjeT0iNDIuOTYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNDMuNSIgY3k9IjQ5Ljc5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTc1LjQ1IiBjeT0iNjAuMDQiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxMjUuMTYiIGN5PSI2Ni44OCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjIwMS4wOSIgY3k9IjcwLjI5IiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTUzLjI3IiBjeT0iNzcuMTIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxODYuNDkiIGN5PSI4Ny4zOCIgcj0iMi4yIiBjbGFzcz0ibm9kZSIvPgogIDxjaXJjbGUgY3g9IjEzNy42OSIgY3k9Ijk0LjIxIiByPSIyLjIiIGNsYXNzPSJub2RlIi8+CiAgPGNpcmNsZSBjeD0iMTkzLjk3IiBjeT0iOTcuNjIiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjUuMzQiIGN5PSIxMDQuNDYiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNTAuNTciIGN5PSIxMTEuMjkiIHI9IjIuMiIgY2xhc3M9Im5vZGUiLz4KICA8Y2lyY2xlIGN4PSIxNjIiIGN5PSI3MiIgcj0iNTAiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxwYXRoIGQ9Ik0gMjM4LDEyMiBMIDIzOCwyMiBMIDI3MCw4NCBMIDMwMiwyMiBMIDMwMiwxMjIiIGNsYXNzPSJpbmsiIHN0cm9rZS13aWR0aD0iOCIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9InNlYSIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjI1IiByeT0iNTAiIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxlbGxpcHNlIGN4PSIzNzgiIGN5PSI3MiIgcng9IjQzLjMiIHJ5PSI1MCIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjM3OCIgeTE9IjIyIiB4Mj0iMzc4IiB5Mj0iMTIyIiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMTE1LjMiIHgyPSI0MDMiIHkyPSIxMTUuMyIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iOTciIHgyPSI0MjEuMyIgeTI9Ijk3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzI4IiB5MT0iNzIiIHgyPSI0MjgiIHkyPSI3MiIgY2xhc3M9ImZpbmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+CiAgPGxpbmUgeDE9IjMzNC43IiB5MT0iNDciIHgyPSI0MjEuMyIgeTI9IjQ3IiBjbGFzcz0iZmluZSIgc3Ryb2tlLXdpZHRoPSIxLjYiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMjguNyIgeDI9IjQwMyIgeTI9IjI4LjciIGNsYXNzPSJmaW5lIiBzdHJva2Utd2lkdGg9IjEuNiIvPgogIDxjaXJjbGUgY3g9IjM3OCIgY3k9IjcyIiByPSI1MCIgY2xhc3M9ImluayIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjEwIiB5MT0iODIuNzUiIHgyPSI0NDAiIHkyPSI1NS44OCIgY2xhc3M9InJlYWQiIHN0cm9rZS13aWR0aD0iMi42Ii8+CiAgPGNpcmNsZSBjeD0iMjIiIGN5PSI4MiIgcj0iNC40IiBjbGFzcz0iZG90Ii8+CiAgPGNpcmNsZSBjeD0iODYiIGN5PSI3OCIgcj0iNC40IiBjbGFzcz0iZG90Ii8+Cjwvc3ZnPgo="/>
+</svg>

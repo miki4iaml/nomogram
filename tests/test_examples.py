@@ -555,3 +555,93 @@ def test_coare_example_writes_its_plot(
     output = tmp_path / "plot.png"
     coare.main(str(output))
     assert output.read_bytes().startswith(b"\x89PNG")
+
+
+GRAPH_FIGURES = ROOT / "docs" / "examples" / "graph_figures.py"
+IMAGES = ROOT / "docs" / "images"
+FIGURES = {
+    "coare-loop": ROOT / "docs" / "coare-system.md",
+    "kinds-relative-humidity": ROOT / "docs" / "graphs.md",
+}
+
+
+def projection(svg: str) -> list[tuple[str, ...]]:
+    """What a figure shows, without where: each element with its colours,
+    its dashes and its text. Graphviz measures text with the fonts of the
+    workstation, so that positions and sizes differ from one system to
+    another; what is drawn does not."""
+    from xml.etree import ElementTree
+
+    rows: list[tuple[str, ...]] = []
+    for element in ElementTree.fromstring(svg).iter():
+        tag = element.tag.rsplit("}", 1)[-1]
+        if tag == "image":
+            rows.append((tag,))
+            continue
+        rows.append(
+            (
+                tag,
+                element.get("fill", ""),
+                element.get("stroke", ""),
+                element.get("stroke-dasharray", ""),
+                (element.text or "").strip(),
+            )
+        )
+    return rows
+
+
+@pytest.fixture(scope="module")
+def drawn(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The figures drawn anew, in a process of their own: a crash of
+    Graphviz then fails the tests instead of the whole run."""
+    import subprocess
+    import sys
+
+    directory = tmp_path_factory.mktemp("figures")
+    done = subprocess.run(
+        [sys.executable, str(GRAPH_FIGURES), str(directory)],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    return directory
+
+
+@pytest.mark.parametrize("name", sorted(FIGURES))
+@pytest.mark.parametrize("suffix", ["", "-dark"])
+def test_figures_of_the_graphs_are_those_the_script_draws(
+    drawn: Path, name: str, suffix: str
+) -> None:
+    file = f"{name}{suffix}.svg"
+    committed = (IMAGES / file).read_text(encoding="utf-8")
+    assert projection((drawn / file).read_text(encoding="utf-8")) == projection(
+        committed
+    )
+    assert f"images/{file}" in FIGURES[name].read_text(encoding="utf-8")
+
+
+def test_the_loop_figure_follows_the_table_of_the_guide(drawn: Path) -> None:
+    from xml.etree import ElementTree
+
+    from nomogram.catalog import catalog
+
+    system = catalog().systems["coare36_surface_layer"]
+    root = ElementTree.fromstring(
+        (drawn / "coare-loop.svg").read_text(encoding="utf-8")
+    )
+    texts = [(e.text or "").strip() for e in root.iter() if e.tag.endswith("}text")]
+    # Each equation numbered as the row of the table that gives its variable.
+    for rank, equation in enumerate(system.equations, start=1):
+        assert any(t.startswith(f"({rank}) {equation.output}") for t in texts), rank
+    assert any(f"{system.iterations} passes in the code" in t for t in texts)
+    # The seven reads that close the loop are the dashed edges of the figure.
+    dashed = [
+        group
+        for group in root.iter()
+        if group.get("class") == "edge"
+        and group.get("id", "").startswith("figure-")
+        and any(e.get("stroke-dasharray") for e in group)
+    ]
+    assert len(dashed) == 7

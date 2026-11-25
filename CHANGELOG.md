@@ -19,7 +19,11 @@ and this project adheres to
   a system, each variable with its role (input, unknown, intermediate),
   and the reads that close its loops.
   No new dependency: the documents are plain `dict`s, ready for
-  `json.dumps`.
+  `json.dumps`. The guide and the page on the loop of COARE 3.6 draw
+  them, in a light and a dark variant: the loop with its equations
+  numbered as in the page's table, the reads that close it dashed and the
+  driver that iterates it
+  ([`graph_figures.py`](docs/examples/graph_figures.py)).
 - **Development dependencies** `protee[viz]` and `jsonschema`: the
   tests check the documents of `nomogram.graph` with protee's own check,
   its JSON schema and its reading and writing back. Neither is a
