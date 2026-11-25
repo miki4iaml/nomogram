@@ -1,0 +1,407 @@
+# SPDX-FileCopyrightText: 2026 Miki
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Contrail formation from aircraft exhaust: the criterion of Schmidt and
+# Appleman as Schumann (1996, 2000, 2012) and Gierens (2021) write it, its
+# explicit formulas: the overall propulsion efficiency, the emission index
+# of water vapour, the slope of the mixing line, the contrail factor, the
+# fits of the maximum threshold temperature and of the threshold
+# temperature. The exact threshold temperatures, solutions of implicit
+# equations, come later.
+# Hand-written, validated when loaded by nomogram.catalog. Entries whose
+# details were not checked against the source carry status = "to-confirm".
+
+[catalog]
+name = "contrail"
+label = "Contrail formation from aircraft exhaust"
+format = 2
+requires = ["water-vapour"]
+keywords = ["contrail", "Schmidt-Appleman", "threshold temperature", "critical temperature", "mixing line"]
+matches = [
+  { target = "http://www.wikidata.org/entity/Q207546", relation = "broad", verified = 2026-11-25 },
+]
+
+# --- References -------------------------------------------------------
+
+[references.schumann1996]
+authors = "Schumann, U."
+year = 1996
+title = "On conditions for contrail formation from aircraft exhausts"
+container = "Meteorologische Zeitschrift, N. F. 5, 4-23"
+doi = "10.1127/metz/5/1996/4"
+status = "verified"
+note = "Read in the scanned copy: equation 1 (p. 8), equations 6 to 9 (p. 9), Tables 1 to 3 (p. 12-13), appendix 1 (equation 29 and the lower heating value) and appendix 2 (equations 31 and 32, p. 18). Crossref records it under its German title, Ueber Bedingungen zur Bildung von Kondensstreifen aus Flugzeugabgasen; the paper is in English."
+
+[references.schumann2000]
+authors = "Schumann, U."
+year = 2000
+title = "Influence of propulsion efficiency on contrail formation"
+container = "Aerospace Science and Technology, 4, 391-401"
+doi = "10.1016/S1270-9638(00)01062-2"
+status = "verified"
+note = "Read in the copy of the DLR repository (elib.dlr.de/9247): equation 1 and the nomenclature (p. 392), equation 5 (p. 394), equation 13 (p. 395), equation 14, the contrail factor and the factors of Peters (p. 396)."
+
+[references.gierens2021]
+authors = "Gierens, K."
+year = 2021
+title = "Theory of contrail formation for fuel cells"
+container = "Aerospace, 8, 164"
+doi = "10.3390/aerospace8060164"
+status = "verified"
+note = "Read in the copy of the publisher (CC BY 4.0): equation 1 (p. 2), equations 19 to 21 and Figure 1 (p. 7), the G-factor of kerosene at 1000 hPa (p. 10)."
+
+# --- Quantity kinds ---------------------------------------------------
+
+[kinds.OverallPropulsionEfficiency]
+label = "Overall Propulsion Efficiency"
+specialization_of = "Efficiency"
+units = ["UNITLESS"]
+bounds = { low = 0, high = 1, unit = "UNITLESS", criterion = "The work rate of the thrust over the chemical power of the fuel, F V / (Q m_F): never negative, never above 1, energy being conserved; zero on the ground, where V = 0 (Schumann 2000)." }
+description = "Ratio of the work rate F V of the thrust F at the true air speed V to the chemical power Q m_F of the fuel burnt at the mass flow rate m_F (Schumann 1996, equation 1; Schumann 2000, equation 1): the part of the combustion heat that propels the aircraft, the rest warming the exhaust plume."
+
+[kinds.LowerHeatingValue]
+label = "Lower Heating Value"
+specialization_of = "HeatingValue"
+description = "Heat released per unit mass of fuel burnt at a standard temperature, the water of the exhaust staying vapour: the net or lower heat value (Schumann 1996, appendix 1), 43 MJ/kg for kerosene."
+matches = [
+  { target = "http://www.wikidata.org/entity/Q902126", relation = "broad", verified = 2026-11-25 },
+]
+
+[kinds.EmissionIndexOfWaterVapour]
+label = "Emission Index of Water Vapour"
+specialization_of = "DimensionlessRatio"
+units = ["KiloGM-PER-KiloGM", "GM-PER-KiloGM"]
+bounds = { low = 0, high = inf, unit = "KiloGM-PER-KiloGM", criterion = "A mass of water vapour emitted per mass of fuel burnt, never negative." }
+description = "Mass of water vapour emitted per mass of fuel burnt, EI_H2O (Schumann 1996, equation 29): 1.25 kg/kg for kerosene. Not QUDT's MassRatio, the mass ratio of a rocket."
+
+[kinds.ContrailFactor]
+label = "Contrail Factor"
+specialization_of = "InverseTemperature"
+description = "C = c_p Delta q / Delta h_p = G epsilon / p, the water vapour mass fraction the exhaust adds to the plume per kelvin of its temperature excess (Schumann 2000, equation 14), which sources give in g kg-1 K-1 (0.0292 for kerosene at eta = 0), here in K-1. Not the G-factor, which Gierens (2021) also calls contrail factor, a slope in Pa/K."
+
+[kinds.ContrailMaximumThresholdTemperature]
+label = "Maximum Threshold Temperature of Contrail Formation"
+specialization_of = "Temperature"
+description = "T_LM (Schumann 1996), T_max (Gierens 2021): the temperature at which the mixing line of the exhaust is tangent to the saturation vapour pressure curve over liquid water, the threshold temperature at liquid saturation of the ambient air (U = 1). A point at which a saturation vapour pressure is evaluated. Not a threshold temperature at another humidity, which it bounds."
+
+[kinds.ContrailThresholdTemperature]
+label = "Threshold Temperature of Contrail Formation"
+specialization_of = "Temperature"
+description = "T_LC (Schumann 1996): the highest ambient temperature at which the mixing line of the exhaust reaches liquid saturation, for the relative humidity of the ambient air over water; contrails form below it. The critical temperature of Appleman (1953), not the temperature of a critical point. Equal to the maximum threshold temperature at U = 1, below it otherwise."
+
+[trade_terms.contrail_factor]
+term = "contrail factor"
+language = "en"
+
+[[trade_terms.contrail_factor.meanings]]
+community = "contrail formation (Schumann 2000)"
+kind = "ContrailFactor"
+definition = "C = c_p Delta q / Delta h_p = G epsilon / p = EI_H2O c_p / [Q (1 - eta)], in g kg-1 K-1 (equation 14): 0.0292 for kerosene at eta = 0."
+sources = ["schumann2000"]
+
+[[trade_terms.contrail_factor.meanings]]
+community = "contrail formation (Gierens 2021)"
+kind = "MixingLineSlope"
+definition = "G = c_p p_a EI_H2O / [epsilon (1 - eta) Q], 'a so-called contrail factor or G-factor' (equation 1), in Pa/K: the slope of the mixing line."
+sources = ["gierens2021"]
+
+# --- Constants --------------------------------------------------------
+
+[constants.epsilon_schumann1996]
+identifier = "epsilon"
+value = 0.622
+unit = "UNITLESS"
+description = "Ratio of the molar masses of water and dry air, M_H2O / M_air, as Schumann (1996) gives it (equation 6)"
+reference = "schumann1996"
+nature = "conventional"
+
+# --- Engine and fuel --------------------------------------------------
+
+[formulations.schumann1996_overall_propulsion_efficiency]
+label = "Overall propulsion efficiency of an aircraft (Schumann 1996)"
+nature = "definition"
+expression = "F * V / (Q * m_F)"
+fixed_units = false
+output = { identifier = "eta", kind = "OverallPropulsionEfficiency", unit = "UNITLESS", description = "Overall propulsion efficiency" }
+inputs = [
+  { identifier = "F", kind = "Thrust", unit = "N", description = "Thrust of the engine" },
+  { identifier = "V", kind = "Speed", unit = "M-PER-SEC", description = "True air speed of the aircraft" },
+  { identifier = "Q", kind = "LowerHeatingValue", unit = "MegaJ-PER-KiloGM", description = "Lower heating value of the fuel" },
+  { identifier = "m_F", kind = "MassFlowRate", unit = "KiloGM-PER-SEC", description = "Mass flow rate of the fuel burnt by the engine" },
+]
+keywords = ["contrail", "aircraft", "propulsion"]
+
+[[formulations.schumann1996_overall_propulsion_efficiency.citations]]
+reference = "schumann1996"
+equation = "1"
+note = "Equation 1, p. 8; Table 2, p. 12, eta = F V / (m_F Q) = 0.308 for a B747. Schumann writes the mass flow rate with a dot, m-dot_F."
+notation = { eta = '\eta', m_F = 'm_\mathrm{F}' }
+
+[[formulations.schumann1996_overall_propulsion_efficiency.citations]]
+reference = "schumann2000"
+equation = "1"
+notation = { eta = '\eta', m_F = 'm_\mathrm{f}' }
+
+[formulations.schumann1996_emission_index_water_vapour]
+label = "Emission index of water vapour from the hydrogen content of the fuel (Schumann 1996)"
+expression = "m_H * M_H2O / (2 * M_H)"
+fixed_units = false
+output = { identifier = "EI", kind = "EmissionIndexOfWaterVapour", unit = "KiloGM-PER-KiloGM", description = "Emission index of water vapour" }
+inputs = [
+  { identifier = "m_H", kind = "MassFraction", unit = "KiloGM-PER-KiloGM", description = "Mass fraction of hydrogen in the fuel" },
+]
+coefficients = { M_H = { value = 1.008, unit = "GM-PER-MOL", unit_basis = "added", note = "Molar mass of hydrogen; Schumann prints the number alone." }, M_H2O = { value = 18.016, unit = "GM-PER-MOL", unit_basis = "added", note = "Molar mass of water; Schumann prints the number alone." } }
+keywords = ["contrail", "fuel", "emission index"]
+
+[[formulations.schumann1996_emission_index_water_vapour.citations]]
+reference = "schumann1996"
+equation = "29"
+note = "Appendix 1, p. 18. Table 1 (p. 12) prints 1.25, 2.24 and 8.94 kg/kg for kerosene, methane and hydrogen (m_H 0.14, 0.251 and 1)."
+notation = { EI = 'EI_{\mathrm{H_2O}}', m_H = 'm_\mathrm{H}', M_H = 'M_\mathrm{H}', M_H2O = 'M_{\mathrm{H_2O}}' }
+assumptions = ["Complete combustion, unburnt hydrocarbons, carbon monoxide, soot and other minor constituents neglected (appendix 1)."]
+
+# --- Mixing line ------------------------------------------------------
+
+[formulations.schumann1996_mixing_line_slope]
+label = "Slope of the mixing line of aircraft exhaust and ambient air (Schumann 1996)"
+expression = "EI * c_p * p / (epsilon * Q * (1 - eta))"
+fixed_units = false
+output = { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line in a diagram of water vapour partial pressure versus temperature" }
+inputs = [
+  { identifier = "EI", kind = "EmissionIndexOfWaterVapour", unit = "KiloGM-PER-KiloGM", description = "Emission index of water vapour" },
+  { identifier = "c_p", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat capacity of air at constant pressure" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Ambient pressure" },
+  { identifier = "Q", kind = "LowerHeatingValue", unit = "MegaJ-PER-KiloGM", description = "Lower heating value of the fuel" },
+  { identifier = "eta", kind = "OverallPropulsionEfficiency", unit = "UNITLESS", description = "Overall propulsion efficiency" },
+]
+constants = ["epsilon_schumann1996"]
+keywords = ["contrail", "mixing line", "G-factor"]
+
+[[formulations.schumann1996_mixing_line_slope.citations]]
+reference = "schumann1996"
+equation = "8"
+note = "p. 9, with G = Delta e / Delta T (equation 7); Table 3 (p. 13) prints G = 1.49, 2.31 and 3.82 Pa/K for kerosene, methane and hydrogen."
+notation = { EI = 'EI_{\mathrm{H_2O}}', eta = '\eta', epsilon = '\varepsilon' }
+assumptions = ["Heat and water added to the plume mix similarly, at constant pressure and without other losses (p. 9).", "A constant c_p, close to 1004 J kg-1 K-1 below about 50 degC (p. 9)."]
+
+[[formulations.schumann1996_mixing_line_slope.citations]]
+reference = "schumann2000"
+equation = "13"
+notation = { EI = 'EI_{\mathrm{H_2O}}', eta = '\eta', epsilon = '\varepsilon' }
+
+[[formulations.schumann1996_mixing_line_slope.citations]]
+reference = "schumann2012"
+equation = "11"
+note = "p. 547, with c_p = 1004 J (kg K)-1 and M_H2O / M_air = 0.622."
+notation = { EI = 'EI_{\mathrm{H_2O}}', Q = 'Q_\mathrm{fuel}', eta = '\eta', epsilon = '(M_{\mathrm{H_2O}}/M_\mathrm{air})' }
+
+[[formulations.schumann1996_mixing_line_slope.citations]]
+reference = "gierens2021"
+equation = "1"
+note = "p. 2, the 'contrail factor or G-factor', with epsilon = 0.622."
+notation = { EI = 'EI_{\mathrm{H_2O}}', p = 'p_a', eta = '\eta', epsilon = '\varepsilon' }
+
+[formulations.schumann2000_contrail_factor]
+label = "Contrail factor (Schumann 2000)"
+expression = "EI * c_p / (Q * (1 - eta))"
+fixed_units = false
+output = { identifier = "C", kind = "ContrailFactor", unit = "PER-K", description = "Contrail factor" }
+inputs = [
+  { identifier = "EI", kind = "EmissionIndexOfWaterVapour", unit = "KiloGM-PER-KiloGM", description = "Emission index of water vapour" },
+  { identifier = "c_p", kind = "SpecificHeatCapacityAtConstantPressure", unit = "J-PER-KiloGM-K", description = "Specific heat capacity of air at constant pressure" },
+  { identifier = "Q", kind = "LowerHeatingValue", unit = "MegaJ-PER-KiloGM", description = "Lower heating value of the fuel" },
+  { identifier = "eta", kind = "OverallPropulsionEfficiency", unit = "UNITLESS", description = "Overall propulsion efficiency" },
+]
+keywords = ["contrail", "contrail factor"]
+
+[[formulations.schumann2000_contrail_factor.citations]]
+reference = "schumann2000"
+equation = "14"
+note = "p. 396: 0.0292 g kg-1 K-1 for eta = 0, EI = 1.25, c_p = 1004 J kg-1 K-1 and Q = 43 MJ/kg; the factors 0.036, 0.040 and 0.049 g kg-1 K-1 Peters suggested imply eta = 0.19, 0.27 and 0.40."
+notation = { EI = 'EI_{\mathrm{H_2O}}', eta = '\eta' }
+
+[formulations.schumann2000_contrail_factor_from_slope]
+label = "Contrail factor from the slope of the mixing line (Schumann 2000)"
+nature = "identity"
+expression = "G * epsilon / p"
+fixed_units = false
+note = "Schumann (2000) writes epsilon = R_air / R_H2O = 0.622, the value of Schumann (1996)."
+output = { identifier = "C", kind = "ContrailFactor", unit = "PER-K", description = "Contrail factor" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+  { identifier = "p", kind = "Pressure", unit = "PA", description = "Ambient pressure" },
+]
+constants = ["epsilon_schumann1996"]
+keywords = ["contrail", "contrail factor"]
+
+[[formulations.schumann2000_contrail_factor_from_slope.citations]]
+reference = "schumann2000"
+equation = "14"
+notation = { epsilon = '\varepsilon' }
+
+# --- Maximum threshold temperature: fits ------------------------------
+
+[formulations.schumann1996_maximum_threshold_temperature_fit]
+label = "Maximum threshold temperature of contrail formation, fit in degrees Celsius (Schumann 1996)"
+expression = "a0 + a1 * ln(G - g0) + a2 * ln(G - g0) ** 2"
+fixed_units = true
+note = "A fit of the exact solution of equation 10 of Schumann (1996), the temperature where the slope of the saturation vapour pressure over water equals G. Schumann (2012) prints a2 as 0.72. Against that solution with the Sonntag form of Schumann (2012), A1, the fit departs by up to 0.0755 K, at the ends of its range (G = 0.24 and 23 Pa/K), and by up to 0.043 K from 0.3 to 20 Pa/K."
+output = { identifier = "T_LM", kind = "ContrailMaximumThresholdTemperature", unit = "DEG_C", description = "Maximum threshold temperature of contrail formation" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+coefficients = { a0 = -46.46, a1 = 9.43, a2 = 0.720, g0 = 0.053 }
+keywords = ["contrail", "threshold temperature"]
+
+[[formulations.schumann1996_maximum_threshold_temperature_fit.citations]]
+reference = "schumann1996"
+equation = "31"
+note = "Appendix 2, p. 18, as a first guess of the Newton iteration of equation 10."
+notation = { T_LM = 'T_\mathrm{LM}' }
+accuracy = "maximum error of 0.056 degC"
+
+[[formulations.schumann1996_maximum_threshold_temperature_fit.citations.domains]]
+bounds = { G = [0.24, 23.0] }
+criterion = "0.24 Pa/K <= G < 23 Pa/K, i.e. -60 degC <= T_LM <= -10 degC, where the least-square fit gives a maximum error of 0.056 degC (appendix 2)."
+
+[[formulations.schumann1996_maximum_threshold_temperature_fit.citations]]
+reference = "schumann2000"
+equation = "5"
+notation = { T_LM = 'T_\mathrm{M}' }
+
+[[formulations.schumann1996_maximum_threshold_temperature_fit.citations.domains]]
+bounds = { T_LM = [-60.0, -10.0] }
+criterion = "Precise for -60 degC <= T_M <= -10 degC (p. 394)."
+
+[[formulations.schumann1996_maximum_threshold_temperature_fit.citations]]
+reference = "schumann2012"
+equation = "10"
+notation = { T_LM = 'T_\mathrm{LM}' }
+accuracy = "errors below 0.07 K"
+
+[[formulations.schumann1996_maximum_threshold_temperature_fit.citations.domains]]
+bounds = { G = [0.24, 23.0] }
+criterion = "Errors below 0.07 K for 0.24 Pa/K < G < 23 Pa/K (p. 547)."
+
+[formulations.gierens2021_maximum_threshold_temperature_low]
+label = "Maximum threshold temperature of contrail formation in kelvins, the fit of Schumann (1996) as Gierens (2021) writes it"
+expression = "d0 + d1 * ln(G - d3) + d2 * ln(G - d3) ** 2"
+fixed_units = true
+note = "Equation 31 of Schumann (1996) in kelvins, 226.69 = -46.46 + 273.15; Gierens takes it for G <= 2 Pa/K and for colder conditions, his cubic fit above."
+output = { identifier = "T_max", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+coefficients = { d0 = 226.69, d1 = 9.43, d2 = 0.720, d3 = 0.053 }
+keywords = ["contrail", "threshold temperature"]
+
+[[formulations.gierens2021_maximum_threshold_temperature_low.citations]]
+reference = "gierens2021"
+equation = "20"
+note = "p. 7, for G <= 2 Pa/K, with T_max in K and G in Pa/K."
+notation = { T_max = 'T_\mathrm{max}' }
+
+[[formulations.gierens2021_maximum_threshold_temperature_low.citations]]
+reference = "schumann1996"
+equation = "31"
+note = "In degrees Celsius: schumann1996_maximum_threshold_temperature_fit."
+notation = { T_max = 'T_\mathrm{LM}' }
+accuracy = "maximum error of 0.056 degC"
+
+[[formulations.gierens2021_maximum_threshold_temperature_low.citations.domains]]
+bounds = { G = [0.24, 23.0] }
+criterion = "0.24 Pa/K <= G < 23 Pa/K, i.e. -60 degC <= T_LM <= -10 degC, where the least-square fit gives a maximum error of 0.056 degC (appendix 2)."
+
+[formulations.gierens2021_maximum_threshold_temperature_cubic]
+label = "Maximum threshold temperature of contrail formation, cubic fit for large G (Gierens 2021)"
+expression = "c0 + c1 * ln(G) + c2 * ln(G) ** 2 + c3 * ln(G) ** 3"
+fixed_units = true
+note = "A fit for the large values of G of fuel cell exhausts, of the temperature where the slope of the saturation vapour pressure curve (Clausius-Clapeyron, equation 19) equals G. Against that temperature computed with the Sonntag form of Schumann (2012), A1, it departs by up to 0.032 K from 233 to 293 K (G from 2 to about 143 Pa/K)."
+output = { identifier = "T_max", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" }
+inputs = [
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+coefficients = { c0 = 226.031, c1 = 10.2249, c2 = 0.335372, c3 = 0.0642105 }
+keywords = ["contrail", "threshold temperature", "fuel cell"]
+
+[[formulations.gierens2021_maximum_threshold_temperature_cubic.citations]]
+reference = "gierens2021"
+equation = "21"
+note = "p. 7, for G > 2 Pa/K, with T_max in K and G in Pa/K; Figure 1 compares it with the exact values for ln G from 0.5 to 5."
+notation = { T_max = 'T_\mathrm{max}' }
+
+[[formulations.gierens2021_maximum_threshold_temperature_cubic.citations.domains]]
+bounds = { T_max = [233.0, 293.0] }
+criterion = "A fit for temperatures between 233 and 293 K (p. 7)."
+
+[formulations.gierens2021_maximum_threshold_temperature]
+label = "Maximum threshold temperature of contrail formation, Schumann's fit up to 2 Pa/K and the cubic fit above (Gierens 2021)"
+branches = [
+  { formulation = "gierens2021_maximum_threshold_temperature_low", where = "G <= 2" },
+  { formulation = "gierens2021_maximum_threshold_temperature_cubic", where = "G > 2" },
+]
+output = { identifier = "T_max", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" }
+keywords = ["contrail", "threshold temperature", "fuel cell"]
+
+[[formulations.gierens2021_maximum_threshold_temperature.citations]]
+reference = "gierens2021"
+equation = "20, 21"
+note = "p. 7: 'For colder conditions (or for G < 2 Pa K-1) the formula of [3] should be used.' At G = 2 Pa/K, the two fits meet within about 0.008 K."
+
+# --- Threshold temperature: fit ---------------------------------------
+
+[formulations.schumann2012_threshold_temperature_fit]
+label = "Threshold temperature of contrail formation, explicit fit (Schumann 2012)"
+expression = "T_LM - (1 - U) * p_LM / G - (x1 + x3 * ln(G)) * U * ((1 - U ** 2) ** x2 - (1 / 4 - (U - 1 / 2) ** 2) ** 4 * (1 - (1 - U ** 2) ** x2))"
+fixed_units = true
+note = "Equation A7 of Schumann (2012), exact for U = 0 and U = 1, with the correction Delta T_c of equations A17 to A19, zero at U = 0 and U = 1. It needs one evaluation of the saturation vapour pressure over water at T_LM, p_liq(T_LM), which Schumann computes with equation A1 (schumann2012_saturation_vapour_pressure_liquid). Against the exact solution of equation A6 with A1 and the exact T_LM, the fit departs by up to 0.18 K near G = 23 Pa/K and U = 0.89, and by up to 0.14 K at G = 0.24 Pa/K (U = 0.88); from 1 to 15 Pa/K, by up to 0.12 K. Figure A2 of Schumann (2012) shows U up to 0.8."
+output = { identifier = "T_LC", kind = "ContrailThresholdTemperature", unit = "K", description = "Threshold temperature of contrail formation" }
+inputs = [
+  { identifier = "T_LM", kind = "ContrailMaximumThresholdTemperature", unit = "K", description = "Maximum threshold temperature of contrail formation" },
+  { identifier = "p_LM", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over liquid water at T_LM" },
+  { identifier = "U", kind = "RelativeHumidity", unit = "UNITLESS", description = "Relative humidity of the ambient air over liquid water" },
+  { identifier = "G", kind = "MixingLineSlope", unit = "PA-PER-K", description = "Slope of the mixing line" },
+]
+coefficients = { x1 = 5.686, x2 = 0.3840, x3 = 0.6594 }
+keywords = ["contrail", "threshold temperature"]
+
+[[formulations.schumann2012_threshold_temperature_fit.citations]]
+reference = "schumann2012"
+equation = "A16-A19"
+note = "Appendix A5, p. 571."
+notation = { T_LC = 'T_\mathrm{LC}', T_LM = 'T_\mathrm{LM}', p_LM = 'p_{\mathrm{liq}}(T_\mathrm{LM})' }
+accuracy = "maximum error of 0.13 K"
+
+[[formulations.schumann2012_threshold_temperature_fit.citations.domains]]
+bounds = { U = [0.0, 1.0], G = [0.24, 23.0] }
+criterion = "The full range 0 <= U <= 1 and 0.24 Pa/K < G < 23 Pa/K, over which the fit has a maximum error of 0.13 K (appendix A5, Fig. A2)."
+
+# --- Cross-checks -----------------------------------------------------
+
+[cross_checks.pycontrails0661_sac]
+implementation = "pycontrails"
+version = "0.66.1"
+url = "https://github.com/contrailcirrus/pycontrails/blob/v0.66.1/pycontrails/models/sac.py"
+checked = 2026-11-24
+note = "T_sat_liquid of pycontrails.models.sac, equation 31 of Schumann (1996) written with 0.72 and returned in kelvins; run in an ephemeral environment on 24 November 2026, the values kept to four decimals in degrees Celsius."
+
+[[cross_checks.pycontrails0661_sac.cases]]
+formulation = "schumann1996_maximum_threshold_temperature_fit"
+inputs = { G = 1.49 }
+value = -42.9464
+call = "T_sat_liquid(numpy.array([1.49])) - 273.15"
+rtol = 2e-6
+
+[[cross_checks.pycontrails0661_sac.cases]]
+formulation = "schumann1996_maximum_threshold_temperature_fit"
+inputs = { G = 2.31 }
+value = -38.3065
+call = "T_sat_liquid(numpy.array([2.31])) - 273.15"
+rtol = 2e-6
+
+[[cross_checks.pycontrails0661_sac.cases]]
+formulation = "schumann1996_maximum_threshold_temperature_fit"
+inputs = { G = 3.82 }
+value = -32.6867
+call = "T_sat_liquid(numpy.array([3.82])) - 273.15"
+rtol = 2e-6

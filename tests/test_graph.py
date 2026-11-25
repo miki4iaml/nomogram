@@ -179,7 +179,7 @@ def test_kind_graph_of_every_kind() -> None:
     assert _deviations(document) == []
     kinds = [n for n in document["nodes"] if n["type"] == "qudt:QuantityKind"]
     assert [n["id"] for n in kinds] == [f"kinds.{name}" for name in c.kinds]
-    assert {"qudt", "nomogram"} == {n["origin"] for n in kinds}
+    assert {"qudt", "nomogram", "provisional"} == {n["origin"] for n in kinds}
     assert all("iri" not in n for n in kinds if n["origin"] != "qudt")
     relations = {e["type"] for e in document["edges"]}
     assert {"skos:exactMatch", "skos:closeMatch", "skos:narrowMatch"} <= relations

@@ -846,8 +846,8 @@ def _substitute(
 #: Kinds whose values may be passed to an input of another kind, when a
 #: formulation calls another: the temperature of a point at which the
 #: called formulation is evaluated (a saturation vapour pressure at the
-#: dew or frost point, or at the wet- or ice-bulb temperature). Never a
-#: difference.
+#: dew or frost point, at the wet- or ice-bulb temperature, or at a
+#: threshold temperature of contrail formation). Never a difference.
 _TEMPERATURES = frozenset({"CelsiusTemperature", "ThermodynamicTemperature"})
 _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
@@ -857,6 +857,10 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
         "IceBulbTemperature": _TEMPERATURES,
         "PsychrometerWetBulbTemperature": _TEMPERATURES,
         "PsychrometerIceBulbTemperature": _TEMPERATURES,
+        "ContrailThresholdTemperature": _TEMPERATURES,
+        "ContrailMaximumThresholdTemperature": _TEMPERATURES,
+        "ContrailThresholdTemperatureWithRespectToIce": _TEMPERATURES,
+        "ContrailMaximumThresholdTemperatureWithRespectToIce": _TEMPERATURES,
     }
 )
 

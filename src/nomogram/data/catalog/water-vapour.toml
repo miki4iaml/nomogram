@@ -1408,3 +1408,105 @@ formulation = "psychrolib_saturation_pressure"
 inputs = { T = 373.15 }
 value = 101418.71682799235
 call = "GetSatVapPres(100.0)"
+
+# --- Sonntag in pascals, as Schumann (2012) writes it, and its slopes --
+
+[references.schumann2012]
+authors = "Schumann, U."
+year = 2012
+title = "A contrail cirrus prediction model"
+container = "Geoscientific Model Development, 5, 543-580"
+doi = "10.5194/gmd-5-543-2012"
+status = "verified"
+note = "Read in the copy of the publisher (CC BY 3.0): section 2.4 (equations 10 to 12, p. 547), appendix A3 (equations A1 and A2, p. 570) and appendix A5 (equations A5 to A19, p. 570-571). Equation A10, dimensionally inconsistent as printed (Pa2/K2 for the second derivative of a pressure in Pa/K2), is not entered."
+
+[kinds.SaturationVapourPressureSlopeOverWater]
+label = "Slope of the Saturation Vapour Pressure over Water"
+specialization_of = "SaturationVapourPressureSlope"
+description = "Derivative with respect to temperature of the saturation vapour pressure over a plane surface of liquid water, de_w/dT: the slope the mixing line of aircraft exhaust takes at the threshold temperature of contrail formation at liquid saturation (Schumann 1996, equation 10), the Delta of the Penman-Monteith equation (FAO-56, equation 13)."
+
+[kinds.SaturationVapourPressureSlopeOverIce]
+label = "Slope of the Saturation Vapour Pressure over Ice"
+specialization_of = "SaturationVapourPressureSlope"
+description = "Derivative with respect to temperature of the saturation vapour pressure over a plane surface of ice, de_i/dT; a sibling of the slope over water, never fed by it."
+
+[formulations.schumann2012_saturation_vapour_pressure_liquid]
+label = "Saturation vapour pressure over liquid water in pascals, Sonntag (1994) as Schumann (2012) writes it"
+expression = "100 * exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
+fixed_units = true
+note = "The coefficients of sonntag1990, times the factor 100 Schumann prints for pascals; the same values as sonntag1990 converted to Pa, which the relation schumann2012_a1_sonntag1990 proves. pycontrails writes it so (sonntag_e_sat_liquid)."
+output = { identifier = "p_liq", kind = "SaturationVapourPressureOverWater", unit = "PA", description = "Saturation vapour pressure over liquid water" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { a0 = -6096.9385, a1 = 16.635794, a2 = -2.711193e-2, a3 = 1.673952e-5, a4 = 2.433502 }
+keywords = ["saturation", "contrail"]
+
+[[formulations.schumann2012_saturation_vapour_pressure_liquid.citations]]
+reference = "schumann2012"
+equation = "A1"
+note = "Appendix A3, p. 570, 'as in Sonntag (1994)'."
+notation = { p_liq = 'p_{\mathrm{liq}}' }
+
+[formulations.schumann2012_saturation_vapour_pressure_ice]
+label = "Saturation vapour pressure over ice in pascals, Sonntag (1994) as Schumann (2012) writes it"
+expression = "100 * exp(a0 / T + a1 + a2 * T + a3 * T ** 2 + a4 * ln(T))"
+fixed_units = true
+note = "The coefficients of sonntag1990_ice, times the factor 100 Schumann prints for pascals, which the relation schumann2012_a2_sonntag1990_ice proves. Schumann (2012) finds it within 1 % of the approximations Murphy and Koop (2005) recommend, down to -100 degC."
+output = { identifier = "p_ice", kind = "SaturationVapourPressureOverIce", unit = "PA", description = "Saturation vapour pressure over ice" }
+inputs = [
+  { identifier = "T", kind = "ThermodynamicTemperature", unit = "K", description = "Thermodynamic temperature", scale = "its90", scale_basis = "inferred-from-date" },
+]
+coefficients = { a0 = -6024.5282, a1 = 24.7219, a2 = 1.0613868e-2, a3 = -1.3198825e-5, a4 = -0.49382577 }
+keywords = ["saturation", "contrail"]
+
+[[formulations.schumann2012_saturation_vapour_pressure_ice.citations]]
+reference = "schumann2012"
+equation = "A2"
+note = "Appendix A3, p. 570."
+notation = { p_ice = 'p_{\mathrm{ice}}' }
+
+[formulations.schumann2012_saturation_vapour_pressure_slope_liquid]
+label = "Slope of the saturation vapour pressure over liquid water in Pa/K, derivative of Sonntag (1994) as Schumann (2012) writes it"
+derivative = { of = "schumann2012_saturation_vapour_pressure_liquid", with_respect_to = "T" }
+output = { identifier = "dp_liq", kind = "SaturationVapourPressureSlopeOverWater", unit = "PA-PER-K", description = "Slope of the saturation vapour pressure over liquid water" }
+keywords = ["contrail", "slope"]
+
+[formulations.schumann2012_saturation_vapour_pressure_slope_ice]
+label = "Slope of the saturation vapour pressure over ice in Pa/K, derivative of Sonntag (1994) as Schumann (2012) writes it"
+derivative = { of = "schumann2012_saturation_vapour_pressure_ice", with_respect_to = "T" }
+output = { identifier = "dp_ice", kind = "SaturationVapourPressureSlopeOverIce", unit = "PA-PER-K", description = "Slope of the saturation vapour pressure over ice" }
+keywords = ["contrail", "slope"]
+
+[relations.schumann2012_a1_sonntag1990]
+kind = "equivalent"
+subject = "schumann2012_saturation_vapour_pressure_liquid"
+object = "sonntag1990"
+note = "The form in pascals of Schumann (2012), A1, is sonntag1990 in hectopascals: the factor 100 is the conversion."
+
+[relations.schumann2012_a2_sonntag1990_ice]
+kind = "equivalent"
+subject = "schumann2012_saturation_vapour_pressure_ice"
+object = "sonntag1990_ice"
+note = "The form in pascals of Schumann (2012), A2, is sonntag1990_ice in hectopascals: the factor 100 is the conversion."
+
+[cross_checks.pycontrails0661_sonntag]
+implementation = "pycontrails"
+version = "0.66.1"
+url = "https://github.com/contrailcirrus/pycontrails/blob/v0.66.1/pycontrails/physics/thermo.py"
+checked = 2026-11-24
+note = "sonntag_e_sat_liquid and sonntag_e_sat_liquid_prime of pycontrails.physics.thermo, which write Sonntag (1994) in pascals as Schumann (2012) does and its derivative in closed form; run in an ephemeral environment on 24 November 2026, the values as Python prints them. pycontrails takes Murphy and Koop (2005) for its default e_sat_liquid, not these."
+
+[[cross_checks.pycontrails0661_sonntag.cases]]
+formulation = "schumann2012_saturation_vapour_pressure_liquid"
+inputs = { T = 214.15 }
+value = 2.207873983283101
+call = "sonntag_e_sat_liquid(214.15)"
+rtol = 1e-12
+
+[[cross_checks.pycontrails0661_sonntag.cases]]
+formulation = "schumann2012_saturation_vapour_pressure_slope_liquid"
+inputs = { T = 230.255 }
+value = 1.49216486359999
+call = "sonntag_e_sat_liquid_prime(230.255)"
+rtol = 1e-12

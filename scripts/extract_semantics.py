@@ -554,6 +554,19 @@ KINDS: dict[str, KindSpec] = {
     # Part IV, equations 3.10, 3.19 and 3.20). A provisional kind until
     # QUDT 3.5.4 (qudt/qudt-public-repo#1612).
     "KinematicHeatFlux": KindSpec("ratio", delta=False),
+    # The criterion of contrail formation (Schumann 1996): the overall
+    # propulsion efficiency eta = F V / (Q m_F), of the thrust F, the true
+    # air speed V, the heating value Q of the fuel and its mass flow rate
+    # m_F (equation 1). Efficiency is the parent of the overall propulsion
+    # efficiency (catalog), HeatingValue of the lower heating value
+    # (catalog), in MJ/kg; Force and MassPerTime keep the lineage of
+    # Thrust and MassFlowRate.
+    "Efficiency": KindSpec("ratio", delta=False),
+    "HeatingValue": KindSpec("ratio", delta=False),
+    "Force": KindSpec("ratio", delta=False),
+    "Thrust": KindSpec("ratio", delta=False),
+    "MassPerTime": KindSpec("ratio", delta=False),
+    "MassFlowRate": KindSpec("ratio", delta=False),
 }
 
 
@@ -572,7 +585,35 @@ class LocalUnit(NamedTuple):
 
 #: Provisional quantity kinds, by the local name the pull request adding
 #: them to QUDT gives them, with the reason.
-LOCAL_KINDS: dict[str, LocalKind] = {}
+LOCAL_KINDS: dict[str, LocalKind] = {
+    # The slope G of the mixing line of aircraft exhaust and ambient air in
+    # a diagram of water vapour partial pressure versus temperature, in
+    # Pa/K (Schumann 1996, equation 8; Gierens 2021, equation 1). Pa/K
+    # carries only PressureCoefficient in QUDT 3.5.4, (dp/dT) at constant
+    # volume, which G is not.
+    "MixingLineSlope": LocalKind(
+        label="Mixing Line Slope",
+        dimension_vector="A0E0L-1I0M1H-1T-2D0",
+        scale_type="ratio",
+        delta=False,
+        units=("PA-PER-K", "HectoPA-PER-K"),
+        pull_request="https://github.com/qudt/qudt-public-repo/pull/1621",
+        opened="2026-11-25",
+    ),
+    # de_s/dT, the slope of a saturation vapour pressure curve: the slope
+    # the mixing line takes at the threshold temperature of contrail
+    # formation (Schumann 1996, equation 10), the Delta of Penman-Monteith
+    # (FAO-56, equation 13, in kPa/K).
+    "SaturationVapourPressureSlope": LocalKind(
+        label="Saturation Vapour Pressure Slope",
+        dimension_vector="A0E0L-1I0M1H-1T-2D0",
+        scale_type="ratio",
+        delta=False,
+        units=("PA-PER-K", "HectoPA-PER-K", "KiloPA-PER-K"),
+        pull_request="https://github.com/qudt/qudt-public-repo/pull/1622",
+        opened="2026-11-25",
+    ),
+}
 
 #: Units absent from QUDT, declared by nomogram, with the reason; written
 #: as QUDT writes its neighbours (PPM-PER-K, PERCENT-PER-M).
@@ -647,6 +688,18 @@ UNITS: dict[str, str] = {
     "K-M-PER-SEC": "K*m/s",
     # The vertical gradient of radio refractivity, in N-units per metre.
     "PPM-PER-M": "ppm/m",
+    # The criterion of contrail formation: the slopes of the mixing line
+    # and of the saturation curves (provisional kinds), the thrust, the
+    # mass flow rate of the fuel, its heating value and the molar masses of
+    # the emission index of water vapour (Schumann 1996, equation 29).
+    "PA-PER-K": "Pa/K",
+    "HectoPA-PER-K": "hPa/K",
+    "KiloPA-PER-K": "kPa/K",
+    "N": "N",
+    "KiloN": "kN",
+    "KiloGM-PER-SEC": "kg/s",
+    "MegaJ-PER-KiloGM": "MJ/kg",
+    "GM-PER-MOL": "g/mol",
 }
 
 #: Date the links of a unit added after the extraction date of the

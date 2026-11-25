@@ -299,7 +299,9 @@ def _constraints(expr: Any) -> Iterator[_Constraint]:
     the unit of T).
     """
     if isinstance(expr, sympy.Piecewise):
-        branches = tuple(e for e, _ in expr.args)
+        # A branch 0 has every dimension: the derivative of a constant
+        # branch, or a source writing zero beyond a bound.
+        branches = tuple(e for e, _ in expr.args if not (e.is_Number and e == 0))
         if len(branches) > 1:
             yield _Constraint("equal", branches, (expr,))
         for relation in _relations(expr):
@@ -421,6 +423,17 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
             unknown.append(coefficient.identifier)
         else:
             units[coefficient.identifier] = _pint(coefficient.unit)
+    # A derivative holds coefficients of its source: their units are those
+    # inferred where the expression was written.
+    source = _differentiated(formulation)
+    inherited: dict[str, str] = {}
+    if source is not None:
+        found = infer_units(source)
+        for name in unknown:
+            unit = found[name].unit if name in found else None
+            if unit is not None:
+                units[name] = unit
+                inherited[name] = f"as in {source.key}, of which it is the derivative"
     # A formulation made of others keeps the units of its intermediate
     # quantities: each part's expression has the unit of the part's output,
     # and so do the parts of its parts, renamed into the formulation.
@@ -433,7 +446,11 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
         pieces.extend(_constraints(piece))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
-        formulation.fixed_units, units, frozenset(unknown), coefficients, {}
+        formulation.fixed_units,
+        units,
+        frozenset(unknown),
+        coefficients,
+        dict(inherited),
     )
     if formulation.implicit:
         # An implicit equation: its two members, the unknown in the
@@ -453,13 +470,30 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     expr = formulation.sympy_expression
     _angles_in_radians(expr, units)
     output = sympy.Symbol(formulation.output.identifier, real=True)
+    # In fixed units, the output of a derivative is the numerical value its
+    # source carries (Sonntag's exponential, in hPa) times the derivative of
+    # its exponent: its unit, checked when the derivative is built, is no
+    # claim on the units of the coefficients.
+    numerical_output = source is not None and formulation.fixed_units
     candidates = [
-        _Constraint("equal", (output, expr), (output, expr)),
+        *(
+            ()
+            if numerical_output
+            else (_Constraint("equal", (output, expr), (output, expr)),)
+        ),
         *_constraints(expr),
         *pieces,
     ]
     constraints = [c for c in candidates if not context.numerical(c)]
     return context, constraints, expr
+
+
+def _differentiated(formulation: Formulation) -> Formulation | None:
+    """The source of a derivative (:mod:`nomogram.differentiation`), or ``None``."""
+    derivation = formulation.derivation
+    if derivation is None or derivation.method != "differentiation":
+        return None
+    return formulation.parts[0].formulation if formulation.parts else None
 
 
 def _angles_in_radians(expr: Any, units: Mapping[str, Any]) -> None:

@@ -23,7 +23,47 @@ and this project adheres to
   included: the threshold temperature of contrail formation sets the
   slope of a saturation vapour pressure curve equal to that of a mixing
   line ([the catalog guide](docs/catalog.md#derivatives)).
-  `Derivation` gains `with_respect_to` and `order`.
+  `Derivation` gains `with_respect_to` and `order`; the coefficients of a
+  derivative keep the units inferred in its source.
+- **Contrail formation from aircraft exhaust** (family `contrail`), the
+  explicit formulas of the criterion of Schmidt and Appleman: the overall
+  propulsion efficiency and the emission index of water vapour (Schumann
+  1996), the slope of the mixing line (Schumann 1996, 2000 and 2012,
+  Gierens 2021), the contrail factor (Schumann 2000), the fits of the
+  maximum threshold temperature (Schumann 1996; Gierens 2021, his two
+  fits joined at 2 Pa/K as he prescribes) and of the threshold
+  temperature (Schumann 2012). Their oracles are the values the sources
+  print (efficiency, emission indices and slopes of the mixing line of a
+  B747, the factors of Peters); the deviations of the fits from the exact
+  solutions are measured and noted beside the accuracy each source
+  states. The exact threshold temperatures, solutions of implicit
+  equations, come later. "Contrail factor" is a trade term with two
+  meanings, C in K-1 and G in Pa/K.
+- The saturation vapour pressures of Sonntag (1994) in pascals as
+  Schumann (2012) writes them (A1, A2), proved equivalent to `sonntag1990`
+  and `sonntag1990_ice`, and their derivatives, the slopes of saturation
+  over water and over ice, cross-checked against pycontrails 0.66.1.
+- The quantity kinds and units of the criterion: from QUDT, `Efficiency`,
+  `HeatingValue`, `Thrust` and `MassFlowRate` (with `Force` and
+  `MassPerTime`), the newton, the kilonewton, kg/s, MJ/kg and g/mol; two
+  provisional kinds, `MixingLineSlope` and `SaturationVapourPressureSlope`,
+  in Pa/K, hPa/K and kPa/K, pending their pull requests to QUDT
+  (qudt/qudt-public-repo#1621 and #1622).
+
+### Changed
+
+- The threshold temperatures of contrail formation are points at which a
+  saturation vapour pressure is evaluated, as a dew point is: they feed a
+  temperature input of a formulation called or composed.
+- MJ/kg, which QUDT declares for `SpecificEnergy`, applies to it and to
+  its specializations; Force and the newton bring two more links to the SI
+  Digital Framework (25).
+
+### Fixed
+
+- In the inference of the units of coefficients, a branch 0 of a
+  piecewise definition no longer makes the other branches pure numbers:
+  zero has every dimension.
 
 ## [0.9.0] - 2026-11-25
 

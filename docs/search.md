@@ -116,8 +116,9 @@ conditions use the identifiers of its expression (an input, coefficients,
 constants), already found as variables, coefficients and constants.
 A quantity kind is found by its name, label, CF standard names and
 links, and by its origin: `search("provisional")` finds the provisional
-kinds (none since QUDT 3.5.4), and the number of the pull request adding
-one to QUDT finds it; the pull request itself is read on the kind
+kinds (`MixingLineSlope` and `SaturationVapourPressureSlope`, pending
+qudt/qudt-public-repo#1621 and #1622), and the number of the pull
+request adding one to QUDT finds it; the pull request itself is read on the kind
 (`Catalog.kinds[name].pending`).
 Nor does an expression passed to a formulation called (`psi_H(zeta=z_t /
 L)`): `uses` links the caller to the formulation called, whose input

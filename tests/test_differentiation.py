@@ -123,6 +123,10 @@ def test_a_formulation_by_pieces_is_differentiated_piece_by_piece() -> None:
     assert gradient.expression.startswith("piecewise((a, H <= 11000")
     values = gradient.evaluate(H=Q_([5000, 15_000], "m")).to("K/m").magnitude
     assert values.tolist() == pytest.approx([-0.0065, 0.0])
+    # The branch 0 has every dimension: a keeps the unit inferred in its
+    # source, K/m, not that of a pure number.
+    unit = gradient.coefficient_units["a"]
+    assert (f"{unit.unit:~}", unit.origin) == ("K / m", "inferred")
 
 
 def test_a_derivative_of_order_two() -> None:
