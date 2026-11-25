@@ -144,6 +144,7 @@ references. The guides:
 | [Humidity aloft](docs/humidity-aloft.md) | a radiosonde's formula against its users', along a profile |
 | [The evaporation duct](docs/evaporation-duct.md) | from a ship's measurements to the duct height, four ways |
 | [COARE 3.6 as a system](docs/coare-system.md) | the loop of the code solved by Newton's method, and drawn |
+| [Contrails](docs/contrails.md) | when an aircraft's exhaust saturates the air: Schumann's thresholds, Appleman's criterion of 1953 |
 | **Using it in a laboratory** | |
 | [Security and compliance](docs/security-and-compliance.md) | how it is developed, checked, published; a checklist |
 | [The logo](docs/logo.md) | a working nomogram |

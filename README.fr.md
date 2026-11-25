@@ -147,6 +147,7 @@ Chaque formulation garde ses unités, son domaine de validité, son
 | [Humidity aloft](docs/humidity-aloft.md) | la formule d'un fabricant de radiosondes face à celles de ses utilisateurs, le long d'un profil |
 | [The evaporation duct](docs/evaporation-duct.md) | des mesures d'un navire à la hauteur du conduit, de quatre manières |
 | [COARE 3.6 as a system](docs/coare-system.md) | la boucle du code résolue par la méthode de Newton, et dessinée |
+| [Contrails](docs/contrails.md) | quand l'échappement d'un avion sature l'air : les seuils de Schumann, le critère d'Appleman de 1953 |
 | **En laboratoire** | |
 | [Security and compliance](docs/security-and-compliance.md) | comment il est développé, vérifié, publié ; une liste de contrôle |
 | [The logo](docs/logo.md) | un vrai nomogramme |
