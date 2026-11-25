@@ -532,6 +532,16 @@ def _symbolic(
     source, coefficients = found
     forward = _forward(formulation)
     shift = _offset(formulation.inputs[0].unit, output.unit)
+    if shift and any(
+        d.at_most or d.at_least
+        for d in (
+            *formulation.physical_domains,
+            *(d for c in formulation.citations for d in c.domains),
+        )
+    ):
+        # A relative bound compares numbers in one unit: it does not carry
+        # a change from K to degC; the numerical inverse keeps it.
+        return None
 
     def carried(domains: tuple[ValidityDomain, ...]) -> tuple[ValidityDomain, ...]:
         return _carried_domains(
@@ -578,11 +588,25 @@ def _carried_domains(
     through the function, when both its ends are finite, and a bound on the
     source's output become an interval of the inverse's input. A tolerance
     goes with the bound of its variable (a difference, unchanged by the
-    shift); the image of an interval takes none.
+    shift); the image of an interval takes none. A relative bound between
+    the source's input and output keeps its meaning under the new names,
+    written on the inverse's output.
     """
     solve_for = source.inputs[0].identifier
+    names = {solve_for: output_identifier, source.output.identifier: input_identifier}
     carried = []
     for domain in domains:
+        relative: dict[str, dict[str, str]] = {"most": {}, "least": {}}
+        for side, other_side, table in (
+            ("most", "least", domain.at_most),
+            ("least", "most", domain.at_least),
+        ):
+            for bounded, bounding in table.items():
+                new_bounded, new_bounding = names[bounded], names[bounding]
+                if new_bounding == output_identifier:
+                    relative[other_side][new_bounding] = new_bounded
+                else:
+                    relative[side][new_bounded] = new_bounding
         bounds: dict[str, tuple[float, float]] = {}
         tolerance: dict[str, tuple[float, float]] = {}
         if solve_for in domain.bounds:
@@ -607,7 +631,7 @@ def _carried_domains(
             bounds[input_identifier] = (low, high)
             if any(ends_tolerance):
                 tolerance[input_identifier] = ends_tolerance
-        if not bounds:
+        if not bounds and not relative["most"] and not relative["least"]:
             continue
         criterion = (
             f"Carried by inversion from {source.key}: "
@@ -620,6 +644,8 @@ def _carried_domains(
                 criterion,
                 domain.reference,
                 MappingProxyType(tolerance),
+                at_most=MappingProxyType(relative["most"]),
+                at_least=MappingProxyType(relative["least"]),
             )
         )
     return tuple(carried)

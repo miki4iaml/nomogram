@@ -763,6 +763,55 @@ def _keywords(where: str, value: Any) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _check_relative_bounds(where: str, formulation: Formulation) -> None:
+    """Relative bounds compare two variables as numbers.
+
+    The same unit, and the same scale, checked on the formulation built,
+    where its citations have put theirs. A variable on none (the output of
+    an equation) compares with one on the reference scale, where nothing is
+    converted, as a part on none feeds an input on it.
+    """
+    variables = {v.identifier: v for v in (*formulation.inputs, formulation.output)}
+    domains = [*formulation.physical_domains]
+    domains += [d for c in formulation.citations for d in c.domains]
+    for domain in domains:
+        for side, table in (("at_most", domain.at_most), ("at_least", domain.at_least)):
+            for identifier, other in table.items():
+                w = f"{where}: {side} {identifier} = {other}"
+                if identifier not in variables or other not in variables:
+                    msg = f"{w}: not two variables of the formulation"
+                    raise CatalogError(msg)
+                bounded, bounding = variables[identifier], variables[other]
+                if bounded.unit != bounding.unit:
+                    msg = (
+                        f"{w}: {identifier} and {other} compare as numbers: the "
+                        f"same unit, not {bounded.unit} and {bounding.unit}"
+                    )
+                    raise CatalogError(msg)
+                scales = {bounded.scale, bounding.scale}
+                if len(scales) > 1 and not (
+                    None in scales and all(s is None or s.is_reference for s in scales)
+                ):
+                    names = ", ".join(sorted(getattr(s, "key", "none") for s in scales))
+                    msg = f"{w}: {identifier} and {other} are on different scales: {names}"
+                    raise CatalogError(msg)
+
+
+def _renamed_relative(
+    table: Mapping[str, str],
+    rename: Mapping[str, str],
+    dropped: frozenset[str] = frozenset(),
+) -> Mapping[str, str]:
+    """Relative bounds under new names, those naming a dropped variable left out."""
+    return MappingProxyType(
+        {
+            rename.get(k, k): rename.get(v, v)
+            for k, v in table.items()
+            if k not in dropped and v not in dropped
+        }
+    )
+
+
 def _check_symbols(where: str, symbols: Any) -> None:
     for identifier, tex in symbols.items():
         unknown = latex_commands(tex) - LATEX_COMMANDS
@@ -1814,9 +1863,11 @@ class _Builder:
             bounds: Mapping[str, tuple[float, float]] = MappingProxyType({})
             if f["bounds"] is not None:
                 bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
-            at_most = self.relative_bounds(f"{w}.at_most", f["at_most"], inputs, output)
+            at_most = self.relative_bounds(
+                f"{w}.at_most", f["at_most"], inputs, output, "at_least"
+            )
             at_least = self.relative_bounds(
-                f"{w}.at_least", f["at_least"], inputs, output
+                f"{w}.at_least", f["at_least"], inputs, output, "at_most"
             )
             bounded = {*bounds, *at_most, *at_least}
             if (
@@ -1859,13 +1910,19 @@ class _Builder:
 
     @staticmethod
     def relative_bounds(
-        where: str, table: Any, inputs: tuple[Variable, ...], output: Variable | None
+        where: str,
+        table: Any,
+        inputs: tuple[Variable, ...],
+        output: Variable | None,
+        opposite: str,
     ) -> Mapping[str, str]:
         """Relative bounds: a variable to the variable bounding it, by identifier.
 
         Both are variables of the formulation (inputs, or the output), two
-        different ones, in the same unit and on the same scale, so that
-        their values compare as numbers.
+        different ones; a bound involving the output is written on it, the
+        one form the search for the root of an implicit equation reads
+        (``opposite`` names the table that takes it). Their unit and scale
+        are checked on the formulation built (:func:`_check_relative_bounds`).
         """
         if table is None:
             return MappingProxyType({})
@@ -1887,22 +1944,11 @@ class _Builder:
             if identifier == other:
                 msg = f"{w}: a variable does not bound itself"
                 raise CatalogError(msg)
-            bounded, bounding = variables[identifier], variables[other]
-            if bounded.unit != bounding.unit:
+            if output is not None and other == output.identifier:
                 msg = (
-                    f"{w}: {identifier} and {other} compare as numbers: the same "
-                    f"unit, not {bounded.unit} and {bounding.unit}"
+                    f"{w}: a bound involving the output is written on it: "
+                    f'{opposite} = {{ {other} = "{identifier}" }}'
                 )
-                raise CatalogError(msg)
-            # The same scale; a variable on none (the output of an equation)
-            # compares with one on the reference scale, where nothing is
-            # converted, as a part on none feeds an input on it.
-            scales = {bounded.scale, bounding.scale}
-            if len(scales) > 1 and not (
-                None in scales and all(s is None or s.is_reference for s in scales)
-            ):
-                names = ", ".join(sorted(getattr(s, "key", "none") for s in scales))
-                msg = f"{w}: {identifier} and {other} are on different scales: {names}"
                 raise CatalogError(msg)
             result[identifier] = other
         return MappingProxyType(result)
@@ -2473,26 +2519,41 @@ class _Builder:
         # outer formulation's output bounds the composed output; one on an
         # inner formulation's output bounds an intermediate value, checked on
         # that part (Formulation.outside_mask), not on the composed one.
+        # Relative bounds likewise, under the composed names.
         domains = []
+        to_output = {outer.output.identifier: output.identifier}
         for d in outer.physical_domains:
-            if set(d.bounds) & set(inner):
+            named = {n for t in (d.at_most, d.at_least) for p in t.items() for n in p}
+            if (set(d.bounds) | named) & set(inner):
                 continue
-            renamed = {
-                (output.identifier if k == outer.output.identifier else k): b
-                for k, b in d.bounds.items()
-            }
-            domains.append(dataclasses.replace(d, bounds=MappingProxyType(renamed)))
+            renamed = {to_output.get(k, k): b for k, b in d.bounds.items()}
+            domains.append(
+                dataclasses.replace(
+                    d,
+                    bounds=MappingProxyType(renamed),
+                    at_most=_renamed_relative(d.at_most, to_output),
+                    at_least=_renamed_relative(d.at_least, to_output),
+                )
+            )
         for identifier, part in inner.items():
             rename = renames[identifier]
+            internal = frozenset({part.output.identifier})
             for d in part.physical_domains:
                 on_inputs = {
                     rename.get(k, k): b
                     for k, b in d.bounds.items()
                     if k != part.output.identifier
                 }
-                if on_inputs:
+                at_most = _renamed_relative(d.at_most, rename, internal)
+                at_least = _renamed_relative(d.at_least, rename, internal)
+                if on_inputs or at_most or at_least:
                     domains.append(
-                        dataclasses.replace(d, bounds=MappingProxyType(on_inputs))
+                        dataclasses.replace(
+                            d,
+                            bounds=MappingProxyType(on_inputs),
+                            at_most=at_most,
+                            at_least=at_least,
+                        )
                     )
 
         fixed = any(p.fixed_units for p in (outer, *inner.values()))
@@ -3525,6 +3586,7 @@ class _Builder:
 
     @staticmethod
     def check(where: str, formulation: Formulation) -> None:
+        _check_relative_bounds(where, formulation)
         names = formulation.names
         duplicates = sorted({n for n in names if names.count(n) > 1})
         if formulation.output.identifier in names:

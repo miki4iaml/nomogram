@@ -53,10 +53,13 @@ and this project adheres to
 - **Relative bounds**: a validity domain may bound a variable by another
   variable of the formulation, `at_most = { T_LC = "T_LM" }` or
   `at_least`, in the same unit and on the same scale, closed and applied
-  value by value. A physical one on the output of an implicit equation
-  ends the interval its root is sought in, value by value, and a root on
-  that end without a change of sign (a double root, T_LC = T_LM at
-  U = 1) is taken; the table of formulations shows them, T_LC ≤ T_LM
+  value by value; a bound involving the output is written on it. A
+  physical one on the output of an implicit equation ends the interval
+  its root is sought in, value by value, whatever the basis of the
+  evaluation, and a root on that end without a change of sign (a double
+  root, T_LC = T_LM at U = 1) is taken inside the interval searched.
+  Compositions keep them under the composed names, closed-form inverses
+  on their output; the table of formulations shows them, T_LC ≤ T_LM
   ([the catalog guide](docs/catalog.md#formulations)).
 - **Systems without a loop**: a chain of equations in which no equation
   reads a variable before the one giving it is a system, with no unknown

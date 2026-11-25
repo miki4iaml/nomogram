@@ -161,17 +161,23 @@ All sections are optional; a key may be defined in one file only.
   physical domain takes no `tolerance`.
 - **Relative bounds**: a domain may bound a variable by another variable
   of the formulation, an input or the output, in the same unit and on the
-  same scale (an output on none compares with an input on the reference
-  scale): `at_most = { T_LC = "T_LM" }` (the threshold temperature of
-  contrail formation never exceeds its maximum), `at_least` likewise,
-  with or without `bounds`. They are closed and apply value by value, as
-  any bound, under the same `basis`. A physical one on the output of an
-  implicit equation also ends the interval its root is sought in, value
-  by value: it chooses the root equation 11 of Schumann (1996) has below
-  T_LM rather than the one above, and a root exactly on that end, without
-  a change of sign (T_LC = T_LM at U = 1, where the mixing line touches
-  the saturation curve), is taken when the two members agree to the
-  rounding there.
+  same scale, those its citations state included (an output on none
+  compares with an input on the reference scale). A bound involving the
+  output is written on it: `at_most = { T_LC = "T_LM" }` (the threshold
+  temperature of contrail formation never exceeds its maximum),
+  `at_least` likewise, with or without `bounds`. They are closed and
+  apply value by value, as any bound, under the same `basis`. A physical
+  one on the output of an implicit equation does more, as a physical
+  bound on that output does: it ends the interval its root is sought in,
+  value by value, whatever the `basis` and `outside` of the evaluation.
+  It chooses the root equation 11 of Schumann (1996) has below T_LM
+  rather than the one above; a root exactly on that end, without a change
+  of sign (T_LC = T_LM at U = 1, where the mixing line touches the
+  saturation curve), is taken when the two members agree to the rounding
+  there and the end lies in the interval searched. A composition keeps
+  the relative bounds of its parts under the composed names, those naming
+  an intermediate value being checked on the part; a closed-form inverse
+  writes them on its output.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales

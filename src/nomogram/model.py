@@ -1902,6 +1902,7 @@ class Formulation:
         sought: Any,
         flat: list[Any],
         functions: tuple[Any, Any, list[float], float],
+        interval: tuple[float, float],
     ) -> None:
         """Take as the root an end of a relative bound where the residual is zero.
 
@@ -1909,10 +1910,12 @@ class Formulation:
         contrail formation at liquid saturation (U = 1), where the mixing
         line touches the saturation curve, has no change of sign to find:
         it is the end itself, where the two members agree to the rounding.
+        Only an end inside the interval searched (``interval``).
         """
         from nomogram._roots import NONE, ONE
 
         left, right, fixed, factor = functions
+        low, high = interval
         rows = np.flatnonzero(sought & (status == NONE))
         if not rows.size:
             return
@@ -1925,7 +1928,7 @@ class Formulation:
             scale = np.maximum(np.maximum(np.abs(lhs), np.abs(rhs)), 1e-300)
             zero = np.abs(lhs - rhs) <= 8 * np.finfo(float).eps * scale
             open_rows = status[rows] == NONE
-            take = zero & open_rows & np.isfinite(end)
+            take = zero & open_rows & np.isfinite(end) & (end >= low) & (end <= high)
             roots[rows[take]] = end[take]
             status[rows[take]] = ONE
 
@@ -1985,7 +1988,12 @@ class Formulation:
             flat_roots[sought], flat_status[sought] = got, codes
             if ends:
                 self._root_at_ends(
-                    flat_roots, flat_status, sought, flat, (left, right, fixed, factor)
+                    flat_roots,
+                    flat_status,
+                    sought,
+                    flat,
+                    (left, right, fixed, factor),
+                    (low, high),
                 )
         elif sought.any():
             flat_status[sought] = NONE
