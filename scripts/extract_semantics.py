@@ -617,7 +617,22 @@ LOCAL_KINDS: dict[str, LocalKind] = {
 
 #: Units absent from QUDT, declared by nomogram, with the reason; written
 #: as QUDT writes its neighbours (PPM-PER-K, PERCENT-PER-M).
-LOCAL_UNITS: dict[str, LocalUnit] = {}
+LOCAL_UNITS: dict[str, LocalUnit] = {
+    # Gram of water per kilogram of air per kelvin: the moisture the exhaust
+    # of an aircraft adds per degree of temperature rise, 0.0336 g kg-1 K-1
+    # (Appleman 1953, p. 15), and the contrail factor of Schumann (2000,
+    # equation 14), 0.0292 g kg-1 K-1. QUDT 3.5.4 has J-, KiloJ- and
+    # MOL-PER-KiloGM-K, not this one; written as PPM-PER-K.
+    "GM-PER-KiloGM-K": LocalUnit(
+        label="Gram per Kilogram Kelvin",
+        symbol="g/(kg⋅K)",
+        dimension_vector="A0E0L0I0M0H-1T0D0",
+        multiplier=0.001,
+        ucum="g.kg-1.K-1",
+        pint="g/kg/K",
+        kinds=("InverseTemperature",),
+    ),
+}
 
 #: Units kept, by QUDT local name, with their pint expression.
 UNITS: dict[str, str] = {

@@ -51,6 +51,16 @@ and this project adheres to
   the threshold temperature calls the saturation vapour pressure at T_LM.
   Their oracles are Table 3 of Schumann (1996) and the case of the ATTAS
   aircraft.
+- **The criterion of Appleman (1953)**: the moisture the exhaust makes
+  available per degree of temperature rise, 0.0336 g kg-1 less what
+  saturates the ambient air (Table II), and the critical temperature for
+  a given mixing, where it equals what a saturated mixture needs (Table
+  I), an implicit equation on IPTS-48, inferred from the date, with the
+  Goff-Gratch equation the tables imply. Their oracles are Tables I and
+  II, the inset of Figure 1, Figure 4 and the example of a flight at
+  200 mb. The family `contrail` now requires `moist-air`.
+- The unit g/(kg⋅K), `GM-PER-KiloGM-K`, which QUDT 3.5.4 does not have,
+  declared by nomogram for `InverseTemperature`.
 - The saturation vapour pressures of Sonntag (1994) in pascals as
   Schumann (2012) writes them (A1, A2), proved equivalent to `sonntag1990`
   and `sonntag1990_ice`, and their derivatives, the slopes of saturation

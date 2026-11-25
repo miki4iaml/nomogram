@@ -595,6 +595,12 @@ def test_every_declared_unit_is_listed_with_its_reason() -> None:
         ("dickson2007_vapour_pressure", "S_1"): "added",
         ("schumann1996_emission_index_water_vapour", "M_H"): "added",
         ("schumann1996_emission_index_water_vapour", "M_H2O"): "added",
+        ("appleman1953_available_moisture", "C_A"): "stated",
+        ("appleman1953_critical_temperature_fixed_mixing", "C_A"): "stated",
+        ("appleman1953_critical_temperature_fixed_mixing", "eps"): "added",
+        ("appleman1953_critical_temperature_fixed_mixing", "e_st__goff_gratch1946"): (
+            "added"
+        ),
         ("dickson2007_vapour_pressure", "T_c"): "stated",
         ("dickson2007_vapour_pressure", "p_c"): "stated",
         ("ambaum2020_latent_heat_vaporization", "L_0"): "stated",
