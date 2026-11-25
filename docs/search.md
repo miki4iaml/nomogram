@@ -106,7 +106,7 @@ c.search(output="SaturationVapourPressure*") - c.search(source="buck*")
 `uses(entry)` gives the entries an entry refers to (kinds of its
 variables, cited references, notations, constants, scales, units, the
 formulations a composition, a formulation by branches or calling others,
-a relation, a cross-check or a system uses, the kinds a system gives and
+a derivative, a relation, a cross-check or a system uses, the kinds a system gives and
 its reference, the families a family requires); `used_by(entry)` the
 entries that refer to it. The links are those the catalog checks for its families
 (`Catalog.links`), plus the units and the kinds and scales of a composed
@@ -158,7 +158,10 @@ its names, and the function then answers for the box given. A numerical
 inverse carries the verdict of its source over the interval it searches
 (`NumericalInverse.monotonicity`). A profile function derived from a
 gradient function (`nomogram.similarity`) is built on demand, like an
-inverse: a search finds the gradient function it comes from. So is a
+inverse: a search finds the gradient function it comes from. So is the
+derivative `nomogram.differentiation.derivative` gives; a derivative
+written in the catalog (`derivative`), by contrast, is an entry, found
+by its kind, by `provenance="derived"` and by `used_by` of its source. So is a
 graph of the catalog ([Graphs of kinds and systems](graphs.md)):
 `kind_graph` takes the kinds a search finds
 (`kind_graph(c.search("humid*", section="kinds"))`), `system_graph` a

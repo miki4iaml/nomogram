@@ -10,6 +10,7 @@ light: :mod:`nomogram.units` (pint), :mod:`nomogram.expression`
 :mod:`nomogram.dimensions`, :mod:`nomogram.comparison`,
 :mod:`nomogram.inversion`, :mod:`nomogram.monotonicity`,
 :mod:`nomogram.systems`, :mod:`nomogram.similarity`,
+:mod:`nomogram.differentiation`,
 :mod:`nomogram.relations`, :mod:`nomogram.graph`,
 :mod:`nomogram.search`, :mod:`nomogram.display` and :mod:`nomogram.plot`.
 
@@ -28,6 +29,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nomogram import catalog as catalog
     from nomogram import comparison as comparison
+    from nomogram import differentiation as differentiation
     from nomogram import dimensions as dimensions
     from nomogram import display as display
     from nomogram import expression as expression
@@ -47,6 +49,7 @@ __all__ = [
     "__version__",
     "catalog",
     "comparison",
+    "differentiation",
     "dimensions",
     "display",
     "expression",
