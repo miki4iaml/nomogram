@@ -386,11 +386,11 @@ class ConventionalScale:
         ``None`` for a reference scale, and possibly for a scale without
         conversion.
     points : tuple of float
-        Values on the reference scale where the difference is tabulated;
-        empty without a table.
+        Values on the reference scale (or on ``base``) where the difference
+        is tabulated; empty without a table.
     difference : tuple of float
-        Value on the reference scale minus value on this scale, at those
-        points.
+        Value on the reference scale (or on ``base``) minus value on this
+        scale, at those points.
     reference : str or None
         Key of the source of the scale or of its table.
     symbol : str or None
@@ -399,10 +399,11 @@ class ConventionalScale:
         Subscript that marks a quantity on this scale, for example
         ``"90"`` (the ITS-90 writes t90 and T90).
     base : ConventionalScale or None
-        For a conversion by expression, the scale it leads to; ``None``
-        when it leads to the reference scale. Chains end on the reference
-        scale (Knudsen salinity to Cox salinity, then to Reference
-        Salinity).
+        For a conversion by expression or a table, the scale it leads to;
+        ``None`` when it leads to the reference scale. Chains end on the
+        reference scale (Knudsen salinity to Cox salinity, then to
+        Reference Salinity; IPTS-48 to IPTS-68 by the table of Douglas,
+        then to ITS-90).
     conversion : str or None
         The value on ``base`` (or on the reference scale) as an expression
         of ``x``, the value on this scale, both in ``unit``, for example
@@ -556,15 +557,18 @@ class ConventionalScale:
         if self.is_reference:
             return values, np.zeros(values.shape, dtype=bool)
         self.check_convertible()
-        if self.conversion is None:
-            outside = (values < self.points[0]) | (values > self.points[-1])
-            shift = np.interp(values, self.points, self.difference)
-            return np.where(outside, np.nan, values - shift), outside
         on_base, outside = (
             (values, np.zeros(values.shape, dtype=bool))
             if self.base is None
             else self.base.from_reference(values)
         )
+        if self.conversion is None:
+            with np.errstate(invalid="ignore"):
+                outside = (
+                    outside | (on_base < self.points[0]) | (on_base > self.points[-1])
+                )
+            shift = np.interp(on_base, self.points, self.difference)
+            return np.where(outside, np.nan, on_base - shift), outside
         inverse = self._inverse_function
         if inverse is not None:
             with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
@@ -587,8 +591,8 @@ class ConventionalScale:
         """Values on the reference scale, from values on this scale.
 
         A table is inverted by fixed-point iteration (the differences are
-        small and vary slowly); a conversion by expression is applied, then
-        that of its base. NaN beyond the table or the bounds.
+        small and vary slowly), a conversion by expression applied; then
+        that of the base, if any. NaN beyond the table or the bounds.
 
         Raises
         ------
@@ -600,10 +604,12 @@ class ConventionalScale:
             return values
         self.check_convertible()
         if self.conversion is None:
-            on_reference = self._through_table(values)
-            outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
-            return np.where(outside, np.nan, on_reference)
-        on_base = np.where(self._outside(values), np.nan, self._forward(values))
+            on_base = self._through_table(values)
+            with np.errstate(invalid="ignore"):
+                outside = (on_base < self.points[0]) | (on_base > self.points[-1])
+            on_base = np.where(outside, np.nan, on_base)
+        else:
+            on_base = np.where(self._outside(values), np.nan, self._forward(values))
         return on_base if self.base is None else self.base.to_reference(on_base)
 
     def interval_to_reference(
@@ -643,7 +649,7 @@ class ConventionalScale:
         return (low, high) if low < high else None
 
     def _through_table(self, values: Any) -> Any:
-        """Values on the reference scale, by the table, extended beyond it."""
+        """Values on the scale the table leads to, extended beyond it."""
         on_reference = values
         for _ in range(4):
             on_reference = values + np.interp(
@@ -655,9 +661,11 @@ class ConventionalScale:
         """:meth:`to_reference` extended beyond the table and the bounds."""
         if self.is_reference:
             return values
-        if self.conversion is None:
-            return self._through_table(values)
-        on_base = self._forward(values)
+        on_base = (
+            self._through_table(values)
+            if self.conversion is None
+            else self._forward(values)
+        )
         return (
             on_base if self.base is None else self.base._unbounded_to_reference(on_base)
         )
@@ -666,18 +674,21 @@ class ConventionalScale:
     def _reference_extent(self) -> tuple[float, float]:
         """Values on the reference scale that convert to this scale.
 
-        The range of a table; the bounds of a conversion carried to the
+        The range of a table, or the bounds of a conversion, carried to the
         reference scale, within the extent of its base; infinite on a side
         nothing bounds.
         """
         if self.is_reference:
             return (-np.inf, np.inf)
-        if self.conversion is None:
-            return (self.points[0], self.points[-1])
         low, high = (
             (-np.inf, np.inf) if self.base is None else self.base._reference_extent
         )
-        if self.bounds is not None:
+        if self.conversion is None:
+            ends = np.array([self.points[0], self.points[-1]], dtype=float)
+            if self.base is not None:
+                ends = self.base._unbounded_to_reference(ends)
+            low, high = max(low, float(ends[0])), min(high, float(ends[1]))
+        elif self.bounds is not None:
             ends = self._unbounded_to_reference(np.array(self.bounds, dtype=float))
             low, high = max(low, float(ends[0])), min(high, float(ends[1]))
         return (float(low), float(high))

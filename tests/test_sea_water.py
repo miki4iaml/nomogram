@@ -182,7 +182,10 @@ def test_scales_of_the_salinity_inputs() -> None:
     )
     assert scale("coare36_salinity_factor", "S") == ("pss78", "stated")
     assert scale("millero_leung1976_vapour_pressure", "S") == ("cox1967", "stated")
-    assert scale("weiss_price1980_vapour_pressure", "T") == ("ipts48", "stated")
+    assert scale("weiss_price1980_vapour_pressure", "T") == (
+        "ipts48_fofonoff_bryden1975",
+        "stated",
+    )
     # Dickson et al. name no scale: S = 35 for Cl = 19.374 is Practical
     # Salinity, and the composed formulations take it from their part.
     for key in (
@@ -224,7 +227,7 @@ def test_where_the_scale_conversions_end() -> None:
     ratio = as_written.magnitude[0] / found[0] - 1
     assert ratio == pytest.approx(-9.2e-4, abs=5e-5)
     assert "0.09 % lower" in (weiss.note or "")
-    assert "30 degC" in (CATALOG.scales["ipts48"].note or "")
+    assert "30 degC" in (CATALOG.scales["ipts48_fofonoff_bryden1975"].note or "")
 
 
 def test_raoult_note_figures() -> None:

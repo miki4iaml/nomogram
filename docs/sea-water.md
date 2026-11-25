@@ -75,8 +75,9 @@ computed by nomogram: no source states them.
 
 Dickson et al. name no salinity scale: their S = 35 for Cl = 19.374 is
 taken as Practical Salinity, inferred from these numbers. Two
-conversions hold over less than some stated domains: IPTS-48, converted
-from -2 to 30 degC, and PSS-78, from 2 to 42. Beyond them the default
+conversions hold over less than some stated domains: IPTS-48 by the
+oceanographic conversion of Fofonoff and Bryden (1975), from -2 to
+30 degC, and PSS-78, from 2 to 42. Beyond them the default
 evaluation gives NaN: Weiss and Price, stated from 0 to 40 degC and
 from S_P = 0, above t90 = 29.98 degC and below S_P = 2; COARE below
 S_P = 2.

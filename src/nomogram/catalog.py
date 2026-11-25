@@ -1592,34 +1592,6 @@ class _Builder:
             )
             raise CatalogError(msg)
         unit = self.unit(f"{where}.unit", f["unit"])
-        if f["differences"] is not None:
-            if f["base"] is not None or f["bounds"] is not None:
-                msg = f"{where}: a table converts to the reference scale, without base or bounds"
-                raise CatalogError(msg)
-            expected = "[reference value, reference value - value] pairs"
-            rows = f["differences"]
-            if not isinstance(rows, list) or not rows:
-                msg = f"{where}.differences: expected {expected}"
-                raise CatalogError(msg)
-            pairs = [
-                _pair(f"{where}.differences[{i}]", row, expected)
-                for i, row in enumerate(rows)
-            ]
-            points = tuple(row[0] for row in pairs)
-            if any(b <= a for a, b in pairwise(points)):
-                msg = f"{where}.differences: reference values must increase"
-                raise CatalogError(msg)
-            return ConventionalScale(
-                unit=unit,
-                points=points,
-                difference=tuple(row[1] for row in pairs),
-                **common,
-            )
-        try:
-            parse_expression(f["conversion"], ["x"])
-        except ExpressionError as exc:
-            msg = f"{where}.conversion: {exc}"
-            raise CatalogError(msg) from None
         base = None
         if f["base"] is not None and f["base"] != parent:
             base = self.scales.get(f["base"])
@@ -1640,6 +1612,36 @@ class _Builder:
                     f"unit, {unit}"
                 )
                 raise CatalogError(msg)
+        if f["differences"] is not None:
+            if f["bounds"] is not None:
+                msg = f"{where}: a table holds over its range, without bounds"
+                raise CatalogError(msg)
+            on = "reference" if base is None else "base"
+            expected = f"[{on} value, {on} value - value] pairs"
+            rows = f["differences"]
+            if not isinstance(rows, list) or not rows:
+                msg = f"{where}.differences: expected {expected}"
+                raise CatalogError(msg)
+            pairs = [
+                _pair(f"{where}.differences[{i}]", row, expected)
+                for i, row in enumerate(rows)
+            ]
+            points = tuple(row[0] for row in pairs)
+            if any(b <= a for a, b in pairwise(points)):
+                msg = f"{where}.differences: reference values must increase"
+                raise CatalogError(msg)
+            return ConventionalScale(
+                unit=unit,
+                points=points,
+                difference=tuple(row[1] for row in pairs),
+                base=base,
+                **common,
+            )
+        try:
+            parse_expression(f["conversion"], ["x"])
+        except ExpressionError as exc:
+            msg = f"{where}.conversion: {exc}"
+            raise CatalogError(msg) from None
         bounds = None
         if f["bounds"] is not None:
             values = f["bounds"]
