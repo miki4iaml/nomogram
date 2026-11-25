@@ -209,6 +209,8 @@ defines one, a sibling of the look-alikes
 | gradient function for heat (φ_h, φ_T) | (z/θ_*) ∂θ/∂z with θ_* = −w′θ′/(k u_*): about 0.74 in neutral conditions, the inverse of that ratio | micrometeorology (Kansas experiment) | not entered: it would be a sibling kind | 1 | Businger et al. (1971), equations 3 and 14 |
 | contrail factor | C = c_p Δq/Δh_p = G ε/p = EI c_p/[Q(1 − η)], the water vapour mass fraction the exhaust adds per kelvin of plume temperature excess | contrail formation (Schumann 2000) | `ContrailFactor` (catalog, under `InverseTemperature`) | g kg⁻¹ K⁻¹, here K⁻¹ | Schumann (2000), equation 14 |
 | contrail factor | G = c_p p EI/[ε Q (1 − η)], the slope of the mixing line, which Gierens calls 'contrail factor or G-factor' | contrail formation (Gierens 2021) | `MixingLineSlope` (provisional) | Pa/K | Gierens (2021), equation 1 |
+| critical relative humidity | U_LC, r_contr: the relative humidity over liquid water the ambient air must exceed for contrails to form below T_LM; negative where dry air gives contrails | contrail formation (Ponater et al. 2002; Schumann 2012) | `ContrailCriticalRelativeHumidity` (catalog, under `DimensionlessRatio`) | 1 | Schumann (2012), equation 12 |
+| critical relative humidity | r_crit, the grid-box mean relative humidity above which a fraction of the box is cloudy | cloud schemes of climate models (Sundqvist et al. 1989, ECHAM) | not entered | 1 | Ponater et al. (2002), equation 3 |
 
 The two meanings of "absolute humidity" differ in dimension (L⁻³M
 versus dimensionless), so mixing them is not a small numerical error.
