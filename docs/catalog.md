@@ -122,6 +122,7 @@ All sections are optional; a key may be defined in one file only.
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions`, `assumptions` |
+| `[formulations.<key>]`, a derivative | `label`, `derivative` (`of`, `with_respect_to`, optional `order`), `output` | `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension), `units` (units of the parent's dimension it takes besides the parent's), `bounds` (`{ low, high, unit, criterion }`, the values its definition admits) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
@@ -524,6 +525,50 @@ inputs = [
   inputs: a search for a stability parameter input does not find an entry
   that passes z_t/L, but `uses` links it to the profile function.
 
+### Derivatives
+
+An entry may be the derivative of an explicit formulation with respect
+to one of its inputs: the slope of a saturation vapour pressure curve,
+de_s/dT, which the threshold temperature of contrail formation equates
+to the slope of a mixing line, or the vertical gradient of a temperature
+profile.
+
+```toml
+[formulations.profile_gradient]
+label = "Vertical gradient of the temperature profile"
+derivative = { of = "profile", with_respect_to = "H" }    # order = 1 by default
+output = { identifier = "dT", kind = "TemperatureGradient", unit = "K-PER-M", description = "dT/dH" }
+```
+
+- **What it takes from its source**: its inputs, with their units and
+  scales, even one the differentiation removes, and the coefficients and
+  constants its expression still uses, under their names. An entry gives
+  no expression, inputs, coefficients, constants nor domains.
+- **Its expression** is the closed form SymPy's `diff` gives, without
+  further simplification; its LaTeX derives from it, in any notation. A
+  source defined by pieces is differentiated piece by piece, under the
+  same conditions; a piecewise definition inside an expression, and an
+  implicit equation, are refused.
+- **Its output** is given: no rule derives a quantity kind from those of
+  the source. Its unit has the dimension of the source's output divided
+  by that of the input, to the order (a second derivative of a height
+  with respect to a distance is in m⁻¹). For a source that holds only in
+  its units, it is that unit itself, nothing being converted: hPa/K for
+  a saturation vapour pressure in hPa of a temperature in kelvins, and a
+  height in km gives K/km, never K/m.
+- **Domains**: the source is its part. Its domains, physical and stated,
+  and the bounds of its kinds, apply to the values the derivative
+  receives, as for a composition; none is added.
+- **Provenance**: without a citation of its own, a derivative is derived
+  by nomogram (`Derivation` method `"differentiation"`, with the input
+  and the order); a source that prints the derivative may be cited.
+- **It can be called and composed** like any explicit formulation: an
+  implicit equation may set a derivative equal to an input,
+  `dT(H=H) == g`, and solve for the height. `nomogram.differentiation.derivative`
+  gives the same derivative of any formulation, on demand.
+- A search finds a derivative by its kind, by `provenance="derived"`,
+  and from its source: `used_by("formulations.profile")` lists it.
+
 ### Definitions, identities and derived formulations
 
 A formulation may be a definition, true by definition, or an identity,
@@ -553,9 +598,9 @@ equation = "40"
   temperature); a written formulation or one calling others may have
   them, a composition or a formulation by branches does not. The legend
   shows them.
-- **Derived by nomogram**: a composition, a formulation by branches or
-  one calling others, without a citation of its own, is derived by
-  nomogram from formulations that are cited. The latent heat of fusion of
+- **Derived by nomogram**: a composition, a formulation by branches, one
+  calling others or a derivative, without a citation of its own, is
+  derived by nomogram from formulations that are cited. The latent heat of fusion of
   the IFS, which the IFS does not print, is the identity above composed
   with its latent heats of sublimation and vaporization:
 

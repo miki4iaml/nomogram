@@ -14,6 +14,7 @@ import nomogram
 SUBMODULES = [
     "catalog",
     "comparison",
+    "differentiation",
     "dimensions",
     "display",
     "expression",

@@ -8,6 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Derivatives of formulations**: a catalog entry may be the derivative
+  of an explicit formulation with respect to one of its inputs, at any
+  order (`derivative = { of, with_respect_to, order }`), and
+  `nomogram.differentiation.derivative` gives one on demand. The
+  expression is the closed form of SymPy's `diff`, with its LaTeX; the
+  inputs, coefficients and constants are the source's, the source is its
+  part, so that its domains and the bounds of its kinds apply; the unit
+  of a derivative of a formulation in fixed units is that of the source's
+  output divided by that of the input, nothing being converted. A
+  derivative can be called by other entries, an implicit equation
+  included: the threshold temperature of contrail formation sets the
+  slope of a saturation vapour pressure curve equal to that of a mixing
+  line ([the catalog guide](docs/catalog.md#derivatives)).
+  `Derivation` gains `with_respect_to` and `order`.
+
 ## [0.9.0] - 2026-11-25
 
 The catalog drawn as graphs, on a vocabulary QUDT now holds whole. Three

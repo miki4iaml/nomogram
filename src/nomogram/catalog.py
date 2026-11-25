@@ -3050,6 +3050,71 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def differentiated(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation derived as the derivative of another.
+
+        See :func:`nomogram.differentiation.derivative`: the inputs,
+        coefficients and constants are the source's, the source is its
+        part, whose domains apply to the values the derivative receives.
+        """
+        from nomogram.differentiation import derivative
+        from nomogram.similarity import DerivationError
+
+        where = f"formulations.{key}"
+        derived = sorted(set(table) & set(_DERIVED))
+        if derived:
+            msg = f"{where}: a derivative takes {', '.join(derived)} from its source"
+            raise CatalogError(msg)
+        f = _fields(
+            where,
+            table,
+            ("label", "derivative", "output"),
+            ("citations", "note", "matches", "keywords"),
+        )
+        place = f"{where}.derivative"
+        d = _fields(place, f["derivative"], ("of", "with_respect_to"), ("order",))
+        source = self.part(f"{place}.of", d["of"], formulations)
+        if not isinstance(d["with_respect_to"], str):
+            msg = f"{place}.with_respect_to: expected the identifier of an input"
+            raise CatalogError(msg)
+        order = 1 if d["order"] is None else d["order"]
+        output = self.variable(f"{where}.output", f["output"])
+        try:
+            formulation = derivative(
+                source,
+                d["with_respect_to"],
+                output,
+                order=order,
+                key=key,
+                label=f["label"],
+            )
+        except DerivationError as exc:
+            msg = f"{place}: {exc}"
+            raise CatalogError(msg) from None
+        names = {output.identifier, *formulation.names}
+        coefficients = {c.identifier for c in formulation.coefficients}
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            formulation.inputs,
+            names,
+            coefficients,
+            (output,),
+        )
+        formulation = dataclasses.replace(
+            formulation,
+            citations=citations,
+            note=f["note"] if f["note"] is not None else formulation.note,
+            matches=_matches(where, f["matches"]),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+        )
+        self.check(where, formulation)
+        return formulation
+
     @staticmethod
     def composition_order(tables: Mapping[str, Any]) -> list[str]:
         """Formulations made of others, each after those it uses."""
@@ -3416,6 +3481,11 @@ class _Builder:
             # since SymPy may simplify a factor of two calls of a part away.
             tree = ast.parse(formulation.expression, mode="eval")
             used = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+            derivation = formulation.derivation
+            if derivation is not None and derivation.method == "differentiation":
+                # A derivative keeps every input of its source, which its
+                # domains bound, even one the differentiation removed.
+                used |= {v.identifier for v in formulation.inputs}
         unused = sorted(set(names) - used)
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
@@ -3466,6 +3536,8 @@ class _Builder:
                 built[key] = self.branched(key, tables[key], built)
             elif "calls" in tables[key]:
                 built[key] = self.called(key, tables[key], built)
+            elif "derivative" in tables[key]:
+                built[key] = self.differentiated(key, tables[key], built)
             else:
                 built[key] = self.composed(key, tables[key], built)
         formulations = {key: built[key] for key in tables}
@@ -3565,7 +3637,7 @@ def _header(label: str, table: Any) -> dict[str, Any]:
 
 
 #: The fields by which a formulation uses others.
-_USING = ("composition", "branches", "calls")
+_USING = ("composition", "branches", "calls", "derivative")
 
 
 def _used_formulations(table: Any) -> list[Any]:
@@ -3577,6 +3649,9 @@ def _used_formulations(table: Any) -> list[Any]:
     calls = table.get("calls")
     if isinstance(calls, dict):
         return list(calls.values())
+    derivative = table.get("derivative")
+    if isinstance(derivative, dict):
+        return [derivative.get("of")]
     composition = table.get("composition")
     if isinstance(composition, dict):
         inner = composition.get("inner")

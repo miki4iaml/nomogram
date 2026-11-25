@@ -850,8 +850,9 @@ class Derivation:
         ``"symbolic inversion"`` (closed form found by SymPy),
         ``"numerical inversion"``, ``"composition"``, ``"branches"``,
         ``"calls"``, ``"integration"`` (a profile function from a gradient
-        function) or ``"differentiation"`` (back), see
-        :mod:`nomogram.similarity`.
+        function, see :mod:`nomogram.similarity`) or ``"differentiation"``
+        (back, or the derivative of a formulation with respect to one of
+        its inputs, see :mod:`nomogram.differentiation`).
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
@@ -861,12 +862,19 @@ class Derivation:
         branches, the formulation used under each condition. For calls,
         the formulation of each call, by the call as written
         (``"e_w(p=p, t=t_d)"``).
+    with_respect_to : str or None
+        For a derivative, identifier of the source's input it is taken
+        with respect to.
+    order : int or None
+        For a derivative, its order.
     """
 
     source: str
     method: str
     solved_for: str | None = None
     parts: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    with_respect_to: str | None = None
+    order: int | None = None
 
 
 @dataclass(frozen=True)
