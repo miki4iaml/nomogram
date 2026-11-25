@@ -69,6 +69,14 @@ humidity:
 The tree stops where the subset of QUDT that nomogram bundles stops: the
 parent of `RelativePartialPressure` in QUDT is not in it.
 
+Drawn by protee, with the styles of a script of the documentation
+([`graph_figures.py`](examples/graph_figures.py)), the same branch:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/kinds-relative-humidity-dark.svg">
+  <img alt="The branch of relative humidity: two kinds specializing Relative Partial Pressure, and the CF standard name and Wikidata item that Relative Humidity matches" src="images/kinds-relative-humidity.svg">
+</picture>
+
 ## A system
 
 `system_graph` takes a system of the catalog, or one built by hand
@@ -97,7 +105,9 @@ that equation, has the role `nomogram:closing`: it closes a loop, and the
 source iterates on it. The cycles of the graph are the loops of the
 source: for the loop of
 [COARE 3.6](coare-system.md), NetworkX finds one strongly connected
-component of 26 nodes, which holds the thirteen equations.
+component of 26 nodes, which holds the thirteen equations. The page on
+that loop draws it, each equation merged with the variable it gives
+([The system](coare-system.md#the-system)).
 
 ## The format
 
