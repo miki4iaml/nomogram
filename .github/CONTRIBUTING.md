@@ -261,7 +261,11 @@ For the maintainer, in this order:
    SBOM, and publishes exactly those files to PyPI through Trusted
    Publishing (OIDC, no stored token), after approval of the protected
    `pypi` environment.
-6. Verify: `gh attestation verify <wheel> --repo miki4iaml/nomogram`.
+6. Verify both attestations of the wheel and of the sdist: the build
+   provenance, `gh attestation verify <file> --repo miki4iaml/nomogram`,
+   and the SBOM, the same command with
+   `--predicate-type https://cyclonedx.org/bom` (without it, only the
+   provenance is checked).
 
 Rehearsal: run the release workflow manually (`workflow_dispatch`). It
 publishes a unique `x.y.z.devN` version to TestPyPI without creating a
