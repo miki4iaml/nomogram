@@ -283,12 +283,7 @@ class System:
                 msg = f"{self.key}: two equations give {equation.output}"
                 raise ValueError(msg)
             given[equation.output] = i
-        if not self.unknowns:
-            msg = (
-                f"{self.key}: no equation reads a variable before another gives "
-                "it: a composition, not a system"
-            )
-            raise ValueError(msg)
+        self._check_connected()
         self._check_links(kinds)
         start: dict[str, str] = {}
         given_start: Mapping[str, object] = self.start
@@ -314,6 +309,30 @@ class System:
             self._first_guess(name)
         if self.iterations is not None and self.iterations < 1:
             msg = f"{self.key}: iterations must be positive"
+            raise ValueError(msg)
+
+    def _check_connected(self) -> None:
+        """Refuse a single equation, a formulation rather than a system, and
+        equations not linked to the others by a variable they share (a slip
+        of binding that cuts a chain)."""
+        if len(self.equations) < 2:
+            msg = f"{self.key}: a single equation is a formulation, not a system"
+            raise ValueError(msg)
+        names = [{e.output, *e.reads} for e in self.equations]
+        reached = {0}
+        pending = [0]
+        while pending:
+            i = pending.pop()
+            for j, other in enumerate(names):
+                if j not in reached and names[i] & other:
+                    reached.add(j)
+                    pending.append(j)
+        apart = [e.output for j, e in enumerate(self.equations) if j not in reached]
+        if apart:
+            msg = (
+                f"{self.key}: the equations giving {', '.join(apart)} share no "
+                "variable with the others"
+            )
             raise ValueError(msg)
 
     def _check_links(self, kinds: Mapping[str, Any] | None) -> None:
@@ -647,6 +666,9 @@ class _Run:
             rows = np.arange(self.size)
             for name in system.intermediates:
                 known[name] = self.apply(system._giver[name], known, None, rows)[0]
+        if not self.unknowns:
+            # A chain of explicit equations without a loop: nothing to solve.
+            return np.empty((self.size, 0))
         return np.stack([known[name] for name in self.unknowns], axis=1)
 
     def apply(
@@ -895,7 +917,9 @@ class _Run:
                 active = active[inside]
                 if not active.size:
                     break
-            error = _relative(residual, terms).max(axis=1)
+            relative = _relative(residual, terms)
+            # A chain without a loop has no residual: solved as it stands.
+            error = relative.max(axis=1) if relative.shape[1] else np.zeros(len(active))
             done = np.isfinite(error) & (error <= TOLERANCE)
             status[active[done]] = CONVERGED
             left[active] = error
@@ -930,6 +954,8 @@ class _Run:
         for _ in range(passes):
             for i, equation in enumerate(system.equations):
                 known[equation.output] = self.apply(i, known, None, rows)[0]
+        if not self.unknowns:
+            return np.empty((len(rows), 0))
         return np.stack([known[name] for name in self.unknowns], axis=1)
 
     def _line_search(
@@ -971,9 +997,13 @@ class _Run:
         for _ in range(passes):
             for i, equation in enumerate(system.equations):
                 known[equation.output], _, seen[i], _ = self.apply(i, known, None, rows)
-        x = np.stack([known[name] for name in self.unknowns], axis=1)
-        residual, terms = self.state(x, rows, jacobian=True)[:2]
-        left = _relative(residual, terms).max(axis=1)
+        if self.unknowns:
+            x = np.stack([known[name] for name in self.unknowns], axis=1)
+            residual, terms = self.state(x, rows, jacobian=True)[:2]
+            left = _relative(residual, terms).max(axis=1)
+        else:  # a chain without a loop: no residual left
+            x = np.empty((self.size, 0))
+            left = np.zeros(self.size)
         status = np.where(np.isfinite(x).all(axis=1), ITERATED, UNDEFINED)
         status[self.blank] = UNDEFINED
         status[skip] = OUTSIDE
@@ -991,6 +1021,17 @@ class _Run:
                 known, seen = self.state(found.x, rows, jacobian=False)[4:]
         else:
             known, seen = found.known, found.seen
+        residual = found.residual
+        if found.x.shape[1] == 0:
+            # A chain without unknowns iterates nothing: a set of values an
+            # equation of which gives no finite value is undefined, not solved.
+            finite = np.ones(self.size, dtype=bool)
+            for name in system.outputs:
+                value = np.asarray(known[name], dtype=float)
+                finite &= np.isfinite(np.broadcast_to(value, (self.size,)))
+            undefined = ((status == CONVERGED) | (status == ITERATED)) & ~finite
+            status = np.where(undefined, UNDEFINED, status)
+            residual = np.where(undefined, np.nan, residual)
         solved = (status == CONVERGED) | (status == ITERATED)
         reported = ~solved & (status != OUTSIDE) & ~self.blank
         if reported.any():
@@ -1032,7 +1073,7 @@ class _Run:
         return Solution(
             values=MappingProxyType(values),
             status=shaped(status),
-            residual=shaped(found.residual),
+            residual=shaped(residual),
             iterations=shaped(found.steps),
             method=method,
         )

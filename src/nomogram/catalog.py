@@ -763,6 +763,57 @@ def _keywords(where: str, value: Any) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _check_relative_bounds(where: str, formulation: Formulation) -> None:
+    """Relative bounds compare two variables as numbers.
+
+    The same unit, and the same scale, checked on the formulation built,
+    where its citations have put theirs. A variable on none (the output of
+    an equation) compares with one on the reference scale, where nothing is
+    converted, as a part on none feeds an input on it.
+    """
+    variables = {v.identifier: v for v in (*formulation.inputs, formulation.output)}
+    domains = [*formulation.physical_domains]
+    domains += [d for c in formulation.citations for d in c.domains]
+    for domain in domains:
+        for side, table in (("at_most", domain.at_most), ("at_least", domain.at_least)):
+            for identifier, other in table.items():
+                w = f"{where}: {side} {identifier} = {other}"
+                if (
+                    identifier not in variables or other not in variables
+                ):  # pragma: no cover - the parser checks the names first
+                    msg = f"{w}: not two variables of the formulation"
+                    raise CatalogError(msg)
+                bounded, bounding = variables[identifier], variables[other]
+                if bounded.unit != bounding.unit:
+                    msg = (
+                        f"{w}: {identifier} and {other} compare as numbers: the "
+                        f"same unit, not {bounded.unit} and {bounding.unit}"
+                    )
+                    raise CatalogError(msg)
+                scales = {bounded.scale, bounding.scale}
+                if len(scales) > 1 and not (
+                    None in scales and all(s is None or s.is_reference for s in scales)
+                ):
+                    names = ", ".join(sorted(getattr(s, "key", "none") for s in scales))
+                    msg = f"{w}: {identifier} and {other} are on different scales: {names}"
+                    raise CatalogError(msg)
+
+
+def _renamed_relative(
+    table: Mapping[str, str],
+    rename: Mapping[str, str],
+    dropped: frozenset[str] = frozenset(),
+) -> Mapping[str, str]:
+    """Relative bounds under new names, those naming a dropped variable left out."""
+    return MappingProxyType(
+        {
+            rename.get(k, k): rename.get(v, v)
+            for k, v in table.items()
+            if k not in dropped and v not in dropped
+        }
+    )
+
+
 def _check_symbols(where: str, symbols: Any) -> None:
     for identifier, tex in symbols.items():
         unknown = latex_commands(tex) - LATEX_COMMANDS
@@ -846,8 +897,8 @@ def _substitute(
 #: Kinds whose values may be passed to an input of another kind, when a
 #: formulation calls another: the temperature of a point at which the
 #: called formulation is evaluated (a saturation vapour pressure at the
-#: dew or frost point, or at the wet- or ice-bulb temperature). Never a
-#: difference.
+#: dew or frost point, at the wet- or ice-bulb temperature, or at a
+#: threshold temperature of contrail formation). Never a difference.
 _TEMPERATURES = frozenset({"CelsiusTemperature", "ThermodynamicTemperature"})
 _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
@@ -857,6 +908,10 @@ _EVALUATION_POINTS: Mapping[str, frozenset[str]] = MappingProxyType(
         "IceBulbTemperature": _TEMPERATURES,
         "PsychrometerWetBulbTemperature": _TEMPERATURES,
         "PsychrometerIceBulbTemperature": _TEMPERATURES,
+        "ContrailThresholdTemperature": _TEMPERATURES,
+        "ContrailMaximumThresholdTemperature": _TEMPERATURES,
+        "ContrailThresholdTemperatureWithRespectToIce": _TEMPERATURES,
+        "ContrailMaximumThresholdTemperatureWithRespectToIce": _TEMPERATURES,
     }
 )
 
@@ -1539,34 +1594,6 @@ class _Builder:
             )
             raise CatalogError(msg)
         unit = self.unit(f"{where}.unit", f["unit"])
-        if f["differences"] is not None:
-            if f["base"] is not None or f["bounds"] is not None:
-                msg = f"{where}: a table converts to the reference scale, without base or bounds"
-                raise CatalogError(msg)
-            expected = "[reference value, reference value - value] pairs"
-            rows = f["differences"]
-            if not isinstance(rows, list) or not rows:
-                msg = f"{where}.differences: expected {expected}"
-                raise CatalogError(msg)
-            pairs = [
-                _pair(f"{where}.differences[{i}]", row, expected)
-                for i, row in enumerate(rows)
-            ]
-            points = tuple(row[0] for row in pairs)
-            if any(b <= a for a, b in pairwise(points)):
-                msg = f"{where}.differences: reference values must increase"
-                raise CatalogError(msg)
-            return ConventionalScale(
-                unit=unit,
-                points=points,
-                difference=tuple(row[1] for row in pairs),
-                **common,
-            )
-        try:
-            parse_expression(f["conversion"], ["x"])
-        except ExpressionError as exc:
-            msg = f"{where}.conversion: {exc}"
-            raise CatalogError(msg) from None
         base = None
         if f["base"] is not None and f["base"] != parent:
             base = self.scales.get(f["base"])
@@ -1587,6 +1614,36 @@ class _Builder:
                     f"unit, {unit}"
                 )
                 raise CatalogError(msg)
+        if f["differences"] is not None:
+            if f["bounds"] is not None:
+                msg = f"{where}: a table holds over its range, without bounds"
+                raise CatalogError(msg)
+            on = "reference" if base is None else "base"
+            expected = f"[{on} value, {on} value - value] pairs"
+            rows = f["differences"]
+            if not isinstance(rows, list) or not rows:
+                msg = f"{where}.differences: expected {expected}"
+                raise CatalogError(msg)
+            pairs = [
+                _pair(f"{where}.differences[{i}]", row, expected)
+                for i, row in enumerate(rows)
+            ]
+            points = tuple(row[0] for row in pairs)
+            if any(b <= a for a, b in pairwise(points)):
+                msg = f"{where}.differences: reference values must increase"
+                raise CatalogError(msg)
+            return ConventionalScale(
+                unit=unit,
+                points=points,
+                difference=tuple(row[1] for row in pairs),
+                base=base,
+                **common,
+            )
+        try:
+            parse_expression(f["conversion"], ["x"])
+        except ExpressionError as exc:
+            msg = f"{where}.conversion: {exc}"
+            raise CatalogError(msg) from None
         bounds = None
         if f["bounds"] is not None:
             values = f["bounds"]
@@ -1792,15 +1849,34 @@ class _Builder:
         result = []
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
-            optional = ("criterion", "reference", "tolerance")
-            f = _fields(w, item, ("bounds",), optional)
+            optional = (
+                "bounds",
+                "at_most",
+                "at_least",
+                "criterion",
+                "reference",
+                "tolerance",
+            )
+            f = _fields(w, item, (), optional)
             if reference is not None and f["reference"] is not None:
                 msg = f"{w}: unknown keys: reference"
                 raise CatalogError(msg)
-            bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
+            if f["bounds"] is None and f["at_most"] is None and f["at_least"] is None:
+                msg = f"{w}: a domain gives bounds, at_most or at_least"
+                raise CatalogError(msg)
+            bounds: Mapping[str, tuple[float, float]] = MappingProxyType({})
+            if f["bounds"] is not None:
+                bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
+            at_most = self.relative_bounds(
+                f"{w}.at_most", f["at_most"], inputs, output, "at_least"
+            )
+            at_least = self.relative_bounds(
+                f"{w}.at_least", f["at_least"], inputs, output, "at_most"
+            )
+            bounded = {*bounds, *at_most, *at_least}
             if (
                 output is not None
-                and output.identifier in bounds
+                and output.identifier in bounded
                 and not f["criterion"]
             ):
                 msg = f"{w}: a bound on the output {output.identifier} states its criterion"
@@ -1830,9 +1906,56 @@ class _Builder:
                         else self.optional_reference(f"{w}.reference", f["reference"])
                     ),
                     tolerance=tolerance,
+                    at_most=at_most,
+                    at_least=at_least,
                 )
             )
         return tuple(result)
+
+    @staticmethod
+    def relative_bounds(
+        where: str,
+        table: Any,
+        inputs: tuple[Variable, ...],
+        output: Variable | None,
+        opposite: str,
+    ) -> Mapping[str, str]:
+        """Relative bounds: a variable to the variable bounding it, by identifier.
+
+        Both are variables of the formulation (inputs, or the output), two
+        different ones; a bound involving the output is written on it, the
+        one form the search for the root of an implicit equation reads
+        (``opposite`` names the table that takes it). Their unit and scale
+        are checked on the formulation built (:func:`_check_relative_bounds`).
+        """
+        if table is None:
+            return MappingProxyType({})
+        expected = "a table of variable to the variable bounding it"
+        if not isinstance(table, dict) or not table:
+            msg = f"{where}: expected {expected}"
+            raise CatalogError(msg)
+        variables = {v.identifier: v for v in (*inputs, *((output,) if output else ()))}
+        result = {}
+        for identifier, other in table.items():
+            w = f"{where}.{identifier}"
+            if not isinstance(other, str):
+                msg = f"{w}: expected the identifier of a variable"
+                raise CatalogError(msg)
+            for name in (identifier, other):
+                if name not in variables:
+                    msg = f"{w}: {name!r} is not a variable of the formulation"
+                    raise CatalogError(msg)
+            if identifier == other:
+                msg = f"{w}: a variable does not bound itself"
+                raise CatalogError(msg)
+            if output is not None and other == output.identifier:
+                msg = (
+                    f"{w}: a bound involving the output is written on it: "
+                    f'{opposite} = {{ {other} = "{identifier}" }}'
+                )
+                raise CatalogError(msg)
+            result[identifier] = other
+        return MappingProxyType(result)
 
     def tolerance(
         self, where: str, table: Any, bounds: Mapping[str, tuple[float, float]]
@@ -2400,26 +2523,41 @@ class _Builder:
         # outer formulation's output bounds the composed output; one on an
         # inner formulation's output bounds an intermediate value, checked on
         # that part (Formulation.outside_mask), not on the composed one.
+        # Relative bounds likewise, under the composed names.
         domains = []
+        to_output = {outer.output.identifier: output.identifier}
         for d in outer.physical_domains:
-            if set(d.bounds) & set(inner):
+            named = {n for t in (d.at_most, d.at_least) for p in t.items() for n in p}
+            if (set(d.bounds) | named) & set(inner):
                 continue
-            renamed = {
-                (output.identifier if k == outer.output.identifier else k): b
-                for k, b in d.bounds.items()
-            }
-            domains.append(dataclasses.replace(d, bounds=MappingProxyType(renamed)))
+            renamed = {to_output.get(k, k): b for k, b in d.bounds.items()}
+            domains.append(
+                dataclasses.replace(
+                    d,
+                    bounds=MappingProxyType(renamed),
+                    at_most=_renamed_relative(d.at_most, to_output),
+                    at_least=_renamed_relative(d.at_least, to_output),
+                )
+            )
         for identifier, part in inner.items():
             rename = renames[identifier]
+            internal = frozenset({part.output.identifier})
             for d in part.physical_domains:
                 on_inputs = {
                     rename.get(k, k): b
                     for k, b in d.bounds.items()
                     if k != part.output.identifier
                 }
-                if on_inputs:
+                at_most = _renamed_relative(d.at_most, rename, internal)
+                at_least = _renamed_relative(d.at_least, rename, internal)
+                if on_inputs or at_most or at_least:
                     domains.append(
-                        dataclasses.replace(d, bounds=MappingProxyType(on_inputs))
+                        dataclasses.replace(
+                            d,
+                            bounds=MappingProxyType(on_inputs),
+                            at_most=at_most,
+                            at_least=at_least,
+                        )
                     )
 
         fixed = any(p.fixed_units for p in (outer, *inner.values()))
@@ -3050,6 +3188,72 @@ class _Builder:
         self.check(where, formulation)
         return formulation
 
+    def differentiated(
+        self, key: str, table: Any, formulations: Mapping[str, Formulation]
+    ) -> Formulation:
+        """A formulation derived as the derivative of another.
+
+        See :func:`nomogram.differentiation.derivative`: the inputs,
+        coefficients and constants are the source's, the source is its
+        part, whose domains apply to the values the derivative receives.
+        """
+        from nomogram.differentiation import derivative
+        from nomogram.similarity import DerivationError
+
+        where = f"formulations.{key}"
+        derived = sorted(set(table) & set(_DERIVED))
+        if derived:
+            msg = f"{where}: a derivative takes {', '.join(derived)} from its source"
+            raise CatalogError(msg)
+        f = _fields(
+            where,
+            table,
+            ("label", "derivative", "output"),
+            ("citations", "note", "matches", "keywords"),
+        )
+        place = f"{where}.derivative"
+        d = _fields(place, f["derivative"], ("of", "with_respect_to"), ("order",))
+        source = self.part(f"{place}.of", d["of"], formulations)
+        if not isinstance(d["with_respect_to"], str):
+            msg = f"{place}.with_respect_to: expected the identifier of an input"
+            raise CatalogError(msg)
+        order = 1 if d["order"] is None else d["order"]
+        output = self.variable(f"{where}.output", f["output"])
+        try:
+            formulation = derivative(
+                source,
+                d["with_respect_to"],
+                output,
+                order=order,
+                key=key,
+                label=f["label"],
+                kinds=self.kinds,
+            )
+        except DerivationError as exc:
+            msg = f"{place}: {exc}"
+            raise CatalogError(msg) from None
+        names = {output.identifier, *formulation.names}
+        coefficients = {c.identifier for c in formulation.coefficients}
+        citations = self.citations(
+            f"{where}.citations",
+            f["citations"],
+            key,
+            formulation.inputs,
+            names,
+            coefficients,
+            (output,),
+        )
+        formulation = dataclasses.replace(
+            formulation,
+            citations=citations,
+            note=f["note"] if f["note"] is not None else formulation.note,
+            matches=_matches(where, f["matches"]),
+            family=self.owners.get(("formulations", key)),
+            keywords=_keywords(f"{where}.keywords", f["keywords"]),
+        )
+        self.check(where, formulation)
+        return formulation
+
     @staticmethod
     def composition_order(tables: Mapping[str, Any]) -> list[str]:
         """Formulations made of others, each after those it uses."""
@@ -3275,8 +3479,8 @@ class _Builder:
         f = _fields(
             where,
             table,
-            ("label", "equations", "start"),
-            ("iterations", "reference", "note"),
+            ("label", "equations"),
+            ("start", "iterations", "reference", "note"),
         )
         for name in ("label", "note"):
             if f[name] is not None and not isinstance(f[name], str):
@@ -3300,6 +3504,9 @@ class _Builder:
                 equations.append(Equation(formulation, bind, e["outside"]))
             except ValueError as error:
                 raise CatalogError(f"{w}: {error}") from error
+        # A system without a loop has no unknown, and no first guess.
+        if f["start"] is None:
+            f["start"] = {}
         if not isinstance(f["start"], dict):
             msg = f"{where}.start: expected a table of first guesses, by unknown"
             raise CatalogError(msg)
@@ -3384,6 +3591,7 @@ class _Builder:
 
     @staticmethod
     def check(where: str, formulation: Formulation) -> None:
+        _check_relative_bounds(where, formulation)
         names = formulation.names
         duplicates = sorted({n for n in names if names.count(n) > 1})
         if formulation.output.identifier in names:
@@ -3416,6 +3624,11 @@ class _Builder:
             # since SymPy may simplify a factor of two calls of a part away.
             tree = ast.parse(formulation.expression, mode="eval")
             used = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+            derivation = formulation.derivation
+            if derivation is not None and derivation.method == "differentiation":
+                # A derivative keeps every input of its source, which its
+                # domains bound, even one the differentiation removed.
+                used |= {v.identifier for v in formulation.inputs}
         unused = sorted(set(names) - used)
         if unused:
             msg = f"{where}: declared but not used: {', '.join(unused)}"
@@ -3466,6 +3679,8 @@ class _Builder:
                 built[key] = self.branched(key, tables[key], built)
             elif "calls" in tables[key]:
                 built[key] = self.called(key, tables[key], built)
+            elif "derivative" in tables[key]:
+                built[key] = self.differentiated(key, tables[key], built)
             else:
                 built[key] = self.composed(key, tables[key], built)
         formulations = {key: built[key] for key in tables}
@@ -3565,7 +3780,7 @@ def _header(label: str, table: Any) -> dict[str, Any]:
 
 
 #: The fields by which a formulation uses others.
-_USING = ("composition", "branches", "calls")
+_USING = ("composition", "branches", "calls", "derivative")
 
 
 def _used_formulations(table: Any) -> list[Any]:
@@ -3577,6 +3792,9 @@ def _used_formulations(table: Any) -> list[Any]:
     calls = table.get("calls")
     if isinstance(calls, dict):
         return list(calls.values())
+    derivative = table.get("derivative")
+    if isinstance(derivative, dict):
+        return [derivative.get("of")]
     composition = table.get("composition")
     if isinstance(composition, dict):
         inner = composition.get("inner")

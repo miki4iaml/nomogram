@@ -493,6 +493,13 @@ class Rendering:
                 f"{call} with {key}" for call, key in derivation.parts.items()
             )
             lines += ["", f"Calls {calls}."]
+        if derivation is not None and derivation.with_respect_to is not None:
+            order = "" if derivation.order == 1 else f" of order {derivation.order}"
+            sentence = (
+                f"Derivative{order} of {derivation.source} with respect to "
+                f"{derivation.with_respect_to}."
+            )
+            lines += ["", sentence]
         return "\n".join(lines) + "\n"
 
     def _repr_markdown_(self) -> str:
@@ -783,6 +790,11 @@ class FormulaTable:
                 variable = variables.get(identifier)
                 text = _with_unit(bounds, variable.unit if variable else None)
                 parts.append(f"${label}$: {text} ({domain.basis.value})")
+            for sign, table in ((r"\leq", domain.at_most), (r"\geq", domain.at_least)):
+                for identifier, other in table.items():
+                    label = _identifier(identifier, symbols, options)
+                    bound = _identifier(other, symbols, options)
+                    parts.append(f"${label} {sign} {bound}$ ({domain.basis.value})")
         return "; ".join(parts)
 
     def to_markdown(self) -> str:

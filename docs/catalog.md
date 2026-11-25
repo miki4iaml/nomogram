@@ -84,7 +84,7 @@ keywords = ["humidity", "psychrometrics"]
 Families are layered: a **core** without dependency (conventional
 scales, notation conventions), **pure** families holding one domain
 (`water-vapour`, `moist-air`, `atmosphere`, `radio`, `sea-water`,
-`boundary-layer`, `evaporation-duct`), and **aggregates** holding no entry, only
+`boundary-layer`, `evaporation-duct`, `contrail`), and **aggregates** holding no entry, only
 `requires` (`humidity`). An entry belongs to the family of its file:
 nothing is written in the entry itself. `catalog()` loads every family;
 `catalog("water-vapour")` loads one family with the families it requires.
@@ -122,21 +122,22 @@ All sections are optional; a key may be defined in one file only.
 | `[formulations.<key>]` | `label`, `expression`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `nature`, `conditions`, `assumptions` |
 | `[formulations.<key>]`, composed | `label`, `composition` (`outer`, `inner`, optional `bind`) | `output`, `citations`, `note`, `matches`, `keywords` |
 | `[formulations.<key>]`, calling others | `label`, `expression`, `calls`, `fixed_units`, `output`, `inputs` | `coefficients`, `constants`, `domains`, `citations`, `note`, `matches`, `keywords`, `conditions`, `assumptions` |
+| `[formulations.<key>]`, a derivative | `label`, `derivative` (`of`, `with_respect_to`, optional `order`), `output` | `citations`, `note`, `matches`, `keywords` |
 | `[constants.<key>]` | `identifier`, `value`, `unit`, `description`, `reference` | `nature`, `uncertainty`, `conditions`, `definition`, `constants`, `tolerance`, `note`, `matches` |
 | `[kinds.<Name>]` | `label`, `specialization_of` (a QUDT kind, or a kind of the catalog in any family loaded) | `description`, `matches`, `scale_type` (`ratio`, `interval`), `cf_standard_names` (from the frozen CF subset, with a canonical unit of the kind's dimension), `units` (units of the parent's dimension it takes besides the parent's), `bounds` (`{ low, high, unit, criterion }`, the values its definition admits) |
 | `[notations.<key>]` | `label`, `symbols` (identifier to LaTeX) | `reference` |
 | `[trade_terms.<key>]` | `term`, `language`, `meanings` | `matches` |
-| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`) with `base` and `bounds`, `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
+| `[scales.<key>]` | `label`, `kinds` (quantity kinds it applies to, and their specializations) | `reference_scale`, `unit`, `differences` (`[reference value, reference value - value]` pairs) or `conversion` (expression of `x`), `base` (the scale a table or a conversion leads to), `bounds` (of a conversion), `convertible`, `reference`, `symbol` (short name, `"ITS-90"`), `subscript` (marks a quantity on the scale in axis labels, `"90"`), `cf_standard_names` (from the frozen CF subset), `note` |
 | `[relations.<key>]` | `kind` (`equivalent`, `approximates`, `proportional`), `subject`, `object` | `citation` (required for `approximates`; without it, the relation is computed by nomogram), `accuracy`, `at`, `bounds`, `given`, `scale`, `note` |
 | `[cross_checks.<key>]` | `implementation`, `version`, `checked` (date), `cases` (`formulation`, `inputs`, `value`) | `url`, `note`; per case `call`, `rtol` |
-| `[systems.<key>]` | `label`, `equations` (`formulation`), `start` (first guess of each unknown) | `iterations`, `reference`, `note`; per equation `bind`, `outside` |
+| `[systems.<key>]` | `label`, `equations` (`formulation`) | `start` (first guess of each unknown; none for a system without a loop), `iterations`, `reference`, `note`; per equation `bind`, `outside` |
 
 ### Formulations
 
 - **`output` and `inputs`** are variables: `identifier` (used in the
   expression), `kind` (a quantity kind), `unit` (a QUDT unit name, or
-  one of the units QUDT lacks that the extraction script would declare,
-  none since QUDT 3.5.4) and `description`. The unit must apply to the
+  one of the units QUDT lacks that the extraction script declares, one
+  since QUDT 3.5.4, g/(kg K), `GM-PER-KiloGM-K`) and `description`. The unit must apply to the
   kind.
 - **`fixed_units`**: `true` when the coefficients only hold in the
   declared units (most empirical fits, such as the Magnus form). Inputs
@@ -150,7 +151,8 @@ All sections are optional; a key may be defined in one file only.
   See [units of coefficients](#units-of-coefficients).
 - **`constants`**: keys of `[constants]` entries (physical constants with
   their source, such as the gas constant of water vapour).
-- **`domains`**: physical domains only: `bounds` (closed intervals per
+- **`domains`**: physical domains only: `bounds`, `at_most` or
+  `at_least`, one at least; `bounds` are closed intervals per
   input identifier, in the input's unit, and of the output by its
   identifier, in its unit), and optionally `criterion` and `reference`.
   One end may be open, written `inf` (`{ z = [0, inf] }` for z ≥ 0);
@@ -158,6 +160,25 @@ All sections are optional; a key may be defined in one file only.
   strict inequality is not written. A bound on the output states its
   `criterion`. A domain stated by a source belongs to its citation; a
   physical domain takes no `tolerance`.
+- **Relative bounds**: a domain may bound a variable by another variable
+  of the formulation, an input or the output, in the same unit and on the
+  same scale, those its citations state included (an output on none
+  compares with an input on the reference scale). A bound involving the
+  output is written on it: `at_most = { T_LC = "T_LM" }` (the threshold
+  temperature of contrail formation never exceeds its maximum),
+  `at_least` likewise, with or without `bounds`. They are closed and
+  apply value by value, as any bound, under the same `basis`. A physical
+  one on the output of an implicit equation does more, as a physical
+  bound on that output does: it ends the interval its root is sought in,
+  value by value, whatever the `basis` and `outside` of the evaluation.
+  It chooses the root equation 11 of Schumann (1996) has below T_LM
+  rather than the one above; a root exactly on that end, without a change
+  of sign (T_LC = T_LM at U = 1, where the mixing line touches the
+  saturation curve), is taken when the two members agree to the rounding
+  there and the end lies in the interval searched. A composition keeps
+  the relative bounds of its parts under the composed names, those naming
+  an intermediate value being checked on the part; a closed-form inverse
+  writes them on its output.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales
@@ -498,6 +519,12 @@ inputs = [
   owner. `__` is kept for these names: an entry that calls others may
   not use it in its own identifiers. Elsewhere it marks a superscript, as
   SymPy reads it (`a__w` is written aʷ).
+- **Units**: the expression is checked as written, each call a quantity
+  in the unit of the output called and each argument in that of the input
+  it feeds; the coefficients of a formulation called keep the units
+  inferred where it is written. Developed, a call of a formulation in
+  fixed units whose exponential holds the unit (Sonntag, in Pa) would read
+  as a pure number beside the caller's own coefficients.
 - **Validity domains**: those of each formulation called apply to the
   values each call receives (t_d and t above, each against −45 to 60 °C),
   the value of an expression passed included (z_t/L against the domain
@@ -523,6 +550,50 @@ inputs = [
   they are written with. An input fed by an expression is not one of its
   inputs: a search for a stability parameter input does not find an entry
   that passes z_t/L, but `uses` links it to the profile function.
+
+### Derivatives
+
+An entry may be the derivative of an explicit formulation with respect
+to one of its inputs: the slope of a saturation vapour pressure curve,
+de_s/dT, which the maximum threshold temperature of contrail formation
+equates to the slope of a mixing line, or the vertical gradient of a temperature
+profile.
+
+```toml
+[formulations.profile_gradient]
+label = "Vertical gradient of the temperature profile"
+derivative = { of = "profile", with_respect_to = "H" }    # order = 1 by default
+output = { identifier = "dT", kind = "TemperatureGradient", unit = "K-PER-M", description = "dT/dH" }
+```
+
+- **What it takes from its source**: its inputs, with their units and
+  scales, even one the differentiation removes, and the coefficients and
+  constants its expression still uses, under their names. An entry gives
+  no expression, inputs, coefficients, constants nor domains.
+- **Its expression** is the closed form SymPy's `diff` gives, without
+  further simplification; its LaTeX derives from it, in any notation. A
+  source defined by pieces is differentiated piece by piece, under the
+  same conditions; a piecewise definition inside an expression, and an
+  implicit equation, are refused.
+- **Its output** is given: no rule derives a quantity kind from those of
+  the source. Its unit has the dimension of the source's output divided
+  by that of the input, to the order (a second derivative of a height
+  with respect to a distance is in m⁻¹). For a source that holds only in
+  its units, it is that unit itself, nothing being converted: hPa/K for
+  a saturation vapour pressure in hPa of a temperature in kelvins, and a
+  height in km gives K/km, never K/m.
+- **Domains**: the source is its part. Its domains, physical and stated,
+  and the bounds of its kinds, apply to the values the derivative
+  receives, as for a composition; none is added.
+- **Provenance**: without a citation of its own, a derivative is derived
+  by nomogram (`Derivation` method `"differentiation"`, with the input
+  and the order); a source that prints the derivative may be cited.
+- **It can be called and composed** like any explicit formulation: an
+  implicit equation may set a derivative equal to an input,
+  `dT(H=H) == g`, and solve for the height. `nomogram.differentiation.derivative`
+  gives the same derivative of any formulation, on demand.
+- A search finds a derivative by its kind, by `provenance="derived"`,
+  and from its source: `used_by("formulations.profile")` lists it.
 
 ### Definitions, identities and derived formulations
 
@@ -553,9 +624,9 @@ equation = "40"
   temperature); a written formulation or one calling others may have
   them, a composition or a formulation by branches does not. The legend
   shows them.
-- **Derived by nomogram**: a composition, a formulation by branches or
-  one calling others, without a citation of its own, is derived by
-  nomogram from formulations that are cited. The latent heat of fusion of
+- **Derived by nomogram**: a composition, a formulation by branches, one
+  calling others or a derivative, without a citation of its own, is
+  derived by nomogram from formulations that are cited. The latent heat of fusion of
   the IFS, which the IFS does not print, is the identity above composed
   with its latent heats of sublimation and vaporization:
 
@@ -671,8 +742,8 @@ states:
   as a list of texts (see [assumptions](#assumptions));
 - `note`;
 - `domains`: validity domains the source states, as
-  `[[formulations.<key>.citations.domains]]` tables with `bounds` and
-  `criterion`, and optionally `tolerance`: how far beyond an end a value
+  `[[formulations.<key>.citations.domains]]` tables with `bounds`,
+  `at_most` or `at_least`, and `criterion`, and optionally `tolerance`: how far beyond an end a value
   is still inside, per bounded identifier, one number for both ends or
   `[low, high]`, in the variable's unit and taken as a difference. It is
   the maximum deviation of that variable the source states, never a
@@ -711,7 +782,9 @@ reference scale, specializations included, on which inputs are taken and
 results given (`its90` for temperatures). Another scale of the same kinds names its
 reference (`reference_scale`) and gives the conversion as a table of
 `[reference value, reference value - value]` pairs, in a declared
-`unit`, values increasing:
+`unit`, values increasing; with a `base`, a table gives
+`[base value, base value - value]` pairs and holds over its range, as
+IPTS-48 does by the table of Douglas (1969) to IPTS-68, then ITS-90:
 
 ```toml
 [scales.ipts68]
@@ -1133,6 +1206,12 @@ the source iterates on; the others it gives are intermediate; the
 variables no equation gives are its inputs.
 `System.evaluate` solves it by Newton's method, or by the passes of the
 source (`method="fixed-point"`); see `nomogram.systems`.
+A chain without a loop, in which no equation reads a variable before the
+equation giving it, is a system too, with no unknown and no `start`: its
+equations are solved in order, an implicit one by the search of its root,
+its relative bounds included. The threshold temperature of contrail
+formation from the slope of the mixing line and the humidity is one, its
+maximum first (Schumann 1996, equations 10 and 11).
 
 ```toml
 [systems.coare36_surface_layer]
@@ -1159,7 +1238,8 @@ reference = "coare36"
 - **`start`**: a first guess for each unknown, an expression of the
   inputs in the syntax of expressions, in the unit of the formulation
   that gives the unknown, each input in the unit of the first equation
-  that takes it; Newton's method finds the solution near it.
+  that takes it; Newton's method finds the solution near it. Not written
+  for a system without a loop.
 - **`iterations`**: the passes of the fixed point the source runs, when
   it says.
 - A system is found by its key, label, note, the names of its

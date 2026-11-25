@@ -401,12 +401,21 @@ def test_statuses_are_named() -> None:
             "two equations give x",
         ),
         (
-            lambda: System("s", "s", (Equation(F["fy"]),), start={}),
-            "a composition, not a system",
-        ),
-        (
             lambda: System("s", "s", linear().equations, start={}),
             "missing: y",
+        ),
+        (
+            lambda: System("s", "s", (Equation(F["fy"]),), start={}),
+            "a single equation is a formulation, not a system",
+        ),
+        (
+            lambda: System(
+                "s",
+                "s",
+                (*linear().equations, Equation(F["line"], bind={"y": "w", "x": "v"})),
+                start={"y": "0"},
+            ),
+            "the equations giving w share no variable with the others",
         ),
         (
             lambda: System("s", "s", linear().equations, start={"y": "0", "x": "0"}),
@@ -429,6 +438,31 @@ def test_statuses_are_named() -> None:
 def test_invalid_systems_are_refused(build: Any, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         build()
+
+
+def test_a_chain_without_a_loop_is_a_system() -> None:
+    # No equation reads a variable before the one giving it: no unknown,
+    # no first guess; solved in order.
+    logarithm = formulations(entry("logarithm", "ln(y)", "z", ["y"]))["logarithm"]
+    chain = System("s", "s", (Equation(F["fy"]), Equation(logarithm)), start={})
+    assert (chain.unknowns, chain.inputs, chain.outputs) == (
+        (),
+        ("b", "x"),
+        ("y", "z"),
+    )
+    solution = chain.evaluate(b=Q_(7.0, ""), x=Q_(1.0, ""))
+    assert solution["z"].magnitude == pytest.approx(np.log(2.0))
+    passes = chain.evaluate(
+        b=Q_(7.0, ""), x=Q_(1.0, ""), method="fixed-point", iterations=1
+    )
+    assert passes["z"].magnitude == pytest.approx(np.log(2.0))
+    # A set of values an equation gives no finite value for (the logarithm
+    # of y = -2) is undefined, though nothing is iterated.
+    with pytest.warns(ConvergenceWarning, match="1 undefined"):
+        some = chain.evaluate(b=Q_([7.0, -5.0], ""), x=Q_(1.0, ""))
+    assert some.status.tolist() == [CONVERGED, UNDEFINED]
+    assert np.isnan(some.residual[1])
+    assert np.isnan(some["z"].magnitude[1])
 
 
 def test_invalid_calls_are_refused() -> None:
@@ -835,8 +869,9 @@ def test_domains_of_the_values_solved_apply_once_solved() -> None:
 
 
 def test_inputs_beyond_the_conversion_of_their_scale() -> None:
-    # Weiss and Price take T on IPTS-48, converted up to 30 degC only. The
-    # system holds S as Reference Salinity, a mass fraction (S_P about 35).
+    # Weiss and Price take T on IPTS-48, which is not defined below
+    # 90.188 K. The system holds S as Reference Salinity, a mass fraction
+    # (S_P about 35).
     from bundled_catalog import with_families
 
     document = SOURCE.replace("references.src", "references.test_source") + entry(
@@ -860,7 +895,7 @@ def test_inputs_beyond_the_conversion_of_their_scale() -> None:
         start={"S": "0.035"},
     )
     with pytest.raises(OutOfDomainError, match="T beyond the conversion of scale"):
-        system.evaluate(outside="raise", T=Q_(305.0, "K"))
+        system.evaluate(outside="raise", T=Q_(80.0, "K"))
     assert system.evaluate(T=Q_(290.0, "K")).status == CONVERGED
 
 
@@ -870,11 +905,11 @@ def test_an_equation_by_branches_takes_an_input_of_the_system() -> None:
     psi = catalog().formulations["coare36_profile_function_momentum"]
     system = System(
         "with_branches",
-        "Two linear equations and a profile function",
-        (Equation(psi), Equation(F["fx"]), Equation(F["fy"])),
+        "Two linear equations, one fed by a profile function",
+        (Equation(psi), Equation(F["fx"], bind={"a": "Psi_M"}), Equation(F["fy"])),
         start={"y": "0"},
     )
-    solution = system.evaluate(zeta=one(0.5), a=one(7.0), b=one(4.0))
+    solution = system.evaluate(zeta=one(0.5), b=one(4.0))
     assert solution.status == CONVERGED
     expected = psi.evaluate(zeta=one(0.5)).magnitude
     assert solution["Psi_M"].magnitude == pytest.approx(expected, rel=1e-12)

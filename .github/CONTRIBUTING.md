@@ -234,8 +234,9 @@ For the maintainer, in this order:
    with a CHANGELOG entry. The same pull request checks the pull request
    of each provisional kind (`LOCAL_KINDS`): merged and released, QUDT's
    kind replaces it, under QUDT's name and definition, with a "Changed"
-   entry naming both; closed without merge, the kind is removed or
-   reworked; still open, it stays.
+   entry naming both; merged but in no release yet, it stays, its pull
+   request recorded as merged, until the release that holds it; closed
+   without merge, the kind is removed or reworked; still open, it stays.
 2. Pull request against `develop` (squash): version bump in
    `pyproject.toml` and `CITATION.cff`, `[Unreleased]` section of
    `CHANGELOG.md` turned into `[x.y.z] - date`, titled

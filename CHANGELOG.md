@@ -8,6 +8,160 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-25
+
+Contrail formation from aircraft exhaust, and what the model needed for
+it. Three results:
+
+- The criterion of Schmidt and Appleman, from the fits of Schumann (1996,
+  2012) and Gierens (2021) to the implicit equations they approximate,
+  solved as systems over liquid water and over ice, with the criterion of
+  Appleman (1953) beside it. Table 3 of Schumann (1996), the case of the
+  ATTAS aircraft and Tables I and II of Appleman (1953) are reproduced by
+  the tests ([the guide](docs/contrails.md)).
+- A formulation may be the derivative of another, at any order: SymPy
+  gives its closed form and its LaTeX, and its unit follows from the
+  source's. The maximum threshold temperature is written as it is
+  defined, the slope of a saturation vapour pressure curve of the catalog
+  equal to that of the mixing line.
+- A validity domain may bound a variable by another: the threshold
+  temperature stays below its maximum (T_LC ≤ T_LM), which leaves out the
+  second root of its equation without inventing a numerical bound;
+  compositions and closed-form inverses carry such bounds.
+
+### Added
+
+- **Derivatives of formulations**: a catalog entry may be the derivative
+  of an explicit formulation with respect to one of its inputs, at any
+  order (`derivative = { of, with_respect_to, order }`), and
+  `nomogram.differentiation.derivative` gives one on demand. The
+  expression is the closed form of SymPy's `diff`, with its LaTeX; the
+  inputs are the source's, and the coefficients and constants its
+  expression still uses; the source is its part, so that its domains and
+  the bounds of its kinds apply; the unit
+  of a derivative of a formulation in fixed units is that of the source's
+  output divided by that of the input, nothing being converted. A
+  derivative can be called by other entries, an implicit equation
+  included: the maximum threshold temperature of contrail formation sets
+  the slope of a saturation vapour pressure curve equal to that of a
+  mixing line ([the catalog guide](docs/catalog.md#derivatives)). The
+  Markdown display names the source and the input ("Derivative of X with
+  respect to Y."). `Derivation` gains `with_respect_to` and `order`; the
+  coefficients of a derivative keep the units inferred in its source.
+- **Contrail formation from aircraft exhaust** (family `contrail`), the
+  explicit formulas of the criterion of Schmidt and Appleman: the overall
+  propulsion efficiency and the emission index of water vapour (Schumann
+  1996), the slope of the mixing line (Schumann 1996, 2000 and 2012,
+  Gierens 2021), the contrail factor (Schumann 2000), the fits of the
+  maximum threshold temperature (Schumann 1996; Gierens 2021, his two
+  fits joined at 2 Pa/K as he prescribes) and of the threshold
+  temperature (Schumann 2012). Their oracles are the values the sources
+  print (efficiency, emission indices and slopes of the mixing line of a
+  B747, the factors of Peters); the deviations of the fits from the exact
+  solutions are measured and noted beside the accuracy each source
+  states; the fit of the maximum threshold temperature is cross-checked
+  against pycontrails 0.66.1. "Contrail factor" is a trade term with two
+  meanings, C in K-1 and G in Pa/K.
+- **Exact threshold temperatures of contrail formation**, implicit
+  equations of Schumann (1996) with the saturation vapour pressures of
+  Schumann (2012): the maximum threshold temperatures over liquid water
+  and over ice (equation 10), the threshold temperatures over liquid
+  water and over ice (equations 11 and 12), each below its maximum by a
+  relative bound that leaves out the second root; the fit of the maximum
+  over ice (equation 32); the critical relative humidity of Schumann
+  (2012, equation 12, after Ponater et al. 2002), signed, applied below
+  T_LM as Ponater et al. state; three systems without a loop, exact over
+  water and over ice, and by the fits as Schumann (2012) does. The fit of
+  the threshold temperature calls the saturation vapour pressure at T_LM.
+  The threshold temperatures are points at which a saturation vapour
+  pressure is evaluated, as a dew point is: they feed a temperature input
+  of a formulation called or composed. Their oracles are Table 3 of
+  Schumann (1996) and the case of the ATTAS aircraft. "Critical
+  temperature" (Appleman's, then the threshold temperature) and
+  "threshold temperature" (T_LC for Schumann, T_LM for Gierens) are trade
+  terms with two meanings each.
+- **The criterion of Appleman (1953)**: the moisture the exhaust makes
+  available per degree of temperature rise, 0.0336 g kg-1 less what
+  saturates the ambient air (Table II), and the critical temperature for
+  a given mixing, where it equals what a saturated mixture needs (Table
+  I), an implicit equation on IPTS-48, inferred from the date, with the
+  Goff-Gratch equation the tables imply. Their oracles are Tables I and
+  II, the inset of Figure 1, Figure 4 and the example of a flight at
+  200 mb. The family `contrail` requires `moist-air`.
+- The unit g/(kg·K), `GM-PER-KiloGM-K`, which QUDT 3.5.4 does not have,
+  declared by nomogram for `InverseTemperature`.
+- **A guide to contrails** ([docs/contrails.md](docs/contrails.md)): the
+  criterion in brief, the diagram of Schmidt and Appleman, the threshold
+  along the standard atmosphere (Figure 4a of Schumann 1996), where
+  contrails persist, Figure 4 of Appleman (1953) computed again against
+  the tangent criterion, the fits side by side, the chain of formulations
+  and the graph of the kinds of the family.
+- The saturation vapour pressures of Sonntag (1994) in pascals as
+  Schumann (2012) writes them (A1, A2), proved equivalent to `sonntag1990`
+  and `sonntag1990_ice`, and their derivatives, the slopes of saturation
+  over water and over ice, cross-checked against pycontrails 0.66.1.
+- The quantity kinds and units of the criterion: from QUDT, `Efficiency`,
+  `HeatingValue`, `Thrust` and `MassFlowRate` (with `Force` and
+  `MassPerTime`), the newton, the kilonewton, kg/s, MJ/kg and g/mol; two
+  provisional kinds, `MixingLineSlope` and `SaturationVapourPressureSlope`,
+  in Pa/K, hPa/K and kPa/K, until QUDT releases them: the first is merged
+  (qudt/qudt-public-repo#1621), the second pending (#1622). A provisional
+  kind whose pull request is merged stays until the QUDT release that
+  holds it (AGENTS.md, CONTRIBUTING).
+- A table of differences may lead to another scale (`base`,
+  `ConventionalScale.base`), which leads to the reference scale
+  ([the catalog guide](docs/catalog.md#conventional-scales)).
+- **Relative bounds**: a validity domain may bound a variable by another
+  variable of the formulation, `at_most = { T_LC = "T_LM" }` or
+  `at_least` (`ValidityDomain.at_most`, `at_least`), in the same unit and on the same scale, closed and applied
+  value by value; a bound involving the output is written on it. A
+  physical one on the output of an implicit equation ends the interval
+  its root is sought in, value by value, whatever the basis of the
+  evaluation, and a root on that end without a change of sign (a double
+  root, T_LC = T_LM at U = 1) is taken inside the interval searched.
+  Compositions keep them under the composed names, closed-form inverses
+  on their output; the table of formulations shows them, T_LC ≤ T_LM
+  ([the catalog guide](docs/catalog.md#formulations)).
+- **Systems without a loop**: a chain of equations in which no equation
+  reads a variable before the one giving it is a system, with no unknown
+  and no first guess, solved in order, an implicit equation by the search
+  of its root; a set of values an equation gives no finite value for is
+  undefined. A system holds two equations at least, each sharing a
+  variable with the others.
+
+### Changed
+
+- MJ/kg, which QUDT declares for `SpecificEnergy`, applies to it and to
+  its specializations; Force and the newton bring two more links to the SI
+  Digital Framework (25).
+- The scale `ipts48` converts by Table 4 of Douglas (1969), IPTS-48 to
+  IPTS-68, from 90.188 K to the steam point, the low temperatures of the
+  free atmosphere included (t90 - t48 is +0.032 K at -40 degC); the
+  oceanographic conversion of Fofonoff and Bryden (1975), from -2 to
+  30 degC, within 0.5 mK of it, becomes the scale
+  `ipts48_fofonoff_bryden1975`. Weiss and Price (1980) take the table of
+  Douglas: their values change by less than 0.5 mK of temperature below
+  30 degC, and they have values up to 40 degC, their stated domain, where
+  they gave NaN. A catalog naming `ipts48` gets the general conversion.
+- The input temperatures of the forms of Schumann (2012) are on ITS-90
+  inferred from their numbers, those of Sonntag (1994), no longer from
+  their date.
+
+### Fixed
+
+- In the inference of the units of coefficients, a branch 0 of a
+  piecewise definition no longer makes the other branches pure numbers:
+  zero has every dimension.
+- The units of a formulation calling others are checked as written, each
+  call in the unit of the output called, the coefficients of the
+  formulation called in the units inferred where it is written: a call of
+  a formulation in fixed units whose exponential holds the unit (Sonntag,
+  in Pa) no longer reads as a pure number beside coefficients, which
+  refused an equation equating the slope of a saturation curve to an
+  input. The units inferred in the catalog and their origins are
+  unchanged; the reason of a coefficient of a formulation called names
+  it.
+
 ## [0.9.0] - 2026-11-25
 
 The catalog drawn as graphs, on a vocabulary QUDT now holds whole. Three
@@ -2118,7 +2272,8 @@ First release.
 - Expressions accept `log10`, written `\log_{10}` in LaTeX.
 - README: usage example.
 
-[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.9.0...develop
+[Unreleased]: https://github.com/miki4iaml/nomogram/compare/v0.10.0...develop
+[0.10.0]: https://github.com/miki4iaml/nomogram/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/miki4iaml/nomogram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/miki4iaml/nomogram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/miki4iaml/nomogram/compare/v0.6.0...v0.7.0

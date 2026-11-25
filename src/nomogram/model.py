@@ -386,11 +386,11 @@ class ConventionalScale:
         ``None`` for a reference scale, and possibly for a scale without
         conversion.
     points : tuple of float
-        Values on the reference scale where the difference is tabulated;
-        empty without a table.
+        Values on the reference scale (or on ``base``) where the difference
+        is tabulated; empty without a table.
     difference : tuple of float
-        Value on the reference scale minus value on this scale, at those
-        points.
+        Value on the reference scale (or on ``base``) minus value on this
+        scale, at those points.
     reference : str or None
         Key of the source of the scale or of its table.
     symbol : str or None
@@ -399,10 +399,11 @@ class ConventionalScale:
         Subscript that marks a quantity on this scale, for example
         ``"90"`` (the ITS-90 writes t90 and T90).
     base : ConventionalScale or None
-        For a conversion by expression, the scale it leads to; ``None``
-        when it leads to the reference scale. Chains end on the reference
-        scale (Knudsen salinity to Cox salinity, then to Reference
-        Salinity).
+        For a conversion by expression or a table, the scale it leads to;
+        ``None`` when it leads to the reference scale. Chains end on the
+        reference scale (Knudsen salinity to Cox salinity, then to
+        Reference Salinity; IPTS-48 to IPTS-68 by the table of Douglas,
+        then to ITS-90).
     conversion : str or None
         The value on ``base`` (or on the reference scale) as an expression
         of ``x``, the value on this scale, both in ``unit``, for example
@@ -556,15 +557,17 @@ class ConventionalScale:
         if self.is_reference:
             return values, np.zeros(values.shape, dtype=bool)
         self.check_convertible()
-        if self.conversion is None:
-            outside = (values < self.points[0]) | (values > self.points[-1])
-            shift = np.interp(values, self.points, self.difference)
-            return np.where(outside, np.nan, values - shift), outside
         on_base, outside = (
             (values, np.zeros(values.shape, dtype=bool))
             if self.base is None
             else self.base.from_reference(values)
         )
+        if self.conversion is None:
+            low, high = self._table_extent
+            with np.errstate(invalid="ignore"):
+                outside = outside | (on_base < low) | (on_base > high)
+            shift = np.interp(on_base, self.points, self.difference)
+            return np.where(outside, np.nan, on_base - shift), outside
         inverse = self._inverse_function
         if inverse is not None:
             with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
@@ -587,8 +590,8 @@ class ConventionalScale:
         """Values on the reference scale, from values on this scale.
 
         A table is inverted by fixed-point iteration (the differences are
-        small and vary slowly); a conversion by expression is applied, then
-        that of its base. NaN beyond the table or the bounds.
+        small and vary slowly), a conversion by expression applied; then
+        that of the base, if any. NaN beyond the table or the bounds.
 
         Raises
         ------
@@ -600,10 +603,13 @@ class ConventionalScale:
             return values
         self.check_convertible()
         if self.conversion is None:
-            on_reference = self._through_table(values)
-            outside = (on_reference < self.points[0]) | (on_reference > self.points[-1])
-            return np.where(outside, np.nan, on_reference)
-        on_base = np.where(self._outside(values), np.nan, self._forward(values))
+            on_base = self._through_table(values)
+            low, high = self._table_extent
+            with np.errstate(invalid="ignore"):
+                outside = (on_base < low) | (on_base > high)
+            on_base = np.where(outside, np.nan, on_base)
+        else:
+            on_base = np.where(self._outside(values), np.nan, self._forward(values))
         return on_base if self.base is None else self.base.to_reference(on_base)
 
     def interval_to_reference(
@@ -642,8 +648,20 @@ class ConventionalScale:
         low, high = max(float(converted[0]), floor), min(float(converted[1]), ceiling)
         return (low, high) if low < high else None
 
+    @property
+    def _table_extent(self) -> tuple[float, float]:
+        """The range of the table on the scale it leads to; for a table to a
+        base, widened by the rounding a conversion through the base leaves,
+        as the bounds of a conversion are (an end of the table converted
+        there and back must stay inside)."""
+        low, high = self.points[0], self.points[-1]
+        if self.base is None:
+            return low, high
+        margin = BOUND_TOLERANCE * max(abs(low), abs(high), 1.0)
+        return low - margin, high + margin
+
     def _through_table(self, values: Any) -> Any:
-        """Values on the reference scale, by the table, extended beyond it."""
+        """Values on the scale the table leads to, extended beyond it."""
         on_reference = values
         for _ in range(4):
             on_reference = values + np.interp(
@@ -655,9 +673,11 @@ class ConventionalScale:
         """:meth:`to_reference` extended beyond the table and the bounds."""
         if self.is_reference:
             return values
-        if self.conversion is None:
-            return self._through_table(values)
-        on_base = self._forward(values)
+        on_base = (
+            self._through_table(values)
+            if self.conversion is None
+            else self._forward(values)
+        )
         return (
             on_base if self.base is None else self.base._unbounded_to_reference(on_base)
         )
@@ -666,18 +686,21 @@ class ConventionalScale:
     def _reference_extent(self) -> tuple[float, float]:
         """Values on the reference scale that convert to this scale.
 
-        The range of a table; the bounds of a conversion carried to the
+        The range of a table, or the bounds of a conversion, carried to the
         reference scale, within the extent of its base; infinite on a side
         nothing bounds.
         """
         if self.is_reference:
             return (-np.inf, np.inf)
-        if self.conversion is None:
-            return (self.points[0], self.points[-1])
         low, high = (
             (-np.inf, np.inf) if self.base is None else self.base._reference_extent
         )
-        if self.bounds is not None:
+        if self.conversion is None:
+            ends = np.array([self.points[0], self.points[-1]], dtype=float)
+            if self.base is not None:
+                ends = self.base._unbounded_to_reference(ends)
+            low, high = max(low, float(ends[0])), min(high, float(ends[1]))
+        elif self.bounds is not None:
             ends = self._unbounded_to_reference(np.array(self.bounds, dtype=float))
             low, high = max(low, float(ends[0])), min(high, float(ends[1]))
         return (float(low), float(high))
@@ -850,8 +873,9 @@ class Derivation:
         ``"symbolic inversion"`` (closed form found by SymPy),
         ``"numerical inversion"``, ``"composition"``, ``"branches"``,
         ``"calls"``, ``"integration"`` (a profile function from a gradient
-        function) or ``"differentiation"`` (back), see
-        :mod:`nomogram.similarity`.
+        function, see :mod:`nomogram.similarity`) or ``"differentiation"``
+        (back, or the derivative of a formulation with respect to one of
+        its inputs, see :mod:`nomogram.differentiation`).
     solved_for : str or None
         For an inversion, identifier of the source's input that became the
         output.
@@ -861,12 +885,19 @@ class Derivation:
         branches, the formulation used under each condition. For calls,
         the formulation of each call, by the call as written
         (``"e_w(p=p, t=t_d)"``).
+    with_respect_to : str or None
+        For a derivative, identifier of the source's input it is taken
+        with respect to.
+    order : int or None
+        For a derivative, its order.
     """
 
     source: str
     method: str
     solved_for: str | None = None
     parts: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    with_respect_to: str | None = None
+    order: int | None = None
 
 
 @dataclass(frozen=True)
@@ -940,6 +971,18 @@ def _beyond(
     below = low - max(margin, tolerance[0])
     above = high + max(margin, tolerance[1])
     return (value < below) | (value > above)
+
+
+def _beyond_relative(value: Any, other: Any, side: str, *, rounded: bool = True) -> Any:
+    """Where values lie beyond a relative bound: above ``other`` (``side``
+    ``"most"``) or below it (``"least"``), its value rounded as a finite end
+    of an interval is, unless ``rounded`` is false. NaN is never beyond."""
+    value = np.asarray(value, dtype=float)
+    other = np.asarray(other, dtype=float)
+    margin = BOUND_TOLERANCE * np.maximum(np.abs(other), 1.0) if rounded else 0.0
+    if side == "most":
+        return value > other + margin
+    return value < other - margin
 
 
 def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
@@ -1257,6 +1300,15 @@ class ValidityDomain:
         within 0.1 mK of the formulation it inverts), so that the fit does
         not fall out of its own range. Only a domain a source states, with
         its criterion, has one; empty otherwise.
+    at_most : mapping of str to str
+        Relative bounds: a variable (input or output) no greater than
+        another variable of the formulation, in the same unit and on the
+        same scale, by identifier (``{"T_LC": "T_LM"}``: the threshold
+        temperature of contrail formation never exceeds its maximum).
+        Closed, applied value by value; on the output of an implicit
+        equation, a physical one ends the interval its root is sought in.
+    at_least : mapping of str to str
+        The same, no less than another variable.
     """
 
     basis: DomainBasis
@@ -1266,6 +1318,8 @@ class ValidityDomain:
     tolerance: Mapping[str, tuple[float, float]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    at_most: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    at_least: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)
@@ -1847,6 +1901,60 @@ class Formulation:
             low, high = max(low, float(search[0])), min(high, float(search[1]))
         return low, high
 
+    @cached_property
+    def _relative_ends(self) -> tuple[tuple[int, str], ...]:
+        """The relative bounds of the output that end its root search.
+
+        Those of the physical domains naming an input: its index among the
+        inputs, and ``"most"`` or ``"least"``.
+        """
+        index = {v.identifier: i for i, v in enumerate(self.inputs)}
+        output = self.output.identifier
+        found = []
+        for domain in self.physical_domains:
+            for side, table in (("most", domain.at_most), ("least", domain.at_least)):
+                other = table.get(output)
+                if other in index:
+                    found.append((index[other], side))
+        return tuple(found)
+
+    def _root_at_ends(
+        self,
+        roots: Any,
+        status: Any,
+        sought: Any,
+        flat: list[Any],
+        functions: tuple[Any, Any, list[float], float],
+        interval: tuple[float, float],
+    ) -> None:
+        """Take as the root an end of a relative bound where the residual is zero.
+
+        A double root on that end, such as the threshold temperature of
+        contrail formation at liquid saturation (U = 1), where the mixing
+        line touches the saturation curve, has no change of sign to find:
+        it is the end itself, where the two members agree to the rounding.
+        Only an end inside the interval searched (``interval``).
+        """
+        from nomogram._roots import NONE, ONE
+
+        left, right, fixed, factor = functions
+        low, high = interval
+        rows = np.flatnonzero(sought & (status == NONE))
+        if not rows.size:
+            return
+        inputs = [a[rows] for a in flat]
+        for index, _side in self._relative_ends:
+            end = inputs[index]
+            with np.errstate(all="ignore"):
+                lhs = np.asarray(left(end, *inputs, *fixed), dtype=float)
+                rhs = np.asarray(factor * right(end, *inputs, *fixed), dtype=float)
+            scale = np.maximum(np.maximum(np.abs(lhs), np.abs(rhs)), 1e-300)
+            zero = np.abs(lhs - rhs) <= 8 * np.finfo(float).eps * scale
+            open_rows = status[rows] == NONE
+            take = zero & open_rows & np.isfinite(end) & (end >= low) & (end <= high)
+            roots[rows[take]] = end[take]
+            status[rows[take]] = ONE
+
     def _solve(
         self,
         values: Mapping[str, Any],
@@ -1869,9 +1977,24 @@ class Formulation:
         fixed = [c.value for c in self.coefficients]
         fixed += [k.value for k in self.constants]
         factor = self._member_factor
+        ends = self._relative_ends
 
         def members(y: Any, *inputs: Any) -> tuple[Any, Any]:
-            return left(y, *inputs, *fixed), factor * right(y, *inputs, *fixed)
+            lhs, rhs = left(y, *inputs, *fixed), factor * right(y, *inputs, *fixed)
+            if not ends:
+                return lhs, rhs
+            # Beyond a relative bound of the output, no root is sought: the
+            # residual is undefined there (the root above the maximum
+            # threshold temperature of contrail formation).
+            beyond: Any = False
+            for index, side in ends:
+                # The exact end: the rounding a domain check allows for a
+                # value converted between units would let a double root
+                # slip just beyond it.
+                beyond = beyond | _beyond_relative(
+                    y, inputs[index], side, rounded=False
+                )
+            return np.where(beyond, np.nan, lhs), np.where(beyond, np.nan, rhs)
 
         arrays = [np.asarray(values[v.identifier], dtype=float) for v in self.inputs]
         shape = np.broadcast_shapes(*(a.shape for a in arrays)) if arrays else ()
@@ -1886,6 +2009,15 @@ class Formulation:
         if sought.any() and low <= high:
             got, codes = solve(members, [a[sought] for a in flat], low, high)
             flat_roots[sought], flat_status[sought] = got, codes
+            if ends:
+                self._root_at_ends(
+                    flat_roots,
+                    flat_status,
+                    sought,
+                    flat,
+                    (left, right, fixed, factor),
+                    (low, high),
+                )
         elif sought.any():
             flat_status[sought] = NONE
         roots, status = flat_roots.reshape(shape), flat_status.reshape(shape)
@@ -2015,7 +2147,14 @@ class Formulation:
                 )
                 raise DimensionError(msg)
         target = units[self.output.unit].pint
-        variants = _variants(self.sympy_expression)
+        # A branch 0 (the derivative of a constant branch) has every unit.
+        variants = [
+            v
+            for v in _variants(self.sympy_expression)
+            if getattr(v, "is_zero", None) is not True
+        ]
+        if not variants:
+            return 1.0
         factors = {
             float(Q_(1.0, unit_of(variant)).to(target).magnitude)
             for variant in variants
@@ -2138,6 +2277,21 @@ class Formulation:
                 if (identifier == output) == of_output
             ]
 
+        def relative_of(domain: ValidityDomain, of_output: bool) -> Any:
+            # A relative bound belongs to the variable it bounds.
+            return [
+                (identifier, other, side)
+                for side, table in (
+                    ("most", domain.at_most),
+                    ("least", domain.at_least),
+                )
+                for identifier, other in table.items()
+                if (identifier == output) == of_output
+            ]
+
+        def bounding(domain: ValidityDomain, of_output: bool) -> bool:
+            return bool(bounds_of(domain, of_output) or relative_of(domain, of_output))
+
         def outside_all(domains: tuple[ValidityDomain, ...], of_output: bool) -> Any:
             result = np.zeros(shape, dtype=bool)
             for domain in domains:
@@ -2146,6 +2300,14 @@ class Formulation:
                         continue  # the output, not given (inputs are checked first)
                     tolerance = domain.tolerance.get(identifier, (0.0, 0.0))
                     result = result | _beyond(arrays[identifier], low, high, tolerance)
+                for identifier, other, side in relative_of(domain, of_output):
+                    if (
+                        identifier not in arrays or other not in arrays
+                    ):  # pragma: no cover - a bound involving the output is written on it
+                        continue  # the output, not given
+                    result = result | _beyond_relative(
+                        arrays[identifier], arrays[other], side
+                    )
             return result
 
         def outside_union(of_output: bool) -> Any:
@@ -2153,7 +2315,7 @@ class Formulation:
             stating = [
                 c.domains
                 for c in self.citations
-                if any(bounds_of(d, of_output) for d in c.domains)
+                if any(bounding(d, of_output) for d in c.domains)
             ]
             if not stating:
                 return np.zeros(shape, dtype=bool)
@@ -2175,7 +2337,7 @@ class Formulation:
             # of its parts; the domains of called formulations always apply
             # to each call. The bounds of the kinds of the parts always do.
             stated = any(
-                bounds_of(d, of_output=False) for c in self.citations for d in c.domains
+                bounding(d, of_output=False) for c in self.citations for d in c.domains
             )
             if basis not in (None, "physical") and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None

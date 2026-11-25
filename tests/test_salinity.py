@@ -154,12 +154,49 @@ def test_chlorinity_salinities_convert_below_the_limits_of_pss78() -> None:
     assert "0.009" in (knudsen.note or "")
 
 
+def test_ipts48_by_the_table_of_douglas() -> None:
+    ipts48 = SCALES["ipts48"]
+    assert ipts48.base is SCALES["ipts68"]
+    # Table 4 of Douglas (1969): T68 - T48 = +0.0336 K at T68 = 200 K, then
+    # Table 6 of the ITS-90 text: t90 - t68 = +0.009 K at -73.15 degC,
+    # interpolated between -80 degC (0.012) and -70 degC (0.011).
+    t68 = 200.0 - 273.15
+    t90 = t68 + 0.012 - 0.001 * (t68 + 80.0) / 10.0
+    assert ipts48.to_reference(t68 - 0.0336) == pytest.approx(t90, abs=1e-5)
+    # The low temperatures of the free atmosphere, where the oceanographic
+    # conversion stops at -2 degC.
+    t48 = np.array([-20.0, -40.0, -60.0, -80.0])
+    assert (ipts48.to_reference(t48) - t48).tolist() == pytest.approx(
+        [0.016, 0.032, 0.042, 0.045], abs=5e-4
+    )
+    assert np.isnan(SCALES["ipts48_fofonoff_bryden1975"].to_reference(t48)).all()
+    back, outside = ipts48.from_reference(ipts48.to_reference(t48))
+    assert back == pytest.approx(t48, abs=1e-9)
+    assert not outside.any()
+    # Within 0.5 mK of Fofonoff and Bryden where both hold.
+    t48 = np.linspace(-2.0, 30.0, 33)
+    ocean = SCALES["ipts48_fofonoff_bryden1975"].to_reference(t48)
+    assert np.abs(ipts48.to_reference(t48) - ocean).max() < 5e-4
+    # From the boiling point of oxygen, below which the IPTS-48 is not
+    # defined, to the steam point.
+    beyond = ipts48.to_reference(np.array([-183.0, 100.1]))
+    assert np.isnan(beyond).all()
+    # The lowest row there and back, through IPTS-68: inside, to the rounding.
+    lowest = -182.962 - 0.0080
+    back, outside = ipts48.from_reference(ipts48.to_reference(lowest))
+    assert not outside
+    assert back == pytest.approx(lowest, abs=1e-9)
+    low, high = ipts48.interval_to_reference(-273.15, 200.0) or (0.0, 0.0)
+    assert low == pytest.approx(-182.954, abs=1e-3)
+    assert high == pytest.approx(99.974, abs=1e-3)
+
+
 def test_temperature_scales_of_oceanography() -> None:
     saunders = SCALES["ipts68_saunders1990"]
     # Saunders (1990): t90 - t68 = -0.007 degC at 30 degC.
     assert saunders.to_reference(30.0) - 30.0 == pytest.approx(-0.007, abs=5e-4)
     assert np.isnan(saunders.to_reference(np.array([45.0]))).all()
-    ipts48 = SCALES["ipts48"]
+    ipts48 = SCALES["ipts48_fofonoff_bryden1975"]
     t48 = np.array([0.0, 10.0, 20.0, 30.0])
     t68 = t48 - 4.4e-6 * t48 * (100 - t48)
     assert ipts48.to_reference(t48) == pytest.approx(SCALES["ipts68"].to_reference(t68))
@@ -296,8 +333,9 @@ conversion = "2 * x"
             (
                 '[scales.x]\nlabel = "X"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
                 'unit = "PERMILLE"\ndifferences = [[0.0, 0.0]]\nbase = "p"\n'
+                "bounds = [0.0, 1.0]\n"
             ),
-            "a table converts to the reference scale",
+            "a table holds over its range",
         ),
         (
             (
@@ -327,6 +365,20 @@ conversion = "2 * x"
 def test_invalid_scales_are_refused(extra: str, message: str) -> None:
     with pytest.raises(CatalogError, match=message):
         load_catalog([PARTS + extra])
+
+
+def test_a_table_converts_to_its_base() -> None:
+    # p doubles; the table gives the value on p minus the value on t.
+    document = PARTS + (
+        '[scales.t]\nlabel = "T"\nkinds = ["SeaWaterSalinity"]\nreference_scale = "ref"\n'
+        'unit = "PERMILLE"\nbase = "p"\ndifferences = [[0.0, 0.0], [10.0, 0.01]]\n'
+    )
+    scale = load_catalog([document]).scales["t"]
+    assert scale.to_reference(9.99) == pytest.approx(20.0)
+    back, outside = scale.from_reference(np.array([20.0, 22.0]))
+    assert back[0] == pytest.approx(9.99)
+    assert list(outside) == [False, True]  # 11 on p, beyond the table
+    assert scale.interval_to_reference(-5.0, 20.0) == pytest.approx((0.0, 20.0))
 
 
 def test_a_conversion_to_the_reference_needs_no_base() -> None:
@@ -569,5 +621,9 @@ citation = "r"
 
     assert relation_with("2 * x") != relation_with("3 * x")
     # A chain through a table records the table too.
+    chain = _conversion_chain(SCALES["ipts48_fofonoff_bryden1975"])
+    assert [step[0] for step in chain] == ["ipts48_fofonoff_bryden1975", "ipts68"]
+    # And a table to a base, both tables.
     chain = _conversion_chain(SCALES["ipts48"])
     assert [step[0] for step in chain] == ["ipts48", "ipts68"]
+    assert chain[0][1][0] == pytest.approx(-182.962)

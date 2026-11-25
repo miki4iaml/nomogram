@@ -35,7 +35,11 @@ air); the kinds a kind does not feed although QUDT makes it their
 specialization (`never_feeds`: the pressure altitude, for the geopotential
 height); and, when QUDT lacks them, units (`LOCAL_UNITS`) and provisional
 kinds (`LOCAL_KINDS`, with the pull request that proposes each to QUDT,
-`pending`), written with `"iri": null`, none since QUDT 3.5.4.
+`pending`), written with `"iri": null`: one unit, g/(kg·K),
+`GM-PER-KiloGM-K`, for the moisture the exhaust of an aircraft adds per
+degree, and the two slopes of the criterion of contrail formation,
+`MixingLineSlope`, merged by QUDT and awaiting its next release, and
+`SaturationVapourPressureSlope`, pending its pull request.
 
 ## UCUM codes
 

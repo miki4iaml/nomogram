@@ -7,6 +7,7 @@ import ast
 import importlib.util
 import math
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -562,6 +563,8 @@ IMAGES = ROOT / "docs" / "images"
 FIGURES = {
     "coare-loop": ROOT / "docs" / "coare-system.md",
     "kinds-relative-humidity": ROOT / "docs" / "graphs.md",
+    "kinds-contrail": ROOT / "docs" / "contrails.md",
+    "contrail-chain": ROOT / "docs" / "contrails.md",
 }
 
 
@@ -646,3 +649,133 @@ def test_the_loop_figure_follows_the_table_of_the_guide(drawn: Path) -> None:
         and any(e.get("stroke-dasharray") for e in group)
     ]
     assert len(dashed) == 7
+
+
+CONTRAILS = ROOT / "docs" / "examples" / "contrails.py"
+CONTRAILS_GUIDE = ROOT / "docs" / "contrails.md"
+
+
+@pytest.fixture(scope="module")
+def contrails() -> Any:
+    spec = importlib.util.spec_from_file_location("contrails", CONTRAILS)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def contrail_results(contrails: Any) -> dict[str, Any]:
+    """The values computed once for the module (some seconds)."""
+    before = list(warnings.filters)
+    results: dict[str, Any] = contrails.compute()
+    # No filter of warnings left behind: the rule of the tests holds.
+    assert list(warnings.filters) == before
+    return results
+
+
+def test_contrails_guide_shows_lines_of_its_script() -> None:
+    script = code_lines(CONTRAILS.read_text(encoding="utf-8"))
+    blocks = python_blocks(CONTRAILS_GUIDE)
+    assert len(blocks) == 4
+    for block in blocks:
+        ast.parse(block)
+        for line in code_lines(block):
+            assert any(line in candidate for candidate in script), line
+
+
+def test_contrails_example_writes_its_plots(
+    contrails: Any,
+    contrail_results: dict[str, Any],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contrails, "compute", lambda: contrail_results)
+    contrails.main(str(tmp_path))
+    for name in ("diagram", "profile", "persistence", "appleman"):
+        figure = tmp_path / f"contrails-{name}.png"
+        assert figure.read_bytes().startswith(b"\x89PNG")
+        assert f"images/contrails-{name}.png" in CONTRAILS_GUIDE.read_text(
+            encoding="utf-8"
+        )
+
+
+def test_contrails_guide_gives_the_values_it_states(
+    contrail_results: dict[str, Any],
+) -> None:
+    import numpy as np
+
+    d = contrail_results["diagram"]
+    stated = {
+        "T_LM": -42.91,
+        "T_LC": -50.64,
+        "T_IM": -39.76,
+        "T_IC": -45.67,
+        "L1": -32.42,
+        "L2": -57.93,
+        "I1": -27.88,
+        "I2": -58.77,
+    }
+    assert {name: round(d[name], 2) for name in stated} == stated
+    text = CONTRAILS_GUIDE.read_text(encoding="utf-8")
+    written = (
+        "\u221242.91 \u00b0C",
+        "\u221250.64 \u00b0C",
+        "\u221239.76 \u00b0C",
+        "\u221245.67 \u00b0C",
+        "\u221232.42",
+        "\u221257.93",
+        "\u221227.88",
+        "\u221258.77",
+        "10.1 to 14.0 km",
+        "9.9 km",
+        "9.6 km",
+        "8.2 km",
+        "74.5 %",
+        "67.4 %",
+        "61.1 %",
+        "\u221249.5 \u00b0C",
+        "\u221252.3 \u00b0C",
+        "0.23 K",
+        "0.18 K",
+        "0.22 K",
+    )
+    assert [value for value in written if value not in text] == []
+    layers = contrail_results["profile"]["layers"]
+    assert tuple(round(v, 1) for v in layers[0.0]) == (10.1, 14.0)
+    assert {u: round(layers[u][0], 1) for u in (0.3, 0.6, 1.0)} == {
+        0.3: 9.9,
+        0.6: 9.6,
+        1.0: 8.2,
+    }
+    s = contrail_results["persistence"]
+    assert {t: round(100 * u, 1) for t, u in s["ice_saturation_at"].items()} == {
+        -30.0: 74.5,
+        -40.0: 67.4,
+        -50.0: 61.1,
+    }
+    assert (round(s["meet"], 1), round(s["dry"], 1)) == (-49.5, -52.3)
+    a = contrail_results["appleman"]
+    gap = {f_w: a["highest"][f_w] - a["tangent"][f_w] for f_w in (0, 60, 90, 100)}
+    assert max(float(np.abs(v).max()) for v in gap.values()) < 0.23
+    below = max(float(gap[f_w].max()) for f_w in (0, 60, 90))
+    assert round(below, 2) == 0.18
+    assert round(float(gap[100].min()), 2) == -0.22
+    assert (gap[100] < 0).all()
+
+
+def test_contrails_guide_lists_the_references_of_its_formulations(
+    contrails: Any, contrail_results: dict[str, Any]
+) -> None:
+    text = CONTRAILS_GUIDE.read_text(encoding="utf-8")
+    section = text.split("\n## References\n", 1)[1]
+    listed = [line for line in section.splitlines() if line.startswith("- ")]
+    assert listed == contrails.bibliography(contrail_results["called"])
+    for author in (
+        "Appleman, H. (1953)",
+        "Douglas, T. B. (1969)",
+        "Preston-Thomas, H. (1990)",
+        "Schumann, U. (1996)",
+    ):
+        assert any(line.startswith(f"- {author}") for line in listed), author
