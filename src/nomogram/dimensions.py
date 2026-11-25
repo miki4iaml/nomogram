@@ -434,16 +434,33 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
             if unit is not None:
                 units[name] = unit
                 inherited[name] = f"as in {source.key}, of which it is the derivative"
-    # A formulation made of others keeps the units of its intermediate
-    # quantities: each part's expression has the unit of the part's output,
-    # and so do the parts of its parts, renamed into the formulation.
-    # Each brings its own structure too: the expression of the formulation
-    # may have simplified it away (a factor common to two calls).
-    pieces = []
-    for marker, unit, piece in _intermediates(formulation, {}, ""):
-        units[marker.name] = unit
-        pieces.append(_Constraint("equal", (marker, piece), (marker, piece)))
-        pieces.extend(_constraints(piece))
+    written: Any = None
+    if formulation.calls and formulation.written is not None:
+        # A formulation calling others is checked as written: each call is
+        # a quantity in the unit of the output called, each argument in that
+        # of the input it feeds, and the coefficients of a formulation called
+        # keep the units inferred where it is written. Developed, a call of a
+        # formulation in fixed units (Sonntag's exponential, in Pa) would
+        # read as a pure number.
+        for part in formulation.parts:
+            found = infer_units(part.formulation)
+            for name, renamed in part.rename.items():
+                unit = found[name].unit if name in found else None
+                if renamed in unknown and renamed not in units and unit is not None:
+                    units[renamed] = unit
+                    inherited[renamed] = f"as in {part.formulation.key}, which it calls"
+        written, pieces = _written_with_calls(formulation, units)
+    else:
+        # A formulation made of others keeps the units of its intermediate
+        # quantities: each part's expression has the unit of the part's
+        # output, and so do the parts of its parts, renamed into the
+        # formulation. Each brings its own structure too: the expression of
+        # the formulation may have simplified it away.
+        pieces = []
+        for marker, unit, piece in _intermediates(formulation, {}, ""):
+            units[marker.name] = unit
+            pieces.append(_Constraint("equal", (marker, piece), (marker, piece)))
+            pieces.extend(_constraints(piece))
     coefficients = frozenset(c.identifier for c in formulation.coefficients)
     context = _Context(
         formulation.fixed_units,
@@ -455,7 +472,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     if formulation.implicit:
         # An implicit equation: its two members, the unknown in the
         # output's unit, have one unit; a member 0 (h == 0) has every unit.
-        left, right = formulation.equation_members
+        left, right = written if written is not None else formulation.equation_members
         _angles_in_radians(left, units)
         _angles_in_radians(right, units)
         equal = [] if left == 0 or right == 0 else [(left, right)]
@@ -467,7 +484,7 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
         ]
         constraints = [c for c in candidates if not context.numerical(c)]
         return context, constraints, left - right
-    expr = formulation.sympy_expression
+    expr = written if written is not None else formulation.sympy_expression
     _angles_in_radians(expr, units)
     output = sympy.Symbol(formulation.output.identifier, real=True)
     # In fixed units, the output of a derivative is the numerical value its
@@ -486,6 +503,46 @@ def _setup(formulation: Formulation) -> tuple[_Context, list[_Constraint], Any]:
     ]
     constraints = [c for c in candidates if not context.numerical(c)]
     return context, constraints, expr
+
+
+def _written_with_calls(
+    formulation: Formulation, units: dict[str, Any]
+) -> tuple[Any, list[_Constraint]]:
+    """The expression (or the two members) as written, each call a symbol.
+
+    The symbol ``_call_<i>`` of the i-th call takes the unit of the output
+    of the formulation called; each argument must have the unit of the
+    input it feeds. Returns the expression, or the pair of members of an
+    implicit equation, and the constraints of the arguments.
+    """
+    from nomogram.expression import _opaque, _split_equation, parse_expression
+
+    names = list(formulation._argument_names)
+    calls = formulation.calls
+    text, parse_names, _ = _opaque(
+        formulation.written or "",
+        names,
+        [
+            (c.alias, [c.arguments[v.identifier] for v in c.formulation.inputs])
+            for c in calls
+        ],
+    )
+    constraints: list[_Constraint] = []
+    for i, call in enumerate(calls):
+        units[f"_call_{i}"] = _pint(call.formulation.output.unit)
+        for variable in call.formulation.inputs:
+            argument = parse_expression(call.arguments[variable.identifier], names)
+            fed = sympy.Symbol(f"_call_{i}.{variable.identifier}", real=True)
+            units[fed.name] = _pint(variable.unit)
+            constraints.append(_Constraint("equal", (fed, argument), (fed, argument)))
+            constraints.extend(_constraints(argument))
+    if formulation.implicit:
+        members = _split_equation(text, limit=None)
+        if members is None:  # pragma: no cover - an implicit formulation has two
+            msg = f"{formulation.key}: expected an implicit equation"
+            raise DimensionError(msg)
+        return tuple(parse_expression(m, parse_names) for m in members), constraints
+    return parse_expression(text, parse_names), constraints
 
 
 def _differentiated(formulation: Formulation) -> Formulation | None:
@@ -555,19 +612,27 @@ def _linear(
     context, constraints, _ = _setup(formulation)
     basis = _factors if in_units else _dimension
     bases = sorted({name for unit in context.units.values() for name in basis(unit)})
-    if not bases or not context.unknown:
+    # A coefficient of a derivative or of a formulation called arrives with
+    # the unit inferred where it is written: known here.
+    given = {
+        name: dict(basis(context.units[name]))
+        for name in context.unknown
+        if name in context.units
+    }
+    free = sorted(set(context.unknown) - set(given))
+    if not bases or not free:
         # Every unit is a number (per mille against per mille): so is each
         # coefficient. Or every unit is declared: nothing to solve.
-        return {name: {} for name in sorted(context.unknown)}
+        return {name: given.get(name, {}) for name in sorted(context.unknown)}
     exponents = {
         (name, base): sympy.Symbol(f"x_{name}_{index}")
-        for name in sorted(context.unknown)
+        for name in free
         for index, base in enumerate(bases)
     }
 
     def vector(node: Any) -> dict[str, Any]:
         if node.is_Symbol:
-            if node.name in context.unknown:
+            if node.name in free:
                 return {b: exponents[node.name, b] for b in bases}
             dimension = basis(context.units[node.name])
             return {b: sympy.Rational(dimension.get(b, 0)) for b in bases}
@@ -617,6 +682,9 @@ def _linear(
     values = dict(zip(unknowns, solution, strict=True))
     result: dict[str, dict[str, Fraction] | None] = {}
     for name in sorted(context.unknown):
+        if name in given:
+            result[name] = {b: Fraction(e) for b, e in given[name].items() if e != 0}
+            continue
         found = [values[exponents[name, b]] for b in bases]
         if all(v.is_Number for v in found):
             result[name] = {

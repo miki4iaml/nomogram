@@ -159,6 +159,19 @@ All sections are optional; a key may be defined in one file only.
   strict inequality is not written. A bound on the output states its
   `criterion`. A domain stated by a source belongs to its citation; a
   physical domain takes no `tolerance`.
+- **Relative bounds**: a domain may bound a variable by another variable
+  of the formulation, an input or the output, in the same unit and on the
+  same scale (an output on none compares with an input on the reference
+  scale): `at_most = { T_LC = "T_LM" }` (the threshold temperature of
+  contrail formation never exceeds its maximum), `at_least` likewise,
+  with or without `bounds`. They are closed and apply value by value, as
+  any bound, under the same `basis`. A physical one on the output of an
+  implicit equation also ends the interval its root is sought in, value
+  by value: it chooses the root equation 11 of Schumann (1996) has below
+  T_LM rather than the one above, and a root exactly on that end, without
+  a change of sign (T_LC = T_LM at U = 1, where the mixing line touches
+  the saturation curve), is taken when the two members agree to the
+  rounding there.
 - **`citations`**: the sources that give the formula; see
   [citations](#citations).
 - **Conventional scale** (VIM 1.29, such as the temperature scales
@@ -499,6 +512,12 @@ inputs = [
   owner. `__` is kept for these names: an entry that calls others may
   not use it in its own identifiers. Elsewhere it marks a superscript, as
   SymPy reads it (`a__w` is written aʷ).
+- **Units**: the expression is checked as written, each call a quantity
+  in the unit of the output called and each argument in that of the input
+  it feeds; the coefficients of a formulation called keep the units
+  inferred where it is written. Developed, a call of a formulation in
+  fixed units whose exponential holds the unit (Sonntag, in Pa) would read
+  as a pure number beside the caller's own coefficients.
 - **Validity domains**: those of each formulation called apply to the
   values each call receives (t_d and t above, each against −45 to 60 °C),
   the value of an expression passed included (z_t/L against the domain
@@ -1178,6 +1197,12 @@ the source iterates on; the others it gives are intermediate; the
 variables no equation gives are its inputs.
 `System.evaluate` solves it by Newton's method, or by the passes of the
 source (`method="fixed-point"`); see `nomogram.systems`.
+A chain without a loop, in which no equation reads a variable before the
+equation giving it, is a system too, with no unknown and no `start`: its
+equations are solved in order, an implicit one by the search of its root,
+its relative bounds included. The threshold temperature of contrail
+formation from the slope of the mixing line and the humidity is one, its
+maximum first (Schumann 1996, equations 10 and 11).
 
 ```toml
 [systems.coare36_surface_layer]
@@ -1204,7 +1229,8 @@ reference = "coare36"
 - **`start`**: a first guess for each unknown, an expression of the
   inputs in the syntax of expressions, in the unit of the formulation
   that gives the unknown, each input in the unit of the first equation
-  that takes it; Newton's method finds the solution near it.
+  that takes it; Newton's method finds the solution near it. Not written
+  for a system without a loop.
 - **`iterations`**: the passes of the fixed point the source runs, when
   it says.
 - A system is found by its key, label, note, the names of its

@@ -950,6 +950,18 @@ def _beyond(
     return (value < below) | (value > above)
 
 
+def _beyond_relative(value: Any, other: Any, side: str, *, rounded: bool = True) -> Any:
+    """Where values lie beyond a relative bound: above ``other`` (``side``
+    ``"most"``) or below it (``"least"``), its value rounded as a finite end
+    of an interval is, unless ``rounded`` is false. NaN is never beyond."""
+    value = np.asarray(value, dtype=float)
+    other = np.asarray(other, dtype=float)
+    margin = BOUND_TOLERANCE * np.maximum(np.abs(other), 1.0) if rounded else 0.0
+    if side == "most":
+        return value > other + margin
+    return value < other - margin
+
+
 def _beyond_kind(variable: Variable, values: Any, unit: str | None = None) -> Any:
     """Where values, in ``unit`` (the variable's by default), lie beyond its kind's bounds.
 
@@ -1265,6 +1277,15 @@ class ValidityDomain:
         within 0.1 mK of the formulation it inverts), so that the fit does
         not fall out of its own range. Only a domain a source states, with
         its criterion, has one; empty otherwise.
+    at_most : mapping of str to str
+        Relative bounds: a variable (input or output) no greater than
+        another variable of the formulation, in the same unit and on the
+        same scale, by identifier (``{"T_LC": "T_LM"}``: the threshold
+        temperature of contrail formation never exceeds its maximum).
+        Closed, applied value by value; on the output of an implicit
+        equation, a physical one ends the interval its root is sought in.
+    at_least : mapping of str to str
+        The same, no less than another variable.
     """
 
     basis: DomainBasis
@@ -1274,6 +1295,8 @@ class ValidityDomain:
     tolerance: Mapping[str, tuple[float, float]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    at_most: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    at_least: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)
@@ -1855,6 +1878,57 @@ class Formulation:
             low, high = max(low, float(search[0])), min(high, float(search[1]))
         return low, high
 
+    @cached_property
+    def _relative_ends(self) -> tuple[tuple[int, str], ...]:
+        """The relative bounds of the output that end its root search.
+
+        Those of the physical domains naming an input: its index among the
+        inputs, and ``"most"`` or ``"least"``.
+        """
+        index = {v.identifier: i for i, v in enumerate(self.inputs)}
+        output = self.output.identifier
+        found = []
+        for domain in self.physical_domains:
+            for side, table in (("most", domain.at_most), ("least", domain.at_least)):
+                other = table.get(output)
+                if other in index:
+                    found.append((index[other], side))
+        return tuple(found)
+
+    def _root_at_ends(
+        self,
+        roots: Any,
+        status: Any,
+        sought: Any,
+        flat: list[Any],
+        functions: tuple[Any, Any, list[float], float],
+    ) -> None:
+        """Take as the root an end of a relative bound where the residual is zero.
+
+        A double root on that end, such as the threshold temperature of
+        contrail formation at liquid saturation (U = 1), where the mixing
+        line touches the saturation curve, has no change of sign to find:
+        it is the end itself, where the two members agree to the rounding.
+        """
+        from nomogram._roots import NONE, ONE
+
+        left, right, fixed, factor = functions
+        rows = np.flatnonzero(sought & (status == NONE))
+        if not rows.size:
+            return
+        inputs = [a[rows] for a in flat]
+        for index, _side in self._relative_ends:
+            end = inputs[index]
+            with np.errstate(all="ignore"):
+                lhs = np.asarray(left(end, *inputs, *fixed), dtype=float)
+                rhs = np.asarray(factor * right(end, *inputs, *fixed), dtype=float)
+            scale = np.maximum(np.maximum(np.abs(lhs), np.abs(rhs)), 1e-300)
+            zero = np.abs(lhs - rhs) <= 8 * np.finfo(float).eps * scale
+            open_rows = status[rows] == NONE
+            take = zero & open_rows & np.isfinite(end)
+            roots[rows[take]] = end[take]
+            status[rows[take]] = ONE
+
     def _solve(
         self,
         values: Mapping[str, Any],
@@ -1877,9 +1951,24 @@ class Formulation:
         fixed = [c.value for c in self.coefficients]
         fixed += [k.value for k in self.constants]
         factor = self._member_factor
+        ends = self._relative_ends
 
         def members(y: Any, *inputs: Any) -> tuple[Any, Any]:
-            return left(y, *inputs, *fixed), factor * right(y, *inputs, *fixed)
+            lhs, rhs = left(y, *inputs, *fixed), factor * right(y, *inputs, *fixed)
+            if not ends:
+                return lhs, rhs
+            # Beyond a relative bound of the output, no root is sought: the
+            # residual is undefined there (the root above the maximum
+            # threshold temperature of contrail formation).
+            beyond: Any = False
+            for index, side in ends:
+                # The exact end: the rounding a domain check allows for a
+                # value converted between units would let a double root
+                # slip just beyond it.
+                beyond = beyond | _beyond_relative(
+                    y, inputs[index], side, rounded=False
+                )
+            return np.where(beyond, np.nan, lhs), np.where(beyond, np.nan, rhs)
 
         arrays = [np.asarray(values[v.identifier], dtype=float) for v in self.inputs]
         shape = np.broadcast_shapes(*(a.shape for a in arrays)) if arrays else ()
@@ -1894,6 +1983,10 @@ class Formulation:
         if sought.any() and low <= high:
             got, codes = solve(members, [a[sought] for a in flat], low, high)
             flat_roots[sought], flat_status[sought] = got, codes
+            if ends:
+                self._root_at_ends(
+                    flat_roots, flat_status, sought, flat, (left, right, fixed, factor)
+                )
         elif sought.any():
             flat_status[sought] = NONE
         roots, status = flat_roots.reshape(shape), flat_status.reshape(shape)
@@ -2146,6 +2239,21 @@ class Formulation:
                 if (identifier == output) == of_output
             ]
 
+        def relative_of(domain: ValidityDomain, of_output: bool) -> Any:
+            # A relative bound belongs to the variable it bounds.
+            return [
+                (identifier, other, side)
+                for side, table in (
+                    ("most", domain.at_most),
+                    ("least", domain.at_least),
+                )
+                for identifier, other in table.items()
+                if (identifier == output) == of_output
+            ]
+
+        def bounding(domain: ValidityDomain, of_output: bool) -> bool:
+            return bool(bounds_of(domain, of_output) or relative_of(domain, of_output))
+
         def outside_all(domains: tuple[ValidityDomain, ...], of_output: bool) -> Any:
             result = np.zeros(shape, dtype=bool)
             for domain in domains:
@@ -2154,6 +2262,12 @@ class Formulation:
                         continue  # the output, not given (inputs are checked first)
                     tolerance = domain.tolerance.get(identifier, (0.0, 0.0))
                     result = result | _beyond(arrays[identifier], low, high, tolerance)
+                for identifier, other, side in relative_of(domain, of_output):
+                    if identifier not in arrays or other not in arrays:
+                        continue  # the output, not given
+                    result = result | _beyond_relative(
+                        arrays[identifier], arrays[other], side
+                    )
             return result
 
         def outside_union(of_output: bool) -> Any:
@@ -2161,7 +2275,7 @@ class Formulation:
             stating = [
                 c.domains
                 for c in self.citations
-                if any(bounds_of(d, of_output) for d in c.domains)
+                if any(bounding(d, of_output) for d in c.domains)
             ]
             if not stating:
                 return np.zeros(shape, dtype=bool)
@@ -2183,7 +2297,7 @@ class Formulation:
             # of its parts; the domains of called formulations always apply
             # to each call. The bounds of the kinds of the parts always do.
             stated = any(
-                bounds_of(d, of_output=False) for c in self.citations for d in c.domains
+                bounding(d, of_output=False) for c in self.citations for d in c.domains
             )
             if basis not in (None, "physical") and stated and not self.calls:
                 part_basis = "physical" if basis == "all" else None

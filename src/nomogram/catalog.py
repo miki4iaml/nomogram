@@ -1796,15 +1796,32 @@ class _Builder:
         result = []
         for i, item in enumerate(items or ()):
             w = f"{where}[{i}]"
-            optional = ("criterion", "reference", "tolerance")
-            f = _fields(w, item, ("bounds",), optional)
+            optional = (
+                "bounds",
+                "at_most",
+                "at_least",
+                "criterion",
+                "reference",
+                "tolerance",
+            )
+            f = _fields(w, item, (), optional)
             if reference is not None and f["reference"] is not None:
                 msg = f"{w}: unknown keys: reference"
                 raise CatalogError(msg)
-            bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
+            if f["bounds"] is None and f["at_most"] is None and f["at_least"] is None:
+                msg = f"{w}: a domain gives bounds, at_most or at_least"
+                raise CatalogError(msg)
+            bounds: Mapping[str, tuple[float, float]] = MappingProxyType({})
+            if f["bounds"] is not None:
+                bounds = self.bounds(f"{w}.bounds", f["bounds"], inputs, output)
+            at_most = self.relative_bounds(f"{w}.at_most", f["at_most"], inputs, output)
+            at_least = self.relative_bounds(
+                f"{w}.at_least", f["at_least"], inputs, output
+            )
+            bounded = {*bounds, *at_most, *at_least}
             if (
                 output is not None
-                and output.identifier in bounds
+                and output.identifier in bounded
                 and not f["criterion"]
             ):
                 msg = f"{w}: a bound on the output {output.identifier} states its criterion"
@@ -1834,9 +1851,61 @@ class _Builder:
                         else self.optional_reference(f"{w}.reference", f["reference"])
                     ),
                     tolerance=tolerance,
+                    at_most=at_most,
+                    at_least=at_least,
                 )
             )
         return tuple(result)
+
+    @staticmethod
+    def relative_bounds(
+        where: str, table: Any, inputs: tuple[Variable, ...], output: Variable | None
+    ) -> Mapping[str, str]:
+        """Relative bounds: a variable to the variable bounding it, by identifier.
+
+        Both are variables of the formulation (inputs, or the output), two
+        different ones, in the same unit and on the same scale, so that
+        their values compare as numbers.
+        """
+        if table is None:
+            return MappingProxyType({})
+        expected = "a table of variable to the variable bounding it"
+        if not isinstance(table, dict) or not table:
+            msg = f"{where}: expected {expected}"
+            raise CatalogError(msg)
+        variables = {v.identifier: v for v in (*inputs, *((output,) if output else ()))}
+        result = {}
+        for identifier, other in table.items():
+            w = f"{where}.{identifier}"
+            if not isinstance(other, str):
+                msg = f"{w}: expected the identifier of a variable"
+                raise CatalogError(msg)
+            for name in (identifier, other):
+                if name not in variables:
+                    msg = f"{w}: {name!r} is not a variable of the formulation"
+                    raise CatalogError(msg)
+            if identifier == other:
+                msg = f"{w}: a variable does not bound itself"
+                raise CatalogError(msg)
+            bounded, bounding = variables[identifier], variables[other]
+            if bounded.unit != bounding.unit:
+                msg = (
+                    f"{w}: {identifier} and {other} compare as numbers: the same "
+                    f"unit, not {bounded.unit} and {bounding.unit}"
+                )
+                raise CatalogError(msg)
+            # The same scale; a variable on none (the output of an equation)
+            # compares with one on the reference scale, where nothing is
+            # converted, as a part on none feeds an input on it.
+            scales = {bounded.scale, bounding.scale}
+            if len(scales) > 1 and not (
+                None in scales and all(s is None or s.is_reference for s in scales)
+            ):
+                names = ", ".join(sorted(getattr(s, "key", "none") for s in scales))
+                msg = f"{w}: {identifier} and {other} are on different scales: {names}"
+                raise CatalogError(msg)
+            result[identifier] = other
+        return MappingProxyType(result)
 
     def tolerance(
         self, where: str, table: Any, bounds: Mapping[str, tuple[float, float]]
@@ -3344,8 +3413,8 @@ class _Builder:
         f = _fields(
             where,
             table,
-            ("label", "equations", "start"),
-            ("iterations", "reference", "note"),
+            ("label", "equations"),
+            ("start", "iterations", "reference", "note"),
         )
         for name in ("label", "note"):
             if f[name] is not None and not isinstance(f[name], str):
@@ -3369,6 +3438,9 @@ class _Builder:
                 equations.append(Equation(formulation, bind, e["outside"]))
             except ValueError as error:
                 raise CatalogError(f"{w}: {error}") from error
+        # A system without a loop has no unknown, and no first guess.
+        if f["start"] is None:
+            f["start"] = {}
         if not isinstance(f["start"], dict):
             msg = f"{where}.start: expected a table of first guesses, by unknown"
             raise CatalogError(msg)
