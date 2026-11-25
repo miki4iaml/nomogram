@@ -235,6 +235,45 @@ def _nested(svg: str, prefix: str, x: float, y: float) -> str:
     )
 
 
+def _frame_bottom(legend: str) -> float:
+    """The bottom of the dashed frame of a legend, in points from its top:
+    the lowest point of the cluster, shifted as Graphviz shifts the graph."""
+    frame = re.search(
+        r'class="cluster">.*?<polygon[^>]*points="([^"]+)"', legend, re.DOTALL
+    )
+    shift = re.search(
+        r'class="graph" transform="[^"]*translate\(([-0-9.]+) ([-0-9.]+)\)"', legend
+    )
+    if frame is None or shift is None:
+        raise ValueError("a legend of protee is a cluster in a graph of Graphviz")
+    lowest = max(float(point.split(",")[1]) for point in frame.group(1).split())
+    return float(shift.group(2)) + lowest
+
+
+def _foot(logo: str) -> float:
+    """Where the letters of the logo stand, as a share of its height: the
+    lowest point of their strokes, round ends included."""
+    lowest = 0.0
+    for shape in re.finditer(r'<(line|circle|path) ([^>]*)class="ink"([^>]*)>', logo):
+        attributes = dict(
+            re.findall(r'([a-z0-9-]+)="([^"]*)"', shape.group(2) + shape.group(3))
+        )
+        half = float(attributes.get("stroke-width", "0")) / 2
+        if shape.group(1) == "line":
+            low = max(float(attributes["y1"]), float(attributes["y2"]))
+        elif shape.group(1) == "circle":
+            low = float(attributes["cy"]) + float(attributes["r"])
+        else:
+            low = max(
+                float(y) for y in re.findall(r"[-0-9.]+,([-0-9.]+)", attributes["d"])
+            )
+        lowest = max(lowest, low + half)
+    box = _VIEWBOX.search(logo)
+    if box is None or not lowest:
+        raise ValueError("the logo has a viewBox and letters of class ink")
+    return lowest / float(box.group(1).split()[3])
+
+
 def _logo(theme: str) -> tuple[str, float]:
     """The logo as a data URI, in the colours of the variant's background
     rather than of the reader's browser, and its width in points."""
@@ -259,13 +298,20 @@ def _logo(theme: str) -> tuple[str, float]:
 
 def compose(figure: str, legend: str, theme: str) -> str:
     """The figure, its legend below on the left and the logo below on the
-    right, in one SVG, all at the same scale."""
+    right, in one SVG, all at the same scale; the letters of the logo stand
+    on the line of the bottom of the legend's frame."""
     figure_width, figure_height = _size(figure)
     legend_width, legend_height = _size(legend)
     logo, logo_width = _logo(theme)
     width = max(figure_width, legend_width + MARGIN + logo_width)
     below = figure_height + MARGIN
-    height = below + max(legend_height, LOGO_HEIGHT)
+    logo_top = max(
+        below,
+        below
+        + _frame_bottom(legend)
+        - _foot(LOGO.read_text(encoding="utf-8")) * LOGO_HEIGHT,
+    )
+    height = max(below + legend_height, logo_top + LOGO_HEIGHT)
     background = THEMES[theme]["background"]
     root = (
         '<svg xmlns="http://www.w3.org/2000/svg" '
@@ -274,7 +320,7 @@ def compose(figure: str, legend: str, theme: str) -> str:
         f'viewBox="0 0 {width:.2f} {height:.2f}">'
     )
     image = (
-        f'<image x="{width - logo_width:.2f}" y="{height - LOGO_HEIGHT:.2f}" '
+        f'<image x="{width - logo_width:.2f}" y="{logo_top:.2f}" '
         f'width="{logo_width:.2f}" height="{LOGO_HEIGHT:.2f}" href="{logo}"/>'
     )
     parts = [
